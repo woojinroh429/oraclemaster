@@ -1,209 +1,192 @@
 # OGC 2026 — 블록 배치·스케줄링 수리계획(MIP) 모형 (v1: 단순화 버전)
 
-> 목적: 문제(The Grand Shipyard Puzzle)를 **혼합정수계획(MIP)** 으로 1차 정식화한다.
-> 이 버전은 계산량보다 **명료함**을 우선한다. 비볼록 다각형 충돌과 크레인 제약을
-> **바운딩박스(AABB) 근사 + 시간 이산화**로 보수적으로 단순화했다.
-> (근사이므로 최적성/타당성이 원문제와 완전히 동일하지는 않지만, 여기서 나온
-> 배치·시각은 원문제에서도 항상 실행가능하다 — 아래 "단순화 가정" 참고.)
+목적: 문제(The Grand Shipyard Puzzle)를 혼합정수계획(MIP)으로 1차 정식화한다.
+이 버전은 계산량보다 **명료함**을 우선한다. 비볼록 다각형 충돌과 크레인 제약을
+**바운딩박스(AABB) 근사 + 시간 이산화**로 보수적으로 단순화했다.
+(근사이므로 원문제와 완전히 동일하지는 않지만, 여기서 나온 배치·시각은 원문제에서도
+항상 실행가능하다 — 아래 "단순화 가정" 참고.)
+
+> 표기 규칙: 수식은 렌더링 없이도 읽히도록 ASCII 표기를 쓴다.
+> 아래첨자는 밑줄로 표기한다. 예: `a_ij`, `EN_i`, `x^-_i`.
 
 ---
 
 ## 1. 집합 (Sets)
 
-| 기호 | 의미 |
-|---|---|
-| $i \in N=\{1,\dots,n\}$ | 블록 |
-| $j \in M=\{1,\dots,m\}$ | 베이(bay) |
-| $o \in \{1,\dots,O_i\}$ | 블록 $i$ 의 배향(orientation) 옵션 |
-| $t \in \mathcal{T}=\{0,1,\dots,H\}$ | 이산화된 날짜(day). $H$ = 계획 지평 |
-| $(i,i') \in \mathcal{P}=\{(i,i'): i<i'\}$ | 블록 쌍 |
+| 기호        | 의미 |
+|-------------|------|
+| `i in N`    | 블록,  N = {1, ..., n} |
+| `j in M`    | 베이(bay),  M = {1, ..., m} |
+| `o in O_i`  | 블록 i의 배향(orientation) 옵션, o = 1..O_i |
+| `t in T`    | 이산화된 날짜(day),  T = {0, 1, ..., H},  H = 계획 지평 |
+| `(i,i')`    | 블록 쌍,  i < i' |
 
 ## 2. 파라미터 (Parameters)
 
-**베이/블록 기본 데이터**
+베이/블록 기본 데이터:
 
-| 기호 | 의미 |
-|---|---|
-| $W_j, H_j$ | 베이 $j$ 의 폭·높이 |
-| $R_i$ | 반입가능(release) 시각 |
-| $D_i$ | 납기(due date) |
-| $P_i$ | 처리시간(processing time) |
-| $L_i$ | 작업부하(workload) |
-| $S_{ij}$ | 블록 $i$ 를 베이 $j$ 에 배정할 때 선호도 ($\sum_j S_{ij}=100$) |
-| $S^{\max}_i=\max_j S_{ij}$ | 블록 $i$ 의 최대 선호도 |
-| $u_j=\dfrac{(\sum_{k\in M}W_kH_k)/m}{W_jH_j}$ | 베이 $j$ 의 부하 가중치(작은 베이일수록 큼) |
-| $w_1,w_2,w_3$ | 목적함수 가중치 |
+| 기호       | 의미 |
+|------------|------|
+| `W_j, H_j` | 베이 j의 폭·높이 |
+| `R_i`      | 반입가능(release) 시각 |
+| `D_i`      | 납기(due date) |
+| `P_i`      | 처리시간(processing time) |
+| `L_i`      | 작업부하(workload) |
+| `S_ij`     | 블록 i를 베이 j에 배정할 때 선호도 (블록마다 sum_j S_ij = 100) |
+| `Smax_i`   | 블록 i의 최대 선호도 = max_j S_ij |
+| `u_j`      | 베이 j의 부하 가중치 = ((sum_k W_k*H_k)/m) / (W_j*H_j),  작은 베이일수록 큼 |
+| `w1,w2,w3` | 목적함수 가중치 |
 
-**지오메트리 전처리 (핵심 단순화)** — 각 블록 $i$, 배향 $o$ 에 대해, 모든 레이어의
-모든 꼭짓점(기준점 기준 상대좌표)을 훑어 **축정렬 바운딩박스(AABB)** 를 미리 계산한다.
+지오메트리 전처리 (핵심 단순화): 각 블록 i, 배향 o에 대해, 모든 레이어의 모든
+꼭짓점(기준점 기준 상대좌표)을 훑어 **축정렬 바운딩박스(AABB)** 를 미리 계산한다.
 
-| 기호 | 의미 (기준점 대비 오프셋, 상수) |
-|---|---|
-| $\alpha^-_{io},\ \alpha^+_{io}$ | 배향 $o$ 에서 $x$ 방향 최소/최대 오프셋 |
-| $\beta^-_{io},\ \beta^+_{io}$ | 배향 $o$ 에서 $y$ 방향 최소/최대 오프셋 |
+| 기호               | 의미 (기준점 대비 오프셋, 상수) |
+|--------------------|--------------------------------|
+| `ax-_io , ax+_io`  | 배향 o에서 x방향 최소/최대 오프셋 |
+| `ay-_io , ay+_io`  | 배향 o에서 y방향 최소/최대 오프셋 |
 
-즉 기준점을 $(x_i,y_i)$ 에 두면 블록은 사각형
-$[\,x_i+\alpha^-_{io},\ x_i+\alpha^+_{io}\,]\times[\,y_i+\beta^-_{io},\ y_i+\beta^+_{io}\,]$ 를 차지한다.
-(예: prob_1 블록0, 배향0은 $\alpha^-=0,\alpha^+=5.79,\beta^-=-0.34,\beta^+=15.34$)
+즉 기준점을 (x_i, y_i)에 두면 블록은 사각형
+`[x_i + ax-_io , x_i + ax+_io] x [y_i + ay-_io , y_i + ay+_io]` 를 차지한다.
+(예: prob_1 블록0, 배향0은 ax-=0, ax+=5.79, ay-=-0.34, ay+=15.34)
 
-**Big-M 상수**: $M_x=\max_j W_j,\quad M_y=\max_j H_j,\quad$ 시간에는 $H$ 사용.
-
-**계획 지평**: $H=\max_i D_i+\sum_i P_i$ (충분히 큰 상한. 실무상 훨씬 작게 잡아도 됨).
+Big-M 상수: `Mx = max_j W_j`, `My = max_j H_j`, 시간에는 H 사용.
+계획 지평: `H = max_i D_i + sum_i P_i` (느슨한 상한. 실무상 훨씬 작게 잡아도 됨).
 
 ## 3. 결정변수 (Decision variables)
 
-| 변수 | 형 | 의미 |
-|---|---|---|
-| $a_{ij}\in\{0,1\}$ | 이진 | 블록 $i$ 를 베이 $j$ 에 배정 |
-| $v_{io}\in\{0,1\}$ | 이진 | 블록 $i$ 가 배향 $o$ 선택 |
-| $x_i,\ y_i \in \mathbb{Z}_{\ge0}$ | 정수 | 기준점 위치 (제출형식이 정수 요구) |
-| $\mathrm{EN}_i,\ \mathrm{EX}_i \in \mathbb{Z}_{\ge0}$ | 정수 | 반입(ENTRY)·반출(EXIT) 시각 |
-| $z_{it}\in\{0,1\}$ | 이진 | 블록 $i$ 가 날짜 $t$ 에 베이 안에 있음 ($\mathrm{EN}_i\le t<\mathrm{EX}_i$) |
-| $T_i \ge 0$ | 연속 | 지연(tardiness) |
-| $\sigma_{ii'},\ \tau_{ii'}\in\{0,1\}$ | 이진 | 쌍 $(i,i')$ 이 같은 베이 / 시간중첩 여부 |
-| $\delta_{ii'}\in\{0,1\}$ | 이진 | 쌍을 공간분리해야 함(같은 베이 ∧ 시간중첩) |
-| $L^{ii'},R^{ii'},B^{ii'},A^{ii'}\in\{0,1\}$ | 이진 | 분리 방향(좌/우/아래/위) 선택 |
-| $G_{\max},G_{\min}\ge0,\ Z_2\ge0$ | 연속 | 부하불균형 보조변수 |
+| 변수                         | 형   | 의미 |
+|------------------------------|------|------|
+| `a_ij`                       | 이진 | 블록 i를 베이 j에 배정 |
+| `v_io`                       | 이진 | 블록 i가 배향 o 선택 |
+| `x_i , y_i`                  | 정수 >=0 | 기준점 위치 (제출형식이 정수 요구) |
+| `EN_i , EX_i`                | 정수 >=0 | 반입(ENTRY)·반출(EXIT) 시각 |
+| `z_it`                       | 이진 | 블록 i가 날짜 t에 베이 안에 있음 (EN_i <= t < EX_i) |
+| `T_i`                        | 연속 >=0 | 지연(tardiness) |
+| `sig_ii' , tau_ii'`          | 이진 | 쌍 (i,i')이 같은 베이 / 시간중첩 여부 |
+| `del_ii'`                    | 이진 | 쌍을 공간분리해야 함 (같은 베이 그리고 시간중첩) |
+| `Lft,Rgt,Bel,Abv (_ii')`     | 이진 | 분리 방향(좌/우/아래/위) 선택 |
+| `Gmax , Gmin , Z2`           | 연속 >=0 | 부하불균형 보조변수 |
 
-**보조 선형식(정의만, 변수 아님)** — 실제 차지영역의 경계:
-$$
-x^{-}_i=x_i+\!\sum_o\alpha^-_{io}v_{io},\quad
-x^{+}_i=x_i+\!\sum_o\alpha^+_{io}v_{io},\quad
-y^{-}_i=y_i+\!\sum_o\beta^-_{io}v_{io},\quad
-y^{+}_i=y_i+\!\sum_o\beta^+_{io}v_{io}.
-$$
+보조 선형식(정의만, 새 변수 아님) — 실제 차지영역의 경계:
+
+```
+x-_i = x_i + sum_o ax-_io * v_io        (왼쪽 x 경계)
+x+_i = x_i + sum_o ax+_io * v_io        (오른쪽 x 경계)
+y-_i = y_i + sum_o ay-_io * v_io        (아래 y 경계)
+y+_i = y_i + sum_o ay+_io * v_io        (위 y 경계)
+```
 
 ## 4. 목적함수 (Objective)
 
-$$
-\min\quad w_1\underbrace{\sum_{i\in N}T_i}_{Z_1}\;+\;w_2\,Z_2\;+\;w_3\underbrace{\sum_{i\in N}\sum_{j\in M}\bigl(S^{\max}_i-S_{ij}\bigr)a_{ij}}_{Z_3}
-$$
+```
+min  w1 * Z1  +  w2 * Z2  +  w3 * Z3
 
-- $Z_1$: 총 지연
-- $Z_2$: 최대 정규화 부하불균형 (아래 (C13)–(C15))
-- $Z_3$: 총 선호도 손실
+Z1 = sum_i T_i                                  (총 지연)
+Z2 = 최대 정규화 부하불균형                       (아래 C13-C15)
+Z3 = sum_i sum_j (Smax_i - S_ij) * a_ij         (총 선호도 손실)
+```
 
 ## 5. 제약식 (Constraints)
 
 ### 5.1 배정·배향
-$$
-\sum_{j\in M} a_{ij}=1 \quad\forall i \tag{C1}
-$$
-$$
-\sum_{o=1}^{O_i} v_{io}=1 \quad\forall i \tag{C2}
-$$
-(각 블록은 정확히 한 베이·한 배향. ENTRY/EXIT 각 1회는 변수 $\mathrm{EN}_i,\mathrm{EX}_i$ 가 하나씩이므로 자동 충족.)
+
+```
+(C1)  sum_j a_ij = 1              for all i     # 정확히 한 베이
+(C2)  sum_o v_io = 1              for all i     # 정확히 한 배향
+```
+ENTRY/EXIT 각 1회는 변수 EN_i, EX_i가 하나씩이라 자동 충족.
 
 ### 5.2 시간 제약
-$$
-\mathrm{EN}_i \ge R_i \quad\forall i \tag{C3}
-$$
-$$
-\mathrm{EX}_i-\mathrm{EN}_i \ge P_i \quad\forall i \tag{C4}
-$$
 
-**점유 지시자 $z_{it}$ 연결** ( $z_{it}=1 \Leftrightarrow \mathrm{EN}_i\le t<\mathrm{EX}_i$ ):
-$$
-t \ge \mathrm{EN}_i - H\,(1-z_{it}) \quad\forall i,t \tag{C5}
-$$
-$$
-t \le \mathrm{EX}_i - 1 + H\,(1-z_{it}) \quad\forall i,t \tag{C6}
-$$
-$$
-\sum_{t\in\mathcal{T}} z_{it} = \mathrm{EX}_i-\mathrm{EN}_i \quad\forall i \tag{C7}
-$$
-> (C5)–(C6)은 "구간 밖이면 $z=0$"을, (C7)은 딱 $\mathrm{EX}_i-\mathrm{EN}_i$ 일만 켜지도록 강제한다.
-> 켜질 수 있는 자리가 구간 안뿐이므로 결과적으로 구간 전체가 정확히 1이 된다.
+```
+(C3)  EN_i >= R_i                 for all i     # release 이후 반입
+(C4)  EX_i - EN_i >= P_i          for all i     # 처리시간 확보
+```
 
-**지연**:
-$$
-T_i \ge \mathrm{EX}_i - D_i,\qquad T_i \ge 0 \quad\forall i \tag{C8}
-$$
+점유 지시자 z_it 연결  (z_it = 1  <=>  EN_i <= t < EX_i):
+
+```
+(C5)  t >= EN_i - H*(1 - z_it)        for all i,t   # z=1이면 t >= EN
+(C6)  t <= EX_i - 1 + H*(1 - z_it)    for all i,t   # z=1이면 t <= EX-1
+(C7)  sum_t z_it = EX_i - EN_i        for all i     # 켜지는 날 수 = 체류일수
+```
+(C5)-(C6)은 "구간 밖이면 z=0", (C7)은 딱 (EX-EN)일만 켜지게 강제 → 구간 전체가 정확히 1.
+
+지연:
+
+```
+(C8)  T_i >= EX_i - D_i,   T_i >= 0   for all i
+```
 
 ### 5.3 공간 제약 — 베이 포함 (Containment)
-$$
-x^{-}_i \ge 0,\qquad x^{+}_i \le \sum_{j} W_j\,a_{ij} \quad\forall i \tag{C9}
-$$
-$$
-y^{-}_i \ge 0,\qquad y^{+}_i \le \sum_{j} H_j\,a_{ij} \quad\forall i \tag{C10}
-$$
+
+```
+(C9)   x-_i >= 0,   x+_i <= sum_j W_j * a_ij     for all i
+(C10)  y-_i >= 0,   y+_i <= sum_j H_j * a_ij     for all i
+```
 
 ### 5.4 공간 제약 — 비중첩 (No-overlap, 쌍별 disjunctive)
 
-**분리 필요 여부 판별** — 같은 베이이고 시간중첩이면 $\delta=1$:
-$$
-\sigma_{ii'} \ge a_{ij}+a_{i'j}-1 \quad\forall (i,i')\in\mathcal{P},\ \forall j \tag{C11a}
-$$
-$$
-\tau_{ii'} \ge z_{it}+z_{i't}-1 \quad\forall (i,i')\in\mathcal{P},\ \forall t \tag{C11b}
-$$
-$$
-\delta_{ii'} \ge \sigma_{ii'}+\tau_{ii'}-1 \quad\forall (i,i')\in\mathcal{P} \tag{C11c}
-$$
+분리 필요 여부 판별 — 같은 베이이고 시간중첩이면 del=1:
 
-**4방향 분리 disjunction** — 분리가 필요하면 최소 한 방향이 켜져야 함:
-$$
-L^{ii'}+R^{ii'}+B^{ii'}+A^{ii'} \ge \delta_{ii'} \quad\forall (i,i')\in\mathcal{P} \tag{C12a}
-$$
-$$
-x^{+}_i \le x^{-}_{i'} + M_x\,(1-L^{ii'}) \qquad\text{(}i\text{가 }i'\text{ 왼쪽)} \tag{C12b}
-$$
-$$
-x^{+}_{i'} \le x^{-}_i + M_x\,(1-R^{ii'}) \qquad\text{(}i\text{가 }i'\text{ 오른쪽)} \tag{C12c}
-$$
-$$
-y^{+}_i \le y^{-}_{i'} + M_y\,(1-B^{ii'}) \qquad\text{(}i\text{가 }i'\text{ 아래)} \tag{C12d}
-$$
-$$
-y^{+}_{i'} \le y^{-}_i + M_y\,(1-A^{ii'}) \qquad\text{(}i\text{가 }i'\text{ 위)} \tag{C12e}
-$$
+```
+(C11a)  sig_ii' >= a_ij + a_i'j - 1     for all (i,i'), all j    # 같은 베이면 1
+(C11b)  tau_ii' >= z_it + z_i't - 1     for all (i,i'), all t    # 겹치는 날 있으면 1
+(C11c)  del_ii' >= sig_ii' + tau_ii' - 1   for all (i,i')        # 둘 다면 분리 필요
+```
 
-### 5.5 부하 불균형 $Z_2$
-베이별 가중 부하 $G_j=u_j\sum_i L_i a_{ij}$ 에 대해:
-$$
-G_{\max} \ge u_j\textstyle\sum_i L_i a_{ij} \quad\forall j \tag{C13}
-$$
-$$
-G_{\min} \le u_j\textstyle\sum_i L_i a_{ij} \quad\forall j \tag{C14}
-$$
-$$
-Z_2 \ge G_{\max}-G_{\min} \tag{C15}
-$$
-> $\max_{j_1\neq j_2}|G_{j_1}-G_{j_2}| = G_{\max}-G_{\min}$. 원식의 올림($\lceil\cdot\rceil$)은 $Z_2$ 를
-> 정수로 두면 최소화 압력에 의해 자동 처리된다(선택).
+4방향 분리 disjunction — 분리가 필요하면 최소 한 방향이 켜져야 함:
+
+```
+(C12a)  Lft + Rgt + Bel + Abv >= del_ii'          for all (i,i')
+(C12b)  x+_i  <= x-_i' + Mx*(1 - Lft_ii')          # i가 i' 왼쪽
+(C12c)  x+_i' <= x-_i  + Mx*(1 - Rgt_ii')          # i가 i' 오른쪽
+(C12d)  y+_i  <= y-_i' + My*(1 - Bel_ii')          # i가 i' 아래
+(C12e)  y+_i' <= y-_i  + My*(1 - Abv_ii')          # i가 i' 위
+```
+
+### 5.5 부하 불균형 Z2
+
+베이별 가중 부하 `G_j = u_j * sum_i L_i * a_ij` 에 대해:
+
+```
+(C13)  Gmax >= u_j * sum_i L_i * a_ij    for all j
+(C14)  Gmin <= u_j * sum_i L_i * a_ij    for all j
+(C15)  Z2   >= Gmax - Gmin
+```
+max_{j1!=j2} |G_j1 - G_j2| = Gmax - Gmin. 원식의 올림(ceil)은 Z2를 정수로 두면 최소화 압력에 의해 자동 처리(선택).
 
 ---
 
 ## 6. 단순화 가정 및 근사의 타당성
 
-1. **바운딩박스(AABB) 근사.** 비볼록 다각형 대신 각 블록을 배향별 최소 외접
-   사각형 하나로 본다. 사각형이 안 겹치면 실제 다각형(모든 레이어)도 반드시 안
-   겹치므로 **원문제에 대해 항상 실행가능(보수적)**. 대신 실제로는 배치 가능한
-   조밀한 해를 놓칠 수 있다(최적성 손실).
+1. **바운딩박스(AABB) 근사.** 비볼록 다각형 대신 각 블록을 배향별 최소 외접 사각형
+   하나로 본다. 사각형이 안 겹치면 실제 다각형(모든 레이어)도 반드시 안 겹치므로
+   원문제에 대해 항상 실행가능(보수적). 대신 조밀하게 배치 가능한 해를 놓칠 수 있다
+   (최적성 손실).
 
-2. **레이어/크레인 제약 자동 충족.** 블록을 (레이어 구분 없는) 단일 사각형으로
-   보고 *공존하는 모든 날*에 대해 비중첩을 걸었으므로, "동일 레벨 충돌"과 "크레인
-   수직 간섭"(C(i₁,l₁,·,i₂,l₂,·)=0, l₁≤l₂) 은 자동으로 만족된다. 즉 크레인 제약을
-   별도 제약식으로 넣지 않아도 된다 — v1을 단순하게 만드는 핵심 지점.
+2. **레이어/크레인 제약 자동 충족.** 블록을 (레이어 구분 없는) 단일 사각형으로 보고
+   공존하는 모든 날에 대해 비중첩을 걸었으므로, "동일 레벨 충돌"과 "크레인 수직 간섭"
+   (C(i1,l1,.,i2,l2,.)=0, l1<=l2)이 자동으로 만족된다. 즉 크레인 제약을 별도 제약식으로
+   넣지 않아도 된다 — v1을 단순하게 만드는 핵심 지점.
 
-3. **반개구간 $[\mathrm{EN}_i,\mathrm{EX}_i)$ + EXIT 우선.** 같은 날 EXIT가 ENTRY보다 먼저
-   수행된다는 규칙은 반개구간으로 자동 반영된다: $i$ 가 $t$ 에 나가고 $i'$ 가 $t$ 에
-   들어오면 두 블록은 어떤 날도 공유하지 않아 충돌 제약이 걸리지 않는다.
-   따라서 하루 안의 연산 순서를 명시적으로 모델링하지 않아도 된다(출력 시 EXIT를
-   ENTRY보다 앞에 나열).
+3. **반개구간 [EN_i, EX_i) + EXIT 우선.** 같은 날 EXIT가 ENTRY보다 먼저 수행된다는
+   규칙은 반개구간으로 자동 반영된다: i가 t에 나가고 i'가 t에 들어오면 두 블록은 어떤
+   날도 공유하지 않아 충돌 제약이 걸리지 않는다. 따라서 하루 안의 연산 순서를 명시적으로
+   모델링하지 않아도 된다(출력 시 EXIT를 ENTRY보다 앞에 나열).
 
-4. **시간 이산화.** 모든 시각 데이터가 정수이므로 날짜를 정수 격자로 둔다.
-   지평 $H$ 는 느슨한 상한이며, 인스턴스별로 $\max_i D_i + (\text{여유})$ 수준으로
-   줄이면 $z_{it}$ 수와 (C11b) 제약이 크게 감소한다.
+4. **시간 이산화.** 모든 시각 데이터가 정수이므로 날짜를 정수 격자로 둔다. 지평 H는
+   느슨한 상한이며, 인스턴스별로 (max_i D_i + 여유) 수준으로 줄이면 z_it 수와 (C11b)
+   제약이 크게 감소한다.
 
 ---
 
 ## 7. 규모 및 다음 단계 메모
 
-- 학습 인스턴스: 블록 $n=100\!\sim\!300$, 베이 $m=2\!\sim\!5$, 레이어 $K\le4$, 배향 $O\le8$.
-- 쌍별 제약 (C11b), (C12)가 $O(n^2)$, 시간 결합 (C11b)가 $O(n^2 H)$ 로 지배적.
-  → v1은 "정식화 명료화"가 목적이므로 이대로 두되, 실전 규모에서는:
-  - **시간창 프루닝**: $[R_i,\ \text{도달가능한 } \mathrm{EX}]$ 가 겹치지 않는 쌍은 (C11b)/(C12) 생략.
-  - **베이 사전배정**: 선호도/부하 기반 휴리스틱으로 $a_{ij}$ 일부 고정 후 베이별 분해.
-  - **롤링 호라이즌 / 열생성**으로 $z_{it}$ 축소.
-  - AABB 대신 **No-Fit-Polygon** 이나 격자 기반 배치로 근사를 정밀화(최적성 회복).
+- 학습 인스턴스: 블록 n = 100~300, 베이 m = 2~5, 레이어 K <= 4, 배향 O <= 8.
+- 쌍별 제약 (C11b), (C12)가 O(n^2), 시간 결합 (C11b)가 O(n^2 * H)로 지배적.
+  v1은 "정식화 명료화"가 목적이므로 이대로 두되, 실전 규모에서는:
+  - 시간창 프루닝: [R_i, 도달가능한 EX]가 겹치지 않는 쌍은 (C11b)/(C12) 생략.
+  - 베이 사전배정: 선호도/부하 기반 휴리스틱으로 a_ij 일부 고정 후 베이별 분해.
+  - 롤링 호라이즌 / 열생성으로 z_it 축소.
+  - AABB 대신 No-Fit-Polygon이나 격자 기반 배치로 근사를 정밀화(최적성 회복).
