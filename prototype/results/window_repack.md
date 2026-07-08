@@ -45,3 +45,20 @@ peak 혼잡 창의 블록들만 골라 위치를 실제 bigleft 배치기로 다
 
 ## 재현
 `sv34/run_window.py <prob.json> <build_DL> <budget> <WIN> <AMAX>` (python3.12).
+
+---
+
+## 추가: ATC(S) 디스패칭 룰도 rank 못 이김
+ATC 지수 `I_b(t)=(w_b/p_b)·exp(-max(0,d_b-p_b-t)/(k·pbar))`를 bigleft에 얹어(동적, event마다 재계산):
+
+| 순서 | prob_38 Z1 | prob_37 Z1 |
+|---|---|---|
+| **rank** | **2359** | **487** |
+| ATC k2 균등 | 2656 | — |
+| ATC k1 균등 | 2680 | — |
+| ATC 면적가중 k2 | 2497 | 590 |
+| ATC 면적가중 k3 | — | 519 |
+| ATC 면적가중 k5 | — | 527 |
+
+면적가중 ATC가 rank의 big-first를 회복해 가장 근접하나 6~7% 열세. EDD/ATC/CP-SAT/면적
+모든 디스패칭 룰이 rank를 못 이김 = rank가 고정점. (`_smallright_construct(order="atc"/"atcN"/"atcaN")` 추가.)
