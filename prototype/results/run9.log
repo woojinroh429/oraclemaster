@@ -1,0 +1,30 @@
+=== prob_1 | blocks 0..8 | bays=2 SX=5 SY=5 MAXWAIT=3 TL=60 ===
+[place] 3086 placements (342/block avg), Kmax=2, build 1.4s
+    pair blk0-blk5: 228x338 placements (conf so far 0)
+    pair blk1-blk2: 196x286 placements (conf so far 14481)
+    pair blk1-blk4: 196x486 placements (conf so far 25304)
+    pair blk1-blk7: 196x314 placements (conf so far 36136)
+    pair blk1-blk8: 196x314 placements (conf so far 46617)
+    pair blk2-blk3: 286x438 placements (conf so far 58654)
+    pair blk2-blk4: 286x486 placements (conf so far 73148)
+    pair blk2-blk7: 286x314 placements (conf so far 88616)
+    pair blk2-blk8: 286x314 placements (conf so far 103355)
+    pair blk3-blk7: 438x314 placements (conf so far 120188)
+    pair blk3-blk8: 438x314 placements (conf so far 134471)
+    pair blk4-blk7: 486x314 placements (conf so far 151944)
+    pair blk4-blk8: 486x314 placements (conf so far 167576)
+    pair blk7-blk8: 314x314 placements (conf so far 186930)
+[conf] spatial pairs tested 1474204, conflicts 203750, detect 5.3s
+[solve] status=OPTIMAL obj/1000=2327.1 time=13.2s
+[verify] 정확검증 위반 0건 → FEASIBLE
+[objective] {'Z1': 0, 'Z2': 332.16, 'Z3': 0, 'obj': 2325.1}
+  blk0: bay1 o1 (15,0) EN=0 EX=10 tard=0 prefloss=0
+  blk1: bay1 o1 (49,14) EN=25 EX=35 tard=0 prefloss=0
+  blk2: bay1 o0 (10,0) EN=35 EX=45 tard=0 prefloss=0
+  blk3: bay0 o0 (0,5) EN=41 EX=45 tard=0 prefloss=0
+  blk4: bay1 o0 (18,1) EN=31 EX=35 tard=0 prefloss=0
+  blk5: bay0 o0 (0,0) EN=3 EX=13 tard=0 prefloss=0
+  blk6: bay1 o7 (45,15) EN=16 EX=22 tard=0 prefloss=0
+  blk7: bay0 o0 (8,0) EN=39 EX=49 tard=0 prefloss=0
+  blk8: bay1 o0 (7,1) EN=34 EX=43 tard=0 prefloss=0
+[out] solution_out.json 저장

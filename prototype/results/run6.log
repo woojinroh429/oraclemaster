@@ -1,0 +1,18 @@
+=== prob_1 | blocks 0..5 | bays=2 SX=4 SY=4 MAXWAIT=3 TL=30 ===
+[place] 2882 placements (480/block avg), Kmax=2, build 0.9s
+    pair blk0-blk5: 344x484 placements (conf so far 0)
+    pair blk1-blk2: 294x400 placements (conf so far 30928)
+    pair blk1-blk4: 294x700 placements (conf so far 53799)
+    pair blk2-blk3: 400x660 placements (conf so far 75472)
+    pair blk2-blk4: 400x700 placements (conf so far 107923)
+[conf] spatial pairs tested 1033896, conflicts 139187, detect 3.7s
+[solve] status=OPTIMAL obj/1000=2917.6 time=7.0s
+[verify] 정확검증 위반 0건 → FEASIBLE
+[objective] {'Z1': 0, 'Z2': 416.63, 'Z3': 0, 'obj': 2916.4}
+  blk0: bay1 o0 (0,1) EN=0 EX=10 tard=0 prefloss=0
+  blk1: bay1 o0 (24,0) EN=25 EX=35 tard=0 prefloss=0
+  blk2: bay1 o0 (0,0) EN=35 EX=45 tard=0 prefloss=0
+  blk3: bay0 o0 (0,0) EN=40 EX=44 tard=0 prefloss=0
+  blk4: bay1 o0 (12,13) EN=31 EX=35 tard=0 prefloss=0
+  blk5: bay0 o0 (0,0) EN=3 EX=13 tard=0 prefloss=0
+[out] solution_out.json 저장
