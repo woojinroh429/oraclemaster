@@ -16,10 +16,12 @@ OGC2026 프로토타입 ②: 열생성(Column Generation, price-and-branch)
 사용: python solve_colgen.py <instance.json> [n_sub] [sx] [sy] [maxwait] [en_step] [rounds] [tl]
 """
 import sys, os, json, time, itertools
+import numpy as np
 from ortools.linear_solver import pywraplp
 from ortools.sat.python import cp_model
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from solve_setpack import build_placements, exact_check, to_solution  # 기하 재사용
+import pricing_numba as pn
 
 BIG = 10**9  # 더미(미배치) 열 비용
 
@@ -109,6 +111,23 @@ def main():
         b = inst["blocks"][i]
         en_opts[i] = list(range(b["release_time"], b["release_time"] + MAXWAIT + 1, EN_STEP))
 
+    # ---- Numba pricing 준비: 마스크 uint64 워드 팩킹 (블록당 1회) ----
+    CELLMAX = max(bb["width"] * bb["height"] for bb in inst["bays"])
+    WORDS = (CELLMAX + 63) // 64
+    HORIZON = max(inst["blocks"][i]["due_date"] for i in subset) + \
+        max(inst["blocks"][i]["processing_time"] for i in subset) + MAXWAIT + 5
+    NDAYS = HORIZON + 2
+    nbays = len(inst["bays"])
+    tpk = time.time()
+    packed = {}   # i -> (occ_w, shd_w, bay, prefloss)
+    en_np = {}
+    for i in subset:
+        packed[i] = pn.pack_block(per_block[i], Kmax, WORDS)
+        en_np[i] = np.array(en_opts[i], np.int64)
+    mu_arr = np.zeros((nbays, Kmax, NDAYS, CELLMAX + 1), np.float64)
+    print(f"[numba] pack {time.time()-tpk:.1f}s, CELLMAX={CELLMAX} WORDS={WORDS} NDAYS={NDAYS}",
+          flush=True)
+
     # ---- 마스터 LP (GLOP) ----
     s = pywraplp.Solver.CreateSolver("GLOP")
     s.SuppressOutput()
@@ -164,46 +183,42 @@ def main():
 
     # ---- 열생성 루프 ----
     for rnd in range(ROUNDS):
+        tr = time.time()
         st = s.Solve()
+        t_lp = time.time() - tr
         if st != pywraplp.Solver.OPTIMAL:
             print(f"  round {rnd}: LP status {st} (계속)", flush=True)
         pi = {i: assign_ct[i].dual_value() for i in subset}
-        # mu 를 (bay,L,day)->{bit:val} 로 정리 (음수만 의미)
-        mu_by = {}
+        # μ dense 배열 채우기 (음수 듀얼만) — Numba 커널 입력
+        mu_arr.fill(0.0)
         for key, ct in cell_ct.items():
             d = ct.dual_value()
             if d < -1e-9:
-                mu_by.setdefault((key[0], key[1], key[2]), {})[key[3]] = d
+                mu_arr[key[0], key[1] - 1, key[2], key[3]] = d
 
         added = 0
         for i in subset:
             P = inst["blocks"][i]["processing_time"]
-            cands = []  # (rc, p, EN, EX)  감축비용 음수인 후보들
-            for p in per_block[i]:
+            due = inst["blocks"][i]["due_date"]
+            occ_w, shd_w, bayarr, prefloss = packed[i]
+            # Numba: 블록의 (배치 × EN) 감축비용 rc 일괄계산
+            rcmat = pn.price_block(occ_w, shd_w, bayarr, prefloss, en_np[i],
+                                   P, due, float(W["w1"]), float(W["w3"]),
+                                   float(pi[i]), mu_arr)
+            plist = per_block[i]; enlist = en_opts[i]
+            cands = []  # (rc, p, EN, EX)
+            for k in range(len(plist)):
+                p = plist[k]
                 if "fp" not in p:                       # 발자국(레이어 합) 캐시 1회
                     fp = 0
                     for L in range(1, Kmax + 1):
                         fp |= p["occ"][L]
                     p["fp"] = fp
                     p["fpc"] = bin(fp).count("1")
-                for EN in en_opts[i]:
-                    EX = EN + P
-                    tard = max(0, EX - inst["blocks"][i]["due_date"])
-                    cost = W["w1"] * tard + W["w3"] * p["prefloss"]
-                    smu = 0.0
-                    for day in range(EN, EX):
-                        boundary = (day == EN or day == EX - 1)
-                        for L in range(1, Kmax + 1):
-                            dd = mu_by.get((p["bay"], L, day))
-                            if not dd:
-                                continue
-                            mask = p["shadow"][L] if boundary else p["occ"][L]
-                            for bit, val in dd.items():
-                                if (mask >> bit) & 1:
-                                    smu += val
-                    rc = cost - pi[i] - smu
+                for e in range(len(enlist)):
+                    rc = rcmat[k, e]
                     if rc < -1e-6:
-                        cands.append((rc, p, EN, EX))
+                        cands.append((rc, p, enlist[e], enlist[e] + P))
             # ⑦ top-k + NMS: 최선은 항상 채택, 차선은 시공간 겹침 30% 초과면 스킵
             cands.sort(key=lambda c: c[0])
             selected = []
@@ -221,9 +236,9 @@ def main():
                 added += 1
                 if len(selected) >= TOPK:
                     break
-        if rnd % 5 == 0 or added == 0:
-            print(f"  round {rnd}: LP obj={s.Objective().Value():.0f} cols={len(cols)} "
-                  f"cells={len(cell_ct)} added={added}", flush=True)
+        print(f"  round {rnd}: LP obj={s.Objective().Value():.0f} cols={len(cols)} "
+              f"cells={len(cell_ct)} added={added} | LP {t_lp:.1f}s price {time.time()-tr-t_lp:.1f}s",
+              flush=True)
         if added == 0:
             print(f"[cg] LP 최적 (음의 감축비용 없음) at round {rnd}, "
                   f"LP obj={s.Objective().Value():.0f}", flush=True)
