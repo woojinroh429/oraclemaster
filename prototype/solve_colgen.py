@@ -79,6 +79,107 @@ def greedy_seed(inst, subset, per_block, Kmax):
     return placed
 
 
+def find_bad_blocks(inst, chosen):
+    """정확검증(shapely)에서 위반에 연루된 블록 id 집합을 반환."""
+    from shapely.geometry import Polygon
+    bays = inst["bays"]; bad = set()
+
+    def plp(c, L):
+        b = inst["blocks"][c["i"]]
+        if L > len(b["shape"][c["o"]]["layers"]):
+            return None
+        return Polygon([(vx + c["x"], vy + c["y"]) for vx, vy in
+                        b["shape"][c["o"]]["layers"][L - 1]])
+
+    for c in chosen:                                  # 컨테인먼트/시간
+        b = inst["blocks"][c["i"]]
+        W, H = bays[c["bay"]]["width"], bays[c["bay"]]["height"]
+        if c["EN"] < b["release_time"] or c["EX"] - c["EN"] < b["processing_time"]:
+            bad.add(c["i"])
+        for L in range(1, len(b["shape"][c["o"]]["layers"]) + 1):
+            mnx, mny, mxx, mxy = plp(c, L).bounds
+            if mnx < -1e-6 or mny < -1e-6 or mxx > W + 1e-6 or mxy > H + 1e-6:
+                bad.add(c["i"])
+    for a, b in itertools.combinations(chosen, 2):    # 충돌/크레인
+        if a["bay"] != b["bay"]:
+            continue
+        lo, hi = max(a["EN"], b["EN"]), min(a["EX"], b["EX"])
+        Ka = len(inst["blocks"][a["i"]]["shape"][a["o"]]["layers"])
+        Kb = len(inst["blocks"][b["i"]]["shape"][b["o"]]["layers"])
+        if lo < hi:
+            for L in range(1, min(Ka, Kb) + 1):
+                if plp(a, L).intersection(plp(b, L)).area > 1e-6:
+                    bad.add(a["i"]); bad.add(b["i"])
+        for (mv, ot, Km, Ko) in ((a, b, Ka, Kb), (b, a, Kb, Ka)):
+            for t in (mv["EN"], mv["EX"] - 1):
+                if ot["EN"] <= t < ot["EX"]:
+                    for l1 in range(1, Km + 1):
+                        for l2 in range(l1, Ko + 1):
+                            if plp(mv, l1).intersection(plp(ot, l2)).area > 1e-6:
+                                bad.add(mv["i"]); bad.add(ot["i"])
+    return bad
+
+
+def repair(inst, chosen, per_block_safe, Kmax):
+    """위반 블록을 빼고, 보수적(θ0) 마스크로 grid(유지블록)를 만든 뒤 재배치.
+       보수적 마스크라 mask-disjoint ⇒ polygon-disjoint → 재배치분은 실행가능 보장.
+       공간이 없으면 시간을 미룸(지연↑). 반환: 수리된 chosen."""
+    bad = find_bad_blocks(inst, chosen)
+    if not bad:
+        return chosen, 0
+    kept = [c for c in chosen if c["i"] not in bad]
+
+    def safe_p(i, bay, o, x, y):                        # per_block_safe 에서 동일 배치 찾기
+        for p in per_block_safe[i]:
+            if p["bay"] == bay and p["o"] == o and p["x"] == x and p["y"] == y:
+                return p
+        return None
+
+    grid = {}
+    for c in kept:                                      # 유지블록의 보수적 shadow 예약
+        p = safe_p(c["i"], c["bay"], c["o"], c["x"], c["y"])
+        if p is None:
+            continue
+        for day in range(c["EN"], c["EX"]):
+            for L in range(1, Kmax + 1):
+                key = (c["bay"], L, day)
+                grid[key] = grid.get(key, 0) | p["shadow"][L]
+
+    horizon = max(inst["blocks"][i]["due_date"] for i in range(len(inst["blocks"]))) + 60
+    repaired = []
+    for i in sorted(bad, key=lambda i: inst["blocks"][i]["due_date"]):
+        b = inst["blocks"][i]; P = b["processing_time"]; R = b["release_time"]
+        prefbay = b["bay_preferences"].index(max(b["bay_preferences"]))
+        plist = sorted(per_block_safe[i], key=lambda q: (q["bay"] != prefbay, q["x"], q["y"]))
+        found = None
+        for EN in range(R, horizon - P):
+            EX = EN + P
+            for p in plist:
+                ok = True
+                for day in range(EN, EX):
+                    for L in range(1, Kmax + 1):
+                        if p["shadow"][L] & grid.get((p["bay"], L, day), 0):
+                            ok = False; break
+                    if not ok:
+                        break
+                if ok:
+                    found = (p, EN, EX); break
+            if found:
+                break
+        if found is None:
+            return None, len(bad)
+        p, EN, EX = found
+        for day in range(EN, EX):
+            for L in range(1, Kmax + 1):
+                key = (p["bay"], L, day)
+                grid[key] = grid.get(key, 0) | p["shadow"][L]
+        repaired.append(dict(i=i, bay=p["bay"], o=p["o"], x=p["x"], y=p["y"],
+                             EN=EN, EX=EX, tard=max(0, EX - b["due_date"]),
+                             prefloss=max(b["bay_preferences"]) - b["bay_preferences"][p["bay"]],
+                             workload=b["workload"]))
+    return kept + repaired, len(bad)
+
+
 def main():
     path = sys.argv[1]
     n_sub = int(sys.argv[2]) if len(sys.argv) > 2 else 12
@@ -296,8 +397,24 @@ def main():
     print(f"[verify] 정확검증 위반 {len(errs)}건" +
           (f" (예: {errs[:3]})" if errs else " → FEASIBLE"), flush=True)
     print(f"[objective] {obj}", flush=True)
+
+    # ---- repair 루프: 위반 있으면 보수적(θ0) 마스크로 위반 블록 재배치 ----
+    if errs:
+        tr = time.time()
+        print("[repair] 위반 발생 → θ0(보수) 마스크로 재배치 준비 중...", flush=True)
+        per_block_safe, _ = build_placements(inst, subset, SX, SY, 0.0)  # 안전 마스크
+        new_chosen, nbad = repair(inst, chosen, per_block_safe, Kmax)
+        if new_chosen is None:
+            print(f"[repair] 재배치 실패(공간부족) — 원해 유지", flush=True)
+        else:
+            errs2, obj2 = exact_check(inst, new_chosen)
+            print(f"[repair] {nbad}블록 재배치, {time.time()-tr:.1f}s → 위반 {len(errs2)}건"
+                  + (" → FEASIBLE" if not errs2 else f" (예:{errs2[:2]})"), flush=True)
+            print(f"[repair] 수리후 objective: {obj2}", flush=True)
+            if not errs2:
+                chosen, obj = new_chosen, obj2
     json.dump(to_solution(chosen), open("colgen_out.json", "w"), indent=1)
-    print("[out] colgen_out.json", flush=True)
+    print(f"[final] objective={obj}  → colgen_out.json", flush=True)
 
 
 if __name__ == "__main__":
