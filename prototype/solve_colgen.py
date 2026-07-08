@@ -97,10 +97,13 @@ def main():
         cols.append(dict(i=i, p=p, EN=EN, EX=EX, tard=tard, cost=cost, cells=cl, var=var))
     s.Objective().SetMinimization()
 
-    # 더미(미배치) 열 + 초기 시드(블록당 몇 개 배치×EN)
+    # 더미(미배치) 열. Big-M 은 '실제 열 최대비용의 몇 배'로 (과대한 1e9는 LP 수치불안정 유발).
+    maxdue = max(inst["blocks"][i]["due_date"] for i in subset)
+    BIGM = 10.0 * (W["w1"] * maxdue + W["w3"] * 100)
+    print(f"[bigM] {BIGM:.3g}", flush=True)
     for i in subset:
         dvar = s.NumVar(0, s.infinity(), f"dummy{i}")
-        s.Objective().SetCoefficient(dvar, float(BIG))
+        s.Objective().SetCoefficient(dvar, float(BIGM))
         assign_ct[i].SetCoefficient(dvar, 1)
         seeds = per_block[i][::max(1, len(per_block[i]) // 4)][:4]  # 위치 몇 개 분산
         for p in seeds:
