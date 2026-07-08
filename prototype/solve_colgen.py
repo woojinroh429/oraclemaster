@@ -120,21 +120,40 @@ def find_bad_blocks(inst, chosen):
     return bad
 
 
-def repair(inst, chosen, per_block_safe, Kmax):
-    """위반 블록을 빼고, 보수적(θ0) 마스크로 grid(유지블록)를 만든 뒤 재배치.
-       보수적 마스크라 mask-disjoint ⇒ polygon-disjoint → 재배치분은 실행가능 보장.
-       공간이 없으면 시간을 미룸(지연↑). 반환: 수리된 chosen."""
+def repair(inst, chosen, per_block_safe, Kmax, expand=False, cap=25):
+    """repair: 위반 블록(+expand시 이웃)을 빼서 보수적(θ0) 마스크로 지연최소 재배치.
+       주의(실측): 이웃 확장(expand=True)을 '탐욕' 재배치와 결합하면 대상만 늘어
+       오히려 지연↑ (576k→979k). 이득 내려면 뺀 이웃을 '최적화'로 재해결해야 함.
+       그래서 기본은 단순 repair(expand=False, 위반 블록만). 반환: (수리 chosen, 재배치수)."""
     bad = find_bad_blocks(inst, chosen)
     if not bad:
         return chosen, 0
-    kept = [c for c in chosen if c["i"] not in bad]
+    orig = {c["i"]: c for c in chosen}
 
-    def safe_p(i, bay, o, x, y):                        # per_block_safe 에서 동일 배치 찾기
+    # 이웃 확장: bad 와 같은 베이·시간겹침·x근접(≤20) 인 kept 블록도 재배치 대상에
+    remove = set(bad)
+    if expand:
+        cand = []
+        for c in chosen:
+            if c["i"] in bad:
+                continue
+            for bi in bad:
+                bc = orig[bi]
+                if (c["bay"] == bc["bay"] and c["EN"] < bc["EX"] and bc["EN"] < c["EX"]
+                        and abs(c["x"] - bc["x"]) <= 20):
+                    cand.append(c["i"]); break
+        for i in cand:                                  # cap 한도 내에서 이웃 추가
+            if len(remove) >= cap:
+                break
+            remove.add(i)
+
+    def safe_p(i, bay, o, x, y):
         for p in per_block_safe[i]:
             if p["bay"] == bay and p["o"] == o and p["x"] == x and p["y"] == y:
                 return p
         return None
 
+    kept = [c for c in chosen if c["i"] not in remove]
     grid = {}
     for c in kept:                                      # 유지블록의 보수적 shadow 예약
         p = safe_p(c["i"], c["bay"], c["o"], c["x"], c["y"])
@@ -147,12 +166,17 @@ def repair(inst, chosen, per_block_safe, Kmax):
 
     horizon = max(inst["blocks"][i]["due_date"] for i in range(len(inst["blocks"]))) + 60
     repaired = []
-    for i in sorted(bad, key=lambda i: inst["blocks"][i]["due_date"]):
+    # 재배치 순서: 납기 임박 우선 → 지연 크리티컬한 블록이 먼저 좋은 자리
+    for i in sorted(remove, key=lambda i: inst["blocks"][i]["due_date"]):
         b = inst["blocks"][i]; P = b["processing_time"]; R = b["release_time"]
         prefbay = b["bay_preferences"].index(max(b["bay_preferences"]))
-        plist = sorted(per_block_safe[i], key=lambda q: (q["bay"] != prefbay, q["x"], q["y"]))
+        x0 = orig[i]["x"]; bay0 = orig[i]["bay"]
+        # 자리 후보: 선호베이·원위치 근접 우선으로 정렬(동률 지연시 변위 최소)
+        plist = sorted(per_block_safe[i],
+                       key=lambda q: (q["bay"] != prefbay, abs(q["x"] - x0)
+                                      if q["bay"] == bay0 else 999, q["y"]))
         found = None
-        for EN in range(R, horizon - P):
+        for EN in range(R, horizon - P):                # EN 오름차 = 지연 최소
             EX = EN + P
             for p in plist:
                 ok = True
@@ -167,7 +191,7 @@ def repair(inst, chosen, per_block_safe, Kmax):
             if found:
                 break
         if found is None:
-            return None, len(bad)
+            return None, len(remove)
         p, EN, EX = found
         for day in range(EN, EX):
             for L in range(1, Kmax + 1):
@@ -177,7 +201,7 @@ def repair(inst, chosen, per_block_safe, Kmax):
                              EN=EN, EX=EX, tard=max(0, EX - b["due_date"]),
                              prefloss=max(b["bay_preferences"]) - b["bay_preferences"][p["bay"]],
                              workload=b["workload"]))
-    return kept + repaired, len(bad)
+    return kept + repaired, len(remove)
 
 
 def main():
