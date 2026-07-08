@@ -26,20 +26,24 @@ def aabb_offsets(block, o):
     return min(xs), max(xs), min(ys), max(ys)
 
 
-def rasterize_mask(poly, W):
-    """보수적 래스터화: 다각형과 양(+)의 면적으로 겹치는 단위셀을 켠 비트마스크(int)."""
+def rasterize_mask(poly, W, theta=0.0):
+    """래스터화: 단위셀 중 다각형이 (면적기준) theta 초과로 덮는 셀만 켠 비트마스크.
+       theta=0 → 조금이라도 닿으면 점유(보수적/안전, mask-disjoint ⇒ polygon-disjoint).
+       theta>0 → 가장자리 셀 제거로 발자국 축소(덜 보수적) → 조밀배치↑ 이나 안전보장 상실
+                 (mask-disjoint 여도 원본 겹칠 수 있음 → 최종 정확검증/수리 필요)."""
     minx, miny, maxx, maxy = poly.bounds
     m = 0
     for cx in range(int(minx // 1) - 1, int(maxx // 1) + 2):
         for cy in range(int(miny // 1) - 1, int(maxy // 1) + 2):
-            if poly.intersection(box(cx, cy, cx + 1, cy + 1)).area > 1e-9:
+            if poly.intersection(box(cx, cy, cx + 1, cy + 1)).area > theta + 1e-9:
                 m |= (1 << (cy * W + cx))
     return m
 
 
 # ---------- 공간 배치(placement) 열거 ----------
-def build_placements(inst, subset, SX, SY):
-    """(블록,배향,베이)당 1회 래스터화(anchor) 후 위치이동은 비트 시프트."""
+def build_placements(inst, subset, SX, SY, theta=0.0):
+    """(블록,배향,베이)당 1회 래스터화(anchor) 후 위치이동은 비트 시프트.
+       theta: 래스터화 보수성 knob (rasterize_mask 참고)."""
     bays = inst["bays"]
     Kmax = max(len(inst["blocks"][i]["shape"][0]["layers"]) for i in subset)
     per_block = {}
@@ -62,7 +66,7 @@ def build_placements(inst, subset, SX, SY):
                     if L <= K:
                         pl = Polygon([(vx + xlo, vy + ylo) for vx, vy in
                                       b["shape"][o]["layers"][L - 1]])
-                        base[L] = rasterize_mask(pl, W)
+                        base[L] = rasterize_mask(pl, W, theta)
                     else:
                         base[L] = 0
                 for x in range(xlo, xhi + 1, SX):

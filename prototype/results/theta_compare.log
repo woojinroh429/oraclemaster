@@ -1,0 +1,18 @@
+########## THETA=0.0 ##########
+[raster] theta=0.0 avg L1 footprint cells=45.9
+[cg] LP 최적 (음의 감축비용 없음) at round 6, LP obj=0
+[int] status=OPTIMAL obj/1000=529.7 time=0.7s
+[verify] 정확검증 위반 0건 → FEASIBLE
+[objective] {'Z1': 0, 'Z2': 75.01, 'Z3': 0, 'obj': 525.1}
+########## THETA=0.25 ##########
+[raster] theta=0.25 avg L1 footprint cells=36.4
+[cg] LP 최적 (음의 감축비용 없음) at round 5, LP obj=0
+[int] status=OPTIMAL obj/1000=886.6 time=0.5s
+[verify] 정확검증 위반 0건 → FEASIBLE
+[objective] {'Z1': 0, 'Z2': 13.04, 'Z3': 4, 'obj': 891.3}
+########## THETA=0.5 ##########
+[raster] theta=0.5 avg L1 footprint cells=31.3
+[cg] LP 최적 (음의 감축비용 없음) at round 4, LP obj=0
+[int] status=OPTIMAL obj/1000=529.7 time=0.5s
+[verify] 정확검증 위반 11건 (예: ['충돌 blk3-blk14 L1', '충돌 blk3-blk14 L2', '크레인 blk3(L1)-blk14(L1)'])
+[objective] {'Z1': 0, 'Z2': 75.01, 'Z3': 0, 'obj': 525.1}
