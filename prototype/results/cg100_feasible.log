@@ -1,0 +1,9 @@
+=== prob_1 | blocks 0..99 | bays=2 SX=5 SY=4 MAXWAIT=4 EN_STEP=1 THETA=0.0 ===
+[place] 43490 spatial placements (434/block), Kmax=2, build 14.9s
+[greedy] 시드 100블록 배치 성공, greedy 총지연 Z1=32, 0.3s
+[init] seed columns 900
+  round 0: LP obj=0 cols=1628 cells=184282 added=728
+[int] status=OPTIMAL obj/1000=1085069.2 time=9.0s
+[verify] 정확검증 위반 0건 → FEASIBLE
+[objective] {'Z1': 32, 'Z2': 483.17, 'Z3': 754, 'obj': 1085094.2}
+EXIT=0

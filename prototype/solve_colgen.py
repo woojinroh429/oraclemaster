@@ -39,6 +39,44 @@ def cells_of(p, EN, EX, Kmax):
     return out
 
 
+def greedy_seed(inst, subset, per_block, Kmax):
+    """① 무충돌 배치 1벌을 직접 구성(EDD 순, 비트마스크 fit-검사). 크레인 안전을 위해
+       각 블록의 수직그림자(shadow)를 체류기간 내내 예약 → 보수적이지만 실행가능 보장.
+       반환: [(i, p, EN)] (정수해가 절대 INFEASIBLE 안 나게 하는 시드 열). 실패 시 None."""
+    order = sorted(subset, key=lambda i: inst["blocks"][i]["due_date"])
+    grid = {}   # (bay,L,day) -> 누적 예약 마스크
+    horizon = max(inst["blocks"][i]["due_date"] for i in subset) + 40
+    placed = []
+    for i in order:
+        b = inst["blocks"][i]; P = b["processing_time"]; R = b["release_time"]
+        prefbay = b["bay_preferences"].index(max(b["bay_preferences"]))
+        plist = sorted(per_block[i], key=lambda q: (q["bay"] != prefbay, q["x"], q["y"]))
+        found = None
+        for EN in range(R, horizon - P):
+            EX = EN + P
+            for p in plist:
+                ok = True
+                for day in range(EN, EX):
+                    for L in range(1, Kmax + 1):
+                        if p["shadow"][L] & grid.get((p["bay"], L, day), 0):
+                            ok = False; break
+                    if not ok:
+                        break
+                if ok:
+                    found = (p, EN, EX); break
+            if found:
+                break
+        if not found:
+            return None
+        p, EN, EX = found
+        for day in range(EN, EX):
+            for L in range(1, Kmax + 1):
+                key = (p["bay"], L, day)
+                grid[key] = grid.get(key, 0) | p["shadow"][L]
+        placed.append((i, p, EN))
+    return placed
+
+
 def main():
     path = sys.argv[1]
     n_sub = int(sys.argv[2]) if len(sys.argv) > 2 else 12
@@ -49,6 +87,7 @@ def main():
     ROUNDS = int(sys.argv[7]) if len(sys.argv) > 7 else 40
     TL = int(sys.argv[8]) if len(sys.argv) > 8 else 60
     THETA = float(sys.argv[9]) if len(sys.argv) > 9 else 0.0
+    TOPK = int(sys.argv[10]) if len(sys.argv) > 10 else 6
     inst = json.load(open(path))
     subset = list(range(min(n_sub, len(inst["blocks"]))))
     W = inst["weights"]
@@ -109,6 +148,18 @@ def main():
         for p in seeds:
             for EN in en_opts[i][:2]:
                 add_column(i, p, EN)
+    # ① greedy feasibility 시드: 무충돌 1벌을 열로 추가 → 정수 INFEASIBLE 방지
+    tg = time.time()
+    gseed = greedy_seed(inst, subset, per_block, Kmax)
+    if gseed is None:
+        print("[greedy] 실패(공간부족?) — 시드 없이 진행", flush=True)
+    else:
+        gt = sum(max(0, EN + inst["blocks"][i]["processing_time"] - inst["blocks"][i]["due_date"])
+                 for (i, p, EN) in gseed)
+        for (i, p, EN) in gseed:
+            add_column(i, p, EN)
+        print(f"[greedy] 시드 {len(gseed)}블록 배치 성공, greedy 총지연 Z1={gt}, "
+              f"{time.time()-tg:.1f}s", flush=True)
     print(f"[init] seed columns {len(cols)}", flush=True)
 
     # ---- 열생성 루프 ----
@@ -126,10 +177,17 @@ def main():
 
         added = 0
         for i in subset:
-            best = None  # (rc, p, EN)
+            P = inst["blocks"][i]["processing_time"]
+            cands = []  # (rc, p, EN, EX)  감축비용 음수인 후보들
             for p in per_block[i]:
+                if "fp" not in p:                       # 발자국(레이어 합) 캐시 1회
+                    fp = 0
+                    for L in range(1, Kmax + 1):
+                        fp |= p["occ"][L]
+                    p["fp"] = fp
+                    p["fpc"] = bin(fp).count("1")
                 for EN in en_opts[i]:
-                    EX = EN + inst["blocks"][i]["processing_time"]
+                    EX = EN + P
                     tard = max(0, EX - inst["blocks"][i]["due_date"])
                     cost = W["w1"] * tard + W["w3"] * p["prefloss"]
                     smu = 0.0
@@ -144,11 +202,25 @@ def main():
                                 if (mask >> bit) & 1:
                                     smu += val
                     rc = cost - pi[i] - smu
-                    if best is None or rc < best[0]:
-                        best = (rc, p, EN)
-            if best and best[0] < -1e-6:
-                add_column(i, best[1], best[2])
+                    if rc < -1e-6:
+                        cands.append((rc, p, EN, EX))
+            # ⑦ top-k + NMS: 최선은 항상 채택, 차선은 시공간 겹침 30% 초과면 스킵
+            cands.sort(key=lambda c: c[0])
+            selected = []
+            for (rc, p, EN, EX) in cands:
+                dup = False
+                for (sp, sEN, sEX) in selected:
+                    if EN < sEX and sEN < EX and sp["bay"] == p["bay"]:  # 시간겹침 & 같은베이
+                        if (bin(p["fp"] & sp["fp"]).count("1") / max(1, p["fpc"])) > 0.3:
+                            dup = True
+                            break
+                if dup:
+                    continue
+                add_column(i, p, EN)
+                selected.append((p, EN, EX))
                 added += 1
+                if len(selected) >= TOPK:
+                    break
         if rnd % 5 == 0 or added == 0:
             print(f"  round {rnd}: LP obj={s.Objective().Value():.0f} cols={len(cols)} "
                   f"cells={len(cell_ct)} added={added}", flush=True)
