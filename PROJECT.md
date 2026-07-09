@@ -388,3 +388,23 @@ mode="freespan" 추가 (prototype/myalgorithm_freespan_research.py).
 ### 다음 (미정)
 freespan을 v37 best-of에 추가 + 밀도게이팅 -> full-solver A/B로 배포이득 확인. 단 모드 추가는
 4코어 예산 경합이라 이득 대비 신중히. prob_24류(저-중밀도 0.6, 실지각 있음)가 freespan 최적 타겟.
+
+---
+
+## v38 시도: freespan을 밀도-게이팅 best-of에 통합 -> freespan은 full-solver서 무효(illusion #5)
+v37(코너-primary, n<=160)에 freespan을 density-ordered로 추가: ratio<0.75 -> [freespan,cornerTL,BL,TR],
+ratio>=0.75 -> 4코너. full-solver A/B(v36 vs v38, tl=50):
+| inst | ratio | Δobj | 판정 |
+|---|---|---|---|
+| prob_21 | 0.779 | +6.28% | 코너밴드 OK (v37급) |
+| prob_25 | 1.285 | +5.86% | OK |
+| prob_28 | 0.878 | +3.61% | OK |
+| prob_24 | 0.602 | 0.00% | ★ v37은 +3.86% -> freespan밴드 회귀 |
+=> 코너밴드(>=0.75)는 v37급. freespan밴드(<0.75)가 prob_24서 v37 이득 상실. freespan 구성이득(+16%)이
+   full-solver 전이 실패(5번째 함정)+cornerBR드롭 손해. => freespan 폐기.
+
+## ★ 최종 결론 (밀도별 대표 배치)
+- 저밀도(<0.6): bigleft (공간 무제약, corner/freespan은 Z2/Z3 손해)
+- 중밀도(0.6~1.15): cornerTL(코너 best-of) = **v37**, 검증 배포이득 +3.6~5.5%(6.3%), 무회귀, bigleft속도
+- 고밀도(>1.15): bigleft (물리 벽, near-optimal)
+=> 중밀도 최종답 = v37. 단일규칙 일반화 없음(freespan도 혼돈적). 밀도게이팅 best-of가 정답이고 v37이 그것.
