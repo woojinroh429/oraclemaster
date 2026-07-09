@@ -1,0 +1,15 @@
+prob_21	n=100	ratio=0.779	refine=0	feasible=True	Z1=51	obj=1417883	45s
+prob_21	n=100	ratio=0.779	refine=0	feasible=True	Z1=51	obj=1417883	45s
+prob_23	n=100	ratio=0.859	refine=0	feasible=True	Z1=174	obj=2822633	45s
+prob_23	n=100	ratio=0.859	refine=0	feasible=True	Z1=174	obj=2822633	45s
+prob_24	n=100	ratio=0.602	refine=0	feasible=True	Z1=3	obj=993419	45s
+prob_24	n=100	ratio=0.602	refine=0	feasible=True	Z1=3	obj=970289	45s
+prob_25	n=100	ratio=1.285	refine=0	feasible=True	Z1=331	obj=284137	45s
+prob_25	n=100	ratio=1.285	refine=0	feasible=True	Z1=331	obj=284137	45s
+prob_26	n=150	ratio=1.000	refine=0	feasible=True	Z1=531	obj=8062525	45s
+prob_26	n=150	ratio=1.000	refine=0	feasible=True	Z1=531	obj=8062525	45s
+prob_28	n=150	ratio=0.878	refine=0	feasible=True	Z1=87	obj=2802735	45s
+prob_28	n=150	ratio=0.878	refine=0	feasible=True	Z1=87	obj=2802735	45s
+prob_38	n=250	ratio=1.572	refine=0	feasible=True	Z1=2629	obj=37825961	45s
+prob_38	n=250	ratio=1.572	refine=0	feasible=True	Z1=2629	obj=37825961	45s
+=== DONE ===

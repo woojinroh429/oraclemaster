@@ -274,3 +274,41 @@ window-LNS 3100069 -> **실solver 2822633**. prob_24 1246567 -> 1072796 -> **970
 통합 전량 revert -> sv34/myalgorithm.py == v36 (md5 69608284..., byte-identical). 제출은 v36 유지.
 prototype/rr/{rr,ab_alns,iter_lns,ab_full}.py 는 기록용 보존. regret recreate 자체는
 greedy를 이기지만(발견1), 실 ALNS가 이미 그 이득을 취해서 추가 가치 없음.
+
+---
+
+## 전 방향(8-direction) 연구 & full-solver 비교 (사용자 요청) — 2026-07-09
+
+### 8방향 (flatness h primary + directional secondary)
+wall: bigleft, bigright, bigbottom, bigtop / corner: cornerBL, cornerBR, cornerTL, cornerTR.
+기존 v36엔 bigleft/right/top/bottom(flatbl)/BL(diagonal)만 -> cornerBR/TL/TR 신규 추가(연구용 copy).
+prototype/dirs_modes.txt(코드), dsweep.py(구성스윕), abdir.py(seed->ALNS), ab_full(풀솔버 A/B).
+
+### construction 스윕 (Z1, 순서=rank 고정) — 신규 corner가 중밀도서 자주 승
+| inst | ratio | bigleft | 승자 | 이득 |
+|---|---|---|---|---|
+| prob_25 | 1.285 | 366 | cornerTL 314 | -14% |
+| prob_26 | 1.000 | 605 | cornerTR 486 | -20% |
+| prob_28 | 0.878 | 87 | cornerBL 74 | -15% |
+| prob_30 | 0.903 | 208 | cornerTL 187 | -10% |
+| prob_24 | 0.602 | 9 | bigright 0 | Z1->0 |
+| prob_21/22/23 | 저~중 | 승 | (bigleft/bigbottom) | 0 |
+=> 방향승자는 혼돈적(인스턴스별), 신규 cornerTL/TR/BL이 prior 4-mode가 놓친 중밀도 승 다수.
+abdir(prob_25): cornerTL seed 272465 ->ALNS 272465 (ALNS 정체) -> bigleft 318659 대비 -14.5% 생존.
+=> 고립/구성단계선 방향이 진짜 이득 (window-LNS와 달리 ALNS가 못 지워서 생존).
+
+### ★ full-solver A/B (실 algorithm(), DIRS off=v36 vs on=+8방향 tail best-of) — 전부 tie
+prob_21/23/25/26/28/38 전부 OFF==ON. prob_24만 ON<OFF(-2.4%)이나 pool-timing 노이즈
+(OFF가 run마다 970289<->993419 변동). => **통합 순이득 0, 무회귀.**
+
+### 왜 고립이득이 full-solver서 안 잡히나
+1. tail-변이로 추가하면 hybrid 워커의 tail 예산이 rank+edd×(flatbl/diag/leftbottom/bigleft)로
+   이미 소진 -> 신규 방향이 step=1 품질 attempt를 못 받음 -> 272465 재현 못 함(284137 tie).
+2. 잡으려면 방향마다 전용 워커(coreperi식) 필요 -> 4코어서 오버구독/경합 = coreperi 교훈(히든회귀).
+3. pool-timing 노이즈(~2%)라 작은 효과는 반복측정 없이 분해 불가.
+
+### 결론 (4번째 같은 패턴)
+방향은 고립선 진짜 이득(중밀도 -10~-20% 구성)이나, 현 아키텍처(4코어, tail best-of)가 못 잡음.
+ES/R&R/window-LNS/directions 모두 "고립이득 -> full-solver서 tie/손실". 근본: full-solver가
+이미 강하고 4코어 예산이 추가 다양성을 감당 못 함. v36 유지. dirs/는 연구용(미배포).
+미시도: adaptive-primary(방향을 싸게 probe->승자를 워커 PRIMARY로, tail 아님) = 유일한 미개척 통합.

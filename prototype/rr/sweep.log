@@ -1,0 +1,13 @@
+prob_21 n=100 r=0.779 | bigleft=51 bigright=66 bigbottom=91 bigtop=95 cornerBL=51 cornerBR=60 cornerTL=60 cornerTR=58 || Z1-winner:bigleft obj-best:cornerBL
+prob_22 n=100 r=0.525 | bigleft=0 bigright=INF bigbottom=5 bigtop=2 cornerBL=0 cornerBR=INF cornerTL=INF cornerTR=0 || Z1-winner:bigleft obj-best:cornerTR
+prob_23 n=100 r=0.859 | bigleft=193 bigright=205 bigbottom=193 bigtop=200 cornerBL=196 cornerBR=201 cornerTL=211 cornerTR=215 || Z1-winner:bigbottom obj-best:bigbottom
+prob_24 n=100 r=0.602 | bigleft=9 bigright=0* bigbottom=5* bigtop=22 cornerBL=6* cornerBR=4* cornerTL=3* cornerTR=4* || Z1-winner:bigright obj-best:bigbottom
+prob_25 n=100 r=1.285 | bigleft=366 bigright=348* bigbottom=394 bigtop=456 cornerBL=389 cornerBR=375 cornerTL=314* cornerTR=348* || Z1-winner:cornerTL obj-best:cornerTL
+prob_26 n=150 r=1.000 | bigleft=605 bigright=579* bigbottom=534* bigtop=609 cornerBL=532* cornerBR=497* cornerTL=596* cornerTR=486* || Z1-winner:cornerTR obj-best:cornerTR
+prob_28 n=150 r=0.878 | bigleft=87 bigright=111 bigbottom=131 bigtop=112 cornerBL=74* cornerBR=90 cornerTL=90 cornerTR=104 || Z1-winner:cornerBL obj-best:cornerBR
+prob_30 n=150 r=0.903 | bigleft=208 bigright=213 bigbottom=210 bigtop=222 cornerBL=191* cornerBR=205* cornerTL=187* cornerTR=212 || Z1-winner:cornerTL obj-best:cornerTL
+prob_32 n=200 r=0.862 | bigleft=462 bigright=413* bigbottom=432* bigtop=496 cornerBL=469 cornerBR=454* cornerTL=426* cornerTR=439* || Z1-winner:bigright obj-best:bigbottom
+prob_33 n=200 r=1.142 | bigleft=990 bigright=1049 bigbottom=1047 bigtop=999 cornerBL=1022 cornerBR=997 cornerTL=1026 cornerTR=1045 || Z1-winner:bigleft obj-best:bigleft
+prob_37 n=250 r=0.960 | bigleft=584 bigright=608 bigbottom=696 bigtop=644 cornerBL=551* cornerBR=564* cornerTL=615 cornerTR=620 || Z1-winner:cornerBL obj-best:cornerBL
+prob_38 n=250 r=1.572 | bigleft=2629 bigright=2689 bigbottom=2654 bigtop=2629 cornerBL=2743 cornerBR=2729 cornerTL=2565* cornerTR=2646 || Z1-winner:cornerTL obj-best:cornerTL
+=== DONE ===
