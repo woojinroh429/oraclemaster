@@ -173,3 +173,39 @@ rank+bigleft 가 near-optimal. 실엔진 ES로도 rank를 신뢰성 있게/일�
 (예전 bitmask-sim ES 결론과 동일 지점을, 이번엔 실엔진 + 클린 프로토콜로 재확증.)
 제대로 더 밀려면: 결정론적 fitness(step 고정) + 다수 인스턴스 동시학습 + held-out 무회귀 게이트.
 단 prob_25 클린결과(ES=ext-rank, 순서이득 0)로 볼 때 천장은 낮을 것으로 예상.
+
+---
+
+## 시간창 Ruin + CP-SAT exact Recreate 프로토타입 (고밀도) — 2026-07-09
+
+사용자 요청("친구가 R&R 씀"). 우리 ALNS가 이미 R&R이지만, 미개척 변형인
+**시간창 ruin + CP-SAT(windowed) exact recreate**를 실제로 구현/검증. prototype/rr/rr.py.
+절차: baseline(rank+bigleft) -> 지각밀도 피크 중심 |W|제한 시간창 -> 창밖 F고정 +
+창 W만 CP-SAT로 재스케줄(F=배경 area수요) -> 엔진으로 잔여공간 realize -> check_feasibility.
+클린(1프로세스=1인스턴스), best-of라 무회귀.
+
+### 결과 (prob_25 창크기 스윕, baseline Z1=366)
+| |W| | control(greedy recreate) | CP-SAT recreate | baseline |
+|---|---|---|---|
+| 12 | 382 | 378 | 366 |
+| 20 | 495 | 473 | 366 |
+| 29 | 531 | 493 | 366 |
+다른 인스턴스: prob_21(0.78) 51->control92->cpsat123, prob_23(0.86) 193->225->239.
+
+### 판정 — 두 가지가 동시에 참
+1. **CP-SAT recreate는 greedy recreate를 일관되게 이김**(378<382,473<495,493<531).
+   => "창 안 협응(coordination)" 가설 자체는 유효. 아이디어가 틀린 건 아님.
+2. **그러나 둘 다 baseline에 짐.** ruin&recreate '분해' 자체가 순손실.
+   창밖 70~90%를 얼리고 창을 잔여공간에 재배치하는 것이, bigleft의 '한 번의 전역 패스'보다
+   본질적으로 나쁨(고정 handicap: |W|작을수록↓ 이지만 크로스오버 없음 — 최소 +3.3%).
+
+### 근본원인 (왜 R&R이 여기선 약한가)
+- **2D 패킹은 라우팅처럼 분해가 안 됨.** VRP에선 고객 빼고 재삽입이 국소비용이라 R&R 지배적.
+  여기선 얼린 블록이 물리적 공간을 점유 -> 재배치 블록은 남은 자리로 밀림 -> 더 늦게 -> 지각↑.
+- **CP-SAT area-cumulative가 부적합.** 실제 밀도는 크로스레이어 interleaving(다른 층 겹침 허용)에서
+  나오는데 area모델은 이를 표현 못 함 -> 과포화 인스턴스에서 eff<=0.72 infeasible(0.9~1.8로 완화해야).
+
+### 함의
+이게 "고밀도에서 ALNS가 거의 개선 못 하는" 이유의 구체적 증거: 밀집 패킹에서 어떤 freeze&repair도
+큰 분해 handicap을 문다. => 천장은 construction 품질이고 bigleft가 그 근처. R&R-exact-recreate
+경로로도 rank+bigleft near-optimal 재확인. **통합 가치 없음(무이득). best-of라 무회귀는 보장.**
