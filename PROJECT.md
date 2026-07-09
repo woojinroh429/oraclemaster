@@ -96,3 +96,44 @@ ES 가중치 {due1.95,area0.98,proc1.09,wid0.54,hgt0.20,slack1.01}를 feat_w로 
    최적화 -> 실제 NFP 엔진과 보상구조 달라 정제가 안 옮겨감. 결론: ES가 rank+bigleft를
    재발견(near-optimal 확증)했으나 정제는 sim 아티팩트 = rank의 견고성 역증명.
    교훈: 학습전략 전이하려면 sim이 실엔진과 일치해야(느림). feat_w에 slack특징 추가(inert).
+
+---
+
+## v35 히든 회귀 진단 & v36 수정 (P5 제외 악화 원인)
+
+### 히든 리더보드 결과 (v34 -> v35)
+| | P1 | P2 | P3 | P4 | P5 | P6 |
+|---|---|---|---|---|---|---|
+| 방향 | ~ | +14% 악화 | +6.6% 악화 | ~ | **-9.1% 개선** | ~ |
+=> P5만 개선, P2/P3 악화. "왜?"
+
+### 원인 (v34->v35 diff를 실제로 검증)
+v35가 히든 인스턴스에 미친 **유일한** 변경 = `_coreperi_for` 워커가 numba guard(마지막
+워커 n-1)를 **모든 인스턴스에서** 교체한 것. (flat_bl `_hi_ratio>=0.60` 게이트는 diff에서
+context 라인 = 이미 v34에 있던 것, v34->v35 변경 아님. 나머지 place_custom 신규 모드/
+feat_w/order=cpsat 는 명시 인자로만 도달 -> 기본 경로 미사용.)
+- P2(ratio<0.60)는 hybrid도 없음 -> coreperi가 P2를 건드린 **유일한** 변경 = 원인 확정.
+- 기전: 가벼운 numba guard를 **무거운** coreperi(풀 구성+ALNS+polish)로 교체 =>
+  (a) 고정 서버 CPU/시간예산에서 주력 C++ 워커 3개를 굶김(경합),
+  (b) numba guard가 push-only로 도달하던 **P1/P3 우세 basin**을 best-of에서 제거.
+  => P2 +14%, P3 +6.6% 악화.
+- P5(0.60~0.70)는 coreperi가 도달한 **유일한** v35 변경 => coreperi = P5 개선(-9.1%) 동인.
+결론: coreperi는 **P5에서 순이득, P2/P3에서 순손실**. 밴드별로 정반대.
+
+### v36 수정 (외과적)
+1. `_coreperi_for(i)`: `_p5_band = (0.60 <= ratio < 0.70)` 일 때만 켠다.
+   - P1/P2/P3/P4/P6 -> numba guard 복원 = **v34 동작/점수 그대로** (회귀 제거).
+   - P5 -> coreperi 유지 = **개선(-9.1%) 유지**.
+   - 상한 `<0.70` 타이트: P3(>=0.70)를 잡으면 검증된 회귀 / 경계 P5를 놓치면 그냥 v34(무해)
+     => 비대칭 리스크라 상한을 조인다.
+2. `_repair_touch`도 `repair_ok=_p5_band`로 게이트(args 16번째 원소로 전달).
+   - P3/P4/P6의 hybrid 워커(n-2,n-3)가 infeasible 구성에서 최대 15s repair로 ALNS를
+     굶는 잠재 경로를 차단 -> 비-P5는 **정확히 v34**로 복귀 보장.
+   - P5는 모든 워커에서 repair 유지(prob_15/16/19/34 degeneracy 이득 보존).
+
+### 검증
+- syntax OK, python3.12에서 import OK (HAVE_CPP=HAVE_OGC_FAST=True, 엔진 로드).
+- args 튜플 arity 일관(16-tuple 생성=언팩), 호출부 단일(pool.map).
+- 인스턴스 JSON이 이 컨테이너에 없어 end-to-end feasibility는 미실행(구조검증으로 갈음).
+- 정직한 한계: 리더보드 6점 fit(밴드 경계는 학습 인스턴스 ratio 관측치 0.60/0.73 gap 기반).
+  일반화 미보장. 무위험 대안 = v34(coreperi 자체 미탑재). v36 = "v34 + P5 이득만".
