@@ -137,3 +137,39 @@ feat_w/order=cpsat 는 명시 인자로만 도달 -> 기본 경로 미사용.)
 - 인스턴스 JSON이 이 컨테이너에 없어 end-to-end feasibility는 미실행(구조검증으로 갈음).
 - 정직한 한계: 리더보드 6점 fit(밴드 경계는 학습 인스턴스 ratio 관측치 0.60/0.73 gap 기반).
   일반화 미보장. 무위험 대안 = v34(coreperi 자체 미탑재). v36 = "v34 + P5 이득만".
+
+---
+
+## 실엔진 ES 로컬 재현 (Colab 대신 컨테이너 4코어, torch 없이 numpy) — 2026-07-09
+
+사용자 요청(폰이라 직접 못 돌림)으로 실엔진 ES를 이 컨테이너에서 직접 실행.
+prototype/es_run/{es_np.py(학습), validate.py, one.py(1프로세스=1구성 클린평가)}.
+정책=신경망 잔차 on rank: priority = rank_base(due+area) + 0.5*MLP(BF). fitness=실엔진
+_smallright_construct(ext_entry, tiebreak=due) 공식 objective. 대상 prob_25(n=100,ratio1.285,지각지배).
+
+### 학습 로그 (겉보기)
+gen0 313969 -> gen12 299160 (native rank 318659 대비 -6.1%). "개선되는 것처럼" 보임.
+
+### ★ 클린 검증에서 뒤집힘 (1프로세스=1구성, 실 알고리즘과 동일)
+| inst | rank obj | ES obj | 승자 |
+|---|---|---|---|
+| prob_25(학습) | 318659 | **344780** | rank (ES -8.2%) |
+| prob_21 | 1463033 | 1511665 | rank |
+| prob_23 | 3174429 | **2922621** | ES (-7.9%, 우연) |
+| prob_24(P5) | 1246567 | 1272234 | rank |
+- **학습한 prob_25에서조차 ES가 rank에 패배**. ES obj=344780 = ext_entry-rank 베이스라인과
+  정확히 동일 -> 학습된 잔차가 순서를 실질적으로 못 바꿈. 학습 중 -6% 는 허상.
+- 클린평가는 완전 결정론적(native rank 6/6=318659, ES 2/2 재현). native rank 단독도 결정론적.
+
+### 근본원인 = 측정 무효 (중요한 방법론 교훈)
+학습 fitness가 **wall-clock DEADLINE(15s) 구성**인데 ES를 **4-way 병렬**로 평가 ->
+구성이 CPU 경합에 따라 15s 안에 도달하는 내부상태가 달라짐 -> obj가 load-dependent 노이즈.
+ES가 그 노이즈(운 좋은 낮은 draw)를 착취 -> best_theta는 노이즈에 과적합 -> 클린 재평가에서 소멸.
+=> **wall-clock 한정 constructor를 병렬 ES fitness로 쓰면 안 됨.** fitness는 결정론적이어야
+   (고정 step-count/iteration, wall-clock 아님). prob_23 승리는 학습 안 한 인스턴스의 우연.
+
+### 결론 (재확증)
+rank+bigleft 가 near-optimal. 실엔진 ES로도 rank를 신뢰성 있게/일반화되게 못 이김.
+(예전 bitmask-sim ES 결론과 동일 지점을, 이번엔 실엔진 + 클린 프로토콜로 재확증.)
+제대로 더 밀려면: 결정론적 fitness(step 고정) + 다수 인스턴스 동시학습 + held-out 무회귀 게이트.
+단 prob_25 클린결과(ES=ext-rank, 순서이득 0)로 볼 때 천장은 낮을 것으로 예상.

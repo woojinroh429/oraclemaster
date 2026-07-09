@@ -1,0 +1,16 @@
+engine HAVE_CPP=True OGC_FAST=True
+instances: ['prob_25.json']
+[native rank]=318659  [ext_entry rank base]=344780  params=1409 pop=16 gens=40 step1 DL15.0
+gen  0 best=313969 (vs ext_rank +8.94% | vs NATIVE rank +1.47%) genmin=313969 sig=0.150 35s
+gen  1 best=313969 (vs ext_rank +8.94% | vs NATIVE rank +1.47%) genmin=323953 sig=0.148 71s
+gen  2 best=313969 (vs ext_rank +8.94% | vs NATIVE rank +1.47%) genmin=315595 sig=0.147 107s
+gen  3 best=301161 (vs ext_rank +12.65% | vs NATIVE rank +5.49%) genmin=301161 sig=0.146 144s
+gen  4 best=301161 (vs ext_rank +12.65% | vs NATIVE rank +5.49%) genmin=313969 sig=0.144 181s
+gen  5 best=301161 (vs ext_rank +12.65% | vs NATIVE rank +5.49%) genmin=313969 sig=0.143 216s
+gen  6 best=301161 (vs ext_rank +12.65% | vs NATIVE rank +5.49%) genmin=323318 sig=0.141 251s
+gen  7 best=299160 (vs ext_rank +13.23% | vs NATIVE rank +6.12%) genmin=299160 sig=0.140 288s
+gen  8 best=299160 (vs ext_rank +13.23% | vs NATIVE rank +6.12%) genmin=325594 sig=0.138 324s
+gen  9 best=299160 (vs ext_rank +13.23% | vs NATIVE rank +6.12%) genmin=313712 sig=0.137 360s
+gen 10 best=299160 (vs ext_rank +13.23% | vs NATIVE rank +6.12%) genmin=314501 sig=0.136 397s
+gen 11 best=299160 (vs ext_rank +13.23% | vs NATIVE rank +6.12%) genmin=313969 sig=0.134 433s
+gen 12 best=299160 (vs ext_rank +13.23% | vs NATIVE rank +6.12%) genmin=299160 sig=0.133 469s
