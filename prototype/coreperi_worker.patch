@@ -1,5 +1,5 @@
 --- /tmp/orig34/myalgorithm.py	2026-07-07 09:33:49.000000000 +0000
-+++ myalgorithm.py	2026-07-09 04:37:05.495493532 +0000
++++ /tmp/claude-0/-home-user-oraclemaster/55043662-747d-5eda-b837-388adc057292/scratchpad/sv34/myalgorithm.py	2026-07-09 05:07:22.991601569 +0000
 @@ -2736,6 +2736,80 @@
                   11111, 22222, 33333, 44444]
  
@@ -253,12 +253,23 @@
              bw_j=bays[j]["width"]; bh_j=bays[j]["height"]
              occ_base=None
              for oi in range(len(B[b]["shape"])):
-@@ -3204,7 +3384,41 @@
+@@ -3204,7 +3384,52 @@
                      for iy in range(lo_y, hi_y+1, step):
                          if E.placement_feasible(j,b,oi,float(ix),float(iy),cur,ex):
                              wx=ix+x0; wy=iy+y0
 -                            if mode=="diagonal":
-+                            if mode=="spread":
++                            if mode=="interlock":
++                                # PAIR-PACKING/맞물림: 후보가 present 블록 bbox와 겹치는
++                                # 면적↑ = 오목부에 끼워짐(같은레이어 충돌은 이미 배제).
++                                # 겹침 최대화 -> 촘촘 가설. spread의 반대.
++                                ov=0.0
++                                for (pb,pex) in present_by_bay[j]:
++                                    px0,py0,px1,py1=pb
++                                    _ox=min(wx+w,px1)-max(wx,px0)
++                                    _oy=min(wy+h,py1)-max(wy,py0)
++                                    if _ox>0 and _oy>0: ov+=_ox*_oy
++                                sc=(-ov, wx, wy, j)
++                            elif mode=="spread":
 +                                # SPREAD: 현재 present 블록들과 footprint(bbox) 겹침을
 +                                # 최소화 -> 빈 바닥으로 펼쳐 레이어 쌓임을 줄임 -> 크레인
 +                                # 진입/이탈 시 위 레이어 clear 부담↓ -> 대기↓ 가설.
@@ -296,7 +307,7 @@
                                  # Diagonal Fill (Kwon & Lee 2015): fill toward the
                                  # bay corner along the diagonal (minimise wx+wy)
                                  # instead of pure bottom-left.  Packs some P6
-@@ -3230,7 +3444,16 @@
+@@ -3230,7 +3455,16 @@
                                  # in wide-short bays, then bottom-left.  Measured to
                                  # beat plain bottom-left on the space-contended P6
                                  # proxies (prob_38 2449->2433).
@@ -314,7 +325,7 @@
                                      # BIG-LEFT: large blocks (the tardiness drivers)
                                      # fill LEFT-first (horizontal) so they cluster to
                                      # one side, leaving a large contiguous free span
-@@ -3273,7 +3496,8 @@
+@@ -3273,7 +3507,8 @@
          for j in range(m):
              present_by_bay[j]=[(bb,ex) for (bb,ex) in present_by_bay[j] if ex>cur]
          pl=[]
@@ -324,7 +335,7 @@
              ex=cur+pt[b]; placed=False
              res=place_custom(b,cur, ra[b]>=small_thresh)
              if res:
-@@ -3332,7 +3556,27 @@
+@@ -3332,7 +3567,27 @@
      rel = [b["release_time"] for b in B]
      due = [b["due_date"] for b in B]
      # dispatch-order key.  Precompute scale-invariant ranks once (O(n log n)).
@@ -353,7 +364,7 @@
          try:
              _ar, _bc, _sc = _footprint_areas(prob_info)
          except Exception:
-@@ -3865,10 +4109,17 @@
+@@ -3865,10 +4120,17 @@
                  if n_workers >= 4:
                      return (i in (n_workers - 2, n_workers - 3)) and _hi_ratio
                  return (i == n_workers - 2) and _hi_ratio
