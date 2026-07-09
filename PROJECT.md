@@ -53,3 +53,12 @@
 prototype/results/ 아래: packing_density, bay_fill_verification, slack_redistribution,
 window_repack, sparrow_and_density, placement_robustness_scan, placement_direction_bestof,
 direction_correlation, v34_integration_reality, coreperi_worker_win 등.
+
+## 제출본 v35 (coreperi 워커 + degenerate 리페어) vs v34 최종 A/B
+| 밀도 | 예시 | v35 vs v34 |
+|---|---|---|
+| 저밀도 P1/P2 | prob_2 tie, prob_5 -1.4%, prob_9 tie | tie~미세개선, 무회귀 |
+| 중밀도 | prob_33 | obj -14.6% |
+| 고밀도 포화 | prob_37/38/40/27 | tie |
+=> v35는 전 밀도에서 v34 이상(무회귀). 큰 이득은 중밀도. 제출: submit_v35.zip.
+P1/P2 추가이득은 Z2 부하균형 최적화 필요(미구현).
