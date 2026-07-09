@@ -408,3 +408,25 @@ ratio>=0.75 -> 4코너. full-solver A/B(v36 vs v38, tl=50):
 - 중밀도(0.6~1.15): cornerTL(코너 best-of) = **v37**, 검증 배포이득 +3.6~5.5%(6.3%), 무회귀, bigleft속도
 - 고밀도(>1.15): bigleft (물리 벽, near-optimal)
 => 중밀도 최종답 = v37. 단일규칙 일반화 없음(freespan도 혼돈적). 밀도게이팅 best-of가 정답이고 v37이 그것.
+   (NOTE: 아래 적응형 코너가 v37의 하드코딩 n-게이트를 대체 -> 최종은 적응형.)
+
+---
+
+## 적응형 코너 (하드코딩 n-게이트 제거) — 검증 완료 2026-07-09
+사용자 지적("n<=160 하드코딩"). n 대신 step-1 구성비용을 **측정**해서 코너 실행 여부 결정.
+odd hybrid 워커: bigleft step2(빠른 baseline+측정) -> step1_est=step2*3 -> 코너 step1은 "한 개가
+남은 예산에 들어갈 때만" 실행, 아니면 bigleft 유지. 굶주림 원천 제거(bigleft 항상 완주).
+full-solver A/B(v36 vs adaptive): prob_21 +4.68%, prob_24 +3.86%, prob_25 +4.84%, prob_28 +4.47%,
+prob_38(n=250) tie(안전). => v37 이득 유지 + 하드코딩 제거 + 고밀도 안전. prototype/myalgorithm_adaptive_corner.py.
+
+## 작년 1등팀(OGC2025) 알고리즘 분석 + Gurobi 판단
+업로드 분석: OGC2025는 **그래프 라우팅/네트워크플로우 문제**(노드/포트/OD수요/차량비용, deck graph).
+1등팀 = **Gurobi로 MILP 정식화**(binary x_pqi 적재, y_pi 접근성, integer z_pqr 수요분할 + flow보존).
+Gurobi 튜닝: barrier(Method=2), crossover off, NoRelHeur(대형), Heuristics=0.15, MIPGapAbs=2.
+=> **완전히 다른 문제라 알고리즘 자체는 전이 안 됨.** 그 문제는 MILP-friendly(플로우)라 Gurobi가 근최적.
+우리(OGC2026)=2D 불규칙 패킹+스케줄+크레인+레이어interleaving=기하문제라 MILP 부적합.
+Gurobi 판단: (1)우리 병목은 solver 강함이 아니라 **기하 relaxation 품질**(레이어interleaving로 area완화
+가 loose)-CP-SAT로 이미 벽 확인. Gurobi도 같은 loose모델이면 개선 안 됨. (2)환경에 Gurobi 미설치+
+라이선스 필요-OGC2026 채점환경 지원여부 확인이 선결. (3)가능성 있는 각도=Gurobi를 exact 스케줄
+backbone/LNS repair oracle(logic-based Benders: MILP master=bay+order+tardiness, 기하=feasibility
+subproblem+no-good cut)-단 tighter 기하 relaxation이 관건(연구문제). 전면 MILP는 비현실적.
