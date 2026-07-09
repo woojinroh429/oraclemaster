@@ -1,0 +1,35 @@
+=== ES 전략학습 | 인스턴스 2개 | 특징 disp6+pos5 | pop16 gens40 SX3 ===
+prep 72s
+  gen  0 best=1614616 sigma=0.485 rollouts=32
+  gen  2 best=1416566 sigma=0.456 rollouts=96
+  gen  4 best=1139824 sigma=0.429 rollouts=160
+  gen  6 best=1139824 sigma=0.404 rollouts=224
+  gen  8 best=1139824 sigma=0.380 rollouts=288
+  gen 10 best=1083716 sigma=0.358 rollouts=352
+  gen 12 best=1083716 sigma=0.337 rollouts=416
+  gen 14 best=1083716 sigma=0.317 rollouts=480
+  gen 16 best=1083716 sigma=0.298 rollouts=544
+  gen 18 best=1083716 sigma=0.280 rollouts=608
+  gen 20 best=1083716 sigma=0.264 rollouts=672
+  gen 22 best=1083716 sigma=0.248 rollouts=736
+  gen 24 best=1083716 sigma=0.233 rollouts=800
+  gen 26 best=1083716 sigma=0.220 rollouts=864
+  gen 28 best=1083716 sigma=0.207 rollouts=928
+  gen 30 best=1062073 sigma=0.194 rollouts=992
+  gen 32 best=1062073 sigma=0.183 rollouts=1056
+  gen 34 best=1062073 sigma=0.172 rollouts=1120
+  gen 36 best=1062073 sigma=0.162 rollouts=1184
+  gen 38 best=1062073 sigma=0.152 rollouts=1248
+
+=== 학습완료 best_obj=1062073 ===
+  w[due           ]=+1.949
+  w[area          ]=+0.984
+  w[proc          ]=+1.087
+  w[width         ]=+0.543
+  w[height        ]=+0.196
+  w[slack         ]=+1.011
+  w[pos_wx        ]=+1.625
+  w[pos_wy        ]=+0.275
+  w[pos_h         ]=+0.194
+  w[pos_-overlap  ]=-0.416
+  w[pos_-freespan ]=+1.434
