@@ -430,3 +430,27 @@ Gurobi 판단: (1)우리 병목은 solver 강함이 아니라 **기하 relaxatio
 라이선스 필요-OGC2026 채점환경 지원여부 확인이 선결. (3)가능성 있는 각도=Gurobi를 exact 스케줄
 backbone/LNS repair oracle(logic-based Benders: MILP master=bay+order+tardiness, 기하=feasibility
 subproblem+no-good cut)-단 tighter 기하 relaxation이 관건(연구문제). 전면 MILP는 비현실적.
+
+---
+
+## 패턴기반 ILP 프로토타입 (사용자: Gurobi로 재정식화) — 2026-07-09
+OGC2025 1등=Gurobi MILP(라우팅). 우리도 ILP 재정식화 시도. prototype/ilp/pattern_ilp.py (CP-SAT=Gurobi대역).
+추가제약(탐색↓): A1 위치=coarse grid 이산화, A2 진입시각 이산화, A3 기하/크레인 사전검증→배치후보에
+bake-in(충돌쌍만 y+y'<=1), A4 3자충돌은 공식checker→no-good cut(Benders). 휴리스틱 해로 풀 seed(warm-start).
+
+### 결과 (prob_24 sub-instance)
+| n | 휴리스틱(단일구성) | ILP | 풀솔버(ALNS) |
+|---|---|---|---|
+| 30 | 380990 | 206015 | **4455 (Z1=0!)** |
+ILP는 약한 단일구성을 -46% 이기나(iter0 수렴, 빠름), **풀 솔버에 46배 짐.** 풀솔버 n=30 Z1=0(지각 완전제거=최적).
+
+### 근본원인 (illusion #6, 그러나 기전 명확)
+1. **이산화가 패킹품질 파괴**: 풀솔버 연속 NFP는 촘촘히 넣어 모두 제때입장(Z1=0). coarse grid는 못 넣어 지각발생.
+   "탐색 줄이는 제약"을 너무 세게 걸어 좋은해 배제 = trade-off 실패.
+2. **scale-vs-value 불일치**: ILP tractable한 곳(소형/저밀도)=풀솔버 이미 Z1-최적(여지0);
+   ILP 도움될 곳(대형/고밀도 지각강제)=계산불가. 풀 수 있는 곳엔 이득 없고 이득 있는 곳은 못 푼다.
+
+### 판정
+ILP/Gurobi 재정식화는 우리 풀솔버 못 이김. solver 강함이 아니라 **모델링(연속기하 이산화)** 문제라 Gurobi도 동일.
+1등 Gurobi는 그 문제(라우팅)에 연속-기하 이산화 문제가 없어서 통한 것. 우리 기하문제엔 trade-off 불리.
+=> 프로토타입 검증으로 Gurobi 전면투자 전에 걸러냄. 우리 휴리스틱 엔진이 이 기하문제엔 이미 매우 강함(저밀도 Z1최적).
