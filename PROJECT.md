@@ -62,3 +62,21 @@ direction_correlation, v34_integration_reality, coreperi_worker_win 등.
 | 고밀도 포화 | prob_37/38/40/27 | tie |
 => v35는 전 밀도에서 v34 이상(무회귀). 큰 이득은 중밀도. 제출: submit_v35.zip.
 P1/P2 추가이득은 Z2 부하균형 최적화 필요(미구현).
+
+## 전략 연구: ES(진화탐색) 정책 학습 (torch/GPU 없이, bitmask 시뮬레이터)
+파라미터화 정책(dispatch 6특징 + position 5특징 가중합)을 자가구현 (μ,λ)-ES로 학습.
+prob_21+25(중밀도), pop16 × 40세대 = 1248 롤아웃. sim obj 1.61M->1.06M(-34%) 수렴.
+(bitmask+SX3라 절대값은 보수적; 학습된 '전략'이 연구산출.)
+
+### 창발한 최적 정책 (ES가 스스로 발견)
+- Dispatch(낮을수록 먼저): due +1.95(지배), proc +1.09, slack +1.01, area +0.98,
+  width +0.54, height +0.20 => "급함(무겁게)+짧음+저slack+큼 먼저"
+- Position(min): wx +1.63(좌측 지배), free-span보존 +1.43, wy +0.28(바닥),
+  flat +0.19, anti-overlap +0.42 => 사실상 bigleft
+
+### 결론
+- **ES가 독립적으로 rank+bigleft를 재발견** = near-optimal 확증.
+- 정제(refinement) 2가지 발견: (a) due를 area의 ~2배로 무겁게(rank는 1:1),
+  (b) proc(짧음)+slack(급함) 추가(rank 미사용). => 실엔진 전이 테스트 가치.
+- 한계: 1248 롤아웃 규모(100M 아님), sim 보수적. 신경망RL은 GPU 부재로 불가.
+  harness: prototype/rl_strategy.py (특징/세대/인스턴스 확장 가능).
