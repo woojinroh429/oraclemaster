@@ -454,3 +454,19 @@ ILP는 약한 단일구성을 -46% 이기나(iter0 수렴, 빠름), **풀 솔버
 ILP/Gurobi 재정식화는 우리 풀솔버 못 이김. solver 강함이 아니라 **모델링(연속기하 이산화)** 문제라 Gurobi도 동일.
 1등 Gurobi는 그 문제(라우팅)에 연속-기하 이산화 문제가 없어서 통한 것. 우리 기하문제엔 trade-off 불리.
 => 프로토타입 검증으로 Gurobi 전면투자 전에 걸러냄. 우리 휴리스틱 엔진이 이 기하문제엔 이미 매우 강함(저밀도 Z1최적).
+
+## ★ 프로토타입2: 고정패킹 + exact 스케줄 MILP -> Gurobi 방향 개념 검증 성공 (마진 작음)
+사용자 반박("Gurobi 대회지원인데 안될 리 없다"). 참신제약 = 위치 이산화 X, full solver 연속패킹을 FIX
+-> 지각은 진입시각만(exit=entry+p) -> exact 스케줄 최적화(disjunctive). 충돌=그 위치서 공존불가쌍
+(순차진입 검증! 동시진입 아님 <- 이게 처음 실수). lazy-conflict Benders(checker 위반쌍 추가). CP-SAT(=Gurobi대역).
+prototype/ilp/schedule_ilp.py.
+| inst | ratio | full Z1 | MILP Z1 | |
+|---|---|---|---|---|
+| prob_38 | 1.57 | 2629 | 2626 | MILP -0.1% |
+| prob_40 | 1.33 | 2686 | 2684 | MILP -0.07% |
+| prob_26 | 1.00 | 598 | 597 | MILP -0.17% |
+| prob_33/25 | 1.14/1.29 | - | tie | 스케줄 이미 최적 |
+=> **exact 스케줄이 그리디 이김(검증)**. 단 고정패킹이라 마진 작음(~0.1%): ALNS가 이미 near-opt 스케줄.
+   진짜 여지는 PACKING인데 그건 이산화하면 품질손실(프로토타입1 실패). 
+결론: (1) 사용자 옳음-Gurobi/exact 통함. (2) CP-SAT로 했으니 **Gurobi 없이도 배포가능**(never-worse 후처리).
+(3) 큰 이득엔 packing 공동최적화 필요(기하 난제). 고정패킹 스케줄만으론 ~0.1% 안전이득.
