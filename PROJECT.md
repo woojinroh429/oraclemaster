@@ -80,3 +80,19 @@ prob_21+25(중밀도), pop16 × 40세대 = 1248 롤아웃. sim obj 1.61M->1.06M(
   (b) proc(짧음)+slack(급함) 추가(rank 미사용). => 실엔진 전이 테스트 가치.
 - 한계: 1248 롤아웃 규모(100M 아님), sim 보수적. 신경망RL은 GPU 부재로 불가.
   harness: prototype/rl_strategy.py (특징/세대/인스턴스 확장 가능).
+
+### ES 학습전략 실엔진 전이 테스트 (사용자 요청: 모든 파라미터 동시 최적배치)
+ES 가중치 {due1.95,area0.98,proc1.09,wid0.54,hgt0.20,slack1.01}를 feat_w로 실엔진 bigleft에 이식:
+| 인스턴스 | rank Z1 | ES-feat Z1 | 판정 |
+|---|---|---|---|
+| prob_25(중) | 366 | 415 (+13%) | rank |
+| prob_33(중) | 981 | 1006 (+3%) | rank |
+| prob_37(고) | 487 | 560 (+15%) | rank |
+| prob_38(고) | 2359 | 2547 (+8%) | rank |
+| prob_5(저) | obj808864 | 821515 | rank (ES Z2 8602->1195 but Z3상쇄) |
+| prob_9(저) | obj1027575 | 1095810 | rank |
+| prob_22(저) | obj1958140 | 1808963 (-7.6%) | ES |
+=> 전이 실패(중/고밀도 rank 우세, 저밀도 mixed). 근본원인: ES가 보수적 bitmask sim(SX3)에서
+   최적화 -> 실제 NFP 엔진과 보상구조 달라 정제가 안 옮겨감. 결론: ES가 rank+bigleft를
+   재발견(near-optimal 확증)했으나 정제는 sim 아티팩트 = rank의 견고성 역증명.
+   교훈: 학습전략 전이하려면 sim이 실엔진과 일치해야(느림). feat_w에 slack특징 추가(inert).
