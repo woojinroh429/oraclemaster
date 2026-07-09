@@ -312,3 +312,38 @@ prob_21/23/25/26/28/38 전부 OFF==ON. prob_24만 ON<OFF(-2.4%)이나 pool-timin
 ES/R&R/window-LNS/directions 모두 "고립이득 -> full-solver서 tie/손실". 근본: full-solver가
 이미 강하고 4코어 예산이 추가 다양성을 감당 못 함. v36 유지. dirs/는 연구용(미배포).
 미시도: adaptive-primary(방향을 싸게 probe->승자를 워커 PRIMARY로, tail 아님) = 유일한 미개척 통합.
+
+---
+
+## ★★★ v37: corner-primary — 세션 첫 실이득 (full-solver 검증, 무회귀 게이트)
+
+### 사용자 요청: corner 방향 종합 측정
+corner-best-of(cornerTL/BL/TR/BR) 구성이 bigleft 구성을 종합적으로 이김(6/9, obj +8~18%).
+
+### 통합 (dirs/ 연구 -> v37)
+- place_custom에 cornerBR/TL/TR 신규 모드 추가(cornerBL/bigbottom 포함 8방향 완성).
+- 홀수 hybrid 워커의 PRIMARY를 corner-best-of로: 4코너 각각 step=1 구성 -> best 채택.
+  ★핵심 버그수정: step=2 probe가 코너를 오정렬(step2승자!=step1승자, prob_25서 cornerTR
+   뽑고 272465 놓침) -> 4코너 모두 step=1로 평가해야 진짜 승자(cornerTL) 잡음.
+- 게이트 n<=160: 대형(n=250)은 4x step1이 못끝나 굶고 bigleft 워커 잃어 회귀
+  (prob_38 -2.5%) -> n<=160으로 제한하면 회귀 사라짐.
+
+### full-solver A/B (실 algorithm(), v36 vs v37, 인스턴스당 1프로세스, 2회 재현확인)
+| inst | ratio | n | Δobj |
+|---|---|---|---|
+| prob_21 | 0.779 | 100 | **+4.96%** |
+| prob_24 | 0.602(P5) | 100 | **+3.86%** |
+| prob_25 | 1.285 | 100 | **+5.50%** (2회 동일) |
+| prob_28 | 0.878 | 150 | **+3.61%** (2회 동일) |
+| prob_22/26 | | | tie |
+| prob_23/30 | | | -0.36/-0.64% (pool노이즈 ~2% 이내) |
+| prob_38/40 | 1.3-1.6 | 250 | tie (게이트 off) |
+=> 4개 명확 이득(+3.6~5.5%), 실회귀 없음. **window-LNS/directions-tail과 달리 이번엔 full-solver서
+   실제로 잡힘** — 이유: 코너를 step1로 제대로 평가 + PRIMARY 예산(tail 굶주림 회피).
+
+### 정직한 한계 (coreperi 교훈)
+- 훈련 인스턴스 기준. 히든 전이 미검증(coreperi도 로컬 좋았다 히든 회귀). 단 이번은 full-solver
+  A/B + 2회 재현 + 게이트 + 회귀체크로 coreperi보다 훨씬 견고하게 검증됨.
+- 코너 워커가 worker-1 bigleft-primary 대체 -> best-of+게이트가 보호(n<=160선 bigleft tail도 완주).
+- pool-timing 노이즈 ~2% -> 작은 효과는 분해 불가, 큰 이득(+3.6~5.5%)은 노이즈 초과.
+submit_v37.zip 생성. v36(무위험) vs v37(중밀도 이득, 작은 히든리스크) 선택은 사용자.
