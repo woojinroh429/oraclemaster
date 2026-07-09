@@ -347,3 +347,44 @@ corner-best-of(cornerTL/BL/TR/BR) 구성이 bigleft 구성을 종합적으로 �
 - 코너 워커가 worker-1 bigleft-primary 대체 -> best-of+게이트가 보호(n<=160선 bigleft tail도 완주).
 - pool-timing 노이즈 ~2% -> 작은 효과는 분해 불가, 큰 이득(+3.6~5.5%)은 노이즈 초과.
 submit_v37.zip 생성. v36(무위험) vs v37(중밀도 이득, 작은 히든리스크) 선택은 사용자.
+
+---
+
+## free-span 직접 최적화 (사용자 선택: 중밀도 일반화 배치) — 2026-07-09
+
+### 아이디어
+중밀도 배치의 본질 = "빈 공간 통합(시간축으로 최대 연속 free 영역 유지)". 하드코딩 방향
+(bigleft/corner) 대신 "놓은 뒤 남는 free-span을 직접 최대화" = 원리적 일반화 시도.
+mode="freespan" 추가 (prototype/myalgorithm_freespan_research.py).
+
+### 반복 개선 (1D -> 2D-proxy)
+- 1D(바닥밴드 gap only): bigleft는 이기나(+3.5~6.4%) corner엔 짐(+10~14.5%). 2D 못 봄.
+- vertical bias / flat-primary 튜닝: 실패 (prob_25 -5%~+0.2%).
+- ★ MULTI-BAND(K=4 높이밴드별 free-span의 MIN = 전높이 free column 폭 proxy):
+  구성속도 bigleft와 동일(9.1s, scoring 아닌 feasibility가 병목), 크게 개선.
+
+### 결과 (freespan vs cornerBest, 둘 다 vs bigleft, 구성단계)
+| inst | ratio | freespan | corner | 승자 |
+|---|---|---|---|---|
+| prob_22 | 0.53 | -9.6% | +7.9% | corner |
+| prob_29 | 0.55 | -1.2% | -2.5% | bigleft |
+| prob_24 | 0.60 | **+16.4%** | +10.3% | **freespan** |
+| prob_21 | 0.78 | -3.4% | +8.3% | corner |
+| prob_23 | 0.86 | **+2.3%** | -0.4% | **freespan** |
+| prob_28 | 0.88 | +3.3% | +3.6% | ~tie |
+| prob_30 | 0.90 | -10.0% | +9.2% | corner |
+| prob_26 | 1.00 | +6.3% | +18.3% | corner |
+| prob_25 | 1.29 | +7.9% | +14.5% | corner |
+
+### 결론 — 단일 규칙 일반화는 없다. best-of가 정답.
+- freespan은 **원리적 규칙인데도 혼돈적**: prob_24(+16%, corner보다 큼)·23 이기고, 저밀도
+  (22/30) -10%로 크게 짐. corner·bigleft·freespan 각자 다른 인스턴스서 이김 = 예측불가.
+- 중밀도 배치의 실제 구조 = **밀도-게이팅 best-of{bigleft(저/고밀도), corners+freespan(중밀도)}**.
+  단일 "똑똑한 규칙"이 아니라 다양성+best-of+게이팅이 정답 (기하 상호작용이 카오스적이라).
+- freespan은 best-of의 **가치있는 신규 멤버**(prob_24서 corner +6%p 추가), 대체는 아님.
+- 전부 구성단계. full-solver선 축소(v37 corner 배포이득 +3.6~5.5%). 배포하려면 워커 예산
+  경합(coreperi 교훈) 고려 + full-solver A/B 필수.
+
+### 다음 (미정)
+freespan을 v37 best-of에 추가 + 밀도게이팅 -> full-solver A/B로 배포이득 확인. 단 모드 추가는
+4코어 예산 경합이라 이득 대비 신중히. prob_24류(저-중밀도 0.6, 실지각 있음)가 freespan 최적 타겟.
