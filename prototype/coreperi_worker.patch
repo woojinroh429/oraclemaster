@@ -1,0 +1,274 @@
+--- /tmp/orig34/myalgorithm.py	2026-07-07 09:33:49.000000000 +0000
++++ myalgorithm.py	2026-07-09 04:29:47.011467467 +0000
+@@ -2750,7 +2750,7 @@
+         import numba as _nb2; _nb2.set_num_threads(1)
+     except Exception:
+         pass
+-    prob_info, timelimit, seed, shared, lock, worker_id, cwd, use_cpp, il_mode, nfp_mode, absorb, cpp_engine, eng_area_commit, hybrid_flag = args
++    prob_info, timelimit, seed, shared, lock, worker_id, cwd, use_cpp, il_mode, nfp_mode, absorb, cpp_engine, eng_area_commit, hybrid_flag, coreperi_flag = args
+     try:
+         import os as _os, sys as _sys
+         if cwd and cwd not in _sys.path:
+@@ -2762,7 +2762,7 @@
+                 pass
+     except Exception:
+         pass
+-    if hybrid_flag:
++    if hybrid_flag or coreperi_flag:
+         # BEST-OF-ORDERS hybrid: run the coefficient-free "rank" dispatch first
+         # (measured better on every completion-forced P6 proxy), then, if wall
+         # time remains, the EDD dispatch (the v26 server-confirmed 32.4M path).
+@@ -2830,7 +2830,17 @@
+                 # winner), leftbottom (P4 winner).  With <3 workers the modulo still
+                 # cycles them; best-of-final merges all -> never worse than any single.
+                 _lane = _wid % 3
+-                if _lane == 1:
++                if coreperi_flag:
++                    # DEDICATED coreperi worker (replaces the numba guard, W = n-1).
++                    # coreperi (long-stay big blocks -> periphery) wins on some P3/P4/
++                    # P6 instances (prob_33 full-pipeline obj -14.4%) but loses on
++                    # saturated P6 (prob_38/40); as an ADDITIVE dedicated worker + best-
++                    # of-final(min), it captures the wins and NEVER regresses the others
++                    # (those keep their bigleft/leftbottom/engine result).  Full budget
++                    # (a primary), so it isn't starved as a tail.  Also feeds the ALNS/
++                    # polish chain below, so its Z2/Z3 get optimised too.
++                    _primary_mode = "coreperi"
++                elif _lane == 1:
+                     _primary_mode = "bigleft"
+                 elif _lane == 2:
+                     _primary_mode = "leftbottom"
+@@ -3028,6 +3038,14 @@
+                 except Exception:
+                     pass
+             return _best_sol
++        # coreperi worker replaced the numba guard -> if coreperi produced nothing,
++        # fall back to the simple _solve_once path so the -1 insurance is preserved.
++        if coreperi_flag:
++            try:
++                return _solve_once(prob_info, timelimit, seed, shared, lock, worker_id,
++                                   use_cpp=False, il_mode=False)
++            except Exception:
++                return None
+         return None
+     try:
+         return _solve_once(prob_info, timelimit, seed, shared, lock, worker_id,
+@@ -3091,7 +3109,7 @@
+ 
+ 
+ 
+-def _smallright_construct(prob_info, deadline_s, small_thresh=0.60, step=1, mode="flatbl"):
++def _smallright_construct(prob_info, deadline_s, small_thresh=0.60, step=1, mode="flatbl", order="rank", ext_entry=None, tiebreak="rank", ext_bay=None, feat_w=None):
+     """Position-policy constructor for space-contended P6.  Small blocks (area_rank
+     >= small_thresh) are tucked into positions that PRESERVE the largest contiguous
+     free span in each bay (so big blocks -- the dominant tardiness driver -- get
+@@ -3131,6 +3149,81 @@
+         return r
+     rd=_rof(due,False); ra=_rof(ar,True)
+     key=lambda b:(rd[b]+ra[b], due[b])
++    _du_max=max(due) if n else 1
++    # feat_w: 블록의 '모든 변수'로 스코어링. 각 특징을 [0,1] 정규화 rank(0=우선)로 바꾼 뒤
++    # 가중합. 부호로 방향 반전(양수 w = 그 특징의 '큰/급한' 극단을 먼저).  특징:
++    #   due(급),area(큼),proc(김),rel(이름),wid(넓음),hgt(높음),work(큼),pref(선호높음)
++    if feat_w is not None:
++        def _mkr(vals, rev):
++            _o=sorted(range(n),key=lambda i:vals[i],reverse=rev); _r=[0.0]*n
++            for _p,_i in enumerate(_o): _r[_i]=_p/max(1,n-1)
++            return _r
++        _wid=[0.0]*n; _hgt=[0.0]*n
++        for b in range(n):
++            _oi=min(range(len(B[b]["shape"])), key=lambda oi:_orient_bbox(B[b],oi)[2]-_orient_bbox(B[b],oi)[0])
++            x0,y0,x1,y1=_orient_bbox(B[b],_oi); _wid[b]=x1-x0; _hgt[b]=y1-y0
++        _work=[B[b].get("workload",0) for b in range(n)]
++        _pref=[max(B[b]["bay_preferences"]) for b in range(n)]
++        _F={
++            "due": _mkr(due,False),  "area": _mkr(ar,True),  "proc": _mkr(pt,True),
++            "rel": _mkr(rel,False),  "wid": _mkr(_wid,True), "hgt": _mkr(_hgt,True),
++            "work":_mkr(_work,True), "pref":_mkr(_pref,True),
++        }
++        _fl=[(k,float(w),_F[k]) for k,w in feat_w.items() if k in _F]
++        key=lambda b:(sum(w*fr[b] for _,w,fr in _fl), due[b])
++    # ext_entry: an externally-computed per-block entry-time schedule (e.g. a
++    # reformulated CP-SAT solve) used only as a dispatch ORDER.  tiebreak="rank"
++    # keeps the big+urgent-first rank key WITHIN equal scheduled-entry blocks
++    # (CP-SAT's area model floods the congested early wave with equal entry
++    # times; a pure-due tiebreak there degenerates to EDD and drops the big-first
++    # bias -> worse.  rank tiebreak restores it).  tiebreak="due" = pure EDD tie.
++    if ext_entry is not None:
++        if tiebreak=="due":
++            key=lambda b:(ext_entry[b], due[b], due[b]-rel[b])
++        else:
++            key=lambda b:(ext_entry[b], rd[b]+ra[b], due[b])
++    elif order=="cpsat":
++        try:
++            _cs=_cpsat_schedule(prob_info, ar, _bc, 0.63,
++                                max(4.0, deadline_s*0.45),
++                                max(1, min(8, (os.cpu_count() or 2))))
++            if _cs is not None:
++                _cen=_cs[2]; key=lambda b:(_cen[b], rd[b]+ra[b], due[b])
++        except Exception:
++            pass
++    elif order=="stdens":
++        # 전략1: 시공간밀도(회전율) - 작은면적*짧은processing*급한due 먼저.
++        # 작은 부피로 빨리 치고 빠지는 블록에 우선권 (rank의 big-first와 정반대).
++        key=lambda b:(ar[b]*pt[b], due[b])
++    elif order=="stdens_u":
++        # 회전율 + 긴급도: (area*pt)/urgency. due 급할수록 우선.
++        key=lambda b:(ar[b]*pt[b]*(1.0+due[b]/max(1,_du_max)), due[b])
++    elif isinstance(order,str) and order.startswith("sac"):
++        # 전략3: 희생양 - 면적*processing 최악 K개를 dispatch 맨 뒤로 유배(공간 남을때만
++        # 배치되어 자연히 늦게 감). 나머지는 rank. K는 order 접미 숫자(sac3 -> 3).
++        _kk=''.join(c for c in order[3:] if c.isdigit()); _K=int(_kk) if _kk else 3
++        _vic=set(sorted(range(n), key=lambda b:-(ar[b]*pt[b]))[:_K])
++        key=lambda b:(1 if b in _vic else 0, rd[b]+ra[b], due[b])
++    # ATC(S) dynamic dispatching: I_b(t)=(w_b/p_b)*exp(-max(0,d_b-p_b-t)/(k*pbar)).
++    # order="atc"->k=2 uniform weight; "atcN"->k=N; "atcaN"->area-weighted (big-first
++    # like rank); recomputed each event at t=cur (see sort in the event loop).
++    _atc_on = isinstance(order,str) and order.startswith("atc")
++    _atc_pbar = max(1.0, sum(pt)/max(1,n))
++    _atc_area = _atc_on and ("a" in order[3:])
++    _atc_kd = ''.join(c for c in order[3:] if c.isdigit()) if _atc_on else ''
++    _atc_k = float(_atc_kd) if _atc_kd else 2.0
++    _atc_amax = max(1.0, max(ar)) if ar else 1.0
++    def _atckey(b, cur):
++        w = (ar[b]/_atc_amax) if _atc_area else 1.0
++        slack = due[b]-pt[b]-cur
++        idx = (w/max(1,pt[b]))*_m.exp(-max(0.0,slack)/(_atc_k*_atc_pbar))
++        return (-idx, due[b])
++    # core-periphery: 장기체류(pt 상위40%)+대형(not small)+여유(slack 중앙값 이상) 블록을
++    # 'parker'로 보고 외곽 코너(우측+상단, wx+wy 최대)로 몰아 남는 공간을 오래 연속 유지.
++    _slk=[due[b]-rel[b]-pt[b] for b in range(n)]
++    _pts=sorted(pt); _pt60=_pts[int(0.6*(n-1))] if n else 0
++    _sks=sorted(_slk); _skmed=_sks[len(_sks)//2] if n else 0
++    parker=[(ra[b]<0.60) and (pt[b]>=_pt60) and (_slk[b]>=_skmed) for b in range(n)]
+     def bbox(b,oi):
+         # Use the placement-invariant _orient_bbox memo (keyed by block+orient)
+         # instead of recomputing min/max over all layer vertices every call.
+@@ -3192,7 +3285,8 @@
+         return fm
+     def place_custom(b,cur,is_small):
+         ex=cur+pt[b]; best=None; best_sc=None
+-        for j in bay_list:
++        _bl_b = bay_list if ext_bay is None else [ext_bay[b]]
++        for j in _bl_b:
+             bw_j=bays[j]["width"]; bh_j=bays[j]["height"]
+             occ_base=None
+             for oi in range(len(B[b]["shape"])):
+@@ -3204,7 +3298,41 @@
+                     for iy in range(lo_y, hi_y+1, step):
+                         if E.placement_feasible(j,b,oi,float(ix),float(iy),cur,ex):
+                             wx=ix+x0; wy=iy+y0
+-                            if mode=="diagonal":
++                            if mode=="spread":
++                                # SPREAD: 현재 present 블록들과 footprint(bbox) 겹침을
++                                # 최소화 -> 빈 바닥으로 펼쳐 레이어 쌓임을 줄임 -> 크레인
++                                # 진입/이탈 시 위 레이어 clear 부담↓ -> 대기↓ 가설.
++                                # 측정근거: peak에서 2D union 16~32%만 사용(과적층).
++                                ov=0.0
++                                for (pb,pex) in present_by_bay[j]:
++                                    px0,py0,px1,py1=pb
++                                    _ox=min(wx+w,px1)-max(wx,px0)
++                                    _oy=min(wy+h,py1)-max(wy,py0)
++                                    if _ox>0 and _oy>0: ov+=_ox*_oy
++                                sc=(ov, wy, wx, j)
++                            elif mode=="bigright":
++                                # BIG-RIGHT: bigleft의 좌우 미러. 큰블록을 우측벽으로
++                                # 클러스터(우측 gap 최소화) -> 좌측에 연속 free-span.
++                                # 작은블록은 free-span 규칙 유지. 베이/블록분포에 따라
++                                # bigleft보다 유리한 인스턴스 존재 가능(best-of용).
++                                if not is_small:
++                                    sc=(h, bw_j-(wx+w), wy, j)
++                                else:
++                                    if occ_base is None:
++                                        occ_base,_bt=_band_occ_base(j,cur,bh_j); _band_top_j=_bt
++                                    fs=_free_span_with(occ_base,bw_j,wx,w,wy,_band_top_j)
++                                    sc=(-fs, wy, wx)
++                            elif mode=="bigtop":
++                                # BIG-TOP: 큰블록을 상단으로 클러스터(상단 gap 최소화)
++                                # -> 하단 바닥밴드를 작은블록 gap-fill용으로 비움.
++                                if not is_small:
++                                    sc=(h, bh_j-(wy+h), wx, j)
++                                else:
++                                    if occ_base is None:
++                                        occ_base,_bt=_band_occ_base(j,cur,bh_j); _band_top_j=_bt
++                                    fs=_free_span_with(occ_base,bw_j,wx,w,wy,_band_top_j)
++                                    sc=(-fs, wy, wx)
++                            elif mode=="diagonal":
+                                 # Diagonal Fill (Kwon & Lee 2015): fill toward the
+                                 # bay corner along the diagonal (minimise wx+wy)
+                                 # instead of pure bottom-left.  Packs some P6
+@@ -3230,7 +3358,16 @@
+                                 # in wide-short bays, then bottom-left.  Measured to
+                                 # beat plain bottom-left on the space-contended P6
+                                 # proxies (prob_38 2449->2433).
+-                                if mode=="bigleft":
++                                if mode=="coreperi":
++                                    # CORE-PERIPHERY: parker(장기체류 대형+여유)는 외곽
++                                    # 코너로(우측+상단, wx+wy 최대), 나머지 big은 bigleft
++                                    # 좌하단.  장기체류 블록이 중앙을 오래 쪼개지 않게 하여
++                                    # 연속 free-span을 시간축으로 보존.
++                                    if parker[b]:
++                                        sc=(-(wx+wy), h, j)
++                                    else:
++                                        sc=(h, wx, wy, j)
++                                elif mode=="bigleft":
+                                     # BIG-LEFT: large blocks (the tardiness drivers)
+                                     # fill LEFT-first (horizontal) so they cluster to
+                                     # one side, leaving a large contiguous free span
+@@ -3273,7 +3410,8 @@
+         for j in range(m):
+             present_by_bay[j]=[(bb,ex) for (bb,ex) in present_by_bay[j] if ex>cur]
+         pl=[]
+-        for b in sorted(pend,key=key):
++        _pend_sorted = sorted(pend,key=lambda b:_atckey(b,cur)) if _atc_on else sorted(pend,key=key)
++        for b in _pend_sorted:
+             ex=cur+pt[b]; placed=False
+             res=place_custom(b,cur, ra[b]>=small_thresh)
+             if res:
+@@ -3332,7 +3470,27 @@
+     rel = [b["release_time"] for b in B]
+     due = [b["due_date"] for b in B]
+     # dispatch-order key.  Precompute scale-invariant ranks once (O(n log n)).
+-    if order in ("rank", "rank_a", "rank_a2", "area_due", "rank_d", "bigfirst", "baylimit"):
++    if order == "cpsat":
++        # CP-SAT area-relaxed schedule -> globally-optimised dispatch ORDER, fed
++        # into the SAME event-driven NFP bigleft placement (find_best_placement)
++        # exactly like edd/rank.  eff=0.63 reserves crane corridors so the order
++        # reflects a 2D-realisable schedule.  Uses ~45% of the budget for the
++        # solve, the rest drives placement.  Any failure -> pure EDD.
++        _cs_entry = None
++        try:
++            _car, _cbc, _csc = _footprint_areas(prob_info)
++            _cs = _cpsat_schedule(prob_info, _car, _cbc, 0.63,
++                                  max(4.0, deadline_s * 0.45),
++                                  max(1, min(8, (os.cpu_count() or 2))))
++            if _cs is not None:
++                _cs_entry = _cs[2]
++        except Exception:
++            _cs_entry = None
++        if _cs_entry is not None:
++            _key = lambda b: (_cs_entry[b], due[b])   # dispatch by CP-SAT entry
++        else:
++            _key = lambda b: (due[b], due[b] - rel[b])   # fallback EDD
++    elif order in ("rank", "rank_a", "rank_a2", "area_due", "rank_d", "bigfirst", "baylimit"):
+         try:
+             _ar, _bc, _sc = _footprint_areas(prob_info)
+         except Exception:
+@@ -3865,10 +4023,17 @@
+                 if n_workers >= 4:
+                     return (i in (n_workers - 2, n_workers - 3)) and _hi_ratio
+                 return (i == n_workers - 2) and _hi_ratio
++            def _coreperi_for(i):
++                # Replace the numba guard (last worker, n-1) with a DEDICATED coreperi
++                # hybrid worker when the engine is available (>=4 workers so we don't
++                # sacrifice a primary lane).  Additive best-of => captures coreperi's
++                # wins (prob_33 -14.4%) with zero regression elsewhere.  Falls back to
++                # the numba/simple path inside the worker if coreperi fails (-1 safety).
++                return (i == n_workers - 1) and n_workers >= 4 and HAVE_OGC_FAST and HAVE_CPP
+             args = [(prob_info, _remaining, _WORKER_SEEDS[i % len(_WORKER_SEEDS)],
+                      shared, lock, i, cwd, _use_cpp_for(i), _il_mode_for(i),
+                      _nfp_for(i), _absorb_for(i), _engine_for(i), _eng_area_for(i),
+-                     _hybrid_for(i))
++                     _hybrid_for(i), _coreperi_for(i))
+                     for i in range(n_workers)]
+ 
+             with multiprocessing.Pool(processes=n_workers) as pool:
