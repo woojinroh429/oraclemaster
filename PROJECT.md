@@ -209,3 +209,41 @@ rank+bigleft 가 near-optimal. 실엔진 ES로도 rank를 신뢰성 있게/일�
 이게 "고밀도에서 ALNS가 거의 개선 못 하는" 이유의 구체적 증거: 밀집 패킹에서 어떤 freeze&repair도
 큰 분해 handicap을 문다. => 천장은 construction 품질이고 bigleft가 그 근처. R&R-exact-recreate
 경로로도 rank+bigleft near-optimal 재확인. **통합 가치 없음(무이득). best-of라 무회귀는 보장.**
+
+---
+
+## Regret recreate 실험 (사용자: 추가 연산자로 중밀도 이득) — 2026-07-09
+
+### 코드 변경 (엔진, 무회귀)
+- `_try_place_block(..., commit=True)`: commit=False면 상태에 add 안 하고 best만 반환(평가용).
+- `_alns(..., recreate="greedy")`: recreate="regret"이면 고정순서 대신 매 스텝 regret-2
+  (베이별 차선-최선 tardiness 최대 블록부터) 삽입. 기본값 greedy라 기존 동작 불변.
+- prototype: rr/rr.py(one-shot recreate 비교), rr/ab_alns.py(ALNS내 greedy vs regret),
+  rr/iter_lns.py(반복 window-LNS+regret).
+
+### 발견 1 — one-shot recreate: regret >> greedy (창 프레임)
+창밖 고정 + 창(20~29블록) 재배치: regret이 greedy control을 항상 이김. baseline은
+가끔 이김(prob_25@창20 -0.5%, prob_23 -2.3%) but 창크기/인스턴스 의존적(fragile).
+
+### 발견 2 — drop-in regret in ALNS: 이득 0
+_alns의 greedy를 regret으로 교체(작은 14블록 제거 유지): prob_23/25 둘 다 greedy=regret=
+baseline (개선 0). 이유: baseline이 ALNS 이웃(작은제거)의 국소최적. 발견1 이득은 '큰 창을
+통째 destroy + joint regret'라는 다른 이웃에서 나온 것 -> ALNS가 그 move를 안 함.
+
+### 발견 3 ★ — 반복 window-LNS + regret: 실이득 (무회귀)
+{지각 시간창(약22블록) ruin -> regret recreate -> 개선시만 채택} 반복. accept-only라 절대 무회귀.
+| inst | ratio | 이득 | accepts | 출처 |
+|---|---|---|---|---|
+| prob_23 | 0.859 | +2.34% | 1 | Z1(193->191) |
+| prob_25 | 1.285 | +2.29% | 6 | Z1(366->348) |
+| prob_24 | 0.602(P5) | **+13.94%** | 4 | Z2/Z3(obj 1.25M->1.07M) |
+| prob_21 | 0.779 | 0 | 0 | 보호(저지각) |
+| prob_28 | 0.878 | 0 | 0 | 보호 |
+| prob_30 | 0.903 | 0 | 0 | 보호 |
+핵심: 승리 재료 = 큰 tardy-window destroy + joint regret recreate + accept-only 반복.
+prob_24(+14%)는 히든에서 중요한 P5 밴드. n큰 인스턴스는 반복수 적어(느림) 이득 작음/구성bound.
+
+### 다음 (통합 계획)
+가장 안전: pool 종료 후 best-of 승자에 window-LNS를 '남은 시간'만큼 refinement로 실행
+(accept-only + 이미 pool 끝나 경합 없음 = coreperi식 starvation 위험 없음). n/시간 게이트.
+반드시 full A/B(v36 vs v36+refine, 인스턴스당 1프로세스, 무회귀)로 순이득 확인 후 채택.

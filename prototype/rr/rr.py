@@ -82,6 +82,48 @@ def recreate(inst, recs, W, order_W, areas, force_delay=None):
     if len(new)!=n: return None
     return new
 
+def recreate_regret(inst, recs, W, areas, k=2):
+    """Regret-k recreate: F고정, W를 매 스텝 '후회(regret)=차선-최선 tardiness' 최대 블록부터
+    최선 위치에 삽입 (greedy 고정순서 대신 동적 난이도순). 반환 새 recs 또는 None."""
+    n=len(inst["blocks"]); B=inst["blocks"]; n_bays=len(inst["bays"]); bay_list=list(range(n_bays))
+    E=_ogc_fast_engine(inst); E.clear_all()
+    F=[b for b in range(n) if b not in W]
+    for b in F:
+        r=recs[b]; E.add(r["bay_id"],b,r["orient_idx"],float(r["x"]),float(r["y"]),
+                         int(r["entry_time"]),int(r["exit_time"]))
+    new={b:dict(recs[b]) for b in F}
+    placed_ex=[recs[b]["exit_time"] for b in F]
+    remaining=set(W)
+    def best_per_bay(b):
+        rt=int(B[b]["release_time"]); dd=B[b]["due_date"]
+        base=sorted({rt}|{int(e) for e in placed_ex if e>=rt})
+        costs=[]
+        for j in bay_list:
+            res=E.find_best_placement(b,[j],base)
+            if res and res[0]:
+                _,bj,oi,x,y,en,ex=res; costs.append((max(0,ex-dd),ex,(bj,oi,x,y,en,ex)))
+        costs.sort()
+        return costs
+    while remaining:
+        best_pick=None  # (regret, -tard, b, placement)
+        for b in list(remaining):
+            costs=best_per_bay(b)
+            if not costs:
+                continue
+            t1=costs[0][0]; t2=costs[k-1][0] if len(costs)>=k else costs[-1][0]
+            regret=t2-t1
+            keyv=(regret, -t1)
+            if best_pick is None or keyv>best_pick[0]:
+                best_pick=(keyv,b,costs[0][2])
+        if best_pick is None:
+            return None
+        _,b,pl=best_pick; bj,oi,x,y,en,ex=pl
+        E.add(int(bj),b,int(oi),float(x),float(y),int(en),int(ex))
+        new[b]={"block_id":b,"bay_id":int(bj),"x":int(x),"y":int(y),
+                "orient_idx":int(oi),"entry_time":int(en),"exit_time":int(ex)}
+        placed_ex.append(ex); remaining.discard(b)
+    return new if len(new)==n else None
+
 def cpsat_window(inst, recs, W, areas, bay_caps, eff, tl):
     """W 블록만 재스케줄(베이=baseline 고정). F=고정 배경수요. W 지각합 최소화 -> entry[b]."""
     try: from ortools.sat.python import cp_model
@@ -146,6 +188,13 @@ def main():
         ckc=objize(inst,rc); print(f"  [control  ] feasible={ckc['feasible']} Z1={ckc['obj1']:.0f} obj={ckc['objective']:.0f}")
     else:
         print("  [control  ] recreate FAIL")
+
+    # (a2) REGRET-2 recreate (greedy를 이기는지)
+    rg=recreate_regret(inst,recs,W,areas,k=2)
+    if rg is not None:
+        ckg=objize(inst,rg); print(f"  [regret-2 ] feasible={ckg['feasible']} Z1={ckg['obj1']:.0f} obj={ckg['objective']:.0f}")
+    else:
+        print("  [regret-2 ] recreate FAIL")
 
     # (b) CP-SAT window recreate
     t0=time.time(); sched=None; used_eff=None
