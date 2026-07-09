@@ -40,3 +40,27 @@ numba guard 워커(W = n-1, -1 보험용)를 **coreperi 전용 하이브리드 �
   w3*Z3=400). Z3는 이미 ~0. => Z2 부하균형 배정이 레버. 별도 조사 필요.
 - 맞물림(pair-packing)/density-score 정렬: 미구현. 밀도가 3D레이어겹침에서 와서(2D union
   16~32%) 고밀도 2D pair-packing 헤드룸은 작을 것으로 추정. density-score 정렬은 값싸 테스트가치.
+
+---
+
+## 추가: degenerate zero-area 접촉 infeasibility 리페어 (구현+통합)
+문제: C++ 엔진 placement_feasible이 exact-touch(area=0)를 통과시키나 공식 checker는 위반
+처리 -> 구성이 infeasible(prob_15/16/19/34, 저/중밀도).
+
+수정: `_repair_touch(prob_info, recs, budget)` 추가. 공식 checker가 지목한 위반 블록만
+엔진으로 entry를 1+ 지연 재배치하고 **공식 checker로 재검증**해 non-touching 자리 확보.
+`_attempt`에서 구성이 infeasible(stage 2/3/4)일 때만 호출(feasible엔 오버헤드 0).
+
+검증(구성 리페어):
+| 인스턴스 | 구성 | 리페어 후 | Z1 비용 |
+|---|---|---|---|
+| prob_15 | infeas stage2 | feasible(1회) | 0 |
+| prob_16 | infeas stage2 | feasible(1회) | 1 |
+| prob_19 | infeas stage2 | feasible(3회) | 2 |
+| prob_34 | infeas stage3 | feasible(1회) | 84 |
+
+full algorithm() 검증: prob_15/16/34 전부 feasible, prob_33 +14.6% 유지(무회귀).
+
+정직한 영향: 최종 점수는 ~불변(그 인스턴스들은 다른 워커/polish가 이미 더 좋은 feasible
+해를 냄, 예: prob_15 최종 obj 56165 << bigleft-repaired 1.30M). 가치는 **견고성 보험**:
+히든에서 모든 구성이 degenerate에 걸리는 병적 케이스 방지 + bigleft를 모든 곳에서 유효 후보화.

@@ -2736,6 +2736,80 @@ _WORKER_SEEDS = [12345, 67890, 24681, 13579,
                  11111, 22222, 33333, 44444]
 
 
+def _repair_touch(prob_info, recs, budget):
+    """Repair a construction that the OFFICIAL check_feasibility rejects due to
+    zero-area / exact-touch degeneracies (the C++ engine's placement_feasible accepts
+    exact-touching crane/collision configs that utils flags -- prob_15/16/19/34).
+    Only the violating blocks are re-placed: each is re-seated by the engine at a
+    slightly LATER entry until the FULL solution passes utils (or violations drop).
+    On the affected (low/mid-density) instances there is ample slack so the Z1 cost
+    is ~0.  Returns repaired recs (dict) or None if it could not reach feasibility.
+    Cheap: only runs when a construction is already infeasible (rare)."""
+    import re as _re, time as _t
+    B = prob_info["blocks"]; n = len(B); bay_list = list(range(len(prob_info["bays"])))
+    R = {b: dict(recs[b]) for b in range(n)}
+    t0 = _t.time()
+    def _viol(ck):
+        bs = set()
+        for v in ck.get("violations", []):
+            for mnum, _k in _re.findall(r"block (\d+) (entry|exit) obstructed", v):
+                bs.add(int(mnum))
+            for a, b_ in _re.findall(r"blocks (\d+) and (\d+)", v):
+                bs.add(int(a)); bs.add(int(b_))
+        return bs
+    for _ in range(40):
+        try:
+            ck = check_feasibility(prob_info, _build_operations([R[b] for b in range(n)]))
+        except Exception:
+            return None
+        if ck.get("feasible"):
+            return R
+        if _t.time() - t0 > budget:
+            return None
+        viol = _viol(ck)
+        if not viol:
+            return None
+        progressed = False
+        for b in sorted(viol):
+            try:
+                E = _ogc_fast_engine(prob_info); E.clear_all()
+                for bb in range(n):
+                    if bb == b:
+                        continue
+                    r = R[bb]
+                    E.add(r["bay_id"], bb, r["orient_idx"], float(r["x"]), float(r["y"]),
+                          int(r["entry_time"]), int(r["exit_time"]))
+            except Exception:
+                continue
+            _cur = R[b]["entry_time"]
+            for en in range(_cur + 1, _cur + 60):
+                try:
+                    res = E.find_best_placement(b, bay_list, [en])
+                except Exception:
+                    res = None
+                if res and res[0]:
+                    _, bj, oi, x, y, ren, rex = res
+                    trial = dict(R)
+                    trial[b] = {"block_id": b, "bay_id": int(bj), "x": int(x), "y": int(y),
+                                "orient_idx": int(oi), "entry_time": int(ren), "exit_time": int(rex)}
+                    try:
+                        ck2 = check_feasibility(prob_info, _build_operations([trial[k] for k in range(n)]))
+                    except Exception:
+                        continue
+                    if ck2.get("feasible") or len(ck2.get("violations", [])) < len(ck.get("violations", [])):
+                        R = trial; progressed = True; break
+            if progressed:
+                break
+        if not progressed:
+            return None
+    try:
+        if check_feasibility(prob_info, _build_operations([R[b] for b in range(n)])).get("feasible"):
+            return R
+    except Exception:
+        pass
+    return None
+
+
 def _worker_entry(args):
     # RUNTIME thread cap (effective even if numpy/BLAS already imported by the grader).
     # Each forked worker limits its native (BLAS/OpenMP) pools to 1 thread so the 4
@@ -2875,6 +2949,18 @@ def _worker_entry(args):
                             _ssr = {"operations": {str(_k): sorted(_ops[_k], key=lambda o: 0 if o["type"]=="EXIT" else 1)
                                                    for _k in sorted(_ops)}}
                             _csr = check_feasibility(prob_info, _ssr)
+                            if (not _csr.get("feasible")) and _csr.get("stage") in (2, 3, 4) \
+                               and _hyb_deadline - time.time() > 3.0:
+                                # zero-area / exact-touch degeneracy: engine accepted a
+                                # touching placement that utils rejects.  Repair the few
+                                # violating blocks (re-seat slightly later) so this
+                                # construction becomes a usable best-of candidate instead
+                                # of being discarded (prob_15/16/19/34).
+                                _rep = _repair_touch(prob_info, _srr,
+                                                     min(15.0, _hyb_deadline - time.time() - 1.0))
+                                if _rep is not None:
+                                    _ssr = _build_operations([_rep[_k] for _k in range(len(_rep))])
+                                    _csr = check_feasibility(prob_info, _ssr)
                             if _csr.get("feasible"):
                                 return _ssr, float(_csr["objective"])
                     except Exception:

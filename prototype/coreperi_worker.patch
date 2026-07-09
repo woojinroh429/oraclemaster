@@ -1,6 +1,87 @@
 --- /tmp/orig34/myalgorithm.py	2026-07-07 09:33:49.000000000 +0000
-+++ myalgorithm.py	2026-07-09 04:29:47.011467467 +0000
-@@ -2750,7 +2750,7 @@
++++ myalgorithm.py	2026-07-09 04:37:05.495493532 +0000
+@@ -2736,6 +2736,80 @@
+                  11111, 22222, 33333, 44444]
+ 
+ 
++def _repair_touch(prob_info, recs, budget):
++    """Repair a construction that the OFFICIAL check_feasibility rejects due to
++    zero-area / exact-touch degeneracies (the C++ engine's placement_feasible accepts
++    exact-touching crane/collision configs that utils flags -- prob_15/16/19/34).
++    Only the violating blocks are re-placed: each is re-seated by the engine at a
++    slightly LATER entry until the FULL solution passes utils (or violations drop).
++    On the affected (low/mid-density) instances there is ample slack so the Z1 cost
++    is ~0.  Returns repaired recs (dict) or None if it could not reach feasibility.
++    Cheap: only runs when a construction is already infeasible (rare)."""
++    import re as _re, time as _t
++    B = prob_info["blocks"]; n = len(B); bay_list = list(range(len(prob_info["bays"])))
++    R = {b: dict(recs[b]) for b in range(n)}
++    t0 = _t.time()
++    def _viol(ck):
++        bs = set()
++        for v in ck.get("violations", []):
++            for mnum, _k in _re.findall(r"block (\d+) (entry|exit) obstructed", v):
++                bs.add(int(mnum))
++            for a, b_ in _re.findall(r"blocks (\d+) and (\d+)", v):
++                bs.add(int(a)); bs.add(int(b_))
++        return bs
++    for _ in range(40):
++        try:
++            ck = check_feasibility(prob_info, _build_operations([R[b] for b in range(n)]))
++        except Exception:
++            return None
++        if ck.get("feasible"):
++            return R
++        if _t.time() - t0 > budget:
++            return None
++        viol = _viol(ck)
++        if not viol:
++            return None
++        progressed = False
++        for b in sorted(viol):
++            try:
++                E = _ogc_fast_engine(prob_info); E.clear_all()
++                for bb in range(n):
++                    if bb == b:
++                        continue
++                    r = R[bb]
++                    E.add(r["bay_id"], bb, r["orient_idx"], float(r["x"]), float(r["y"]),
++                          int(r["entry_time"]), int(r["exit_time"]))
++            except Exception:
++                continue
++            _cur = R[b]["entry_time"]
++            for en in range(_cur + 1, _cur + 60):
++                try:
++                    res = E.find_best_placement(b, bay_list, [en])
++                except Exception:
++                    res = None
++                if res and res[0]:
++                    _, bj, oi, x, y, ren, rex = res
++                    trial = dict(R)
++                    trial[b] = {"block_id": b, "bay_id": int(bj), "x": int(x), "y": int(y),
++                                "orient_idx": int(oi), "entry_time": int(ren), "exit_time": int(rex)}
++                    try:
++                        ck2 = check_feasibility(prob_info, _build_operations([trial[k] for k in range(n)]))
++                    except Exception:
++                        continue
++                    if ck2.get("feasible") or len(ck2.get("violations", [])) < len(ck.get("violations", [])):
++                        R = trial; progressed = True; break
++            if progressed:
++                break
++        if not progressed:
++            return None
++    try:
++        if check_feasibility(prob_info, _build_operations([R[b] for b in range(n)])).get("feasible"):
++            return R
++    except Exception:
++        pass
++    return None
++
++
+ def _worker_entry(args):
+     # RUNTIME thread cap (effective even if numpy/BLAS already imported by the grader).
+     # Each forked worker limits its native (BLAS/OpenMP) pools to 1 thread so the 4
+@@ -2750,7 +2824,7 @@
          import numba as _nb2; _nb2.set_num_threads(1)
      except Exception:
          pass
@@ -9,7 +90,7 @@
      try:
          import os as _os, sys as _sys
          if cwd and cwd not in _sys.path:
-@@ -2762,7 +2762,7 @@
+@@ -2762,7 +2836,7 @@
                  pass
      except Exception:
          pass
@@ -18,7 +99,7 @@
          # BEST-OF-ORDERS hybrid: run the coefficient-free "rank" dispatch first
          # (measured better on every completion-forced P6 proxy), then, if wall
          # time remains, the EDD dispatch (the v26 server-confirmed 32.4M path).
-@@ -2830,7 +2830,17 @@
+@@ -2830,7 +2904,17 @@
                  # winner), leftbottom (P4 winner).  With <3 workers the modulo still
                  # cycles them; best-of-final merges all -> never worse than any single.
                  _lane = _wid % 3
@@ -37,7 +118,26 @@
                      _primary_mode = "bigleft"
                  elif _lane == 2:
                      _primary_mode = "leftbottom"
-@@ -3028,6 +3038,14 @@
+@@ -2865,6 +2949,18 @@
+                             _ssr = {"operations": {str(_k): sorted(_ops[_k], key=lambda o: 0 if o["type"]=="EXIT" else 1)
+                                                    for _k in sorted(_ops)}}
+                             _csr = check_feasibility(prob_info, _ssr)
++                            if (not _csr.get("feasible")) and _csr.get("stage") in (2, 3, 4) \
++                               and _hyb_deadline - time.time() > 3.0:
++                                # zero-area / exact-touch degeneracy: engine accepted a
++                                # touching placement that utils rejects.  Repair the few
++                                # violating blocks (re-seat slightly later) so this
++                                # construction becomes a usable best-of candidate instead
++                                # of being discarded (prob_15/16/19/34).
++                                _rep = _repair_touch(prob_info, _srr,
++                                                     min(15.0, _hyb_deadline - time.time() - 1.0))
++                                if _rep is not None:
++                                    _ssr = _build_operations([_rep[_k] for _k in range(len(_rep))])
++                                    _csr = check_feasibility(prob_info, _ssr)
+                             if _csr.get("feasible"):
+                                 return _ssr, float(_csr["objective"])
+                     except Exception:
+@@ -3028,6 +3124,14 @@
                  except Exception:
                      pass
              return _best_sol
@@ -52,7 +152,7 @@
          return None
      try:
          return _solve_once(prob_info, timelimit, seed, shared, lock, worker_id,
-@@ -3091,7 +3109,7 @@
+@@ -3091,7 +3195,7 @@
  
  
  
@@ -61,7 +161,7 @@
      """Position-policy constructor for space-contended P6.  Small blocks (area_rank
      >= small_thresh) are tucked into positions that PRESERVE the largest contiguous
      free span in each bay (so big blocks -- the dominant tardiness driver -- get
-@@ -3131,6 +3149,81 @@
+@@ -3131,6 +3235,81 @@
          return r
      rd=_rof(due,False); ra=_rof(ar,True)
      key=lambda b:(rd[b]+ra[b], due[b])
@@ -143,7 +243,7 @@
      def bbox(b,oi):
          # Use the placement-invariant _orient_bbox memo (keyed by block+orient)
          # instead of recomputing min/max over all layer vertices every call.
-@@ -3192,7 +3285,8 @@
+@@ -3192,7 +3371,8 @@
          return fm
      def place_custom(b,cur,is_small):
          ex=cur+pt[b]; best=None; best_sc=None
@@ -153,7 +253,7 @@
              bw_j=bays[j]["width"]; bh_j=bays[j]["height"]
              occ_base=None
              for oi in range(len(B[b]["shape"])):
-@@ -3204,7 +3298,41 @@
+@@ -3204,7 +3384,41 @@
                      for iy in range(lo_y, hi_y+1, step):
                          if E.placement_feasible(j,b,oi,float(ix),float(iy),cur,ex):
                              wx=ix+x0; wy=iy+y0
@@ -196,7 +296,7 @@
                                  # Diagonal Fill (Kwon & Lee 2015): fill toward the
                                  # bay corner along the diagonal (minimise wx+wy)
                                  # instead of pure bottom-left.  Packs some P6
-@@ -3230,7 +3358,16 @@
+@@ -3230,7 +3444,16 @@
                                  # in wide-short bays, then bottom-left.  Measured to
                                  # beat plain bottom-left on the space-contended P6
                                  # proxies (prob_38 2449->2433).
@@ -214,7 +314,7 @@
                                      # BIG-LEFT: large blocks (the tardiness drivers)
                                      # fill LEFT-first (horizontal) so they cluster to
                                      # one side, leaving a large contiguous free span
-@@ -3273,7 +3410,8 @@
+@@ -3273,7 +3496,8 @@
          for j in range(m):
              present_by_bay[j]=[(bb,ex) for (bb,ex) in present_by_bay[j] if ex>cur]
          pl=[]
@@ -224,7 +324,7 @@
              ex=cur+pt[b]; placed=False
              res=place_custom(b,cur, ra[b]>=small_thresh)
              if res:
-@@ -3332,7 +3470,27 @@
+@@ -3332,7 +3556,27 @@
      rel = [b["release_time"] for b in B]
      due = [b["due_date"] for b in B]
      # dispatch-order key.  Precompute scale-invariant ranks once (O(n log n)).
@@ -253,7 +353,7 @@
          try:
              _ar, _bc, _sc = _footprint_areas(prob_info)
          except Exception:
-@@ -3865,10 +4023,17 @@
+@@ -3865,10 +4109,17 @@
                  if n_workers >= 4:
                      return (i in (n_workers - 2, n_workers - 3)) and _hi_ratio
                  return (i == n_workers - 2) and _hi_ratio
