@@ -247,3 +247,30 @@ prob_24(+14%)는 히든에서 중요한 P5 밴드. n큰 인스턴스는 반복�
 가장 안전: pool 종료 후 best-of 승자에 window-LNS를 '남은 시간'만큼 refinement로 실행
 (accept-only + 이미 pool 끝나 경합 없음 = coreperi식 starvation 위험 없음). n/시간 게이트.
 반드시 full A/B(v36 vs v36+refine, 인스턴스당 1프로세스, 무회귀)로 순이득 확인 후 채택.
+
+### 발견 4 ★★ — full solver A/B: window-LNS refinement은 순손실 (이득 허상이었음)
+window-LNS를 실 solver에 통합(pool 종료후 남는시간 25% 예약 + accept-only refinement,
+n<=160 게이트, env WLNS_REFINE). 실 algorithm() OFF vs ON, 인스턴스당 1프로세스, tl=45:
+| inst | ratio | OFF obj | ON obj | 판정 |
+|---|---|---|---|---|
+| prob_21 | 0.779 | 1394173 | 1405243 | ON 악화 +0.8% |
+| prob_22 | 0.525 | 1009408 | 1035047 | ON 악화 +2.5% |
+| prob_23 | 0.859 | 2822633 | 2822633 | tie |
+| prob_24 | 0.602 | 970289 | 970289 | tie |
+| prob_25 | 1.285 | 282173 | 284137 | ON 악화 +0.7% |
+=> **모든 인스턴스 ON<=OFF. 순손실.** 어떤 인스턴스도 이득 없음.
+
+### 근본원인 (내 측정 실수 — 세 번째 같은 함정)
+발견3의 window-LNS "이득"은 **baseline-only 구성(rank+bigleft 단일패스)** 대비였음.
+그런데 **실 solver의 병렬 ALNS가 이미 훨씬 더 낮춤**: prob_25 baseline-only 318659,
+window-LNS 311351, **실solver 282173**(훨씬 좋음). prob_23도 baseline 3174429 ->
+window-LNS 3100069 -> **실solver 2822633**. prob_24 1246567 -> 1072796 -> **970289**.
+=> refinement를 실 solver 출력(이미 강함)에 얹으면 **개선할 게 없음**(tie), 예약한 시간만 손해(악화).
+교훈: **항상 full solver 출력에 A/B 하라. 약한 baseline 대비는 허상 이득을 만든다.**
+(coreperi=로컬중밀도 이득->히든회귀, ES=경합노이즈 이득->클린손실, window-LNS=약baseline 이득->
+ full손실 — 전부 '잘못된/약한 기준 대비 측정'이 근본원인. 동일 실수 3회.)
+
+### 조치
+통합 전량 revert -> sv34/myalgorithm.py == v36 (md5 69608284..., byte-identical). 제출은 v36 유지.
+prototype/rr/{rr,ab_alns,iter_lns,ab_full}.py 는 기록용 보존. regret recreate 자체는
+greedy를 이기지만(발견1), 실 ALNS가 이미 그 이득을 취해서 추가 가치 없음.
