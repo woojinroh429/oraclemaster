@@ -530,3 +530,10 @@ prototype/myalgorithm_v40_freeregion.py. 지원파일 4개 v36과 바이트 동�
 _redistribute_pref/_crane_open/_corridor_open/_atc_order + 비활성 CP-SAT/GLS/IL 서브시스템),
 hot-path B1(_bay_unit_weights 반복재계산) B3(_objective 매 반복 전체재계산). B1은 타이밍 교란
 위험으로 보류. B3(증분 objective)는 repair가 지배적이라 이득 불확실+고위험으로 보류.
+
+## v40 후속: 죽은 코드 제거 (동작 중립)
+프로파일링이 확인한 orphan 함수(참조=def뿐) 제거: _entry_ok/_exit_ok(677-684),
+_redistribute_pref/_crane_open/_corridor_open/_atc_order(연속 1793-2116). 총 332줄 삭제
+(myalgorithm.py 4290->3959줄). 검증: prob_24=993419, prob_40=1989054 불변 -> **런타임 동작 중립**
+(죽은 코드는 실행 안 되므로). _footprint_verts는 인접 live _NFP_MODE + cache clear 얽힘으로 보존.
+submit_v40.zip 갱신(정리본, 동작 동일).
