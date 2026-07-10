@@ -548,3 +548,15 @@ feasible 보장). free-region이 구성을 55초로 줄여 예산 안에 완성 
 측정(격리 60s): prob_40 1,989,054->1,738,953(-12.6%), prob_38 37,825,961->34,512,341(-8.8%, 천장 정확),
 prob_31 -3.3%, prob_33 -0.4%; prob_39/22 tie; 소형(n<200) dedicated off -> 무변화(prob_24=993419 결정론적).
 v39 대비 누적: prob_40 -52.9%, prob_38 -8.8%. 산출물: submit_v41.zip, myalgorithm_v41_dedicated_worker.py.
+
+## ★★★ v42: 선호-인식(prefaware) 구성 -- 저/중밀도 Z3 레버 (prob_24 -42%, prob_21 -10%, prob_28 -8%)
+수학적 발견: 저/중밀도 objective의 질량이 지각(Z1)이 아니라 **선호위반(Z3)에 있음** (측정: prob_28 Z3=55%,
+prob_31 Z3=50%, prob_24 Z3=96%!).  모든 packing 모드(bigleft/corner/...)가 베이를 packing으로만 고르고
+블록 선호베이를 무시(`sc=(...,j)`에서 j=인덱스 tiebreak) -> Z3 방치.  polish(_pref_reassign/_swap_polish)도
+겨우 -9% (prob_31은 오히려 Z3 증가, ALNS가 Z1위해 희생).  즉 Z3 질량이 통째로 방치.
+해법: mode="prefaware" -- 각 블록을 선호베이 우선 배치(sc=(pref_pen, h, wx, wy); 작은블록 (pref_pen,-fs,..)).
+best-of 꼬리에 추가(n<200 게이트) -> Z3지배는 prefaware 승, Z1지배는 bigleft 승 = never-worse.
+측정(격리 60s, PREFAWARE 0 vs 1): prob_24 993419->576132(-42%, Z3 3178->1520), prob_21 -10.3%,
+prob_28 -7.7%; prob_22/25/29/30 tie; prob_31(n=200) 게이트로 제외(예산절도 +0.4% 방지); 대형 무변화.
+n<200 게이트: 대형은 Z1지배+dedicated worker가 예산 씀.  산출물: submit_v42.zip, myalgorithm_v42_prefaware.py.
+P3/P4(중밀도 히든)가 Z3지배면 큰 이득 기대.
