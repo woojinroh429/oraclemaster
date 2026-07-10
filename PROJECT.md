@@ -498,3 +498,35 @@ diagonal/leftbottom/bigleft 3개 동일보일러플레이트 꼬리를 `_tail(mo
 검증(격리 풀솔버 base vs v39): prob_24/28/38 **바이트동일**(1219453/4232590/2655622427), prob_33만 발산했으나
 base-vs-base(100.36M)와 v39도 100.36M 재현 -> prob_33 고유 ALNS타이밍 분산(~15%)이지 리팩터버그 아님 확정.
 산출물: prototype/myalgorithm_v39_clean.py, submit_v39.zip(support 4파일 v36과 바이트동일, myalgorithm.py만 변경).
+
+## ★★ v40: FREE-REGION 증분 구성 — 대형 고밀도 구성 병목 해결 (prob_40 -46%)
+문제 진단: 대형(n=250) 구성이 60초 예산 초과(step=1 bigleft 95~104s). 원인은 기하연산 속도가
+아니라 **시간축 재스캔** — 블록이 안 들어가면 이벤트(블록 이탈)마다 전체격자 재스캔. 실측 재스캔
+배수: prob_38=13x, prob_40=14.6x(최대 71회). 그래서 step=1 품질을 못 쓰고 step=2 저품질 폴백.
++ 더 많은 시간 = 큰 이득 확인(prob_40 60s→180s = -52%): compute가 binding.
+
+해법(FREE-REGION): 밀도 단조성 — 블록 X 이탈 시 새 자리는 오직 X가 비운 footprint 구역에서만
+생김(크레인 진입충돌 = footprint 겹침). 그러니 재스캔 때 **비워진 구역 주변 윈도우만** 스캔.
+place_custom에 windows 파라미터 추가, (ix,iy) 오름차순 유지 → 스코어링 타이브레이크 동일 →
+**BYTE-IDENTICAL 출력**(모든 모드 검증: bigleft/corner*/diagonal/leftbottom). ogc_fast 사용,
+cranecheck .so 의존성 0. 구성 byte-identical + ALNS 시간↑ = **수학적 never-worse**(ALNS는 best 유지).
+
+측정(격리, 60s, 진짜 C++ 엔진 py3.12):
+| inst | n | v39 | v40 | |
+|---|---|---|---|---|
+| prob_40 | 250 | 3,688,471 | 1,989,054 | **-46.1%** |
+| prob_39 | 250 | 7,962,220 | 7,843,733 | -1.5% |
+| prob_33 | 200 | 7,684,850 | 7,605,106 | -1.0% |
+| prob_38 | 250 | 37,825,961 | = | tie |
+| prob_31 | 200 | 6,915,839 | = | tie |
+
+게이트: n>=200에서만 활성(대형=temporal rescan 지배). n<200은 v39와 **byte+timing 동일**(회귀 0).
+중요 디버깅: free-region init(dict/list 할당)이 무조건 실행되면 멀티프로세싱 워커 타이밍을 교란해
+타이밍-민감 인스턴스(prob_24) 결정성을 깸(993419<->1021744). init을 `if _fr_on` 가드 -> 복구.
+prob_27(n=150,고밀도)의 -3.2%는 n게이트에 걸려 잃음(안전 트레이드). 산출물: submit_v40.zip,
+prototype/myalgorithm_v40_freeregion.py. 지원파일 4개 v36과 바이트 동일, myalgorithm.py만 변경.
+
+프로파일링(에이전트): dead code ~590줄(orphan 함수 _entry_ok/_exit_ok/_footprint_verts/
+_redistribute_pref/_crane_open/_corridor_open/_atc_order + 비활성 CP-SAT/GLS/IL 서브시스템),
+hot-path B1(_bay_unit_weights 반복재계산) B3(_objective 매 반복 전체재계산). B1은 타이밍 교란
+위험으로 보류. B3(증분 objective)는 repair가 지배적이라 이득 불확실+고위험으로 보류.
