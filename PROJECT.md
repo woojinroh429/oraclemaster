@@ -560,3 +560,11 @@ best-of 꼬리에 추가(n<200 게이트) -> Z3지배는 prefaware 승, Z1지배
 prob_28 -7.7%; prob_22/25/29/30 tie; prob_31(n=200) 게이트로 제외(예산절도 +0.4% 방지); 대형 무변화.
 n<200 게이트: 대형은 Z1지배+dedicated worker가 예산 씀.  산출물: submit_v42.zip, myalgorithm_v42_prefaware.py.
 P3/P4(중밀도 히든)가 Z3지배면 큰 이득 기대.
+
+## ★ v43: prefaware 게이트를 블록수 -> 구조적(Z3-share)로 (게이트 강건화)
+사용자 지적: 게이트가 블록수(n) 기준이라 허술/비일반적.  옳음 -- n은 "Z3 지배인가"의 크루드 프록시.
+수정: prefaware를 n<200 대신 **incumbent 구성의 Z3 비중(w3*Z3/total)>=0.40** 일 때만 실행(구조적, 밀도/크기
+무관).  단일 step=1 시도로 예산절도 최소화.  검증: prob_28 -10.7%(n게이트 -7.7%보다↑), prob_24 -42%,
+prob_21 -10.3%; prob_30/38/40(Z1지배) Z3-share<0.40 -> skip(무회귀).  prob_31 "+0.4%"는 PREFAWARE=0/1
+둘 다 {6.69M,6.72M} 내는 고유 노이즈로 판명(회귀 아님).  never-worse + 일반화.  게이트가 밀도가 아니라
+인스턴스 자신의 objective 구성으로 자동결정 -> best-of 자기선택.  산출물: submit_v43.zip.
