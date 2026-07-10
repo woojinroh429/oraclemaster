@@ -470,3 +470,31 @@ prototype/ilp/schedule_ilp.py.
    진짜 여지는 PACKING인데 그건 이산화하면 품질손실(프로토타입1 실패). 
 결론: (1) 사용자 옳음-Gurobi/exact 통함. (2) CP-SAT로 했으니 **Gurobi 없이도 배포가능**(never-worse 후처리).
 (3) 큰 이득엔 packing 공동최적화 필요(기하 난제). 고정패킹 스케줄만으론 ~0.1% 안전이득.
+
+## ★ 조선소 불규칙블록 배치 휴리스틱 조사 -> 양방향 diagonal-fill 검증 (no gain, illusion #7)
+Frontiers 2026(불규칙 조립블록 크루즈선) + Kwon&Lee diagonal-fill 문헌 조사.
+핵심 문헌 기법:
+- **양방향 diagonal-fill(Kwon&Lee)**: 배치후보를 이미 놓인 블록의 BL점뿐 아니라 TR점도 -> 대각 양끝에서 채움.
+- **corner-guided sorting**(DDNS2015), **Q-learning hyper-heuristic으로 layout rule 선택**(Frontiers2026).
+  => 후자는 "단일 규칙이 전 인스턴스 못 이긴다 -> 규칙 포트폴리오+선택기"가 SOTA framing = 우리 best-of/adaptive가 옳음의 방증.
+
+구현: place_custom에 mode="diagfill"(큰블록이 BL코너 vs TR코너 中 가까운쪽으로 분할 -> 가운데 연속 free-band;
+bigcorner의 2D대각 버전), best-of 꼬리에 env-gated 추가(DIAGFILL=1). 격리 풀솔버 A/B(1프로세스=풀CPU):
+| inst | ratio | base | diagfill | |
+|---|---|---|---|---|
+| prob_21/24/28/40 | - | - | - | tie |
+| prob_25 | 1.29 | 528220 | 533853 | -1.1% 손해 |
+| prob_33 | 1.14 | 78.9M | 83.4M | -5.7% 손해 |
+=> **이긴 곳 0.** 병렬 A/B에서 보인 prob_25 -10%는 CPU굶주림 노이즈(격리시 obj 9.39M->0.53M 정상화, 이득 소멸).
+원인: 우리 코너패밀리(bigcorner=좌우분할, cornerTL/BL/TR/BR)가 diagfill 효과 이미 커버 -> 중복. 순효과는 ALNS 벽시계 절도.
+DIAGFILL 기본 off라 배포 무영향. **문헌기법 정직 검증 완료: no gain.**
+
+## ★ v39 = adaptive-corner + best-of 코드정리 (동작보존 리팩터)
+v39 = v36 + adaptive corner best-of(하드코딩 n게이트 제거; step-1비용 실측 게이팅; 중밀도 +3.9~4.8% 실측) 를
+제출본으로 확정 + best-of 체인 코드정리.
+정리 내용: keep-if-strictly-better 비교가 ~9곳 복붙된 것을 `_best=[cell]`+`_keep()` 하나로,
+diagonal/leftbottom/bigleft 3개 동일보일러플레이트 꼬리를 `_tail(mode)` + `for _tm in (...)` 루프로 축약.
+**_attempt 호출 순서·시간게이트·비교 전부 불변 -> 동작보존.**
+검증(격리 풀솔버 base vs v39): prob_24/28/38 **바이트동일**(1219453/4232590/2655622427), prob_33만 발산했으나
+base-vs-base(100.36M)와 v39도 100.36M 재현 -> prob_33 고유 ALNS타이밍 분산(~15%)이지 리팩터버그 아님 확정.
+산출물: prototype/myalgorithm_v39_clean.py, submit_v39.zip(support 4파일 v36과 바이트동일, myalgorithm.py만 변경).
