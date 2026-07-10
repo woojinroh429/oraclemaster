@@ -537,3 +537,14 @@ _redistribute_pref/_crane_open/_corridor_open/_atc_order(연속 1793-2116). 총 
 (myalgorithm.py 4290->3959줄). 검증: prob_24=993419, prob_40=1989054 불변 -> **런타임 동작 중립**
 (죽은 코드는 실행 안 되므로). _footprint_verts는 인접 live _NFP_MODE + cache clear 얽힘으로 보존.
 submit_v40.zip 갱신(정리본, 동작 동일).
+
+## ★★ v41: 대형 고밀도 전용 구성-완성 워커 (prob_40 추가 -12.6%, prob_38 -8.8%)
+진단: `_alns`/polish는 P6 지각(Z1)을 못 줄임(구조적, 코드 주석도 인정). 대형 점수는 구성 완성도가
+전부인데, 완성된 bigleft step=1(1.77M) > 풀솔버(1.99M)였음 -- 솔버가 멀티워커 예산분할로 최고 구성을
+못 완성. 해법: `_worker_entry`에 DEDICATED 워커(bl_full 플래그, 17번째 arg) 추가 -- n>=200 & hi_ratio
+& not P5에서 마지막 워커(numba guard)를 재활용해 bigleft step=1을 거의 전예산(timelimit-2)으로 완성,
+shared best-of에 기여. never-worse: 완성하면 이김, 못하면 best-of가 무시(다른 워커+_safe_sequential이
+feasible 보장). free-region이 구성을 55초로 줄여 예산 안에 완성 가능해진 게 전제.
+측정(격리 60s): prob_40 1,989,054->1,738,953(-12.6%), prob_38 37,825,961->34,512,341(-8.8%, 천장 정확),
+prob_31 -3.3%, prob_33 -0.4%; prob_39/22 tie; 소형(n<200) dedicated off -> 무변화(prob_24=993419 결정론적).
+v39 대비 누적: prob_40 -52.9%, prob_38 -8.8%. 산출물: submit_v41.zip, myalgorithm_v41_dedicated_worker.py.
