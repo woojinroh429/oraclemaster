@@ -2138,7 +2138,22 @@ def _sa_reassign(prob_info, assign, bay_unit, deadline, rng):
                 continue
             ocur = cur[b]["bay_id"]
             prefs = B[b]["bay_preferences"]
-            tj = int(rng.random() * m)
+            # DIRECTED target selection (random moves waste most iterations; the
+            # objective is Z3 [preference] + Z2 [balance], so aim there):
+            #  - toward this block's most-preferred bay  -> reduces Z3
+            #  - toward the least (u*load)-loaded bay     -> reduces Z2
+            #  - random                                   -> exploration / escape
+            _rr = rng.random()
+            if _rr < 0.55:
+                _po = sorted(range(m), key=lambda j: -prefs[j])
+                tj = _po[0] if _po[0] != ocur else (_po[1] if m > 1 else ocur)
+            elif _rr < 0.80:
+                _ld = [0.0] * m
+                for _bk in cur:
+                    _ld[cur[_bk]["bay_id"]] += B[_bk]["workload"]
+                tj = min(range(m), key=lambda j: bay_unit[j] * _ld[j])
+            else:
+                tj = int(rng.random() * m)
             if tj == ocur:
                 continue
             E = _bE(cur, {b})
