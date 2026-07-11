@@ -568,3 +568,31 @@ P3/P4(중밀도 히든)가 Z3지배면 큰 이득 기대.
 prob_21 -10.3%; prob_30/38/40(Z1지배) Z3-share<0.40 -> skip(무회귀).  prob_31 "+0.4%"는 PREFAWARE=0/1
 둘 다 {6.69M,6.72M} 내는 고유 노이즈로 판명(회귀 아님).  never-worse + 일반화.  게이트가 밀도가 아니라
 인스턴스 자신의 objective 구성으로 자동결정 -> best-of 자기선택.  산출물: submit_v43.zip.
+
+---
+
+## v44: empty-layer canonicalization (utils.py 일치) — 2026-07-11
+
+### 배경
+대회 공지: hidden P3에 **empty layers**가 있었고, 조직위가 "utils.py 데이터 처리를 정확히 따르라"며
+인스턴스를 clean-up("빈 레이어 제거, 특성 불변, 올바른 솔버는 동일 해").
+
+### 발견한 버그 (utils.py 불일치)
+- utils.py `_resolve_layers`: `[list(l) for l in raw if l]` → **빈 레이어 필터**.
+  Block 기준점 = **필터된 첫 레이어의 첫 정점** → (x,y).
+- 우리 엔진/템플릿: `shape[oi]["layers"]`를 **raw로 읽음**(_load_ogc_state L116 등) → 빈 레이어
+  미필터 → 크레인 레이어 인덱스(j>=k) 및 (x,y) 기준이 utils.py와 어긋남 → 빈-레이어 인스턴스
+  (P3류)에서 엔진이 grader와 다른 기하로 판정 → 과보수 패킹.
+
+### 재현 (prob_29에 빈 레이어 삽입)
+- 수정 전: CLEAN=542034, EMPTY_{START,END}=547173 (결정론적으로 다름 → 실제 기하 불일치 확정)
+- 수정 후: CLEAN=EMPTY_{START,END,MID}=**542034** (완전 일치 → utils.py와 정합)
+
+### 수정
+`algorithm()` 시작에서 모든 block/orientation의 layers에서 빈 레이어 필터
+(`if any(not _l ...)` 가드 → clean 인스턴스는 미변경 = byte-identical/무손실).
+train 20개 전부 빈 레이어 없음 → P1~P6 중 clean 인스턴스 점수 불변, 빈-레이어 인스턴스만 개선.
+
+### 한계 (정직)
+단순 2레이어 블록에선 빈-레이어 영향 ~1%. P3의 복잡한 다층 구조에선 증폭 가능하나 hidden 실물이
+없어 정확한 크기는 미측정. 재제출로 검증 필요(제출이 clean-up 전이었으면 큰 개선 기대).
