@@ -624,3 +624,27 @@ train 20개 전부 빈 레이어 없음 → P1~P6 중 clean 인스턴스 점수 
 - 중밀도 prob_28=2,677,407 / prob_24=948,769 : 무회귀
 - **저밀도 prob_6 98,257->63,906 (-35%)**, prob_4 -8.6%, prob_9 -5%, prob_20 -1%, prob_1 불변
 - 전부 never-worse (best-of + check_feasibility 게이트). 25s 예산 기준이라 60s선 더 클 것.
+
+---
+
+## v46: 정확 CP-SAT 배정 -- 작은 저밀도(P3류) -- 2026-07-11
+
+### 동기
+저밀도(Z1=0)는 목적이 Z2+Z3, 핵심 결정은 "어느 베이" = 작은 배정문제. SA/greedy가 지역최적에
+갇힘(예: prob_4에서 Z3=0 배정으로 가는 경로가 Z2 증가 상태를 거쳐 local search가 거부 -> Z3=236에 갇힘).
+CP-SAT은 전역 배정 최적으로 직행.
+
+### 모델 (`_exact_reassign`)
+min w2*Z2 + w3*Z3, s.t. 각 블록 1베이 + (베이,release시각)별 면적합<=용량(Z1=0 필요조건).
+면적제약은 완화(면적!=폴리곤+크레인) -> 배정을 실제 엔진 구성으로 realise, feasible & better일 때만 채택.
+기하 실현 불가(Z1 폭발/infeasible)면 best-of가 무시 = never-worse. CP-SAT<1s (n=300,m=5도 0.5s), 1스레드.
+
+### 결과 (full solver, v45.1 대비)
+- **prob_4: 58582 -> 15946 (-73%!)** Z3=0 달성 (전원 선호베이, 기하 실현됨)
+- **prob_2: 5890 -> 3690 (-37%!)** Z2 대폭 감소
+- prob_6/3/5/20: 정확법 실현 실패 -> best-of가 SA 결과 유지 (무회귀, prob_6=64728)
+- prob_38(고밀도): 34512341 byte-identical (저밀도 게이트라 스킵)
+
+### 파이프라인 (저밀도, Z1-share<0.5)
+construction -> (ALNS 축소, POLISH_RESERVE 0.6) -> _exact_reassign(전역배정, ~15s) -> _sa_reassign(정제).
+전부 best-of + check_feasibility 게이트 -> never-worse. 고밀도는 전부 스킵 = byte-identical.
