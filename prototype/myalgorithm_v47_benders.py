@@ -2589,38 +2589,41 @@ def _solve_once_impl(prob_info, timelimit=60, seed=12345,
     # (structural, not a density threshold): Z1-dominated (high-density) instances
     # skip it entirely, so their carefully-tuned paths stay byte-identical.  Runs
     # last (uses remaining budget) and is kept only if it strictly improves.
-    # EXACT CP-SAT assignment (low-density only): jumps to the global Z2+Z3
-    # assignment optimum the local search misses (measured -73% prob_4, -37%
-    # prob_2).  Realised by the engine and kept only if genuinely feasible AND
-    # better -- geometrically-unrealisable assignments are ignored by best-of.
-    # Runs BEFORE the SA tail (bounded to ~15s) so SA then refines its result.
-    if _low_density and n_blocks > 0 and verified_sol is not None and time.time() < deadline - 6.0:
-        try:
-            ex = _exact_reassign(prob_info, bay_unit,
-                                 min(deadline - 2.0, time.time() + 24.0))
-            if ex is not None and len(ex) == n_blocks:
-                sol = _build_operations(list(ex.values()))
-                chk = check_feasibility(prob_info, sol)
-                if chk["feasible"] and chk["objective"] < verified_obj:
-                    best_assign = ex
-                    verified_sol = sol
-                    verified_obj = chk["objective"]
-        except Exception:
-            pass
-
-    if _low_density and time.time() < deadline - 0.6 and n_blocks > 0 and verified_sol is not None:
-        try:
-            sa = _sa_reassign(prob_info, dict(best_assign), bay_unit,
-                              deadline - 0.3, rng)
-            if len(sa) == n_blocks:
-                sol = _build_operations(list(sa.values()))
-                chk = check_feasibility(prob_info, sol)
-                if chk["feasible"] and chk["objective"] < verified_obj:
-                    best_assign = sa
-                    verified_sol = sol
-                    verified_obj = chk["objective"]
-        except Exception:
-            pass
+    # LOW-DENSITY reassignment tail (Z2+Z3-dominated).  ORDER IS BUDGET-CRITICAL:
+    # run SA FIRST with a GUARANTEED half of the remaining budget so it is never
+    # starved (=> v47 is never worse than the SA-only v45), THEN the exact
+    # CP-SAT/Benders assignment as a pure bonus on what's left (measured -73%
+    # prob_4 when it realises; on hard instances it may not realise and best-of
+    # just keeps the SA result), THEN a short SA refine on whichever is best.
+    if _low_density and n_blocks > 0 and verified_sol is not None:
+        def _keep_reassign(res):
+            nonlocal best_assign, verified_sol, verified_obj
+            if res is not None and len(res) == n_blocks:
+                _s = _build_operations(list(res.values()))
+                _c = check_feasibility(prob_info, _s)
+                if _c["feasible"] and _c["objective"] < verified_obj:
+                    best_assign = res; verified_sol = _s; verified_obj = _c["objective"]
+        # (1) SA -- guaranteed ~half of the remaining budget
+        if time.time() < deadline - 0.6:
+            try:
+                _sa_dl = time.time() + 0.5 * (deadline - time.time())
+                _keep_reassign(_sa_reassign(prob_info, dict(best_assign), bay_unit, _sa_dl, rng))
+            except Exception:
+                pass
+        # (2) exact CP-SAT + Benders -- bonus on the remaining budget
+        if os.environ.get("EXACT", "1") == "1" and time.time() < deadline - 6.0:
+            try:
+                _keep_reassign(_exact_reassign(prob_info, bay_unit,
+                                               min(deadline - 2.0, time.time() + 20.0)))
+            except Exception:
+                pass
+        # (3) short SA refine on the best-so-far (possibly the exact result)
+        if time.time() < deadline - 0.6:
+            try:
+                _keep_reassign(_sa_reassign(prob_info, dict(best_assign), bay_unit,
+                                            deadline - 0.3, rng))
+            except Exception:
+                pass
 
     if verified_sol is not None:
         final_sol, final_obj = verified_sol, verified_obj
