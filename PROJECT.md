@@ -733,3 +733,20 @@ v46 정확배정은 쉬운 저밀도(prob_2/4)만 실현(-37~73%), 어려운 저
   "회귀"(147335→149620, +1.5%)의 진짜 정체 = 코드회귀 아닌 변동. **변동축소(항상 좋은쪽 뽑기) 자체가
   레버 후보** — best-of-N 재시작. SA가 빨리 수렴하므로(INCSA 방증) 짧은 재시작 다수 + best-of가 budget
   내 가능. 검증 예정.
+
+### ★★★ 레버 발견: SWAP 이동 (저밀도 SA reassign) — 2026-07-11 야간
+INCSA(iteration↑) 실패로 "병목은 이웃구조"를 반증적 확인 → SA에 SWAP 이동 추가(b를 tj의 b2와 교환).
+증분엔진(remove/add) 위에 구현(게이트 SWAP). **단일이동은 과선호-포화 베이가 차면 막히지만 교환은 뚫음**
+= Z3 갭(선호베이서 밀린 블록)의 직접 공략.
+
+전체 trainset1 SWAP vs BASE (풀솔버 60s, 단일런):
+```
+큰 승리: prob_11 −41.1%  prob_18 −16.3%  prob_9 −13.2%  prob_13 −10.0%  prob_14 −6.0%
+         prob_15 −5.5%  prob_12 −2.4%  prob_5 −2.1%  prob_6 −1.9%  prob_16 −1.9%
+불변: prob_1/2/4/7/8/17 (이미최적/컨트롤)   미세: prob_3 −0.1% prob_20 −0.3% prob_19 +0.3%
+회귀: prob_10 +11.0% (검증중)
+```
+13개 개선(다수 대폭), 회귀 1개. 압도적 순-양성. prob_11 Z3 354→215(갭 234→95, 60% 닫음).
+_sa_reassign은 저밀도 polish에서만 호출 → 고밀도(P4/P5/P6) 무영향. 통합시 worker-diversity 또는
+_keep_reassign(min)로 never-worse 보장(prob_10 가드) 필요. 단일런 측정은 pessimistic(프로덕션은
+4워커 best-of가 swap 변동 tail을 잡음). = free-region이 원리적 가속이면 SWAP은 원리적 이웃확장.
