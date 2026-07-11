@@ -648,3 +648,29 @@ min w2*Z2 + w3*Z3, s.t. 각 블록 1베이 + (베이,release시각)별 면적합
 ### 파이프라인 (저밀도, Z1-share<0.5)
 construction -> (ALNS 축소, POLISH_RESERVE 0.6) -> _exact_reassign(전역배정, ~15s) -> _sa_reassign(정제).
 전부 best-of + check_feasibility 게이트 -> never-worse. 고밀도는 전부 스킵 = byte-identical.
+
+---
+
+## v47: Logic-based Benders -- 어려운 저밀도 exact 실현 -- 2026-07-11
+
+### 배경
+v46 정확배정은 쉬운 저밀도(prob_2/4)만 실현(-37~73%), 어려운 저밀도(prob_3/5/6=P3류)는 면적완화가
+너무 느슨해 기하 실현 실패(Z1 폭발)->best-of가 버림. 리더보드: v46 제출 P3 165930->147335(-11%),
+최상위 ~82k라 아직 1.8배.
+
+### Benders 루프 (`_exact_reassign` 확장)
+면적제약은 진짜 기하+크레인 packability의 느슨한 완화. 각 라운드:
+1. MIP(현 용량) 풀어 배정 -> 2. 엔진 실현 -> 3. Z1=0이면 성공/종료
+4. Z1>0이면 peak 면적이용률 최대인 베이의 유효용량 *0.88 -> 재solve.
+=> MIP이 각 베이의 진짜 packing 한계를 학습. 최대 5회, 실현되는 최선 반환.
+안되면 best-of가 SA 유지 = never-worse.
+
+### 결과 (full solver 50s)
+- **prob_6: v46 64k -> 57783 (-10% 추가)** (Benders it4에서 Z1=0 실현)
+- prob_4: 15946 유지 (it0 즉시 실현)
+- prob_9: 61210 무회귀
+- prob_38(고밀도): 동일부하·예산서 v46=fr2=37825961 byte-identical (저밀도 게이트 스킵)
+
+### 예산
+저밀도 폴리시 예산(POLISH_RESERVE 0.6) 중 exact에 최대 24s(호출부), 나머지 SA. 60s 채점서 수렴.
+30s 등 짧으면 Benders 미수렴이지만 never-worse(SA수준).
