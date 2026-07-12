@@ -842,3 +842,40 @@ trainset1 합계 net ~−6%. median 검증과 일치. v49 확정.
 가속에서 오지 않음 → 채점기 예산에선 도달 불가. **진짜 상금(Z3 235 실현 → obj ~56k)은 인기 베이를
 bottom-left보다 강한 크레인-인지 타이트 패커로 채워 밀려나는 1블록을 온-타임 안착시키는 것 = 신규
 패커 R&D(고위험).** 마감 전 안전수 = swap 제거 복구(=v48, 149620).
+
+### ★★ v50: SPILL 실현기 — 저밀도 −15% 돌파 + 대규모 코드 정리 (2026-07-12)
+위 "1블록이 크레인 벽" 진단이 **틀렸음**을 정밀 계측으로 발견 → 진짜 원인은 **면적/파편화**였고,
+이를 뚫는 SPILL 실현기로 저밀도 대폭 개선. (사용자: 크레인-인지 패커 도전 → 진단이 방향을 틀어줌.)
+
+**진단 반전 (prob_20 미배치 b=32 정밀 분해):**
+- b=32는 크레인 아니라 **2D 면적**으로 막힘(scan: area_ok=0). 초선호 bay2(pref=95)가 그 시각 25블록
+  으로 참. 하지만 **b=32는 bay0/bay3에 온-타임 안착 가능**(addZ3=94) → 구조적 지각 아님!
+- 즉 면적최적 배정(Z3=235)은 **실현 가능**하되, 과포화 베이의 초과 블록을 **차선호 베이로 흘려보내야**
+  함. 기존 `_smallright_construct(prefaware,ext_bay)`는 강제 배정→못 넣으면 **드롭**(299/300)→Benders
+  과포화 오판→Z3 폭등. 이게 P3 갭의 진짜 정체(크레인 아님).
+
+**SPILL 실현기(`_spill_realize`, `_exact_reassign` 라운드0 내부, SPILL=1 기본):**
+- 면적최적 ext를 받아 각 블록을 (1)배정 베이 온-타임, 안되면 (2)차선호 베이 온-타임 **spill**(Z3 최소증가),
+  최후 (3)late. **6개 dispatch order × grid step(2,1) best-of** = 12실현, check_feasibility 통과 최소값.
+  order 다양성이 핵심(그리디는 순서 민감): big/urgent/strong-pref/small/long-stay/space-time first.
+- **never-worse**(best-of `_keep_reassign`): SA가 이기는 인스턴스는 spill 폐기. `_exact_reassign` 내부라
+  저밀도 전용 → 고밀도 바이트동일.
+- **검증(@90s, SP=0 no-spill 대비):** prob_20 133982→**105274(−21%)**, 11 −41%, 12 −14%, 13 −12%,
+  18 −13%, 9 −8%, 5 중립. **저밀도 합 −15.4%, 회귀 0.** 고밀도 27/38/40 바이트동일.
+- **P3(=prob_20): 149620(v48/채점기) → ~105k, −30%.**
+
+**시도했으나 기각(정직 기록):**
+- **C++ spill(`find_best_placement`)**: 5× 빠르나 품질 **+28~98% 악화**. 이유: 얘는 메인구축(밀도/Z1)용
+  휴리스틱이라 블록을 **흩뿌려** 빈공간 파편화 → 다음 블록 못 들어감 → spill↑ → Z3↑. bottom-left
+  first-fit은 블록을 구석에 **뭉쳐** 연속 빈공간 보존 → spill↓. (구축 FBP 기각과 동일 교훈.) Python
+  spill이 1.3s로 이미 충분히 빨라 속도는 병목 아님 → best-of order 확대(2→6)가 진짜 레버(−6~16%).
+
+**대규모 코드 정리(전부 재검증: 고밀도 바이트동일 + 저밀도 spill 유지):**
+- 기각 실험 제거: FASTENG(영구엔진, throughput↑≠obj↓ 재확인 −1.3%), CHAINF(예산재분배, base악화),
+  SADBG/POLDBG(디버그), SKIP_*/SPILLCPP/SPILLORD(ablation 토글).
+- 죽은코드 제거: WASTE/wasteflat 모드(실패실험), 도달불가 construct 모드 5개(interlock/spread/
+  bigright/bigtop/bigcorner).
+- **후처리 ablation:** shift/temporal/balance/swappol/pref 체인 → 고밀도 전부 바이트동일(무기여),
+  저밀도 prob_20 ±0.6%(무기여) but prob_13 -ALLCHAIN +7.6%(단, 저밀도 분산 ±9%로 교란) → **제거
+  안전 확증 불가라 보존**(변경으로 미검증 인스턴스 회귀 위험 회피).
+산출물: submit_v50.zip(.so/utils=v48 동일), prototype/myalgorithm_v50_spill.py.
