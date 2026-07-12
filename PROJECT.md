@@ -750,3 +750,26 @@ INCSA(iteration↑) 실패로 "병목은 이웃구조"를 반증적 확인 → S
 _sa_reassign은 저밀도 polish에서만 호출 → 고밀도(P4/P5/P6) 무영향. 통합시 worker-diversity 또는
 _keep_reassign(min)로 never-worse 보장(prob_10 가드) 필요. 단일런 측정은 pessimistic(프로덕션은
 4워커 best-of가 swap 변동 tail을 잡음). = free-region이 원리적 가속이면 SWAP은 원리적 이웃확장.
+
+### ★★★ v49: SWAP 이동 통합 (저밀도 Z3 레버) — 2026-07-12
+SA reassign에 교환(swap) 이동 추가 = 저밀도 Z3 갭 직접 공략. 증분엔진(remove/add, O(1)/move) 위에
+구현, all-swap(전 워커 full 예산, SWAPPOL 기본 ON). 저밀도 polish 전용이라 고밀도 무영향.
+
+**변동 관통 median A/B (POL0=v48 vs POL1=swap, 3반복 median):**
+```
+prob_11 −16.7%  prob_9 −13.2%  prob_14 −12.8%  prob_10 −7.6%  prob_15 −7.5%  prob_6 −1.6%
+prob_19 +0.4%(중립)   회귀 0
+```
+초기 단일런 "회귀"(prob_6 +5.8% 예산분할 / prob_10 +11% 변동)는 아티팩트로 확정. all-swap이 깨끗한 승자.
+
+**검증:**
+- 고밀도 P4/P5/P6(prob_27/38/40): SWAPPOL 0 vs 1 **바이트동일**(24177428/34512341/1738953) — swap은
+  저밀도 전용(_sa_reassign은 저밀도 polish에서만 호출).
+- .so 3개 + utils.py = submit_v48.zip과 완전 동일(swap을 실제 제출 엔진으로 검증).
+- 프로덕션 default(env 없음) = SWAPPOL"1" = swap ON.
+
+**메커니즘:** Z3 갭 = 과선호 베이서 밀린 블록. 단일이동은 선호베이가 차면 막힘. 교환(b↔b2)은 뚫음
+= 낮은-Z3 배정을 Z1=0으로 실현. free-region이 원리적 가속이면 swap은 원리적 이웃확장.
+
+산출물: submit_v49.zip, prototype/myalgorithm_v49_swap.py. (실험 dead code craneaware/cranemask/
+CRANEAWARE는 파일에 남아있으나 기본값이 원본동작이라 inert; cleanup은 follow-up.)
