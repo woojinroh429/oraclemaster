@@ -773,3 +773,7 @@ prob_19 +0.4%(중립)   회귀 0
 
 산출물: submit_v49.zip, prototype/myalgorithm_v49_swap.py. (실험 dead code craneaware/cranemask/
 CRANEAWARE는 파일에 남아있으나 기본값이 원본동작이라 inert; cleanup은 follow-up.)
+
+**최종 확정 (전체 20개 단일런, POL0=v48 vs POL1=v49):** 회귀 0, 15개 개선(−1.9~−16.7%),
+나머지 불변. 대형 Z3-갭 다 개선: prob_18 −14.5%, prob_5 −10.5%, prob_13 −7.2%, prob_12 −6.4%.
+trainset1 합계 net ~−6%. median 검증과 일치. v49 확정.
