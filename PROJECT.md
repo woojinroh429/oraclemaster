@@ -786,3 +786,22 @@ trainset1 합계 net ~−6%. median 검증과 일치. v49 확정.
   하지만 obj는 나빠짐 — 순수 max(80%) prob_18 악화, **top-3 균형도 median서 random보다 나쁨**
   (prob_18 +11.9%, prob_15 +1.4%). 그리디 편향이 탐색을 죽여 나쁜 basin에 갇힘. **random swap이 최선.**
   v49 = random swap 확정(directed 폐기).
+
+### v49 정리 + 저밀도 SA 효율화 (제출본) — 2026-07-12
+사용자 요청: 저밀도 코드 예산 효율화 + 불필요 기능 제거.
+- **죽은 실험코드 전부 제거**(전부 gated-off, 프로덕션 미실행이었음): FBP(C++ 스캔, 실패),
+  CHAIN(3-cycle, prob_11 +20% 회귀), SWAPDIR(directed swap, 실패), SADBG(카운터),
+  craneaware/cranemask 스코어링 + present_top/_topbb, _exact_reassign의 CRANEAWARE mode-diversity
+  분기. myalgorithm.py 228KB→220KB.
+- **swap을 param 하드코딩**(swap=True, 프로덕션 항상 ON). SWAP/SWAPPOL/INCSA env 제거.
+- **★ 저밀도 SA 핵심 최적화 (프로파일 발견):** viol 계산이 매 iteration마다 n개 블록의
+  max(bay_preferences)를 재계산 = builtins.max 250만 호출 = SA CPU의 ~41%. 이 값은 SA 중 상수라
+  루프 밖에서 1회 precompute(_mxpref) → max 호출 67%↓(250만→82만), SA ~1.5× 가속. 의미 동일.
+- **검증:** 고밀도 prob_27/38/40 바이트동일(24177428/34512341/1738953, SA는 저밀도 전용).
+  저밀도 합계 clean −0.1% / opt +0.2% (v49 swap 대비, 노이즈 내) = 행동 동일, swap 이득 보존.
+- **C++ 사용 진단:** 구성(find_best_placement)·CP-SAT(ortools)·엔진 remove/add는 C++로 잘 씀.
+  SA 배치스캔(_fp_timed)은 Python 루프가 셀마다 C++ placement_feasible 호출 → Python 오버헤드
+  지배(~500-800/s). FBP(C++ 전수스캔)는 8× 빠르나 위치 휴리스틱이 바닥-왼쪽과 달라 하류 swap
+  해쳐 폐기. 진짜 낭비는 위 max-재계산(Python)이었고 잡음. 남은 _objective 증분화는 위험 대비
+  이득 작아(throughput↑는 obj 거의 불변, INCSA 전례) 보류.
+산출물: submit_v49.zip 재빌드(.so/utils=v48 동일), prototype/myalgorithm_v49_swap.py.

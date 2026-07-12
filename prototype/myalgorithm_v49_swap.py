@@ -2099,7 +2099,11 @@ def _sa_reassign(prob_info, assign, bay_unit, deadline, rng, swap=False):
                 pass
         return E
     def _fp_timed(E, b, bay, ens, step=2):
-        # first feasible (orient, x, y, en, ex) over the given entry-time candidates
+        # first feasible (orient, x, y, en, ex) over the given entry-time candidates.
+        # The Python bottom-left grid scan is kept deliberately: the C++
+        # find_best_placement is ~8x faster but its position heuristic differs from
+        # bottom-left, which measurably degrades downstream swap opportunities (tested).
+        # entry-times are tried in order so the earliest (lowest-Z1) feasible wins.
         for en in ens:
             ex = en + B[b]["processing_time"]
             for oi in range(len(B[b]["shape"])):
@@ -2126,14 +2130,15 @@ def _sa_reassign(prob_info, assign, bay_unit, deadline, rng, swap=False):
         best = {b: dict(a) for b, a in cur.items()}; best_obj = cur_obj
         T0 = max(1.0, best_obj * 0.03)
         span_t = max(0.001, deadline - _t.time())
-        # INCREMENTAL engine (INCSA=1): _bE rebuilds ALL n blocks into a fresh engine
-        # every iteration -> O(n) per move, so large instances (the big-Z3-gap ones are
-        # all n=250-300) get few SA iterations in the budget.  Maintain ONE persistent
-        # engine == cur and do remove(b)+scan+add per move (O(1)) instead, for ~n x more
-        # iterations.  Same SA / moves / objective; correctness is guarded by the final
-        # check_feasibility gate, so any engine drift only affects search quality.
-        _swap = swap or os.environ.get("SWAP", "0") == "1"
-        _incsa = os.environ.get("INCSA", "0") == "1" or _swap
+        # swap=True enables the SWAP move (exchange b with a block in the target bay) --
+        # the low-density lever: single moves stall when the over-preferred bay is packed,
+        # swaps break through to lower-Z3 assignments (measured net -6% on trainset1).
+        # It needs a PERSISTENT incremental engine: _bE would rebuild all n blocks every
+        # iteration (O(n)/move -> few iterations on the n=250-300 instances), so instead
+        # maintain ONE engine == cur and remove(b)+scan+add per move (O(1)).  Correctness
+        # is guarded by the final check_feasibility gate, so any engine drift only affects
+        # search quality, never validity.
+        _incsa = swap
         _Eng = None
         def _eng_add(bb, x):
             try:
@@ -2146,12 +2151,16 @@ def _sa_reassign(prob_info, assign, bay_unit, deadline, rng, swap=False):
             for bb in cur:
                 _eng_add(bb, cur[bb])
         _since_sync = 0
+        # top preference per block is CONSTANT over the SA -- precompute once instead of
+        # recomputing max(bay_preferences) for every block on every iteration (that was
+        # ~40% of the SA's CPU: n*iters calls to builtins.max).
+        _mxpref = [max(B[b]["bay_preferences"]) for b in range(n)]
         while _t.time() < deadline:
             frac = (deadline - _t.time()) / span_t
             T = max(1e-6, T0 * frac)
             # bias toward preference-violating blocks, but allow any (for Z2 balance)
             viol = [b for b in range(n)
-                    if b in cur and max(B[b]["bay_preferences"]) > B[b]["bay_preferences"][cur[b]["bay_id"]]]
+                    if b in cur and _mxpref[b] > B[b]["bay_preferences"][cur[b]["bay_id"]]]
             b = (viol[int(rng.random() * len(viol))] if viol and rng.random() < 0.85
                  else int(rng.random() * n))
             if b not in cur:
@@ -2176,7 +2185,7 @@ def _sa_reassign(prob_info, assign, bay_unit, deadline, rng, swap=False):
                 tj = int(rng.random() * m)
             if tj == ocur:
                 continue
-            if _swap and rng.random() < 0.35:
+            if swap and rng.random() < 0.35:
                 # SWAP move (needs the incremental engine): single moves stall when
                 # tj is full (no room for b) -- the big-Z3-gap instances have an over-
                 # preferred bay that is packed, so single moves toward it keep failing.
@@ -2185,6 +2194,9 @@ def _sa_reassign(prob_info, assign, bay_unit, deadline, rng, swap=False):
                 # can never make.  Objective judged on the assignment; SA-accepted.
                 _cand2 = [bb for bb in cur if bb != b and cur[bb]["bay_id"] == tj]
                 if _cand2:
+                    # RANDOM partner: directed (max/top-3 preference) selection was tested
+                    # and is WORSE (median prob_18 +11.9%) -- greedy bias kills the
+                    # exploration the SA needs.  Random exploration wins here.
                     b2 = _cand2[int(rng.random() * len(_cand2))]
                     _old = cur[b]; _old2 = cur[b2]
                     try: _Eng.remove(b); _Eng.remove(b2)
@@ -2349,67 +2361,8 @@ def _exact_reassign(prob_info, bay_unit, deadline, mip_cap=6.0):
             if rb < 1.0:
                 break
             # Intra-bay realisation.  The bay is FIXED by CP-SAT (ext_bay), so the
-            # placement mode only controls WHERE within the assigned bay.  prefaware's
-            # bay-preference key is then constant (single bay) => it reduces to flatbl.
-            # CRANE-AWARE swaps in the z-layer descent-blocking rule (tall blocks -> walls,
-            # keep a contiguous low-layer descent corridor) so the popular bay realises
-            # MORE blocks at Z1=0 -- the exact lever the research flags for crane-limited
-            # low-density instances.  Prototype behind CRANEAWARE env (default prefaware).
-            # CRANEAWARE env: "0"=prefaware only (default == submitted, BYTE-IDENTICAL
-            # control flow below), "1"=craneaware only (A/B isolation), "2"=best-of BOTH
-            # (realise each, keep the lower-objective one).  craneaware is a HIGH-VARIANCE
-            # placement rule -- it wins big on some geometries (prob_11 -70%, prob_18 -46%
-            # measured: fewer spilled blocks => less Z1) and loses big on others (prob_6
-            # +148%), so it belongs in a best-of, never as a replacement.
-            _caenv = os.environ.get("CRANEAWARE", "0")
-            if _caenv in ("1", "2"):
-                def _realize(_md):
-                    _r = _smallright_construct(prob_info, rb, step=1, mode=_md, ext_bay=ext)
-                    if not (_r and len(_r) == n):
-                        return None
-                    _s = _build_operations([_r[b] for b in range(n)])
-                    _c = check_feasibility(prob_info, _s)
-                    if not _c.get("feasible"):
-                        return None
-                    return (_r, _s, _c, float(_c["objective"]))
-                if _caenv == "1":
-                    _cand = [_realize("craneaware")]
-                else:
-                    # CONDITIONAL best-of: realise prefaware FIRST, and add a craneaware
-                    # realisation ONLY when prefaware fails to realise this assignment at
-                    # Z1=0 (spill or fail).  Doubling every round starves the Benders
-                    # budget and regressed prob_6 (+177%); spending the extra realisation
-                    # only where prefaware is stuck keeps the prefaware trajectory intact
-                    # where it works (no regression) yet captures craneaware's wins where
-                    # it doesn't (prob_11 -53%, prob_18 -46%).  best-of keeps min => never
-                    # worse than prefaware.
-                    _pf = _realize("prefaware")
-                    _cand = [_pf]
-                    if _pf is None or float(_pf[2].get("obj1", 0.0)) > 0.0:
-                        _cand.append(_realize("craneaware"))
-                _cand = [c for c in _cand if c is not None]
-                if not _cand:
-                    tot = [sum(area[b] for b in range(n) if ext[b] == j) for j in range(m)]
-                    jmax = max(range(m), key=lambda j: tot[j] / rawcap[j])
-                    capf[jmax] *= 0.85
-                    continue
-                recs, sol, ck, ob = min(_cand, key=lambda c: c[3])
-                if ob < best_obj:
-                    best_obj = ob; best = {b: dict(recs[b]) for b in range(n)}
-                _z3r = float(ck.get("obj3", 0.0))
-                if _z3r < seed_z3:
-                    seed_z3 = _z3r; seed = {b: dict(recs[b]) for b in range(n)}
-                    seed_z1 = float(ck.get("obj1", 0.0))
-                if float(ck.get("obj1", 0.0)) <= 0.0:
-                    break
-                peak = [0.0] * m
-                for j in range(m):
-                    for t in sorted(set(rel)):
-                        _pr = [b for b in range(n) if ext[b] == j and rel[b] <= t < rel[b] + pt[b]]
-                        peak[j] = max(peak[j], sum(area[b] for b in _pr))
-                jmax = max(range(m), key=lambda j: peak[j] / rawcap[j])
-                capf[jmax] *= 0.88
-                continue
+            # placement mode only controls WHERE within the assigned bay (prefaware's
+            # bay-preference key is constant for a single bay, so it reduces to flatbl).
             recs = _smallright_construct(prob_info, rb, step=1, mode="prefaware", ext_bay=ext)
             if not (recs and len(recs) == n):
                 tot = [sum(area[b] for b in range(n) if ext[b] == j) for j in range(m)]
@@ -2748,19 +2701,14 @@ def _solve_once_impl(prob_info, timelimit=60, seed=12345,
                 _c = check_feasibility(prob_info, _s)
                 if _c["feasible"] and _c["objective"] < verified_obj:
                     best_assign = res; verified_sol = _s; verified_obj = _c["objective"]
-        # (1) SA.  SWAPPOL=1 (default): on EVERY worker run the plain non-swap SA first
-        # (converges fast -- more iterations don't help, measured -- so a 0.35x slice is
-        # enough to preserve the pre-swap basin on all workers => best-of-4-non-swap floor
-        # intact, guards prob_11) THEN a swap-enabled SA (exchange moves unlock the over-
-        # preferred-bay bottleneck; reliable -11..-13% on prob_9/prob_15).  Both go
-        # through _keep_reassign (min), so swap is PER-WORKER never worse.  Worker-diversity
-        # (some workers swap-only) was rejected: it drops non-swap draws and regressed
-        # prob_11.  SWAPPOL=0 restores the single non-swap SA at 0.5x (A/B baseline).
-        _swappol = os.environ.get("SWAPPOL", "1") == "1"
+        # (1) SA with SWAP moves -- ~half the remaining budget.  swap gives every worker
+        # exchange moves that reach lower-Z3 assignments single moves can't (net -6% on
+        # trainset1); the incremental engine keeps it affordable and _keep_reassign(min)
+        # means it is never worse than the pre-swap result.
         if time.time() < deadline - 0.6:
             try:
                 _sa_dl = time.time() + 0.5 * (deadline - time.time())
-                _keep_reassign(_sa_reassign(prob_info, dict(best_assign), bay_unit, _sa_dl, rng, swap=_swappol))
+                _keep_reassign(_sa_reassign(prob_info, dict(best_assign), bay_unit, _sa_dl, rng, swap=True))
             except Exception:
                 pass
         # (2) exact CP-SAT + Benders -- bonus on the remaining budget.  Returns the
@@ -2788,13 +2736,12 @@ def _solve_once_impl(prob_info, timelimit=60, seed=12345,
                         _keep_reassign(_sa_reassign(prob_info, _seed_ex, bay_unit, _rp_dl, rng))
             except Exception:
                 pass
-        # (3) short SA refine on the best-so-far (possibly the exact result).  swap under
-        # SWAPPOL so the refine keeps exchanging out of over-preferred bays; _keep_reassign
-        # gates it -> never worse.
+        # (3) short SA refine (swap) on the best-so-far (possibly the exact result);
+        # _keep_reassign gates it -> never worse.
         if time.time() < deadline - 0.6:
             try:
                 _keep_reassign(_sa_reassign(prob_info, dict(best_assign), bay_unit,
-                                            deadline - 0.3, rng, swap=_swappol))
+                                            deadline - 0.3, rng, swap=True))
             except Exception:
                 pass
 
@@ -3546,25 +3493,6 @@ def _smallright_construct(prob_info, deadline_s, small_thresh=0.60, step=1, mode
         # instances (P5/P6) where flat_bl completion drives the score.
         return _orient_bbox(B[b], oi)
     present_by_bay={j:[] for j in range(m)}   # ((x0,y0,x1,y1), exit)
-    # EXACT descent-mask (mode="cranemask"): track the TOP (highest) layer's bbox of
-    # each present block -- that footprint is what blocks FUTURE blocks' upper-layer
-    # descents.  Maintained in parallel to present_by_bay but ONLY when mode=="cranemask"
-    # (guarded at every mutation site) so the byte-identical default path is untouched.
-    present_top_by_bay={j:[] for j in range(m)}   # ((tx0,ty0,tx1,ty1), exit)
-    _TOPBB={}
-    def _topbb(b,oi):
-        _k=(id(B[b]),oi); _v=_TOPBB.get(_k)
-        if _v is None:
-            _L=B[b]["shape"][oi]["layers"]; _top=None
-            for _l in reversed(_L):
-                if _l: _top=_l; break
-            if not _top:
-                _v=bbox(b,oi)
-            else:
-                _xs=[p[0] for p in _top]; _ys=[p[1] for p in _top]
-                _v=(min(_xs),min(_ys),max(_xs),max(_ys))
-            _TOPBB[_k]=_v
-        return _v
     BAND=0.6
     def _band_occ_base(j,cur,bh):
         # Occupancy intervals of blocks whose bbox dips into the bottom band --
@@ -3680,50 +3608,6 @@ def _smallright_construct(prob_info, deadline_s, small_thresh=0.60, step=1, mode
                                     _oy=min(wy+h,py1)-max(wy,py0)
                                     if _ox>0 and _oy>0: ov+=_ox*_oy
                                 sc=(ov, wy, wx, j)
-                            elif mode=="craneaware":
-                                # CRANE-AWARE descent-blocking (research: CRP/CPMP
-                                # blocking-move penalty + robotic top-down feasibility
-                                # mask).  placement_feasible already rejects spots where
-                                # THIS block cannot descend; this term instead scores how
-                                # much a feasible spot obstructs FUTURE blocks' descents.
-                                # A block spanning L z-layers sweeps/blocks descent over
-                                # its footprint up to layer L-1, so a MANY-layer block is
-                                # the worst future-descent blocker.  Exile tall-stack
-                                # blocks to the bay walls (small _dw) so a large CONTIGUOUS
-                                # low-layer descent corridor stays open in the interior for
-                                # future blocks; flat (L=1) blocks are ~free to place
-                                # central.  Tie-break corner-fill -> flat -> bottom-left.
-                                # NOTE: no existing mode uses the z-layer count L -- every
-                                # other key is 2D-geometry only, which is exactly the gap
-                                # (crane-blocking is a z-axis effect).  best-of => never
-                                # worse than the geometry-only modes.
-                                _L=len(B[b]["shape"][oi]["layers"])
-                                _dw=wx if wx<=(bw_j-(wx+w)) else (bw_j-(wx+w))
-                                sc=(_L*_dw, wx+wy, h, wx, wy, j)
-                            elif mode=="cranemask":
-                                # EXACT descent-mask (research finding 6).  The crude
-                                # craneaware rule used only the layer COUNT; this uses the
-                                # ACTUAL top-layer footprint -- the real geometry that
-                                # blocks future upper-layer descents.  A candidate whose
-                                # top layer INTERLOCKS above/beside existing tops (overlaps
-                                # present top-layer bboxes) exposes less FRESH descent-
-                                # blocking area, keeping a larger low-ceiling corridor open
-                                # for future blocks.  exposed = top-area not shadowed by any
-                                # present top; minimise, then corner-fill -> flat -> BL.
-                                # Only ~37% of blocks are non-solid (top!=base), so the
-                                # lever lives there.  best-of => never worse.
-                                _tb=_topbb(b,oi)
-                                _twx0=ix+_tb[0]; _twy0=iy+_tb[1]; _twx1=ix+_tb[2]; _twy1=iy+_tb[3]
-                                _tarea=(_tb[2]-_tb[0])*(_tb[3]-_tb[1])
-                                _ovt=0.0
-                                for (pb,pex) in present_top_by_bay[j]:
-                                    px0,py0,px1,py1=pb
-                                    _ox=min(_twx1,px1)-max(_twx0,px0)
-                                    _oy=min(_twy1,py1)-max(_twy0,py0)
-                                    if _ox>0 and _oy>0: _ovt+=_ox*_oy
-                                _exp=_tarea-_ovt
-                                if _exp<0: _exp=0.0
-                                sc=(_exp, wx+wy, h, wx, wy, j)
                             elif mode=="bigright":
                                 # BIG-RIGHT: bigleft의 좌우 미러. 큰블록을 우측벽으로
                                 # 클러스터(우측 gap 최소화) -> 좌측에 연속 free-span.
@@ -3879,8 +3763,6 @@ def _smallright_construct(prob_info, deadline_s, small_thresh=0.60, step=1, mode
                 present_by_bay[j]=_kept
             else:
                 present_by_bay[j]=[(bb,ex) for (bb,ex) in present_by_bay[j] if ex>cur]
-            if mode=="cranemask":
-                present_top_by_bay[j]=[(bb,ex) for (bb,ex) in present_top_by_bay[j] if ex>cur]
         pl=[]
         _pend_sorted = sorted(pend,key=lambda b:_atckey(b,cur)) if _atc_on else sorted(pend,key=key)
         for b in _pend_sorted:
@@ -3908,9 +3790,6 @@ def _smallright_construct(prob_info, deadline_s, small_thresh=0.60, step=1, mode
             if res:
                 x0,y0,x1,y1=bbox(b,oi)
                 present_by_bay[j].append(((ix+x0,iy+y0,ix+x1,iy+y1),ex))
-                if mode=="cranemask":
-                    _tb=_topbb(b,oi)
-                    present_top_by_bay[j].append(((ix+_tb[0],iy+_tb[1],ix+_tb[2],iy+_tb[3]),ex))
                 recs[b]={"block_id":b,"bay_id":j,"x":ix,"y":iy,"orient_idx":oi,"entry_time":cur,"exit_time":ex}
                 placed=True
             if not placed and not _os_nofb:
@@ -3922,9 +3801,6 @@ def _smallright_construct(prob_info, deadline_s, small_thresh=0.60, step=1, mode
                         E.add(int(bay),b,int(oi),float(x),float(y),int(en),int(ex2))
                         x0,y0,x1,y1=bbox(b,int(oi))
                         present_by_bay[int(bay)].append(((x+x0,y+y0,x+x1,y+y1),int(ex2)))
-                        if mode=="cranemask":
-                            _tb=_topbb(b,int(oi))
-                            present_top_by_bay[int(bay)].append(((x+_tb[0],y+_tb[1],x+_tb[2],y+_tb[3]),int(ex2)))
                         recs[b]={"block_id":b,"bay_id":int(bay),"x":int(x),"y":int(y),"orient_idx":int(oi),"entry_time":int(en),"exit_time":int(ex2)}
                         placed=True
                     except Exception: pass
