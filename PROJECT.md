@@ -777,3 +777,12 @@ CRANEAWARE는 파일에 남아있으나 기본값이 원본동작이라 inert; c
 **최종 확정 (전체 20개 단일런, POL0=v48 vs POL1=v49):** 회귀 0, 15개 개선(−1.9~−16.7%),
 나머지 불변. 대형 Z3-갭 다 개선: prob_18 −14.5%, prob_5 −10.5%, prob_13 −7.2%, prob_12 −6.4%.
 trainset1 합계 net ~−6%. median 검증과 일치. v49 확정.
+
+### 야간 후속: swap 강화 시도 + 저밀도 속도 측정 (2026-07-12)
+- **속도(throughput):** 저밀도 SA ~500 iters/s (n=200 블록당 25이동, n=300 블록당 8이동). 병목은
+  이동마다 `_fp_timed`(대상베이 배치 스캔), 엔진 아님(INCSA로 이미 O(1)). = SA는 **이동 횟수가 아니라
+  이동당 비용에 제한.** 그래서 raw iteration↑(INCSA)이 안 통했던 것. 레버는 "더 많이"가 아니라 "더 똑똑".
+- **directed swap 반증:** 랜덤 파트너 대신 "ocur 최선호 b2" 선택 → accept율 5-10× 폭증(prob_9 4→46).
+  하지만 obj는 나빠짐 — 순수 max(80%) prob_18 악화, **top-3 균형도 median서 random보다 나쁨**
+  (prob_18 +11.9%, prob_15 +1.4%). 그리디 편향이 탐색을 죽여 나쁜 basin에 갇힘. **random swap이 최선.**
+  v49 = random swap 확정(directed 폐기).
