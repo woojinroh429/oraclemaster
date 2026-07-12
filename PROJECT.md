@@ -879,3 +879,32 @@ bottom-left보다 강한 크레인-인지 타이트 패커로 채워 밀려나�
   저밀도 prob_20 ±0.6%(무기여) but prob_13 -ALLCHAIN +7.6%(단, 저밀도 분산 ±9%로 교란) → **제거
   안전 확증 불가라 보존**(변경으로 미검증 인스턴스 회귀 위험 회피).
 산출물: submit_v50.zip(.so/utils=v48 동일), prototype/myalgorithm_v50_spill.py.
+
+### ★★★ v51: capacity-feedback spill (local greedy → global optimal) (2026-07-12)
+사용자: spill 사고를 한 단계 업그레이드. v50 spill은 과포화 초과분을 **먼저 온 놈이 밀려나는**
+지역(greedy) 결정이었음 → CP-SAT에 **실현용량을 피드백**해 어느 블록을 뺄지 **전역 최적**으로.
+
+**메커니즘 (`_exact_reassign` Benders 루프 내부, SPILL=1):**
+- 각 라운드: CP-SAT(cap_eff) → ext → `_spill_realize`(6-order best-of) → best 유지.
+- **실현용량 피드백**: spill 결과에서 각 베이의 실현 peak 면적을 측정, 과포화 베이(assigned peak >
+  realised peak)의 capf를 그 실측치로 조임(monotone, 0.30 floor) → `continue`로 재풀이.
+- CP-SAT가 realistic 용량 하에 **min-Z3 배정**을 스스로 선택 → greedy보다 싼 spill. 라운드 간 best-of
+  (라운드는 overshoot 가능).
+- **핵심 통찰**: 면적최적 배정(최저 asgZ3)이 실현엔 최선이 아님 — asgZ3 더 높아도 덜-과포화라 실제
+  obj가 낮은 배정이 존재(prob_20 asgZ3 235→399인데 obj 105k→92k).
+
+**prob_3 회귀와 수정 (never-worse 복원):**
+- 순수 feedback는 `continue`가 `_smallright`를 건너뛰어 **seed 기반 SA-repair 경로를 굶김** → prob_3
+  +8.8% 회귀(seed-favorable 소형 인스턴스).
+- 수정 3종: (a) **round-0는 항상 `_smallright` 실행**(`_bit>=1`에서만 continue) → SA-repair seed 확보;
+  (b) spill 켜지면 `Z1<=0 break` 비활성 → feedback 라운드 계속; (c) round-0 `_smallright`를 **rb=3s
+  캡** → 소형은 seed 얻고 대형은 drop 후 feedback로 낙하(예산 보존); (d) seed를 spill에서도 설정.
+- SP=0 대비 검증: **모든 인스턴스 never-worse** — prob_11 −40%, 14 −33%, 13 −27%, 18 −25%,
+  20(P3) −17%, 9 −8%, 16 −7%, 3/4 동일, 5 노이즈. 저밀도 합 **−18%**, 고밀도 27/38/40 바이트동일.
+- **P3(=prob_20): v48 채점기 149620 → 111640 (−25%).** (단독 in-situ에선 91.7k지만 6워커 부하 하
+  exact 예산에선 미도달 — P3는 최대 인스턴스라 feedback 라운드가 부하에 컷.)
+
+**기각(정직): C++ `find_best_placement`** — 5× 빠르나 블록 흩뿌려 파편화 → spill 품질 +28~98% 악화.
+bottom-left first-fit이 연속 빈공간 보존이 핵심(구축 FBP 기각과 동일 교훈). Python spill이 1.3s로
+충분히 빨라 진짜 레버는 best-of order 확대(2→6).
+산출물: submit_v51.zip(.so/utils=v48 동일), prototype/myalgorithm_v51_feedback.py.
