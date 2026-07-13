@@ -1234,3 +1234,23 @@ greedy는 결정적 확인(prob_3 x2 동일).
 **언락(다음):** SKY value는 **빔이 필수가 아님** — `_lfr`(통로면적)을 place_custom **greedy 배치모드**로
 직접 쓰면(각 후보를 잔여통로로 스코어) 300블록도 빠르게(그리디 27s) 스케일하고 통로보존 효과를 얻음.
 = 아이디어1의 진짜 shippable 형태("똑똑한 cluster" greedy mode). 다음 과제.
+
+---
+
+## greedy 스카이라인 모드 실패 — 통로보존은 lookahead(빔) 필수, 탐욕은 myopic
+
+`_lfr`을 place_custom greedy 모드(skyline/skypref)로 직접 사용 → **참패**:
+| inst | prefaware | skypref | skyline |
+|---|---|---|---|
+| prob_1 | 24105 | 255243 | 494655 |
+| prob_4 | 93279 | 343001 | 678440 |
+| prob_20 | 145196 | incomplete 89/300 | incomplete 102/300 |
+
+**Z2는 크게 좋아지는데(산개→부하균형) Z3 폭발**(78→2464). 이유: **탐욕적 per-placement 통로최대화는
+myopic** — 지금 큰 빈사각형 남기려 블록을 흩뿌림 → 레이아웃 파편화 → 나중 블록 spill 폭증. 빔이 통했던 건
+통로가 **시퀀스 lookahead 탐색 안의 tiebreak**였기 때문(동점 Z3 후보 중 선택), 탐욕 primary 목적이 아님.
++ 300블록서 _lfr/후보 비용으로 미완성(느림).
+
+**구조적 교훈:** 통로보존 레버는 **빔(lookahead) 없이는 무효**. 단순 모드추가로는 안 됨. 그리고 빔은
+150블록 OK, 300블록(실제 P3) too slow. → **실제 P3 공략 = 빔을 300블록에 스케일**(비트맵 feasibility로
+가속, 또는 spill난 블록집합만 타겟 LNS-빔)이 남은 유일 경로. 소형 저밀도(P1/P2?)엔 SKY-빔 best-of가 유효.
