@@ -1300,3 +1300,29 @@ myopic** — 지금 큰 빈사각형 남기려 블록을 흩뿌림 → 레이아
 **함의:** critC-first는 **소형 저밀도(P1/P2가 100블록급이면)에 -57~-91% 대박** best-of 변형(무regress:
 prob_20은 base로 fallback). P3(300블록)엔 무효. + 캐시버그가 앞선 P4 greedy 불일치(3617004 vs 3370924)도
 설명 — 오염이었고, 단일인스턴스 P4 빔 win(-2.1%)은 clean.
+
+---
+
+## P3 실제경로 정밀분석 (프록시 실수 정정 후) — 크레인 floor 6중 확증
+
+**중대 정정:** 이전 critC/skyline/tall 실험은 `_smallright_construct`(P6-gated, P3 미사용) 대상이라 무의미.
+실제 `algorithm()`의 저밀도 경로는 construction+ALNS+**CP-SAT/Benders bay 재배정**+SA. prob_1 실제=1499
+(프록시 24105 아님). 이하 전부 **실제 algorithm() clean 단독측정**.
+
+**실제 prob_20(P3) = obj 90230, Z2=2705, Z3=592** (Z3가 obj의 82%). 30k 절감 = Z3 592→~350 필요.
+
+**6중 확증 — P3 Z3는 크레인-실현가능 floor:**
+1. **예산 아님:** TL=300(90769) ≈ TL=120(90230). 재배정 수렴.
+2. **spill 진단:** 밀려난 39블록 중 회복가능 5개(Z3 23)뿐, **34개 진짜 크레인-full**. 96% 구조적.
+3. **게이트 정상:** `_low_density`(Z1비중<0.5)로 P3는 강한 재배정 정상 수신. 게이트 버그 없음.
+4. **tall/critC 실현순서 추가:** 무효(예산잠식 소폭 악화).
+5. **EXROUNDS↑ Benders:** 효과 없음(수렴).
+6. **`_beam_realize`(위치+배정 동시 재최적화, 크레인-통로 K-빔):** spill_realize보다 **나쁨**
+   (136725 vs 145864). 최대빈사각형=myopic proxy, 더 못 담음 + Z2 무시.
+
+**"v52 600 감소"의 정체:** CP-SAT+Benders bay 재배정(construction 145k→90k)의 일회성 구조승리.
+**이미 수렴** — 같은 메커니즘으론 추가 없음. w1=26667(거대)이라 tardiness 거래도 break-even 불가.
+
+**결론:** prob_20 물리(선호bay 크레인 초과구독)상 30k 절감 근거 없음. 유일한 미검증: 히든 P3가
+prob_20과 구조적으로 다를 가능성(측정 불가). 실험코드(모드/특징/빔/_beam_realize) 전부 env/mode-gate,
+기본 off → 배포 algorithm()은 v52 불변(prob_20 90230 재확인).
