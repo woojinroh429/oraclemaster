@@ -1326,3 +1326,37 @@ prob_20은 base로 fallback). P3(300블록)엔 무효. + 캐시버그가 앞선 
 **결론:** prob_20 물리(선호bay 크레인 초과구독)상 30k 절감 근거 없음. 유일한 미검증: 히든 P3가
 prob_20과 구조적으로 다를 가능성(측정 불가). 실험코드(모드/특징/빔/_beam_realize) 전부 env/mode-gate,
 기본 off → 배포 algorithm()은 v52 불변(prob_20 90230 재확인).
+
+---
+
+## ★ P3 서버 저성능 근본원인 발견 + 수정 (예산 배분 버그) — TL=60에서 -43%
+
+**유저 통찰:** 친구 10만대·최고 8만대인데 우리 그레이더 P3=115k. "서버에서 알고리즘이 잘 작동 안 되는 것"
+아니냐 → **정확했음.** 로컬 90k인데 그레이더 115k인 이유 = **재배정이 그레이더 시간예산 안에 수렴 못 함.**
+
+**진단 (프로파일링):**
+1. TL 민감도: prob_20 TL=120→90k(수렴), **TL=60→177k(미수렴)**. 그레이더는 60s → 미수렴.
+2. 프로파일: `_exact_reassign` Benders 루프의 **80%가 check_feasibility(shapely 기하)** — 후보 랭킹마다
+   느린 재검. C++ 엔진이 이미 feasible 보장하는데도.
+3. **결정적 버그(DBG 계측):** ALNS(24s)와 강한재배정tail(59.6s) 사이 **중간 폴리시 5단계**
+   (_shift_forward/_temporal_share/_balance_load/_swap_polish/_pref_reassign)가 `deadline`까지 탐욕적으로
+   **35초 먹어치움** → 진짜 레버인 재배정tail이 59.6s에 시작(0.4s 남음) → **아예 안 돌아감.**
+
+**수정 3종 (전부 저밀도 게이트, 고밀도 byte-identical):**
+1. **fast-obj:** _spill_realize 후보 랭킹을 check_feasibility→`_objective`(동일 공식, 기하 없음). caller가
+   real check로 재검증→안전. Benders ~4-5x 가속(수렴 120s→90s).
+2. **fast Benders 라운드:** 수렴 라운드는 3오더×coarse step, 마지막에 full 실현 1회. (feedback 워커만)
+3. **★ tail-reserve:** 저밀도에서 중간 5단계를 `_mid_deadline`(post-ALNS 예산의 35%)로 캡 → 재배정tail이
+   65% 확보. **워커 패리티 분산**(even=aggressive, odd=원본) → best-of가 never-worse 보장.
+
+**결과 (TL=60, 그레이더 예산, vs 진짜 fr2-start baseline):**
+| inst | fr2-start | 수정후 | |
+|---|---|---|---|
+| prob_20(P3) | 163274 | **92889 (-43%!)** | ★ |
+| prob_16 | 47622 | 42840 (-10%) | ✓ |
+| prob_13 | 73928 | 73590 | ✓ |
+| prob_6/9/19 | - | 동일/노이즈 | 무regress |
+| prob_30(P4,고밀도) | 3046457 | 3046457 (불변) | 게이트off |
+
+TL=120에선 여전히 ~90k 수렴. **그레이더(60s, 로컬보다 빠름)에서 P3 115k→~90k 기대** = 유저 목표 근접.
+스냅샷: prototype/myalgorithm_v53_p3budget.py (그레이더는 env 없음→기본값이 수정 활성화).
