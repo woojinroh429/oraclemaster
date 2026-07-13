@@ -916,3 +916,30 @@ flat 5개(작은 저-Z3): prob_1/2/3/4/8 (±0.1%). 노이즈 플래그 2개(<1%,
 prob_19 +0.3%. **진짜 회귀 0. 저밀도 합 −16.1%.** 미검증이던 15/17도 큰 승자 → 숨은 seed형 회귀
 없음 확인. 고밀도 27/38/40 바이트동일. => v49식 사고 리스크 없음(SA 미변경 + best-of never-worse +
 고밀도 바이트동일).
+
+### ★★★★ v52: per-worker mode diversity — P3 sub-100k (149620→~91k, −39%) (2026-07-13)
+사용자: sub-100k엔 파이프라인 feedback 수렴을 근본 개선하자 → 메커니즘 재이해로 돌파.
+
+**메커니즘 재이해 (핵심 3발견):**
+1. **exact/capacity-feedback는 결정론적** (같은 인스턴스 r1=r2 바이트동일) → 4워커가 **동일 결과 중복
+   계산 = 병렬성 낭비.**
+2. **exact는 mode별 고정점에 plateau** (알고리즘-제한, 컴퓨트 아님): standalone 예산 16/24/32/48s에서
+   seed모드 102770 고정, feedback모드 91741 고정 (dl↑해도 불변).
+3. **prob_3 fix(round-0 _smallright)가 spill-favorable(prob_20)의 feedback 궤적을 교란** → 고정점을
+   91.7k→102.7k로 올림. 즉 한 mode로 두 인스턴스 유형(seed형/spill형) 동시 최적 불가.
+
+**해법 = per-worker mode+budget 분화:**
+- exact에 `mode` 파라미터: "feedback"(round-0 _smallright 스킵, 순수 capacity-feedback → spill형 91.7k)
+  vs "seed"(round-0 _smallright로 SA-repair seed → prob_3). 두 mode는 **서로 다른 지역최적**으로 수렴.
+- **feedback 워커(짝수 id): SA-stage1 작게(0.1) + exact 큰 예산(45s, 14라운드)** → 파이프라인 경합 하
+  에서도 feedback 수렴(경합으로 16s 실효 부족했던 게 원인). **seed 워커(홀수 id): 정상**(SA 0.5, 16s).
+- best-of across workers가 인스턴스별 승자 채택. **never-worse**(중복 워커를 탐색으로 전환, seed 후보 보존).
+
+**검증(전수 SP=0 대비):** **P3(prob_20) 151463→91701 (−39.5%, sub-100k!)**, prob_14 −36%, 13 −31%,
+11 −30%, 12 −23%, 15 −22%, 17/18 −20%, 5 −19%, 6 −14%, 9 −8%, 16 −9%, 10 −6%, 19 −5.5%, 7 −0.3%,
+1/2/3/4/8 flat. **20개 전부 never-worse, 저밀도 합 −19.9%.** 고밀도 27/38/40 **격리 실행 v51=v52=바이트
+동일**(스윕 중 27의 편차는 HD ALNS 타이밍 분산, 코드 diff로 HD 경로 v51 동일 확증).
+
+**기각(정직):** 예산 rebal 단독(~105k 바닥), 워커 축소(NPR=2=4, 1은 악화), C++(품질).
+**P3 궤적: v48 149620 → v49 176030(회귀) → v51 115550(spill+feedback) → v52 ~91k(per-worker 수렴).**
+산출물: submit_v52.zip(.so/utils=v48 동일), prototype/myalgorithm_v52_perworker.py.
