@@ -1186,3 +1186,51 @@ P4에선 총점 손해. beam을 얹으면 더 나빠짐 — cluster의 top-M 후
 P3를 이기려면 prune에 **방(통로) lookahead 휴리스틱**(배치 후 선호bay 잔여 연속공간 등)이 필요 —
 현 커밋비용 prune으론 불가. + 배송 P3경로는 이미 pref_reassign(CP-SAT bay 재배정)으로 Z3=609 달성
 (단일패스 964보다 우수). 194(area-LB)까지 gap은 강제배정 실패로 증명된 크레인-비실현성.
+
+---
+
+## 아이디어 1 검증 — 하강통로 스카이라인 value로 빔에 gradient 부여 (P3 최초 개선)
+
+**통찰:** 우리 배치모드는 전부 2D(넓이)인데 결합제약은 2.5D 크레인 하강통로. 스카이라인이 idea3(빔 value)의
+빠진 조각을 채움 — "배치 후 남는 **최대 연속 빈 사각형**(=열린 하강통로 면적)"을 빔의 tiebreak value로.
+커밋비용 동점(P3 선호bay 내부)일 때 통로 보존 위치를 골라 spill↓.
+
+**구현:** `_lfr(rects,W,H)` = 16×16 coarse grid 최대 빈 사각형(histogram O(R²)). 빔 child마다 room=Σ_bay
+_lfr(present after placement). prune key `(cost, -room, -np)`. env SKY=1 게이트(off시 기존 빔과 동일).
+
+**결과(prob_3, prefaware, 100블록):**
+| | obj | Z2 | Z3 |
+|---|---|---|---|
+| greedy | 74,820 | 4122 | 224 |
+| beam K8M3 (no sky) | 74,820 | 4122 | 224 |
+| **beam K8M3 +SKY** | **73,160** | 4031 | 219 |
+
+→ **P3에서 처음으로 그리디를 이긴 구성.** no-sky 빔은 무효(동점 구분 못함)였는데 SKY value가 gradient를
+줘서 Z3(spill)·Z2(균형) 동시 개선(-2.2%). 아이디어1(크레인-native 배치)+아이디어3(빔 value)이 한 방에
+검증. 통로보존→선호bay에 더 많이 앉음이 실증됨. (효과크기 sweep + P4 무해성 확인 진행중.)
+
+---
+
+## 아이디어 2 검증 (tall-first z-layer dispatch) + 스카이라인 효과크기 sweep
+
+**z-층수(zlay) 특징 추가** (feat_w에 "zlay"=층수 rank, orientation-invariant). 층수는 {1,2} 이진.
+mode=prefaware greedy, dispatch만 tall-first.
+
+| inst | rank(base) | zlay-first | SKY-beam |
+|---|---|---|---|
+| prob_1 | 24105 | 33999 (+41%) | **9779 (-59%)** |
+| prob_3 | 74820 | **72460 (-3%)** | **73160 (-2%)** |
+| prob_4 | 93279 | **42296 (-55%)** | **57718 (-38%)** |
+| prob_2 | 6620 | - | 8780 (+33%) |
+| prob_20(P3size) | 145196 | 182036 (+25%) | (빔 300블록 too slow) |
+
+**결론:** 두 아이디어 모두 **크레인-통로 thesis를 실증** — spill 많은 인스턴스(prob_4)에서 -38~-55%
+대박. 하지만 **둘 다 비일관**(prob_3/4 win, prob_1/20 lose) → best-of 변형으로만 안전(min 유지→무regress).
+greedy는 결정적 확인(prob_3 x2 동일).
+
+**핵심 caveat:** **실제 P3 크기(prob_20, 300블록)에선 둘 다 이득 없음** — zlay는 +25% 악화, SKY-beam은
+300블록서 너무 느림. 즉 100블록 저밀도엔 통함이 증명됐지만 300블록 P3로 **아직 전이 안 됨**.
+
+**언락(다음):** SKY value는 **빔이 필수가 아님** — `_lfr`(통로면적)을 place_custom **greedy 배치모드**로
+직접 쓰면(각 후보를 잔여통로로 스코어) 300블록도 빠르게(그리디 27s) 스케일하고 통로보존 효과를 얻음.
+= 아이디어1의 진짜 shippable 형태("똑똑한 cluster" greedy mode). 다음 과제.
