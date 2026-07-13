@@ -1150,3 +1150,39 @@ P4에선 총점 손해. beam을 얹으면 더 나빠짐 — cluster의 top-M 후
 
 **단, 예산 현실:** bigleft+beam은 K8M3(243s 로컬≈grader ~130s)에서만 이김. 예산내(K4M2, 108s)는
 그리디에 짐. 즉 **빔의 승리를 shippable로 만들려면 속도**(E clear_all+재적재가 병목)가 다음 과제.
+
+---
+
+## P3 크레인통로 가설 검증 — 유저 직관 확인 + 빔의 prune 한계 발견
+
+**유저 질문:** P3도 너무 빡빡하게 넣어 크레인통로 보존이 안 돼 막히나?
+
+**P3 물리(prob_20, 300블록):** deadline 느슨 → **Z1=0**. obj = w2·Z2 + w3·Z3, 그중 **Z3가 ~83%**
+(125·964 vs 6·4116). 즉 P3는 "어느 bay(선호)"가 전부고 "얼마나 빡빡"은 부차적.
+
+**모드 A/B(prob_20 greedy):**
+| mode | obj | Z2 | Z3 |
+|---|---|---|---|
+| bigleft | 1,358,564 | 4844 | 10636 |
+| cluster | 1,347,329 | 5159 | 10531 |
+| **prefaware** | **145,196** | 4116 | **964** |
+
+→ **cluster(빽빽)는 Z3 거의 안 움직임**(10531 vs 10636). tightness는 bay 안 문제고 P3 비용은 bay 선택.
+**진짜 레버는 prefaware(선호 bay 우선)** — obj 9배 개선. 유저 직관("통로 막혀 spill")은 **맞지만**,
+올바른 표현은 "선호 bay 크레인수용량 부족→spill"이고 해법은 tightness가 아니라 **선호-bay-aware 배치**.
+
+**prefaware + beam 검증(prob_3, 100블록):**
+| | obj | Z3 |
+|---|---|---|
+| prefaware greedy | 74,820 | 224 |
+| prefaware beam K8M3 | 74,820 | 224 |
+| prefaware beam K12M4 | 74,820 | 224 |
+
+→ **빔이 완전 무효(byte-동일).** 이유 규명: prefaware의 top-M 후보는 전부 선호 bay 안(penalty 동일)
+→ **커밋비용이 전부 동점** → 빔 prune이 위치들을 구분 못 함 → 그리디 재현. 빔이 P4에서 이긴 건 위치마다
+**커밋 Z1(지연)에 즉각 gradient**가 있었기 때문. P3의 Z3는 선호 bay 안에선 gradient 0.
+
+**결론:** 빔은 **커밋비용에 gradient 있는 곳(P4 Z1)에서만** 이기고, 없는 곳(P3 Z3)은 그리디 재현.
+P3를 이기려면 prune에 **방(통로) lookahead 휴리스틱**(배치 후 선호bay 잔여 연속공간 등)이 필요 —
+현 커밋비용 prune으론 불가. + 배송 P3경로는 이미 pref_reassign(CP-SAT bay 재배정)으로 Z3=609 달성
+(단일패스 964보다 우수). 194(area-LB)까지 gap은 강제배정 실패로 증명된 크레인-비실현성.
