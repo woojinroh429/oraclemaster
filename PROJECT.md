@@ -1105,3 +1105,48 @@ dispatch순서만 변수. feat_w 미변경 v52로 검증(엔진수정 0).
 → **dispatch순서 레버는 P4에서 무효.** 기본 rank가 이미 강한 basin이고, 단일특징 재정렬은 그 basin을
 교란만 함. 병목은 dispatch순서가 아니라 **place_custom의 얕은 방향탐색 자체**(앞선 진단 재확증).
 shippable v52 유지, 엔진변경 없음.
+
+---
+
+## 내부 빔 최소검증 (prob_30, P4-proxy) — **그리디를 이김 (가설 확증)**
+
+`_smallright_construct` 이벤트루프 내부에 최소 빔 이식: place_custom에 topm 추가(byte-identical off),
+K개 부분packing 유지, 블록결정마다 top-M 분기 → 커밋비용(w1·지연+w3·pref)으로 K prune. E는
+상태별 clear_all+재적재(현재present 블록만, ex>cur)로 feasibility 충실. 블록 1개/확장 → 동일깊이
+비교 공정. (n=150<200이라 free-region OFF 경로.)
+
+**결과(prob_30, bigleft):**
+| | obj | Z1 | Z2 | Z3 | 시간 |
+|---|---|---|---|---|---|
+| greedy | 3,617,004 | 208 | 4935 | 4120 | 16s |
+| beam K4 M2 | 3,720,874 | 214 | 3003 | 4278 | 108s |
+| beam K6 M2 | 4,014,379 | 235 | 3881 | 4328 | 200s |
+| **beam K8 M3** | **3,540,693** | **205** | **2557** | 3986 | 243s |
+
+**결론:** K8·M3가 그리디 **-2.1%**(Z2 4935→2557 반토막). **빔이 그리디를 이긴 최초 사례.** 얕은탐색→국소
+최적 진단의 처방(결정적 깊은 분기탐색)이 실제로 유효함을 엔진 내부에서 확증. 단 느림(243s 로컬≈grader
+120s), 작은 K/M는 손해(어설픈 prune이 좋은 basin 폐기). place_custom 배치품질 재사용이 핵심 — 밖에서
+재구현한 예전 빔(8~22배 악화)과 정반대. shippable v52 유지(BEAMK env-gate, 기본 off).
+
+---
+
+## 군집확장배치(cluster, max-contact) 모드 A/B (prob_30)
+
+place_custom 새 모드 `cluster`: big블록을 bottom-left 대신 **기존 블록bbox+벽과 접촉(공유 엣지길이)
+최대화**로 배치 → 한 덩어리로 뭉쳐 큰 연속 빈 구역 하나 남김(크레인 통로 확보 의도). 접촉=벽 접함 +
+present bbox와 x/y 인접 겹침길이. tiebreak bottom-left. best-of 변형(min 유지→퇴보 불가).
+
+| | obj | Z1 | Z2 | Z3 | 시간 |
+|---|---|---|---|---|---|
+| bigleft greedy | 3,617,004 | 208 | 4935 | 4120 | 16s |
+| cluster greedy | 3,734,188 | 224 | **2399** | **3690** | 15s |
+| cluster beam K8M3 | 4,321,270 | 266 | **1473** | 3844 | 272s |
+| bigleft beam K8M3 | **3,540,693** | 205 | 2557 | 3986 | 243s |
+
+**결론:** 군집확장은 **Z2(균형) 반토막·Z3(선호) 개선**하지만 **Z1(지연)을 악화** → w1·Z1이 지배하는
+P4에선 총점 손해. beam을 얹으면 더 나빠짐 — cluster의 top-M 후보가 전부 '빽빽한' 위치라 beam이
+빽빽함 변형 중에서만 고르게 되고, 빽빽함이 크레인 하강을 막아 지연 증폭. → **군집확장은 P4 레버가
+아님**(Z2/Z3 지배 인스턴스용 best-of 변형 가치는 있음). **P4 레버는 bigleft+beam(-2.1%).**
+
+**단, 예산 현실:** bigleft+beam은 K8M3(243s 로컬≈grader ~130s)에서만 이김. 예산내(K4M2, 108s)는
+그리디에 짐. 즉 **빔의 승리를 shippable로 만들려면 속도**(E clear_all+재적재가 병목)가 다음 과제.
