@@ -1012,3 +1012,37 @@ construction이 예산 소진해 search 여력 자체가 희박(대형 n=250 구
 집합을 크레인-인지로 *동시* 재배치**(destroy + tall→벽 동시 repair)하거나 **하강-클리어런스 제약을
 가진 전역 CP/MIP 시퀀싱**이 필요 = 대형 재설계, 페이오프 불확실. **v52가 여전히 최선 제출.**
 산출물: scratchpad/{flat_run.py(크레인 ON/OFF 계측), nocrane_lb2.py, hd_probe.py}.
+
+---
+
+## 세션 종합 (P4/P5/P3 심층조사) — 중요 발견 5가지
+
+**1. ⭐ grader 머신이 로컬 컨테이너보다 ~2배 빠름.**
+prob_20(P3 프록시) TL sweep: 로컬 60s=177111, 120s=105274, 200s=91120. grader 60s=114950
+≈ 로컬 ~110s. 즉 **grader 60초 ≈ 로컬 30초**. **모든 로컬 60초 측정이 grader보다 저성능** —
+로컬 A/B 해석 시 반드시 감안.
+
+**2. P3 프록시 미스매치 (로컬이 grader 과대평가).**
+v48: 로컬 prob_20=151463 ≈ grader P3=149620 (일치, 좋은 프록시). BUT v52: 로컬 91701(격리)
+/177111(shipped 60s) vs grader 114950. v52 P3는 **compute-bound** — 로컬 sub-100k는 긴시간
+격리수치였고 shipped 60초엔 안 나옴. grader는 149→115k로 진짜 개선(−23%)했지만 로컬(−40%)만큼은 아님.
+
+**3. 크레인 재배치/배정 = exact로 전멸(≈0). v52는 HD 프록시서 국소최적.**
+step3(윈도우 CP-SAT), step3b(방향성-정확 크레인 모델), step3d(cross-bay 자유배정 Gurobi) —
+전부 크레인 ON에서 개선 ≈0 (증명된 OPT). crane-OFF(36~68% "여지")는 블록이 서로 뚫는
+실현불가능 완화의 착시. 배정 area-MIP는 v52보다 나쁨. → 국소 exact는 basin 탈출 불가.
+
+**4. 친구 P4=320만(우리 390만) = 빔(위치탐색, 바텀레프트 안씀). 우리 P6가 친구보다 우위.**
+빔이 P4/P5 레버 확정(친구 real-grader 증거). BUT 빔 프로토타입 5개 전부 v52보다 8~22배 나쁨 —
+원인: 엔진 construction(place_custom, 이벤트드리븐, free-span, ALNS)을 밖에서 재현 불가.
+find_best_placement(fallback)은 fragmentation. 제대로 하려면 place_custom in-place 빔 대수술
+(대공사) 또는 친구 파이썬 코드 이식. 순서탐색(squeaky-wheel)은 위치 안 바꿔서 부분만.
+
+**5. Gurobi(WLS, token.gurobi.com 화이트리스트로 활성화) = 이 문제엔 무효.**
+크레인 재배치 ≈0(솔버 아닌 물리 한계). 저밀도 배정 MIP은 CP-SAT 0.57s/Gurobi 0.17s 둘다
+<1s 같은 최적 → 병목 아님(진짜 병목=spill 기하 realization, Gurobi 무관). 제출 서버엔 Gurobi
+있음(폴백 필수).
+
+**메타 교훈:** compute-bound + 머신 2배차 + 타이밍의존 → **로컬 최적화가 grader로 신뢰전이 안 됨**.
+앞으로는 "안전 변경 → 제출 → grader 측정" 사이클만 신뢰. 로컬 무한분석은 오도.
+산출물: scratchpad/{crane_primitive,step1_profiler,step2_graph,step3*,mip_bench,beam*,p3tl}.py
