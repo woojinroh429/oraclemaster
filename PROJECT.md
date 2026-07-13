@@ -1046,3 +1046,31 @@ find_best_placement(fallback)은 fragmentation. 제대로 하려면 place_custom
 **메타 교훈:** compute-bound + 머신 2배차 + 타이밍의존 → **로컬 최적화가 grader로 신뢰전이 안 됨**.
 앞으로는 "안전 변경 → 제출 → grader 측정" 사이클만 신뢰. 로컬 무한분석은 오도.
 산출물: scratchpad/{crane_primitive,step1_profiler,step2_graph,step3*,mip_bench,beam*,p3tl}.py
+
+---
+
+## 빔 대수술(A) 시도 — place_custom top-M 재사용, 근데 이벤트드리븐 구조가 병목
+
+**목표:** 얕은 그리디→국소최적 문제를 "결정적 깊은 빔"으로. 원칙: 엔진의 강한 place_custom을
+그대로 재사용(밖에서 약하게 재현 금지).
+
+**구현:** place_custom에 topm 파라미터 추가(점수 상위M 반환, topm=None시 바이트동일). 그 위에
+순차 빔 루프(K상태, 블록마다 top-M 분기, obj-so-far로 prune). env BEAMK 게이트.
+
+**결과(prob_30, P4-proxy, DL=90):**
+- greedy: obj=3617004 Z1=208 (16s)
+- 빔 K=8 M=4: obj=7838055 Z1=527 (123s) ← 여전히 나쁨(2배), 느림
+
+**진전 있었음:** 약한배치빔 8~22배 → place_custom재구현빔 8배 → **진짜 place_custom+순차빔 2배.**
+place_custom 재사용이 확실히 개선. **근데 아직 짐 — 이제 병목은 이벤트드리븐 dispatch 구조 자체.**
+greedy _smallright_construct는 매 시각 pending 전부를 튜닝순서+free-region으로 처리(멀티블록/틱).
+내 순차빔은 블록 하나씩이라 그 구조를 깸.
+
+**결론:** 엔진 construction 품질 = 여러 튜닝레이어(place_custom점수 + 이벤트드리븐dispatch +
+free-region + 모드 + ALNS)의 합. 충실한 빔 = **이벤트드리븐 루프를 빔으로**(각 상태가 자기 이벤트
+상태 유지, 틱내 멀티블록 분기) = 훨씬 큰 다세션 수술. WIP: prototype/myalgorithm_beam_wip.py
+(place_custom top-M 인프라 재사용 가능). shippable은 v52 유지.
+
+**세션 최종 상태:** 얕은탐색→국소최적 진단은 P3(Z3)·P4/P5(Z1) 공통 확증. 처방(결정적 깊은빔)도
+확정. 근데 자력구현은 엔진의 다층 튜닝 재현 난제로 다세션 규모. 현실 경로: 친구코드 이식 or
+이벤트드리븐 빔 다세션 빌드 or v52 확정.
