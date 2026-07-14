@@ -1594,3 +1594,38 @@ Z3-relocate가 prob_20에서 5~6블록을 선호bay로 이동(Z3 646→~580). ob
 검증: worker0 단독 85160, 파이프라인 prob_20 @60 = 86.0~87.0k(안정), prob_9 v55≤v54(never-worse),
 prob_30 byte-identical. **wall-time v54와 동일**(TL20/30/60 전부 +0.06~0.4s 프레임워크 오버헤드,
 relocate는 deadline 하드바운드) → TLE 위험 없음. 그레이더 ~2배 빠름 → tail 더 확실히 수렴.
+
+---
+## 가설1 (Temporal Corridor Preservation) 연구 — tcp 모드, 밤샘 검증 결과
+
+**메커니즘 규명:** coreperi("장기체류 대형→외곽")의 진짜 원리 = **시간축 파편화**. 장기체류 블록을
+중앙에 놓으면 체류시간 내내 자유공간을 쪼갬. 이를 단일 원칙 점수로: `pt[b]·(A−LER)` (LER=최대
+빈사각형=크레인 통로). 죽은 skyline이 진 이유도 규명 = 시간맹(활성 rect만 세야 + pt 가중).
+
+**construction-level 검증 (step=2):**
+| inst | ratio | bigleft | coreperi | flatbl | tcpL4 | tcpL6 |
+|---|---|---|---|---|---|---|
+| p9 | 0.33 | 1.06M | 1.13M | 1.06M | 0.94M | **0.90M(−15%)** |
+| p24(P5) | 0.60 | 1.10M | 1.41M | 1.32M | 1.26M | **1.07M(−3.5%)** |
+| p29 | 0.55 | 2.09M | 1.98M | 2.34M | **1.78M(−10%)** | 2.11M |
+| p30(P4) | 0.90 | 4.06M | **4.06M** | 4.76M | 4.29M | 4.34M |
+| p35 | 0.83 | INFEAS | **2.22M** | INFEAS | 2.90M | 2.34M |
+| p38(sat) | 1.57 | 37.8M | **37.5M** | 38.2M | 38.2M | 40.0M |
+→ tcp는 **저-중밀도 승자 + 크레인 feasibility 보험(p35)**, 고밀도(P4/P6)엔 못 이김.
+
+**full-pipeline A/B (tcp를 _tails best-of에 추가, 60s):**
+| inst | base | +tcpL6 |
+|---|---|---|
+| p24 | 578452 | 608197 (**−5% 악화**) |
+| p30 | 3046457 | 3046457 (동일) |
+| p35 | 1534895 | 1521340 (−0.9%) |
+| p38 | 34512341 | 34512341 (동일) |
+
+**결정적 통찰(나침반):** construction 품질은 **고밀도(Z1이 construction에 lock)에서만 최종점수에
+영향**. 저-중밀도는 Z1≈0이라 ALNS가 seed를 완전 재작업→washout. tcp는 **정확히 반대**(저-중밀도
+construction만 개선, 고밀도는 못함) + tail 추가가 예산절도 → 파이프라인 순이득 없음(p24 −5%).
+**P4/P6 목표는 tcp로 불가**(construction·파이프라인 양쪽 확인).
+
+**재사용 자산:** `_occ_grid`/`_ler_of`/`_lfr` 리팩터(byte-identical), tcp 모드(pt·(A−LER),
+TCPL 양자화, LER 메모이즈 2-3배 가속), 전부 env-gated(TCPTAIL/TCPL default off) → **배포 v55 불변**.
+다음 레버: 개선이 파이프라인에 남으려면 **고밀도 construction의 Z1을 직접** 겨냥해야 함.
