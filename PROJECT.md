@@ -1584,3 +1584,13 @@ Benders tail 뒤에 실행. worker 2(0.65)·홀수(0.0)는 그대로 → best-of
 Z3-relocate가 prob_20에서 5~6블록을 선호bay로 이동(Z3 646→~580). obj-게이트라
 구조적으로 never-worse(이동은 엄격 개선일 때만 유지). 고밀도는 `_low_density` 게이트 밖이라 불변.
 스크립트: scratchpad/fr2/z3_lns.py(Gurobi 원형), z3_cpsat.py/z3_fast.py(CP-SAT+cheap-obj).
+
+**v55 견고화 (예산·never-worse 수정):** 초기 통합은 worker0에 20s 예약 → tail@40s가
+가끔 수렴실패(obj 100k) → best-of가 worker2(0.65)로 못 떨어져 94k 회귀. 수정:
+(1) worker2를 0.65→**1.0 full-tail**(무예약)로 = v54 winning basin 재현 → best-of 구조적 never-worse.
+(2) relocate 파라미터 FREE=6/COLCAP=20으로 튜닝: 86.25k를 ~9s에(기존 8/24는 ~17s).
+(3) 예약을 min(14, 0.25·remaining)로 축소 → worker0 tail이 수렴할 시간 확보.
+(4) try_insert에 deadline-4.0 하드가드 + CP-SAT cap 축소 → 단일 윈도우 오버런 방지.
+검증: worker0 단독 85160, 파이프라인 prob_20 @60 = 86.0~87.0k(안정), prob_9 v55≤v54(never-worse),
+prob_30 byte-identical. **wall-time v54와 동일**(TL20/30/60 전부 +0.06~0.4s 프레임워크 오버헤드,
+relocate는 deadline 하드바운드) → TLE 위험 없음. 그레이더 ~2배 빠름 → tail 더 확실히 수렴.
