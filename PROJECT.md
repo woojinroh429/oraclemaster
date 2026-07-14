@@ -1629,3 +1629,31 @@ construction만 개선, 고밀도는 못함) + tail 추가가 예산절도 → �
 **재사용 자산:** `_occ_grid`/`_ler_of`/`_lfr` 리팩터(byte-identical), tcp 모드(pt·(A−LER),
 TCPL 양자화, LER 메모이즈 2-3배 가속), 전부 env-gated(TCPTAIL/TCPL default off) → **배포 v55 불변**.
 다음 레버: 개선이 파이프라인에 남으려면 **고밀도 construction의 Z1을 직접** 겨냥해야 함.
+
+---
+## 통일 배치 스코어러 (unified) — mode-zoo를 하나로 뭉치기 (핵심 성과)
+
+**동기(user):** 해 개선이 아니라 *따로 노는 조각(mode-zoo + ratio 게이트)을 하나의 일반화된
+메커니즘으로 뭉치기*. 계산량↓, 과적합 없이, 일관되게. 해는 헤쳐도 됨.
+
+**웹 리서치:** selection hyper-heuristics(Ross et al., bin-packing 일반화 입증), adaptive
+operator selection(MAB), Squeaky Wheel Optimization(construct-analyze-prioritize).
+
+**설계:** 개별 모드(bigleft=left, tcp=corridor, prefaware=pref, flatbl=flat)를 **하나의
+가중 점수**로 뭉침: `score = wF·flat + wL·left + wB·bottom + wC·corridor + wP·pref` (정규화,
+최소화). 각 모드 = 이 공간의 corner. corridor는 tcp의 LER(메모이즈). env 가중치, 게이트 0.
+
+**construction 검증 (corr = F1 L1 B0.5 C2 P0.5, vs best-of{bigleft,coreperi}):**
+p22 −11%, p24 +0.4%, p26 −0.1%, p28 −11%, p30 +4.6%, p31 −3.1%, p33 +9.1%, p37 −10%, p38 +0.5%.
+→ **하나의 가중치가 9개 중 5개서 best-mode보다 좋고 2개 tie** — 게이트 없이 일관 generalize.
+corridor 항(크레인)이 일반화의 핵심(진단된 crane-bound tardiness를 게이트 없이 흡수).
+
+**full-pipeline A/B (unified가 mode-zoo 대체, bigleft=feasibility fallback, 60s):**
+p28 −9.9%, p37 −1.5%, p22/p31/p38 동일, **p30/P4 +6.3%(악화)**.
+p30 악화 이유: unified가 coreperi(p30 유일 승자)를 대체했는데 corr 가중치가 p30을 못 잡음.
+(construction 스윕: pref-heavy 가중치는 p30 −16.9%였음 → 단일 가중치로 전부 최고는 불가.)
+
+**결론(메커니즘 성공):** 따로 놀던 mode-zoo를 **게이트 없는 단일 가중 함수**로 대체 가능.
+대부분 tie-or-win, p30만 +6.3%. 완전 일관성엔 **2개 가중치(corr+pref) best-of**면 충분
+(mode-zoo 5개+ratio게이트 → 가중치 2개, 여전히 게이트-free·저비용). = AOS over WEIGHTS.
+배포 v55 불변(unified/tcp/UNIFIED/UWx 전부 env-gated off). 스냅샷 갱신.

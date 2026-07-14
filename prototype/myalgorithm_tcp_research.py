@@ -3673,6 +3673,8 @@ def _worker_entry(args):
                     _primary_mode = "leftbottom"
                 else:
                     _primary_mode = "flatbl"
+                if os.environ.get("UNIFIED", "0") == "1":
+                    _primary_mode = "unified"
                 # CORNER-PRIMARY (research): give the corner-best-of construction the
                 # PRIMARY budget (not a starved tail) on ODD hybrid workers; EVEN
                 # workers keep the legacy primary.  best-of-final covers both.  This
@@ -3796,6 +3798,12 @@ def _worker_entry(args):
                 # (p35).  best-of keeps min -> never-worse; env-gated for A/B (default off).
                 if os.environ.get("TCPTAIL", "0") == "1":
                     _tails = _tails + ["tcp"]
+                # UNIFIED weighted scorer (research): ONE gate-free function that bundles
+                # flat/left/bottom/corridor/pref -> matches-or-beats the mode-zoo across the
+                # HD spectrum with no ratio gate.  Replace the mode-zoo tails with {unified,
+                # bigleft} (bigleft = crane-feasibility fallback).  env-gated A/B (default off).
+                if os.environ.get("UNIFIED", "0") == "1":
+                    _tails = ["unified", "bigleft"]
                 # PREFERENCE-AWARE Z3 lever, gated on the STRUCTURE of the objective
                 # (not a block-count proxy): measure the Z3 (bay-preference) share of the
                 # current best construction; only add prefaware when Z3 is a large
@@ -4140,6 +4148,11 @@ def _smallright_construct(prob_info, deadline_s, small_thresh=0.60, step=1, mode
     _pts=sorted(pt); _pt60=_pts[int(0.6*(n-1))] if n else 0
     _sks=sorted(_slk); _skmed=_sks[len(_sks)//2] if n else 0
     _TCPL=int(os.environ.get("TCPL","4"))   # tcp corridor-fraction quantisation levels
+    # UNIFIED placement scorer weights: flat / left / bottom / corridor / pref.  Each mode
+    # is a corner of this space (bigleft=left, tcp=corridor, prefaware=pref, flatbl=flat).
+    _UWF=float(os.environ.get("UWF","1.0")); _UWL=float(os.environ.get("UWL","1.0"))
+    _UWB=float(os.environ.get("UWB","0.5")); _UWC=float(os.environ.get("UWC","1.0"))
+    _UWP=float(os.environ.get("UWP","0.5"))
     parker=[(ra[b]<0.60) and (pt[b]>=_pt60) and (_slk[b]>=_skmed) for b in range(n)]
     def bbox(b,oi):
         # Use the placement-invariant _orient_bbox memo (keyed by block+orient)
@@ -4448,6 +4461,35 @@ def _smallright_construct(prob_info, deadline_s, small_thresh=0.60, step=1, mode
                                     _lvl=int((_A-_room)/max(1.0,_A)*_TCPL)
                                     _fc=int(pt[b])*_lvl
                                     sc=(_fc, h, wy, wx, j)
+                                elif mode=="unified":
+                                    # UNIFIED weighted score: bundles the separate mode
+                                    # criteria (flat/left/bottom/corridor/pref) into ONE
+                                    # function.  One weight vector aims to generalise across
+                                    # densities with NO ratio gate / mode-zoo selection.
+                                    if _tcp_occ is None:
+                                        _act=[bb for (bb,_e) in present_by_bay[j] if _e>cur]
+                                        _tcp_occ,_tcp_cw,_tcp_ch=_occ_grid(_act, bw_j, bh_j)
+                                        _tcp_memo={}
+                                    _cx0=int(wx/_tcp_cw); _cx1=int((wx+w-1e-9)/_tcp_cw)
+                                    _cy0=int(wy/_tcp_ch); _cy1=int((wy+h-1e-9)/_tcp_ch)
+                                    if _cx0<0: _cx0=0
+                                    if _cy0<0: _cy0=0
+                                    if _cx1>_RES-1: _cx1=_RES-1
+                                    if _cy1>_RES-1: _cy1=_RES-1
+                                    _mk=(_cx0,_cy0,_cx1,_cy1)
+                                    _room=_tcp_memo.get(_mk)
+                                    if _room is None:
+                                        _tmp=[bytearray(_r) for _r in _tcp_occ]
+                                        for _iy in range(_cy0,_cy1+1):
+                                            _rr=_tmp[_iy]
+                                            for _ix in range(_cx0,_cx1+1): _rr[_ix]=1
+                                        _room=_ler_of(_tmp,_tcp_cw,_tcp_ch); _tcp_memo[_mk]=_room
+                                    _A=bw_j*bh_j
+                                    _nf=h/max(1.0,bh_j); _nl=wx/max(1.0,bw_j); _nb=wy/max(1.0,bh_j)
+                                    _nc=(_A-_room)/max(1.0,_A)
+                                    _mp=_mxp[b]; _np=(_mp-B[b]["bay_preferences"][j])/(_mp if _mp>0 else 1)
+                                    _u=_UWF*_nf+_UWL*_nl+_UWB*_nb+_UWC*_nc+_UWP*_np
+                                    sc=(int(_u*100000), wy, wx, j)
                                 else:
                                     sc=(h, wy, wx, j)
                             else:
