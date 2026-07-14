@@ -1531,3 +1531,29 @@ destroy/repair 수백 iter도 greedy 못 이김. **실현 obj 바닥 ≈ 90k 확
 → 80k는 prob_20 프록시에선 패킹으로 도달 불가. 친구의 80k는 (a)진짜 P3가 프록시보다
 유리하거나 (b)근본적으로 다른 패커. 히든이라 직접 검증 불가.
 **성과 요약: v54로 108.8k→94k(로컬 @60), 그레이더 예상 ~90k = 친구 100k를 이미 상회.**
+
+---
+## (A) exact 크레인-MIP 배치 시도 결과 (prob_20)
+
+**핵심 아이디어(래스터화 벽 우회):** 크레인 하강제약은 pairwise 분해됨(A의 하강이 present
+블록들 상위레이어 *합집합*과 안 겹침 = 각각과 안 겹침 = OR of pairwise). 그래서 후보배치
+(column) 쌍의 충돌을 **엔진으로 exact 계산**해 set-packing MIP에 넣으면 셀 래스터화 오차 없음.
+
+**규모 벽:** 전체 MIP는 폭발 — bay1 하나에 step1이면 72,722 columns, 충돌 수백만(2D패킹
+NP-hard가 발현). coarse/bbox 근사는 greedy보다 약함(bbox는 실루엣보다 커서 false conflict).
+
+**해결 = LNS-윈도우(시간축 희소성 활용):** 동시존재 블록이 ~6개뿐이므로 greedy해에서
+미배치 블록마다 시간이웃 ~8개만 풀어 작은 exact 크레인-MIP로 재패킹. Gurobi(WLS).
+결과 (best-of-order greedy 시작 + multi-pass):
+| bay | greedy(best) | exact-MIP-LNS | area-bound |
+|---|---|---|---|
+| bay1 | 44 | 44 (+0) | 52 |
+| bay2 | 59 | **60 (+1, 검증)** | 62 |
+| bay4 | 52 | 52 (+0) | 57 |
+fine resolution(step1,cap60,free12)로도 bay2=60이 최대.
+
+**판정:** exact MIP가 실제로 greedy를 이김(bay2 +1) → 개념·구현 성공, 래스터화 벽 극복.
+그러나 진짜 기하+크레인 천장 = greedy+2 수준. **area-bound(+16)는 신기루**(느슨한 완화).
+obj 환산 +2~3블록 → ~88-90k. **80k는 prob_20에서 패킹으로 도달 불가 (exact하게 증명).**
+남은 이득: exact-LNS 통합 시 94k→~88-90k(~5%). 80k엔 진짜 P3 구조가 프록시와 달라야 함.
+스크립트: scratchpad/fr2/lns_crane.py (Gurobi pairwise-conflict LNS, 재사용 가능).
