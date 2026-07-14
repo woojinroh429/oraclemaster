@@ -1360,3 +1360,33 @@ prob_20과 구조적으로 다를 가능성(측정 불가). 실험코드(모드/
 
 TL=120에선 여전히 ~90k 수렴. **그레이더(60s, 로컬보다 빠름)에서 P3 115k→~90k 기대** = 유저 목표 근접.
 스냅샷: prototype/myalgorithm_v53_p3budget.py (그레이더는 env 없음→기본값이 수정 활성화).
+
+---
+
+## P4 매처리스틱 분해 탐색 (스케줄MIP + 실현기 + 배치MIP) — 벽 규명
+
+유저 방향: 빔 대신 수리최적(Gurobi/CP-SAT) 매처리스틱 분해. Gurobi WLS 작동 확인(13.0.2).
+
+**핵심 진단 — P4는 배치품질이 전부:**
+- prob_30 pipeline obj=3046457 **Z1=161** (Z1이 ~70%, w1≈13333). Z1은 TL 60/120/200 전부 161 고정 → 예산 아닌 **품질(지역최적)** 한계.
+- 프로파일: 병목이 check_feasibility(P3)와 달리 **shapely NFP 기하**(_candidate_positions).
+- **결정적:** realize_hd에 파이프라인 *자기 스케줄*(Z1=161내는 bay+entry) 먹여도 → **Z1=528**. 즉 스케줄 아닌 **위치·회전 배치**가 전부.
+
+**Stage A 스케줄링 MIP (_cpsat_schedule):** 면적완화로 Z1 하한 74(eff0.63)~0(eff0.85) 발견 —
+탐욕이 Z1 크게 흘림 증명. **단 실현 불가:** 어떤 실현기로도 크레인하 Z1=444~528 (하한 74 도달불가,
+P3의 area-LB 194 도달불가와 동형). 면적완화가 크레인엔 무의미.
+
+**Stage B/유저 배치MIP (Gurobi, cell non-overlap):**
+| 창크기 | 격자 | 결과 |
+|---|---|---|
+| coarse step2 bbox | | 빠름(2-5s)이나 거짓충돌로 4/26 (모델오류) |
+| 정확 unit cell K26 | step2 | 100k var, 25s 내 해 없음(intractable) |
+| 정확 cell K15 | step4 | 15/15 OPTIMAL (14s) |
+| 정확 cell K26 | step3/4 | 해 없음(intractable) |
+
+**결론:** 정확 불규칙-packing MIP는 **≤15블록서만 tractable(그것도 14s), ≥20 intractable** — OR 문헌의
+알려진 벽. P4 혼잡창(26 공존)은 단일 MIP로 못 품. 크레인+시간축 추가시 더 악화. **MIP-LNS도 14s/창이라
+비현실적.** 유저 아이디어(크레인페널티+촘촘함 목적항)는 방향은 맞으나 이 tractability 벽에 막힘.
+
+**남은 길(다세션):** candidate-column set-packing(격자 아닌 휴리스틱 후보 위치로 var 축소) 또는 NFP기반
+MIP 등 영리한 formulation 필요. 또는 P4=161이 통합휴리스틱 floor 인정. P3(-43%, v53)는 확정 성과.
