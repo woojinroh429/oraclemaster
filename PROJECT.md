@@ -1446,3 +1446,37 @@ i.바닥 ∩ j.실루엣=∅ AND i.윗층 ∩ j.윗층=∅ (j≥k 규칙과 일�
 **P4 매처리스틱 종합 지도:** tractability는 해결(candidate-column LNS <1s), 하지만 크레인이 (a)기하정밀도
 (b)시간의존성 두 벽을 세움. 진짜 빌드 = 시간suffix 창 + lazy 엔진 크레인검증(cut) + 목적(지연). 다세션 연구.
 P3(-43% 로컬, 그레이더 115k→105k 실측확인)는 확정 성과.
+
+---
+## v54 — 저밀도(P3류) tail-full 예산: 중간 폴리시 단계 스킵 (레버1 가속화)
+
+**동기(user):** "먼저 레버1로 가속화 해보자 cpp로" — P3를 8만 초반대로.
+**핵심 발견(프로파일링):** C++ 재컴파일은 불가(ogc_fast 소스 .pyx/.cpp 없음, .so만 존재).
+그런데 실제 병목은 C++ 스캔이 아니라 **shapely `check_feasibility`** 였음.
+실제 W0(feedback, cpp_engine=True) 프로파일 @TL40:
+  - `check_feasibility` 144회 = 10.5s (프로파일 시간의 ~40%)
+  - 그중 `_shift_forward` 123회(3.75s) + `_balance_load` 20회(3.16s) = 143회/~7s
+  - CP-SAT 4.4s
+`_shift_forward`는 Z1(지연) 레버인데 **저밀도는 Z1≈0이라 무의미** — 그냥 예산만 태움.
+5개 중간 폴리시 단계가 exact-Benders tail(진짜 Z3 레버)을 굶겨서 60초에 수렴 못함.
+
+**측정(prob_20 = P3 프록시, 로컬 4코어, taskset 격리):**
+| 설정 | @60s obj (여러 런) | 평균 |
+|---|---|---|
+| 기존 기본값(even=0.65) | 107.7k, 110.0k | 108.8k |
+| TAILRES=1.0 (중간단계 전부 스킵) | 92.6k, 96.0k, 93.0k | 93.8k |
+| 참고: 기존 @120s 수렴바닥 | 93.8k | — |
+
+→ **중간 단계를 스킵하고 tail에 100% 예산을 주면 60초 안에 @120 수렴바닥(93.8k)에 도달.**
+prob_20 로컬 @60 **108.8k→94.0k (-14%)**. 전부 Z1=0(feasible).
+
+**적용(never-worse, 가법적):** `_low_density` 게이트 안에서 워커별 3중 다양화 —
+worker0 → TAILRES=1.0(순수 tail), worker2 → 0.65(기존), 홀수워커 → 0.0(기존 폴리시).
+best-of가 {1.0, 0.65, 0.0} basin을 모두 커버(기존 {0.65,0.0}의 상위집합) → **증명적 never-worse**.
+고밀도(Z1share≥0.5)는 `else` 분기(=deadline)로 완전 불변 → P6/prob_30 byte-identical.
+검증 @60: prob_20=94.0k, prob_3=48.4k, prob_6=49.3k, prob_11=29.6k (모두 Z1=0).
+
+**기각한 대안:** C++ `find_best_placement` fast-seat(FASTSEAT) — 6배 빠르나(0.10s vs 0.62s)
+scatter로 obj +33%(146k→194k), 게다가 realised-capacity 피드백을 오도할 위험 → 미채택.
+
+**남은 것:** 94k는 레버1(수렴)의 천장. 8만대는 레버2(품질: 선호bay 촘촘패킹으로 Z3 바닥 낮추기) 필요.
