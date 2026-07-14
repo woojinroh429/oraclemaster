@@ -1557,3 +1557,30 @@ fine resolution(step1,cap60,free12)로도 bay2=60이 최대.
 obj 환산 +2~3블록 → ~88-90k. **80k는 prob_20에서 패킹으로 도달 불가 (exact하게 증명).**
 남은 이득: exact-LNS 통합 시 94k→~88-90k(~5%). 80k엔 진짜 P3 구조가 프록시와 달라야 함.
 스크립트: scratchpad/fr2/lns_crane.py (Gurobi pairwise-conflict LNS, 재사용 가능).
+
+---
+## v55 — exact 크레인-MIP Z3 재배치 후처리 (통합 완료, -8%)
+
+**(A) 시도의 실전 통합.** 검증된 exact 크레인-MIP LNS를 실제 파이프라인에 넣음.
+`_z3_relocate(prob_info, assign, bay_unit, deadline)`: 저밀도 해에서 선호위반 블록(Z3>0)을
+더 선호하는 bay로 옮김 — 타깃 bay의 시간이웃 ~8개를 풀고 그 작은 집합을 후보열 set-packing
+CP-SAT로 exact 재패킹. 크레인 충돌은 ogc_fast 엔진으로 pairwise 정확계산(래스터화 없음).
+Gurobi 아님 = **CP-SAT(ortools)** 라 그레이더 안전. 이동은 cheap _objective 델타로 게이트
+(이동은 Z1=0 유지·한 블록 bay만 바꿈 → 산술 obj 정확), 최종 check_feasibility 재검증.
+
+**통합 방식:** worker 0(1.0-reserve 워커)에서만, tail 예산의 35%(최대 20s)를 예약해서
+Benders tail 뒤에 실행. worker 2(0.65)·홀수(0.0)는 그대로 → best-of never-worse.
+예약은 시간제한에 적응적(작은 TL→작은 예약).
+
+**측정 @60s (로컬 4코어):**
+| 인스턴스 | v54 | v55 | |
+|---|---|---|---|
+| prob_20 (P3 프록시) | ~94k | **86.5k** (87188/85870) | **-8%** |
+| prob_9 (저밀도) | 55815 | **50885** | -9% |
+| prob_3 | 48370 | 48370 | 동일(never-worse) |
+| prob_6 | 49770 | 49770 | 동일 |
+| prob_30 (고밀도) | 3046457 | 3046457 | byte-identical |
+
+Z3-relocate가 prob_20에서 5~6블록을 선호bay로 이동(Z3 646→~580). obj-게이트라
+구조적으로 never-worse(이동은 엄격 개선일 때만 유지). 고밀도는 `_low_density` 게이트 밖이라 불변.
+스크립트: scratchpad/fr2/z3_lns.py(Gurobi 원형), z3_cpsat.py/z3_fast.py(CP-SAT+cheap-obj).
