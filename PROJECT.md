@@ -1879,3 +1879,13 @@ best-of 아키텍처(설계상 일반화) + 구조적 트리거(Z3-share, parker
 prob_34 +0.16%(노이즈). **전부 feasible, 사실상 never-worse.** default-on(=0 reverts). v58 후보.
 
 부수: 존재-블록 shapely 폴리곤 캐싱(_cached_shapely_layers, ~3%), _hybrid_check 분기 병합.
+
+## ⚠ 측정 신뢰성 정정 (사용자 관찰로 발견)
+prob_38 5회 반복(격리, env -i): 37.83M ×2, 34.51M ×3 = **양봉 분산 ±9%**. bl_full 워커가 제시간에
+완성하느냐(멀티프로세싱 타이밍)로 basin 갈림. 함의:
+- CPPPOLISH의 "개선"(prob_3 −8%, prob_38 −8.76%, prob_20 −7%)은 **분산 오염 = 신뢰 불가**
+  (py/cpp가 우연히 다른 basin 착지). CPPPOLISH의 신뢰가능 주장은 **7배 가속·feasibility·never-worse
+  메커니즘**뿐, 목적함수 개선치는 아님.
+- PREFPOLISH의 승리(prob_28=2.41M, prob_24=608197)는 **여러 런 안정 재현 + 큰 델타**라 진짜.
+- 규칙: 이 파이프라인은 단일 런 A/B가 ±10% 이하에서 무의미. 다회 중앙값 필수. (세션 초반 확립했던
+  원칙인데 작은 델타 보고 시 재확인 안 한 실수 — 재발 방지.)
