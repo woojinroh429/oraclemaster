@@ -2066,3 +2066,16 @@ contact-density·blend·greedy-lookahead·beam-lookahead·FFT(속도)·재스케
 추가시간·bl_full-on-P4 = **전부 음성.** 통일된 원인: **bottom-left 일관성 + mode best-of가 이미 강한
 Z1 floor**이고, 시험한 모든 대안 construction이 그보다 나쁨. 친구의 힌트(FFT·lookahead)도 우리에겐
 전이 안 됨. 추측 소진. 진짜 진전엔 친구의 실제 방법(cpp) 역설계 필요, 아니면 v58 유지.
+
+## P3(Z3 선호도) 조사 — 대체로 60초 floor, 일부 헤드룸은 절대시간 필요
+P3=저밀도, Z1=0, Z3(bay 선호) 지배. Z3가 탐색-limited(고칠 수 있음)인지 floor인지 60s vs 180s로 확인:
+- prob_20(n=300,ratio0.48,Z3 84%): 581→589 (flat, 오히려 +)
+- prob_22(Z3 99%): 1962→1962 (flat)
+- prob_29(Z3 95%): 1243→1243 (flat)
+- **prob_24(ratio0.60,Z3 78%): 1532→1398 = dZ3 −8.7%, obj −7.2%** ← 유일하게 헤드룸
+prob_24 60초 knob 시험(FASTBENDERS/TAILRES=0.75/EXROUNDS=20/조합): **전부 byte-identical 590767**
+→ 헤드룸이 예산 재배분으로 60초 내 포착 안 됨 = **절대 시간(전체 파이프라인 반복)** 필요, 60초 한계로
+불가. (prob_24는 분산 심한 인스턴스라 단일 180s run일 수도.)
+판정: P3의 Z3도 P4의 Z1처럼 **대체로 60초 construction/assignment floor**. Z3 floor = 인기 bay
+packing 한계(선호 블록을 다 못 넣음). 채점 P3를 움직인 유일한 건 PREFPOLISH(construction), 탐색·예산
+knob 아님. P3·P4 동일 벽: 60초 floor, construction만 미세하게 움직임.
