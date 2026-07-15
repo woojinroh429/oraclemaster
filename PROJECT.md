@@ -1787,3 +1787,11 @@ Z3 레버(prefaware)는 tail 맨끝 단 1회로 굶음. 후처리 seating은 pac
 채점 게임이 Z3 배정임을 진단 → preference-aware construction에 예산을 제대로 배분 = 구조적/일반화
 개선. prob_20(P3 프록시) −2.6%, prob_28류 −16% → P3 채점 개선 기대(단 실제는 제출로 확인, P3 교훈).
 밴딧 3종/seating과 달리 이건 **실제로 이기는** 첫 결과. default-on(PREFPOLISH=1) v56 후보.
+
+## 레버 (b) preftcp (prefaware×tcp 하이브리드) — validated-NEGATIVE (결정적)
+가설: 인기 베이 내부를 corridor-보존(tcp)으로 배치하면 선호블록이 더 들어가 Z3↓.
+구현: mode="preftcp" sc=(선호갭, pt-가중 corridor-loss, h, wy, wx). PREFTCP=1로 pref 후보 교체 A/B.
+결과 (v56 vs preftcp): prob_3 0%, prob_24 **+52%**, prob_28 +11.7%, prob_20 +8.3%, prob_5 +5.7%.
+4/5 손해. **판정: corridor 보존은 밀도↔접근성 트레이드에서 접근성을 사는 것인데, Z1=0 게임에선
+접근성이 이미 공짜 → 인기 베이에 필요한 건 순수 밀도(압축). prefaware+bigleft가 옳은 조합.**
+코드는 env-gated(PREFTCP=0 default) 음수기록으로 보존. Z3 레버 = 인기베이 밀도 확정 강화.
