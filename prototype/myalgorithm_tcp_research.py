@@ -3702,12 +3702,14 @@ def _worker_entry(args):
                 # it completes, is feasible, and improves.  On low-density instances
                 # step=2 may be infeasible (touching/crane-blocked cell); step=1 is
                 # the fallback there.  best-of keeps only feasible results -> no -1.
-                def _attempt(_step, _mode="flatbl"):
+                def _attempt(_step, _mode="flatbl", _cap=None):
                     if _hyb_deadline - time.time() <= 6.0:
                         return None
                     try:
-                        _srr = _smallright_construct(prob_info,
-                                                     max(1.0, _hyb_deadline - time.time()),
+                        _bud = max(1.0, _hyb_deadline - time.time())
+                        if _cap is not None:
+                            _bud = max(1.0, min(_bud, _cap))
+                        _srr = _smallright_construct(prob_info, _bud,
                                                      step=_step, mode=_mode)
                         if _srr and len(_srr) == len(prob_info["blocks"]):
                             _ops = {}
@@ -3750,6 +3752,168 @@ def _worker_entry(args):
                         _keep(_attempt(2, _mode))
                         if _hyb_deadline - time.time() > 6.0:
                             _keep(_attempt(1, _mode))
+
+                # AOS (Adaptive Operator Selection) -- env-gated research build.
+                # Replaces the FIXED mode-enumeration + ratio/p5_band fingerprint
+                # gates with an ONLINE bandit that measures which construction basin
+                # actually wins on THIS instance and pours the (generous, at high
+                # density) remaining budget into it.  No memorised instance features
+                # -> nothing to overfit -> generalises to unseen P1-P6 by construction.
+                # Mechanism = Sliding-Window UCB1 with extreme-value credit assignment
+                # (the Dynamic-MAB rewarding shown to beat average-based credit for
+                # optimisation operators):
+                #   arm i   = a construction-mode basin (bigleft/leftbottom/...).
+                #   pull    = ONE bounded ALNS epoch (fresh seed) on that basin's
+                #             current incumbent -> stochastic, so re-pulls differ.
+                #   reward  = r = max(0,(f_old-f_new)/f_old)  (normalised obj gain);
+                #             separate scoring module, extreme value over last W pulls
+                #             (handles the diminishing-returns non-stationarity).
+                #   select  = argmax_i [ R_i + C*sqrt(2*ln N / n_i) ];  n_i==0 -> +inf
+                #             (forced one-shot exploration of every basin first).
+                # Always returns the GLOBAL best-of-all basins -> never-worse vs any
+                # single mode (worst case = wasted exploration, ties).  Env-gated
+                # (AOS=1 default off) so shipped v55 is byte-identical in behaviour.
+                def _aos_build():
+                    import math as _math
+                    _dl = _hyb_deadline
+                    _bu = _bay_unit_weights(prob_info["bays"])
+                    _nblk = len(prob_info["blocks"])
+                    _rngroot = random.Random(20260715 ^ (worker_id or 0))
+                    _arm_modes = ["bigleft", "leftbottom", "diagonal", "flatbl"]
+                    _extra = os.environ.get("AOSARMS", "")
+                    if _extra:
+                        _arm_modes = [m.strip() for m in _extra.split(",") if m.strip()]
+
+                    def _sol_to_assign(_sol):
+                        _a = {}
+                        for _ts, _ops2 in _sol["operations"].items():
+                            for _op in _ops2:
+                                if _op.get("type") == "ENTRY":
+                                    _a[_op["block_id"]] = {
+                                        "block_id": _op["block_id"], "bay_id": _op["bay_id"],
+                                        "x": _op["x"], "y": _op["y"],
+                                        "orient_idx": _op["orient_idx"], "entry_time": int(_ts)}
+                                elif _op.get("type") == "EXIT" and _op["block_id"] in _a:
+                                    _a[_op["block_id"]]["exit_time"] = int(_ts)
+                        return _a
+
+                    # PHASE A -- construct each arm ONCE as a fast, CHEAP seed.  The
+                    # bandit's value is in PHASE B (adaptive polish allocation), so
+                    # PHASE A must NOT eat the window: give it a hard fraction
+                    # (AOSPA, default 0.35) and build step=2-first (fast) with a
+                    # per-construction cap so 4 seeds fit that slice, leaving the
+                    # majority for PHASE B.  (Earlier bug: unbounded step=1 seeds ate
+                    # the whole window -> PHASE B ran 0 epochs -> AOS = raw
+                    # construction, no polish -> regressed.)  Polish refines rough
+                    # seeds, so seed quality is secondary.
+                    _win = max(1.0, _dl - time.time())
+                    _pa_frac = float(os.environ.get("AOSPA", "0.35"))
+                    _pa_dl = time.time() + _win * _pa_frac
+                    _pa_cap = max(1.5, _win * _pa_frac / max(1, len(_arm_modes)))
+                    arms = []
+                    for _m in _arm_modes:
+                        if _pa_dl - time.time() <= 1.0 or _dl - time.time() <= 6.0:
+                            break
+                        _cap = min(_pa_cap, _pa_dl - time.time())
+                        _r = _attempt(2, _m, _cap) or _attempt(1, _m, _cap)
+                        if _r is not None:
+                            _asg = _sol_to_assign(_r[0])
+                            if len(_asg) == _nblk:
+                                arms.append({"assign": _asg, "obj": _r[1], "sol": _r[0],
+                                             "n": 0, "rw": []})
+                    if not arms:
+                        return None
+                    _g = min(arms, key=lambda a: a["obj"])
+                    _gsol, _gobj = _g["sol"], _g["obj"]
+                    if os.environ.get("AOSDBG"):
+                        import sys as _s2
+                        _s2.stderr.write(f"[AOS] phaseA arms={len(arms)} "
+                                         f"objs={[int(a['obj']) for a in arms]} "
+                                         f"t_left={_dl-time.time():.1f}\n"); _s2.stderr.flush()
+
+                    # PHASE B -- SW-UCB extreme-value allocation of improvement epochs.
+                    # Pull = a bounded FULL polish chain (ALNS + temporal_share +
+                    # balance_load + swap_polish + shift_forward + pref_reassign) on the
+                    # basin's incumbent, NOT bare ALNS: bare-ALNS competes with (and
+                    # starves) the specialised Z2/Z3 polish operators run downstream,
+                    # which measured NEUTRAL-to-WORSE (prob_28 +4%, prob_33 +2%).  With
+                    # the full chain inside the pull, the bandit tests the real lever --
+                    # "best-CONSTRUCTION basin != best-FINAL basin": an initially 2nd-best
+                    # construction may polish to the global best, and UCB discovers it by
+                    # measuring polished objective per basin, then pours budget into the
+                    # basin whose polish keeps yielding gains.  AOSFULL=0 reverts to bare
+                    # ALNS for A/B.  Because every pull's incumbent accumulates, repeated
+                    # pulls on a dry basin yield reward 0 -> windowed-max R_i decays ->
+                    # UCB spreads/stops -> converges.
+                    _full = os.environ.get("AOSFULL", "1") == "1"
+                    _W = int(os.environ.get("AOSWIN", "5"))
+                    _C = float(os.environ.get("AOSC", "0.5"))
+                    _epoch = max(1.5, float(os.environ.get("AOSEP", "6.0" if _full else "3.0")))
+                    _N = 0
+                    while _dl - time.time() > _epoch + 1.0:
+                        _bi, _bu_u = -1, -1e18
+                        for _i, _a in enumerate(arms):
+                            if _a["n"] == 0:
+                                _u = 1e17
+                            else:
+                                _rwin = max(_a["rw"][-_W:]) if _a["rw"] else 0.0
+                                _u = _rwin + _C * _math.sqrt(
+                                    2.0 * _math.log(max(1, _N)) / _a["n"])
+                            if _u > _bu_u:
+                                _bu_u, _bi = _u, _i
+                        _a = arms[_bi]
+                        _f_old = _a["obj"]
+                        _ep_dl = time.time() + min(_epoch, _dl - time.time() - 0.5)
+                        _rw = 0.0
+                        try:
+                            _rng = random.Random(_rngroot.randrange(1 << 30))
+                            _pa = dict(_a["assign"])
+                            if _full:
+                                # ALNS gets ~half the epoch; the specialised polish
+                                # operators (the Z2/Z3 levers) get the rest -- each is
+                                # deadline-bounded by _ep_dl so none overruns the epoch.
+                                _adl = time.time() + max(1.0, (_ep_dl - time.time()) * 0.5)
+                                _st = _rebuild_state_from_assign(prob_info, _pa)
+                                _al, _ = _alns(prob_info, _st, _bu, _adl, _rng, absorb=False)
+                                if len(_al) == _nblk:
+                                    _pa = _al
+                                _pa = _temporal_share(prob_info, _pa, _bu, _ep_dl)
+                                _pa = _balance_load(prob_info, _pa, _bu, _ep_dl)
+                                _pa = _swap_polish(prob_info, _pa, _bu, _ep_dl)
+                                _pa = _shift_forward(prob_info, _pa, _bu, _ep_dl)
+                                _pa = _pref_reassign(prob_info, _pa, _bu, _ep_dl)
+                                _imp = _pa
+                            else:
+                                _st = _rebuild_state_from_assign(prob_info, _pa)
+                                _imp, _ = _alns(prob_info, _st, _bu, _ep_dl, _rng, absorb=False)
+                            if len(_imp) == _nblk:
+                                _isol = _build_operations(list(_imp.values()))
+                                _ic = check_feasibility(prob_info, _isol)
+                                if _ic.get("feasible"):
+                                    _f_new = float(_ic["objective"])
+                                    if _f_new < _a["obj"]:
+                                        _rw = max(0.0, (_f_old - _f_new) / max(1.0, _f_old))
+                                        _a["assign"], _a["obj"], _a["sol"] = _imp, _f_new, _isol
+                                        if _f_new < _gobj:
+                                            _gsol, _gobj = _isol, _f_new
+                        except Exception:
+                            pass
+                        _a["rw"].append(_rw)
+                        _a["n"] += 1
+                        _N += 1
+                    if os.environ.get("AOSDBG"):
+                        import sys as _s3
+                        _s3.stderr.write(f"[AOS] phaseB epochs={_N} "
+                                         f"pulls={[a['n'] for a in arms]} "
+                                         f"finalobjs={[int(a['obj']) for a in arms]} "
+                                         f"gbest={int(_gobj)}\n"); _s3.stderr.flush()
+                    return _gsol, _gobj
+
+                if os.environ.get("AOS", "0") == "1":
+                    _aosr = _aos_build()
+                    if _aosr is not None:
+                        return _aosr
+                    # AOS produced nothing feasible -> fall through to legacy best-of.
 
                 if _corner_primary:
                     # ADAPTIVE corner best-of. (1) bigleft step=2 = fast completed

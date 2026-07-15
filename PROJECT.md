@@ -1657,3 +1657,59 @@ p30 악화 이유: unified가 coreperi(p30 유일 승자)를 대체했는데 cor
 대부분 tie-or-win, p30만 +6.3%. 완전 일관성엔 **2개 가중치(corr+pref) best-of**면 충분
 (mode-zoo 5개+ratio게이트 → 가중치 2개, 여전히 게이트-free·저비용). = AOS over WEIGHTS.
 배포 v55 불변(unified/tcp/UNIFIED/UWx 전부 env-gated off). 스냅샷 갱신.
+
+## AOS (Adaptive Operator Selection) — 온라인 밴딧 construction 선택 [연구, env-gated]
+
+### 동기
+지문(fingerprint) 게이트(`ratio≥0.60`, `n≥200`, `p5_band`)는 "인스턴스가 X처럼 생기면 모드 Y"
+= 기억된 특징 → 전이 안 됨(P3 교훈: prob_20은 지문 적중, P3는 미적중). AOS는 "특징으로 추측"을
+"실제로 돌려보고 이 인스턴스에서 이기는 basin에 남은 예산 몰기"로 대체. 기억할 특징 없음 → 과적합 없음.
+
+### 메커니즘 (SW-UCB1 + extreme-value credit; Dynamic-MAB rewarding)
+- **arm i** = construction-mode basin (bigleft/leftbottom/diagonal/flatbl; AOSARMS로 교체가능).
+- **pull** = 그 basin 인컴번트에서 bounded ALNS epoch 1회(fresh seed) → 확률적이라 재pull 유의미.
+- **reward(별도 스코어링)** = r = max(0, (f_old−f_new)/f_old), 목적함수 정규화 개선치.
+- **extreme-value credit** = R_i = max(최근 W개 r) — 슬라이딩윈도우 극값(수익체감 비정상성 대응).
+- **select** = argmax_i [ R_i + C·√(2·lnN / n_i) ]; n_i==0 → +∞(강제 1회 탐색).
+- **return** = 전 basin 통틀어 global best-of → never-worse(최악=탐색 낭비, 무승부).
+- 고밀도 TL 널럴 → N↑ → UCB가 이긴 basin에 수렴. 탐색비율은 √항이 자율조절(하드코딩 없음).
+- env: AOS=1(default 0), AOSARMS=csv, AOSWIN=5, AOSC=0.5, AOSEP=3.0(epoch초).
+
+### 삽입 지점
+`_try_smallright()` 내부, 고정 `_tails` 열거 직전. AOS=1이면 `_aos_build()`가 basin들을 구성→
+UCB로 ALNS epoch 배분→best 반환; 실패시 legacy로 fall-through. shipped v55는 AOS=0라 byte-identical.
+
+### 한계(솔직)
+지문 게이트를 제거하는 원칙적/일반화 메커니즘이지 채점 점수 상승 보장 아님. 다수 인스턴스는 이미
+한 모드가 지배적이라 AOS가 재발견(점수동일); 이득은 지문이 지금 틀리게 고르는 인스턴스에서만.
+실제 순효과는 제출로만 확인(P3 교훈). 큰 basin이 bl_full 워커로 결정되는 초고밀도(prob_37)에서는
+AOS가 최종 best-of를 안 건드림(하이브리드 basin 미지배) → 자동 무해.
+
+### 검증 결과 (validated-NEGATIVE) — construction-basin AOS는 이 파이프라인에 안 맞음
+TL=60, base(v55) vs AOS(SW-UCB, full-polish-chain pull):
+| inst | base | aos | Δ |
+|---|---|---|---|
+| prob_28 | 2.694M | 3.303M | +23% |
+| prob_32 | 5.063M | 5.129M | +1.3% |
+| prob_33 | 7.605M | 7.685M | +1.0% |
+| prob_24 | 993k | 1.036M | +4.3% |
+4/4 손해(승리 0). AOS의 polish 체인은 Z2/Z3를 잘 줄이지만(prob_33 Z2 2577→332) step=2 seed가
+배치를 망쳐 Z1↑ → 총합 패배. **원인은 선택규칙(UCB)이 아니라 arm/보상 구조**:
+1. 분할 polish(6초 조각) < legacy의 집중 polish(연속 11초). polish 오퍼레이터는 연속 실행이 필요.
+2. basin 헷지는 best-construction==best-final일 때(흔함) 낭비.
+3. **핵심 구조사실**: 우리 파이프라인은 construction basin이 예산을 공유하지 않는다(워커 병렬 +
+   best-of). 밴딧이 최적화할 "희소 공유예산"이 basin 층엔 없다 → UCB/TS 무엇이든 최적화 대상 부재.
+   basin 다양성은 이미 best-of-across-workers가 담당(uniform이 이미 지배).
+
+### Thompson Sampling 분석
+- 극소 pull 레짐(PHASE B 5~8 epoch)에선 UCB1의 √(2lnN/n) 보너스가 캘리브레이션 실패 +
+  강제 1회 라운드가 예산 태움. TS(확률매칭, Beta-Bernoulli/Normal-Gamma 사후)가 소표본에서 더 매끄러움.
+  => 선택규칙만 보면 TS>UCB가 맞다.
+- 그러나 TS도 basin-arm 구조의 음수결과는 못 고침(선택규칙 무관). 낭비를 매끄럽게 배분할 뿐.
+- TS가 실제 빛나는 곳 = **polish-오퍼레이터 선택**(temporal/balance/swap/shift/pref/z3_reloc은 단일
+  워커 내 순차실행이라 예산을 진짜 공유). 여기가 희소예산이 실재하고 적용횟수 적어 TS 유리.
+
+### 결론
+"똑똑하고 일반화된 판단"은 이미 best-of(across-workers × across-modes) 형태로 존재. 그 위에 밴딧을
+얹어도 basin 층엔 최적화할 공유예산이 없어 이득 없음. 다음 후보 = 밴딧을 polish-오퍼레이터 층으로
+이동 + Thompson Sampling. (env-gated AOS=1 코드는 validated-negative 기록으로 보존, default off.)
