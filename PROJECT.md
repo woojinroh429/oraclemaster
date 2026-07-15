@@ -1902,3 +1902,29 @@ conservation-locked Z1). 탐색은 이미 floor를 찾고 있음. env-gated off 
 밴딧 4종·seating 2종·SHAKE = 전부 무익. 유일하게 채점을 움직인 건 PREFPOLISH(construction 레버,
 P3 −0.32%). 결론: 파이프라인은 achievable floor 근처. 더 밀려면 탐색이 아니라 **근본적으로 다른
 construction**(per-bay exact 패킹 등)이 필요하고, floor 근접 정황상 headroom도 제한적.
+
+## FEWWORK (워커 4→2 축소) + P4-gate 낮추기 — 둘 다 validated-NEGATIVE (다회)
+사용자 질문 2개에 대한 결정적 답:
+
+### (1) "1번 시도": 대형 고밀도에서 워커 4→2 (FEWWORK)
+가설: 4-way 코어 경합으로 step=1이 데드라인 아슬하게 놓쳐 prob_38이 양봉(34.5M/37.8M).
+워커를 줄이면 경합↓ → step=1 안정 완성 → 좋은 basin 고정.
+검증(prob_38, 4런씩): DEFAULT(4w)=34.5M·34.5M·37.8M·37.8M (best 34.5M) vs FEWWORK(2w)=
+**38.2M ×4** — 두 4-워커 basin 어느 쪽보다도 나쁨.
+판정: **경합 효과가 아니라 portfolio-DIVERSITY 효과.** 34.5M basin은 특정 워커의 construction
+전략이 만드는 것이고 best-of-4가 best-of-2보다 그걸 맞힐 기회가 많다. 워커를 줄이면 그 전략 자체를
+잃어 38.2M에 갇힘. 4-워커 유지가 맞음. env-gated off 보존.
+
+### (2) "왜 P4는 3.9M에서 멈췄나 (P5는 free-region으로 1200→1000만 줄었는데)"
+n 게이트 경계 확정: prob_21-25 n=100, prob_26-30 n=150, prob_31-35 n=200, prob_36-40 n=250.
+free-region은 **n≥200 게이트**(_fr_on). P4는 로컬 prob_28/30(n=150, obj 2.4M/3.0M)급 → 게이트 밖.
+"게이트만 낮추면 P4도 줄까?" 직접 검증(prob_28/30, FREEREGION=1로 n=150에 강제 on, 3런씩):
+- prob_28: off=2412246 ×3, **on=2412246 ×3 (완전 동일)**
+- prob_30: off=3046457 ×3, **on=3046457 ×3 (완전 동일)**
+판정: **게이트를 낮춰도 아무 변화 없음.** free-region은 "byte-identical construction + temporal
+rescan 시간 절약"이 전부 → 절약한 시간을 ALNS가 더 돌려야 이득. n≥200(P5/P6)에선 rescan이 지배적이고
+ALNS headroom이 있어 1200→1000만. 그러나 **n=150(P4급)에선 rescan이 지배적이지 않고 예산 내 이미
+수렴** → 시간을 벌어줘도 개선 0. 따라서 P4가 3.9M에서 멈춘 건 게이트 탓이 아니라 **구조적**(예산 내
+수렴 완료 / packing-forced Z3)이라 free-region류로는 안 뚫린다. P5/P6와 P4의 차이는 밀도가 아니라
+**temporal-rescan 지배 여부 + ALNS headroom 유무**. → P4를 더 밀려면 시간 레버가 아니라 다른
+construction이 필요(SHAKE 결론과 일치).

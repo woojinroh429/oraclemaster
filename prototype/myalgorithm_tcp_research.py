@@ -5608,6 +5608,20 @@ def algorithm(prob_info, timelimit=60):
     except (AttributeError, OSError):
         usable = os.cpu_count() or 1
     n_workers = max(1, min(NUM_PARALLEL_RUNS, usable))
+    # FEWWORK (env research, validated-NEGATIVE, default off): hypothesis was that on
+    # LARGE high-density instances step=1 under 4-way core contention misses the deadline
+    # (prob_38 bimodal 34.5M/37.8M), and running FEWER workers would cut contention so
+    # step=1 completes reliably in the good basin.  Measured FALSE: cutting to 2 workers
+    # gives 38.2M x4 -- WORSE than both 4-worker basins.  The bimodality is a portfolio-
+    # DIVERSITY effect, not contention: the 34.5M basin comes from a specific worker's
+    # construction strategy, and best-of-4 gives more shots at it than best-of-2.  Keep
+    # the 4-worker portfolio.  FEWWORK=1 (NFEW sets count) forces the reduced path.
+    try:
+        if os.environ.get("FEWWORK", "0") == "1" and usable >= 2 \
+           and len(prob_info.get("blocks", [])) >= 200:
+            n_workers = max(2, min(int(os.environ.get("NFEW", "2")), usable))
+    except Exception:
+        pass
 
     # GLOBAL-SCHEDULING PATH (high-contention / P6-class only).  Runs BEFORE the
     # worker Pool because CP-SAT needs all cores (single-thread CP-SAT is much
