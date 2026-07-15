@@ -1811,3 +1811,19 @@ prob_20 −7.2%(분산 아티팩트: prob_20 v56 자체가 86.5k~113.6k 출렁�
 판정: 파레토 양끝(bigleft primary ↔ full prefaware)을 폴리시-레벨 best-of가 이미 커버 → 중간점은
 어느 우승 케이스도 못 이기는 dominated 후보. full prefaware가 옳은 점. env-gated off 보존.
 (관측: prob_20/prob_5는 고분산 인스턴스 — 단일런 ±수% 판독 불가, prob_24/28의 두자릿수 회귀만 신호.)
+
+## 레버 (a)-lite PREFTH 게이트 확장 — 중립 (0.40이 옳음)
+_pref_on 트리거를 0.40→0.25로 낮춰 중간대역(prob_30 share 0.29)까지 prefaware 발동 확대 시험.
+결과: prob_30 +0.67%(예산 절도만, pref 승리 없음), prob_37/34 동일. 판정: 0.40 유지.
+
+## ★ 레버 스윕 종합 (v56 이후 후보레버 4종 전수 검증 완료)
+| 레버 | 내용 | 판정 |
+|---|---|---|
+| (b) preftcp | 인기베이 내부 corridor-보존 배치 | **NEGATIVE** (prob_24 +52%) — Z3=밀도, corridor는 반밀도 |
+| (d) ALNSW | ALNS destroy 적응가중치(RP 룰렛) | 중립 — 고정확률 이미 강함, 밴딧 4연속 무익 확정 |
+| (c) prefsoft | Z2-Z3 파레토 중간점(stake 게이트) | **NEGATIVE** (prob_24 +61%) — 양끝을 best-of가 커버, 중간점 dominated |
+| (a)-lite | PREFTH 게이트 0.40→0.25 확대 | 중립~미세손해 — 0.40이 옳음 |
+
+결론: **v56(PREFPOLISH)이 주변 레버 공간에서 국소최적**임이 4방향 전수 검증으로 확인됨.
+모든 실험 코드는 env-gated(default off) — v56 제출본 무변. 잔여 개선은 채점 결과 피드백 후 판단.
+부수 이득: ALNS destroy 오퍼레이터 6종 함수 추출(코드 위생), PREFTH 파라미터화(도구).
