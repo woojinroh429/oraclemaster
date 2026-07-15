@@ -1976,3 +1976,23 @@ ALNS+ruin-recreate)이 이미 그 floor에 도달. 값싼 탐색/스케줄 레�
  (B) **근본적으로 더 조밀한 크레인-인지 construction**(NFP 오목부 활용/하이브리드 네스팅)으로 혼잡
      시간창에 블록을 더 많이 동시 수용. 대형이고, corner/true-shape 실험은 과거 음성이었음.
 스크립트: tardy_headroom.py, tardy_reassign.py, exact_on_p4.py.
+
+## 옵션 A (크레인-인지 글로벌 스케줄러) — validated-NEGATIVE (구조적)
+사용자가 A 선택. 면적완화(_exact_reassign 실패 원인) 대신 **정확 pairwise 크레인 충돌** 기반
+set-packing CP-SAT로 재시도. 두 형태 다 사망:
+- **글로벌 정확-충돌**: 자연스러운 윈도(prob_28 block82 [21,66])가 **67블록·292758컬럼** → 난해
+  (충돌행렬 O(cols²)≈10^11). 축소 불가피.
+- **스코프드(타겟+블로커 6개 공동 재배치, 나머지 고정, 정확 충돌, CP-SAT tardiness 최소)**:
+  prob_28 groups_improved=**0**. 기계 검증: 최악 tardy block 82(rel21→진입43, 22단위 대기)는
+  **블로커 6개를 빼고 전 bay·시각·방향 스캔해도 컬럼 1개(현재)뿐** — 갈 곳이 없음. 82는 그 bay를
+  t=43까지 채운 **나머지 ~60블록에 고정**됨. 풀려면 수십 블록 재배치 = 67블록 윈도로 폭발 = 난해,
+  게다가 bay throughput 보존이라 **zero-sum**(한 블록 앞당기면 다른 블록이 그만큼 늦음).
+판정: 지각은 **스케줄 순서 문제가 아니라 throughput-bound 혼잡**. 재스케줄(어떤 스코프든)로는 총
+지각을 못 줄임. 단일블록(레버4)·6블록(옵션A) 둘 다 0인 이유가 동일하게 확증됨.
+스크립트: cwr_size.py, cwr_poc.py.
+
+### 최종 수렴: 유일한 생존 레버 = 옵션 B (더 조밀한 construction)
+값싼 레버 7종 + 옵션 A(2형태) = 전부 음성. 물리적 근본원인은 하나: **bay가 시간창 내내 크레인상
+만석이라 블록이 대기**. 이걸 뚫는 유일한 길은 그 ~60블록을 **더 조밀하게 패킹**해 대기 블록에 슬롯을
+더 일찍 내주는 것 = construction density. 이는 채점을 유일하게 움직인 PREFPOLISH(construction
+레버)와 정확히 같은 축. P5/P6(점수 99.7%, 시간제약이라 headroom 있음)에도 직접 작용.
