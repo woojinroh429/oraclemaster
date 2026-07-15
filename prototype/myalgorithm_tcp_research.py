@@ -324,6 +324,24 @@ try:
             pass
         return arrs
 
+    def _cached_shapely_layers(block, layers):
+        """Per-layer Shapely polygons cached on the (immutable-once-placed) block.
+        _poly_from_verts is already lru-cached by vertex TUPLE, but every call still
+        rebuilds that tuple key (152k list->tuple genexprs dominated the profile) and
+        pays the cache-lookup.  An EXISTING block is checked against many candidate
+        placements, so caching its polygons directly on the object skips the key
+        construction entirely.  Mirrors _cached_np_layers (same immutability
+        assumption: a re-placed block is a fresh object with an empty cache)."""
+        cached = getattr(block, "_shapely_layers_cache", None)
+        if cached is not None:
+            return cached
+        polys = [_poly_from_verts(layers[k]) for k in range(len(layers))]
+        try:
+            block._shapely_layers_cache = polys
+        except Exception:
+            pass
+        return polys
+
     def _hybrid_check_entry(bay, blocks, new_block, fast=False):
         results = []
         if not bay.contains_block(new_block):
@@ -351,6 +369,9 @@ try:
             exist_layers = exist.layers_at_pos()
             exist_arrs = _cached_np_layers(exist)
             n_exist = len(exist_layers)
+            # existing block is immutable -> cache its Shapely polygons once and
+            # reuse across every candidate check (skips repeated tuple-key building).
+            exist_polys = _cached_shapely_layers(exist, exist_layers)
             new_polys = [None] * n_new
             for k in range(n_new):
                 A = new_arrs[k]
@@ -361,27 +382,12 @@ try:
                     c = _g_classify_pair(A, B)
                     if c == 2:
                         continue
-                    if c == 1:
-                        if fast:
-                            return [_FastObstruction(exist, k, j)]
-                        pn = new_polys[k]
-                        if pn is None:
-                            pn = _poly_from_verts(new_layers[k]); new_polys[k] = pn
-                        pe = _poly_from_verts(exist_layers[j])
-                        if pn is None or pe is None:
-                            continue
-                        try:
-                            inter = pn.intersection(pe)
-                        except Exception:
-                            continue
-                        if not inter.is_empty and inter.area > 0:
-                            results.append(_EntryObstruction(existing_block=exist,
-                                new_layer=k, exist_layer=j, intersection=inter))
-                        continue
+                    if c == 1 and fast:
+                        return [_FastObstruction(exist, k, j)]
                     pn = new_polys[k]
                     if pn is None:
                         pn = _poly_from_verts(new_layers[k]); new_polys[k] = pn
-                    pe = _poly_from_verts(exist_layers[j])
+                    pe = exist_polys[j]
                     if pn is None or pe is None:
                         continue
                     try:
@@ -412,6 +418,7 @@ try:
             exist_layers = exist.layers_at_pos()
             exist_arrs = _cached_np_layers(exist)
             n_exist = len(exist_layers)
+            exist_polys = _cached_shapely_layers(exist, exist_layers)
             target_polys = [None] * n_target
             for k in range(n_target):
                 A = target_arrs[k]
@@ -422,27 +429,12 @@ try:
                     c = _g_classify_pair(A, B)
                     if c == 2:
                         continue
-                    if c == 1:
-                        if fast:
-                            return [_FastObstruction(exist, k, j)]
-                        pn = target_polys[k]
-                        if pn is None:
-                            pn = _poly_from_verts(target_layers[k]); target_polys[k] = pn
-                        pe = _poly_from_verts(exist_layers[j])
-                        if pn is None or pe is None:
-                            continue
-                        try:
-                            inter = pn.intersection(pe)
-                        except Exception:
-                            continue
-                        if not inter.is_empty and inter.area > 0:
-                            results.append(_EntryObstruction(existing_block=exist,
-                                new_layer=k, exist_layer=j, intersection=inter))
-                        continue
+                    if c == 1 and fast:
+                        return [_FastObstruction(exist, k, j)]
                     pn = target_polys[k]
                     if pn is None:
                         pn = _poly_from_verts(target_layers[k]); target_polys[k] = pn
-                    pe = _poly_from_verts(exist_layers[j])
+                    pe = exist_polys[j]
                     if pn is None or pe is None:
                         continue
                     try:

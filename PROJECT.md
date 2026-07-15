@@ -1845,3 +1845,25 @@ prob_5 −3.60%(저밀도 미영향, 분산). => 지문 제거 + 점수 무손�
 ### 일반화 종합 최종
 best-of 아키텍처(설계상 일반화) + 구조적 트리거(Z3-share, parker 백분위) 유지. 유일 과적합 지문
 제거 완료. 남은 튜닝된 게이트(_hi_ratio≥0.60, _route_cpp n≥230)는 한쪽/구조축 fit이라 저위험.
+
+## 프로파일링 + 예산/자료구조 최적화 (사용자 요청)
+하이브리드 워커(prefaware/PREFPOLISH, python feasibility) cProfile (prob_24, 25s):
+| 비용 | tottime | 비고 |
+|---|---|---|
+| shapely `intersection` | 2.80s | c==0(접촉/겹침 판정), 지배 병목 |
+| `_hybrid_check_entry` (크레인강하) | 1.02s self / 7.6s cum | |
+| `_poly_from_verts` | 0.60s (152k회) | list→tuple 키생성 반복 |
+| numpy.asarray | 0.60s | 대부분 shapely 내부 |
+| Block `__post_init__` | 0.28s (87k회) | 후보 위치마다 Block 재생성 |
+
+### 적용: 존재-블록 shapely 폴리곤 캐싱 (안전, byte-identical)
+`_cached_shapely_layers`: 배치 고정된 블록의 폴리곤을 객체에 캐싱(=`_cached_np_layers` 패턴).
+`_hybrid_check_entry/exit`의 중복 분기도 병합(동작 보존). 효과: `_poly_from_verts` 152k→64k,
+총 wall ~3%↓. 검증: prob_24=608197, prob_3=48370 **v57와 정확히 동일**(feasibility 불변).
+
+### 못 뺀 것 (분석)
+- shapely intersection(23%)은 grid-scan이 겹침 위치를 시도할 때 **실제 겹침 판정에 필요** → 못 뺌.
+- convex 레이어 43%뿐 → SAT 고속경로는 c==0의 ~18%만 커버(~0.5s), 리스크 대비 무가치.
+- 더 큰 레버(리스크 有): 하이브리드 워커 prefaware 구성을 **C++ 엔진 feasibility**로(python보다 훨씬
+  빠름) → prefaware가 느린 python 워커에서 나오니 큰 이득 여지. 단 C++/python feasibility 의미차
+  (엔진은 check_feasibility 정합, python은 과보수) → 채점 correctness 리스크, 별도 검증 필요.
