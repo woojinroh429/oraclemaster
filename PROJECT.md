@@ -1996,3 +1996,15 @@ set-packing CP-SAT로 재시도. 두 형태 다 사망:
 만석이라 블록이 대기**. 이걸 뚫는 유일한 길은 그 ~60블록을 **더 조밀하게 패킹**해 대기 블록에 슬롯을
 더 일찍 내주는 것 = construction density. 이는 채점을 유일하게 움직인 PREFPOLISH(construction
 레버)와 정확히 같은 축. P5/P6(점수 99.7%, 시간제약이라 headroom 있음)에도 직접 작용.
+
+## FFT 밀도(접촉-최대) 재해석 — validated-NEGATIVE
+사용자 통찰: 친구가 FFT로 "속도"가 아니라 "더 조밀"하게 짰다면 = 전 위치 밀도 스코어를 공짜화한 것.
+검증(contact_poc.py, prob_28 busiest bay 165x19, peak 27블록 동시존재, 같은 블록·crane 순서):
+- BL(bottom-left `(h,wy,wx)`): 앉힘 **24/27**, LER=330, free=1094
+- CONTACT(접촉 최대 = 팽창껍질이 장애물/벽에 닿는 칸): 앉힘 **23/27**, LER=165, free=1145
+접촉-최대는 블록끼리 더 붙이지만 **자유공간 파편화**(LER 330→165 반토막) → **1개 덜 앉힘.**
+교훈: "더 많이 앉히기"엔 접촉량이 아니라 **큰 연속 빈 공간(LER)**이 지배적이고 **bottom-left가 이미
+그걸 더 잘함.** 친구 FFT 엣지는 접촉-최대화가 아님. 부수 확인: greedy 재패킹(24/27)이 실제
+construction(27/27, best-of+ALNS+시간배출)보다 나쁨 = 현 construction은 이미 이 패킹을 잘함.
+종합: FFT를 (1)속도 (2)접촉-밀도 두 자연스러운 해석으로 다 시험 → 둘 다 음성. 이 문제 기하에서
+FFT발 밀도 우위는 재현 안 됨. 스크립트: block_def.py, contact_poc.py.
