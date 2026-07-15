@@ -3793,6 +3793,11 @@ def _worker_entry(args):
                 #                 winner (prob_27/37/38/39/40 -2..-8% Z1).  Primary on
                 #                 odd workers, tail here so even workers still see it.
                 _tails = ["diagonal", "leftbottom", "bigleft"]
+                # DE-OVERFIT: offer coreperi gate-free as a best-of tail (replaces the
+                # single-instance p5_band dedicated-worker gate).  best-of keeps it where
+                # it wins (any-ratio P5), ignores it elsewhere; the numba guard is restored.
+                if os.environ.get("DEOVERFIT", "0") == "1":
+                    _tails = _tails + ["coreperi"]
                 # tcp (temporal-corridor) best-of variant: wins low-mid density construction
                 # (p9 -15%, p24/P5 -3.5%) and stays crane-FEASIBLE where compaction fails
                 # (p35).  best-of keeps min -> never-worse; env-gated for A/B (default off).
@@ -5168,6 +5173,14 @@ def algorithm(prob_info, timelimit=60):
             # tight <0.70 because catching P3 (>=0.70) is a PROVEN regression,
             # whereas missing a borderline P5 merely reverts it to v34 (no harm).
             _p5_band = (0.60 <= _ratio_val < 0.70)
+            # DE-OVERFIT: the [0.60,0.70) window is a single-training-instance (prob_24)
+            # fingerprint tuned to the hidden P5.  Generalise it: DROP the dedicated
+            # coreperi worker (restores the numba guard everywhere) and instead offer
+            # coreperi as a gate-free best-of TAIL on every high-ratio instance (added to
+            # _tails).  A hidden P5 at any ratio then still gets coreperi via best-of; the
+            # numba guard's P1/P3 basin is preserved.  Only prob_24 changes on training.
+            if os.environ.get("DEOVERFIT", "0") == "1":
+                _p5_band = False
 
             # Route all but ONE worker to the C++ fast path; keep the LAST
             # worker on pure numba as a guard.  C++ converges to the same floor
