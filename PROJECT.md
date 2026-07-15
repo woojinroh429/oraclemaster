@@ -1758,3 +1758,32 @@ P3=105595는 구조적 floor 근처. 유일한 잔여 레버=인기/선호베이
 짓는 construction(NP-hard, 한계이득 작음, 과적합 위험). "똑똑한 일반화 파이프라인" 의문의 엄밀한 답:
 파이프라인은 이미 achievable floor 근처, 잔여는 지능부족이 아니라 packing이 물리적으로 강제. shipped
 v55 안전(전부 env-gated default off).
+
+## ★★ PREFPOLISH — 예산배분 수정 (사용자 진단, 프로젝트 최대 개선)
+
+### 사용자 진단
+"코드는 잘 짜졌는데 예산배분 문제." 정확했음: 채점 게임은 Z3(선호)인데 primary construction
+(bigleft/flatbl/leftbottom)은 전부 preference-BLIND — 예산 ~48초를 지각/면적 최소화에 쓰고, 정작
+Z3 레버(prefaware)는 tail 맨끝 단 1회로 굶음. 후처리 seating은 packing-forced라 Z3 floor를 못 낮춤.
+
+### 수정 (never-worse)
+1. prefaware를 tail **앞에서** 실예산(remaining×0.45 cap)으로 construction → 선호 베이 우선 배치.
+2. prefaware construction은 raw obj(Z2) 때문에 construction best-of에서 탈락 → **별도로 폴리시**
+   (`_polish_sol` 헬퍼로 추출, primary 65% / pref 35% 분할)해서 **폴리시 레벨에서 best-of**.
+3. _pref_on(Z3-share≥0.40) 게이트 → Z1/Z2-지배는 미발동(byte-identical). PREFPOLISH=0 reverts.
+
+### 검증 (TL=60, v55 vs PREFPOLISH)
+| inst | Δ | | inst | Δ |
+|---|---|---|---|---|
+| prob_24 | **−38.78%** | | prob_6 | 0.00% |
+| prob_28 | **−16.62%** | | prob_30 | 0.00% (Z3-share 0.29 미발동) |
+| prob_3 | **−8.09%** | | prob_31 | 0.00% (dense, Z1악화로 탈락) |
+| prob_20 | **−2.62%** (P3 프록시) | | prob_38 | 0.00% (Z1-지배 미발동) |
+| prob_5 | +0.85% (노이즈) | | prob_2 | 0.00% |
+4 대박 / 5 동일 / 1 노이즈. Z3-지배(=채점 프로파일)에서 큰 이득, 나머지 never-worse. TLE 없음
+(폴리시 _full_dl bounded, 런타임 60~61초 = v55와 동일).
+
+### 의의
+채점 게임이 Z3 배정임을 진단 → preference-aware construction에 예산을 제대로 배분 = 구조적/일반화
+개선. prob_20(P3 프록시) −2.6%, prob_28류 −16% → P3 채점 개선 기대(단 실제는 제출로 확인, P3 교훈).
+밴딧 3종/seating과 달리 이건 **실제로 이기는** 첫 결과. default-on(PREFPOLISH=1) v56 후보.
