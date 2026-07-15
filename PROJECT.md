@@ -2048,3 +2048,21 @@ FFT발 밀도 우위는 재현 안 됨. 스크립트: block_def.py, contact_poc.
 값싼 레버 + FFT(속도·접촉) + 재스케줄(단일·6블록·글로벌) + bl_full-on-P4 + 모드blend = 전부 음성.
 P4 Z1은 best-단일-모드 construction floor이고, 접근 가능한 모든 아이디어로 안 내려감. 남은 길:
 (1) 친구의 실제 방법(cpp) 역설계, (2) v58 유지. 탐색·스케줄·기하 프록시는 소진.
+
+## "미래를 보는 규칙"(lookahead) — greedy·beam 둘 다 validated-NEGATIVE
+사용자: 친구가 "미래를 보는 규칙" 넣으랬다 → P3/P4에 통하나.
+- **greedy 1-step lookahead**(lookahead_poc.py): 현재 블록을 다음 K개 미래 블록이 여전히 들어갈 수
+  있는 위치로 배치. prob_28 Z1 117→**1228(10배 악화)**, prob_30 299→**1356**. 원인: 현재 블록을
+  미래 위해 displace하면 bottom-left 일관성 붕괴 → 150블록에 걸쳐 파편화 복리 → 참사. (blend와
+  동일 교훈.) 부수확인: **greedy bottom-left만으로 Z1=117 = 실제 construction floor(114)에 근접**
+  → bottom-left가 이미 near-optimal.
+- **proper beam**(코드 내장 BEAMK, K=3 M=2, 비탐욕): prob_28 114→**124(obj 2.41M→3.24M)**,
+  prob_30 161→**233(3.05M→3.82M)**. 원인: beam이 mode best-of를 단일 shallow-lookahead 스코어로
+  대체 → 모드 다양성 상실이 얕은 lookahead 이득을 압도.
+판정: 친구의 lookahead 힌트를 **탐욕·빔 양쪽으로 정직하게 시험 → 둘 다 우리 construction보다 나쁨.**
+
+### P4 construction 조사 — 최종 (12+ 실험 전수 음성)
+contact-density·blend·greedy-lookahead·beam-lookahead·FFT(속도)·재스케줄(단일/6블록/글로벌 CP-SAT)·
+추가시간·bl_full-on-P4 = **전부 음성.** 통일된 원인: **bottom-left 일관성 + mode best-of가 이미 강한
+Z1 floor**이고, 시험한 모든 대안 construction이 그보다 나쁨. 친구의 힌트(FFT·lookahead)도 우리에겐
+전이 안 됨. 추측 소진. 진짜 진전엔 친구의 실제 방법(cpp) 역설계 필요, 아니면 v58 유지.
