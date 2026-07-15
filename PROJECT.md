@@ -1827,3 +1827,21 @@ _pref_on 트리거를 0.40→0.25로 낮춰 중간대역(prob_30 share 0.29)까�
 결론: **v56(PREFPOLISH)이 주변 레버 공간에서 국소최적**임이 4방향 전수 검증으로 확인됨.
 모든 실험 코드는 env-gated(default off) — v56 제출본 무변. 잔여 개선은 채점 결과 피드백 후 판단.
 부수 이득: ALNS destroy 오퍼레이터 6종 함수 추출(코드 위생), PREFTH 파라미터화(도구).
+
+## ★ 일반화: p5_band 지문 제거 → gate-free hybrid lane (점수 무손실)
+사용자 요청: "알고리즘 일반화 잘 되게" (점수개선 없어도). 감사 결과 유일한 진짜 과적합 =
+`_p5_band [0.60,0.70)` (숨은 P5에 맞춘 단일-인스턴스 지문, coreperi 전용 워커 게이트).
+
+진단: (1) parker 비율로 재유도 시도 → 기각(prob_24=0.270이 P3/P4/P6와 겹침, 구조적 분리 불가).
+(2) 근본 원인 규명: 그 워커의 가치는 coreperi가 아니라 **hybrid lane**(prefaware/PREFPOLISH 실행)
+이었음 — blind 제거가 prob_24 −4.28% 낸 건 hybrid 탐색 축소 때문이지 coreperi 손실이 아님.
+
+수정: `_coreperi_for` 은퇴, 워커 n-1을 **high-ratio & n<200에서 gate-free hybrid lane**으로
+(bl_full은 n≥200 유지, numba guard는 low-ratio 유지). coreperi는 gate-free best-of tail로 잔존.
+검증 (DEOVERFIT=0 vs 1): prob_24 **0.00%(win 완전회복)**, prob_34 −0.63%, prob_37/28 0.00%,
+prob_5 −3.60%(저밀도 미영향, 분산). => 지문 제거 + 점수 무손실 = 이상적 일반화. DEOVERFIT=1 기본,
+=0 으로 구 지문 복원 A/B.
+
+### 일반화 종합 최종
+best-of 아키텍처(설계상 일반화) + 구조적 트리거(Z3-share, parker 백분위) 유지. 유일 과적합 지문
+제거 완료. 남은 튜닝된 게이트(_hi_ratio≥0.60, _route_cpp n≥230)는 한쪽/구조축 fit이라 저위험.

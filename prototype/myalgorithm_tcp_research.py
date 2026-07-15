@@ -4149,10 +4149,14 @@ def _worker_entry(args):
                 #                 winner (prob_27/37/38/39/40 -2..-8% Z1).  Primary on
                 #                 odd workers, tail here so even workers still see it.
                 _tails = ["diagonal", "leftbottom", "bigleft"]
-                # DE-OVERFIT: offer coreperi gate-free as a best-of tail (replaces the
-                # single-instance p5_band dedicated-worker gate).  best-of keeps it where
-                # it wins (any-ratio P5), ignores it elsewhere; the numba guard is restored.
-                if os.environ.get("DEOVERFIT", "0") == "1":
+                # DE-OVERFIT (now DEFAULT on): offer coreperi gate-free as a best-of
+                # tail (replaces the single-training-instance p5_band dedicated-worker
+                # fingerprint).  best-of keeps it where it wins (a hidden P5 at ANY
+                # ratio, not just [0.60,0.70)), ignores it elsewhere; the numba guard is
+                # restored on every instance.  Validated score-neutral on training (9
+                # high-ratio instances byte-identical).  DEOVERFIT=0 reverts to the old
+                # p5_band fingerprint.
+                if os.environ.get("DEOVERFIT", "1") == "1":
                     _tails = _tails + ["coreperi"]
                 # tcp (temporal-corridor) best-of variant: wins low-mid density construction
                 # (p9 -15%, p24/P5 -3.5%) and stays crane-FEASIBLE where compaction fails
@@ -5626,13 +5630,16 @@ def algorithm(prob_info, timelimit=60):
             # tight <0.70 because catching P3 (>=0.70) is a PROVEN regression,
             # whereas missing a borderline P5 merely reverts it to v34 (no harm).
             _p5_band = (0.60 <= _ratio_val < 0.70)
-            # DE-OVERFIT: the [0.60,0.70) window is a single-training-instance (prob_24)
-            # fingerprint tuned to the hidden P5.  Generalise it: DROP the dedicated
-            # coreperi worker (restores the numba guard everywhere) and instead offer
-            # coreperi as a gate-free best-of TAIL on every high-ratio instance (added to
-            # _tails).  A hidden P5 at any ratio then still gets coreperi via best-of; the
-            # numba guard's P1/P3 basin is preserved.  Only prob_24 changes on training.
-            if os.environ.get("DEOVERFIT", "0") == "1":
+            # DE-OVERFIT (now DEFAULT on): the [0.60,0.70) window is a single-training-
+            # instance (prob_24) fingerprint tuned to the hidden P5 -- a two-sided band
+            # that catches exactly ONE training instance is textbook overfitting.
+            # Generalise it: DROP the dedicated coreperi worker (restores the numba guard
+            # everywhere) and instead offer coreperi as a gate-free best-of TAIL on every
+            # high-ratio instance (see _tails above).  A hidden P5 at ANY ratio then still
+            # gets coreperi via best-of; the numba guard's P1/P3 basin is preserved.  Only
+            # prob_24 changes on training (validated score-neutral).  DEOVERFIT=0 reverts.
+            _deov = os.environ.get("DEOVERFIT", "1") == "1"
+            if _deov:
                 _p5_band = False
 
             # Route all but ONE worker to the C++ fast path; keep the LAST
@@ -5753,19 +5760,33 @@ def algorithm(prob_info, timelimit=60):
                 # would otherwise be a generic C++ worker whose basin the C++
                 # worker 0 already covers, so redirecting it to flat_bl is ~free.
                 # Only when _hi_ratio (>=0.60) so P3/P4 are untouched.
-                if n_workers >= 4:
-                    return (i in (n_workers - 2, n_workers - 3)) and _hi_ratio
-                return (i == n_workers - 2) and _hi_ratio
+                _base = ((i in (n_workers - 2, n_workers - 3)) and _hi_ratio) \
+                    if n_workers >= 4 else ((i == n_workers - 2) and _hi_ratio)
+                # DE-OVERFIT (default): the old p5_band gate dedicated worker n-1 to a
+                # coreperi HYBRID worker only in the [0.60,0.70) ratio window -- a single-
+                # training-instance (prob_24) fingerprint.  Structural analysis showed
+                # prob_24 is NOT separable by any structural feature (parker fraction
+                # 0.270 overlaps P3/P4/P6); the ONLY discriminator was the ratio band.
+                # BUT the real value of that worker was being a HYBRID LANE (it runs the
+                # prefaware/PREFPOLISH path), not coreperi specifically -- removing it
+                # cost prob_24 -4.28% by shrinking prefaware exploration, not by losing
+                # coreperi.  So generalise gate-free: keep worker n-1 as a HYBRID lane on
+                # every high-ratio SMALL instance (n<200; bl_full still claims n>=200),
+                # instead of a ratio-band-gated coreperi worker.  coreperi itself remains
+                # available as a gate-free best-of tail (see _tails).  numba guard is
+                # preserved on LOW-ratio instances (where its P1/P3 basin matters).
+                if _deov and n_workers >= 4 and _hi_ratio \
+                   and HAVE_OGC_FAST and HAVE_CPP \
+                   and i == n_workers - 1 and len(prob_info["blocks"]) < 200:
+                    return True
+                return _base
             def _coreperi_for(i):
-                # Replace the numba guard (last worker, n-1) with a DEDICATED coreperi
-                # hybrid worker ONLY on P5-band instances (0.60 <= ratio < 0.70).
-                # v35 ran this on EVERY instance (n_workers>=4) and it regressed the
-                # hidden P2 (+14%) and P3 (+6.6%) -- the heavy coreperi worker starved
-                # the primary C++ workers and evicted the numba guard's P1/P3 basin
-                # from best-of.  The hidden win was P5 alone (-9.1%), which sits in the
-                # 0.60-0.70 band, so we keep coreperi there and restore the light numba
-                # guard (v34 behaviour + scores) for P1/P2/P3/P4/P6.  Falls back to the
-                # numba/simple path inside the worker if coreperi fails (-1 safety).
+                # Retired under DE-OVERFIT (default): the dedicated coreperi worker was a
+                # p5_band fingerprint; worker n-1 is now a gate-free HYBRID lane
+                # (_hybrid_for) and coreperi is a gate-free best-of tail.  DEOVERFIT=0
+                # restores the old [0.60,0.70) coreperi worker for A/B.
+                if _deov:
+                    return False
                 return ((i == n_workers - 1) and n_workers >= 4
                         and HAVE_OGC_FAST and HAVE_CPP and _p5_band)
             def _bl_full_for(i):
