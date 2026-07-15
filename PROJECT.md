@@ -1867,3 +1867,15 @@ best-of 아키텍처(설계상 일반화) + 구조적 트리거(Z3-share, parker
 - 더 큰 레버(리스크 有): 하이브리드 워커 prefaware 구성을 **C++ 엔진 feasibility**로(python보다 훨씬
   빠름) → prefaware가 느린 python 워커에서 나오니 큰 이득 여지. 단 C++/python feasibility 의미차
   (엔진은 check_feasibility 정합, python은 과보수) → 채점 correctness 리스크, 별도 검증 필요.
+
+## ★★ CPPPOLISH — polish ALNS를 C++ feasibility로 (7배 가속, 예산 최적화)
+프로파일링 후속: 두 구성경로(prefaware/rank-edd)는 이미 C++(_ogc_fast_engine)인데, **polish ALNS의
+리페어(_try_place_block)만 plain _State라 python _placement_feasible(느림)를 씀**(주석이 명시:
+"polish helpers build plain _State"). 수정: (1) _rebuild_state_from_assign이 _CppState 생성,
+(2) _try_place_block이 _cpp_active면 _cpp_placement_feasible 직접 호출(글로벌이 폴리시 문맥에선
+안 바뀌므로). 벤치: ALNS 리페어 **5/s → 36/s (7배)**. _cpp_placement_feasible은 엔진워커가 채점에서
+이미 쓰는 검증된 함수(리스크 낮음).
+검증 (CPPPOLISH=0 vs 1, 12개): 개선 prob_3 −8.09%, prob_38 −8.76%, prob_20 −6.99%; 중립 8개;
+prob_34 +0.16%(노이즈). **전부 feasible, 사실상 never-worse.** default-on(=0 reverts). v58 후보.
+
+부수: 존재-블록 shapely 폴리곤 캐싱(_cached_shapely_layers, ~3%), _hybrid_check 분기 병합.

@@ -951,6 +951,11 @@ def _try_place_block(state, bid, bay_order, deadline, key_hint=None):
     prob = state.prob
     bd = prob["blocks"][bid]
     _cpp_active = getattr(state, "_cpp", None) is not None
+    # route to the compiled C++ feasibility when the state mirrors a CppState.  In
+    # engine workers the global _placement_feasible is already _cpp_placement_feasible
+    # (swapped by _solve_once), but the polish path (CPPPOLISH) builds a _CppState
+    # under a plain-python global -- selecting explicitly here makes both use C++.
+    _pf = _cpp_placement_feasible if _cpp_active else _placement_feasible
     rt = bd["release_time"]
     pt = bd["processing_time"]
     due = bd["due_date"]
@@ -1025,7 +1030,7 @@ def _try_place_block(state, bid, bay_order, deadline, key_hint=None):
                     blk = (_LiteBlock(bid, oi, x, y, bd) if _cpp_active
                            else Block(block_id=bid, block_data=bd,
                                       x=x, y=y, orient_idx=oi))
-                    if not _placement_feasible(state, bay_id, blk, entry_t, exit_t):
+                    if not _pf(state, bay_id, blk, entry_t, exit_t):
                         continue
                     best_key = cand_key
                     bound = cand_key
@@ -1062,7 +1067,7 @@ def _try_place_block(state, bid, bay_order, deadline, key_hint=None):
                                           x=x, y=y, orient_idx=oi))
                         if not bay.contains_block(blk):
                             continue
-                        if not _placement_feasible(state, bay_id, blk, entry_t, exit_t):
+                        if not _pf(state, bay_id, blk, entry_t, exit_t):
                             continue
                         best = {
                             "block_id": bid, "bay_id": bay_id,
@@ -1215,7 +1220,19 @@ def _deserialize_assign(payload):
 
 
 def _rebuild_state_from_assign(prob_info, assign):
-    state = _State(prob_info)
+    # CPPPOLISH (env-gated research): build a C++-mirrored _CppState so the polish
+    # ALNS repair (_try_place_block) uses the compiled _cpp_placement_feasible
+    # instead of the pure-python _placement_feasible (the profiled hotspot -- polish
+    # helpers otherwise build a plain _State).  Tradeoff to MEASURE: per-check C++ is
+    # much faster, but _CppState.clone() copies the C++ state every ALNS iteration,
+    # which is heavier than _State.clone() -- net can go either way.  Default off.
+    if HAVE_CPP and os.environ.get("CPPPOLISH", "1") == "1":
+        try:
+            state = _CppState(prob_info)
+        except Exception:
+            state = _State(prob_info)
+    else:
+        state = _State(prob_info)
     for bid, a in assign.items():
         bd = prob_info["blocks"][bid]
         blk = Block(block_id=bid, block_data=bd,
