@@ -1329,105 +1329,181 @@ def _alns(prob_info, state, bay_unit, deadline, rng, use_gls=False,
                 out.append(other.block_id)
         return out
 
+    # Destroy-operator bodies, extracted so both selection policies share them:
+    #  - legacy fixed-threshold dispatch (shipped, byte-identical behaviour), and
+    #  - adaptive Ropke-Pisinger roulette (env ALNSW=1, research lever d).
+    # Each returns (removed_ids, priority_seeds) or None when it has no candidates
+    # (the legacy path then falls through exactly as the old inline code did).
+    def _op_gls(st, rng, ids):
+        penalized = [b for b in ids if pen_tard[b] + pen_pref[b] > 0]
+        if not penalized:
+            return None
+        penalized.sort(key=lambda b: -(pen_tard[b] + pen_pref[b]))
+        seeds = penalized[:rng.randint(1, min(3, len(penalized)))]
+        rem = set(seeds)
+        for s in seeds:
+            rem |= blockers_for(st, s)
+        rem = list(rem)
+        if len(rem) > 14:
+            rem = list(seeds) + rng.sample([r for r in rem if r not in set(seeds)],
+                                           max(0, 14 - len(seeds)))
+        return rem, list(seeds)
+
+    def _op_tall(st, rng, ids):
+        cand_tall = []
+        for b in ids:
+            if b not in tall_set:
+                continue
+            a = st.assign[b]
+            bd = blocks_data[b]
+            tard = max(0, a["exit_time"] - bd["due_date"])
+            prefs = bd["bay_preferences"]
+            pref_pen = max(prefs) - prefs[a["bay_id"]]
+            score = w1 * tard + w3 * pref_pen
+            if score > 0:
+                cand_tall.append((score, b))
+        if not cand_tall:
+            return None
+        cand_tall.sort(reverse=True)
+        nseed = rng.randint(1, min(3, len(cand_tall)))
+        seeds = [cand_tall[i][1] for i in range(nseed)]
+        rem = set(seeds)
+        for s in seeds:
+            rem |= tall_crane_partners(st, s)
+            rem |= blockers_for(st, s)
+        rem = list(rem)
+        if len(rem) > 14:
+            keep = [r for r in rem if r not in set(seeds)]
+            rem = list(seeds) + rng.sample(keep, max(0, 14 - len(seeds)))
+        return rem, list(seeds)
+
+    def _op_tardy(st, rng, ids):
+        tardy = [(b, st.assign[b]["exit_time"] - blocks_data[b]["due_date"])
+                 for b in ids]
+        tardy = [t for t in tardy if t[1] > 0]
+        if not tardy:
+            return None
+        tardy.sort(key=lambda x: -x[1])
+        nseed = rng.randint(1, min(3, len(tardy)))
+        seeds = [tardy[i][0] for i in range(nseed)]
+        rem = list(seeds)
+        blk_all = set()
+        for s in seeds:
+            blk_all |= blockers_for(st, s)
+        blk_all -= set(seeds)
+        rem += list(blk_all)
+        if len(rem) > 14:
+            rem = list(seeds) + rng.sample(list(blk_all),
+                                           max(0, 14 - len(seeds)))
+        return rem, list(seeds)
+
+    def _op_mispref(st, rng, ids):
+        misp = [b for b in ids
+                if blocks_data[b]["bay_preferences"][st.assign[b]["bay_id"]]
+                < max(blocks_data[b]["bay_preferences"])]
+        if not misp:
+            return None
+        misp.sort(key=lambda b: -(max(blocks_data[b]["bay_preferences"])
+                  - blocks_data[b]["bay_preferences"][st.assign[b]["bay_id"]]))
+        seed = misp[rng.randint(0, min(4, len(misp) - 1))]
+        pref_bay = max(range(n_bays),
+                       key=lambda j: blocks_data[seed]["bay_preferences"][j])
+        rem = {seed}
+        occ = overlappers_in_bay(st, pref_bay, seed)
+        if occ:
+            rem |= set(rng.sample(occ, min(8, len(occ))))
+        others = [b for b in misp
+                  if b != seed
+                  and max(range(n_bays),
+                          key=lambda j: blocks_data[b]["bay_preferences"][j]) == pref_bay]
+        if others:
+            rem |= set(rng.sample(others, min(3, len(others))))
+        rem = list(rem)
+        if len(rem) > 16:
+            keep = [r for r in rem if r != seed]
+            rem = [seed] + rng.sample(keep, 15)
+        prio = [b for b in rem
+                if max(range(n_bays),
+                       key=lambda j: blocks_data[b]["bay_preferences"][j]) == pref_bay]
+        return rem, prio
+
+    def _op_hiload(st, rng, ids):
+        loads = bay_loads(st)
+        hi = max(range(n_bays), key=lambda j: loads[j] * bay_unit[j])
+        in_hi = [b for b in ids if st.assign[b]["bay_id"] == hi]
+        if not in_hi:
+            return None
+        k = rng.randint(2, min(8, len(in_hi)))
+        return rng.sample(in_hi, k), []
+
+    def _op_rand(st, rng, ids):
+        k = rng.randint(3, max(3, min(10, n_blocks // 8)))
+        return rng.sample(ids, min(k, len(ids))), []
+
     def pick_removal(st, rng):
+        # legacy FIXED-THRESHOLD dispatch (shipped default): same op ranges and
+        # fall-through order as the historical inline code -> byte-identical.
         ids = list(st.assign.keys())
         op = rng.random()
         if use_gls and op < 0.35:
-            penalized = [b for b in ids if pen_tard[b] + pen_pref[b] > 0]
-            if penalized:
-                penalized.sort(key=lambda b: -(pen_tard[b] + pen_pref[b]))
-                seeds = penalized[:rng.randint(1, min(3, len(penalized)))]
-                rem = set(seeds)
-                for s in seeds:
-                    rem |= blockers_for(st, s)
-                rem = list(rem)
-                if len(rem) > 14:
-                    rem = list(seeds) + rng.sample([r for r in rem if r not in set(seeds)],
-                                                   max(0, 14 - len(seeds)))
-                return rem, list(seeds)
+            r = _op_gls(st, rng, ids)
+            if r is not None:
+                return r
         if op < 0.12 and tall_blocks:
-            cand_tall = []
-            for b in ids:
-                if b not in tall_set:
-                    continue
-                a = st.assign[b]
-                bd = blocks_data[b]
-                tard = max(0, a["exit_time"] - bd["due_date"])
-                prefs = bd["bay_preferences"]
-                pref_pen = max(prefs) - prefs[a["bay_id"]]
-                score = w1 * tard + w3 * pref_pen
-                if score > 0:
-                    cand_tall.append((score, b))
-            if cand_tall:
-                cand_tall.sort(reverse=True)
-                nseed = rng.randint(1, min(3, len(cand_tall)))
-                seeds = [cand_tall[i][1] for i in range(nseed)]
-                rem = set(seeds)
-                for s in seeds:
-                    rem |= tall_crane_partners(st, s)
-                    rem |= blockers_for(st, s)
-                rem = list(rem)
-                if len(rem) > 14:
-                    keep = [r for r in rem if r not in set(seeds)]
-                    rem = list(seeds) + rng.sample(keep, max(0, 14 - len(seeds)))
-                return rem, list(seeds)
+            r = _op_tall(st, rng, ids)
+            if r is not None:
+                return r
         if op < 0.45:
-            tardy = [(b, st.assign[b]["exit_time"] - blocks_data[b]["due_date"])
-                     for b in ids]
-            tardy = [t for t in tardy if t[1] > 0]
-            if tardy:
-                tardy.sort(key=lambda x: -x[1])
-                nseed = rng.randint(1, min(3, len(tardy)))
-                seeds = [tardy[i][0] for i in range(nseed)]
-                rem = list(seeds)
-                blk_all = set()
-                for s in seeds:
-                    blk_all |= blockers_for(st, s)
-                blk_all -= set(seeds)
-                rem += list(blk_all)
-                if len(rem) > 14:
-                    rem = list(seeds) + rng.sample(list(blk_all),
-                                                   max(0, 14 - len(seeds)))
-                return rem, list(seeds)
+            r = _op_tardy(st, rng, ids)
+            if r is not None:
+                return r
         if op < 0.68:
-            misp = [b for b in ids
-                    if blocks_data[b]["bay_preferences"][st.assign[b]["bay_id"]]
-                    < max(blocks_data[b]["bay_preferences"])]
-            if misp:
-                misp.sort(key=lambda b: -(max(blocks_data[b]["bay_preferences"])
-                          - blocks_data[b]["bay_preferences"][st.assign[b]["bay_id"]]))
-                seed = misp[rng.randint(0, min(4, len(misp) - 1))]
-                pref_bay = max(range(n_bays),
-                               key=lambda j: blocks_data[seed]["bay_preferences"][j])
-                rem = {seed}
-                occ = overlappers_in_bay(st, pref_bay, seed)
-                if occ:
-                    rem |= set(rng.sample(occ, min(8, len(occ))))
-                others = [b for b in misp
-                          if b != seed
-                          and max(range(n_bays),
-                                  key=lambda j: blocks_data[b]["bay_preferences"][j]) == pref_bay]
-                if others:
-                    rem |= set(rng.sample(others, min(3, len(others))))
-                rem = list(rem)
-                if len(rem) > 16:
-                    keep = [r for r in rem if r != seed]
-                    rem = [seed] + rng.sample(keep, 15)
-                prio = [b for b in rem
-                        if max(range(n_bays),
-                               key=lambda j: blocks_data[b]["bay_preferences"][j]) == pref_bay]
-                return rem, prio
+            r = _op_mispref(st, rng, ids)
+            if r is not None:
+                return r
         if op < 0.85:
-            loads = bay_loads(st)
-            hi = max(range(n_bays), key=lambda j: loads[j] * bay_unit[j])
-            in_hi = [b for b in ids if st.assign[b]["bay_id"] == hi]
-            if in_hi:
-                k = rng.randint(2, min(8, len(in_hi)))
-                chosen = rng.sample(in_hi, k)
-                return chosen, []
-        k = rng.randint(3, max(3, min(10, n_blocks // 8)))
-        chosen = rng.sample(ids, min(k, len(ids)))
-        return chosen, []
+            r = _op_hiload(st, rng, ids)
+            if r is not None:
+                return r
+        return _op_rand(st, rng, ids)
+
+    # lever (d): ADAPTIVE destroy-operator selection (Ropke & Pisinger 2006).
+    # The "A" that gives ALNS its name: roulette-select the destroy operator by a
+    # weight that tracks its recent success ON THIS INSTANCE, instead of the fixed
+    # hand-tuned thresholds above.  This is the one place in the pipeline where a
+    # bandit's conditions all hold: thousands of pulls per run, an immediate
+    # reward every iteration (the SA accept test), one shared budget (the ALNS
+    # deadline), and per-instance operator value (Z3-dominated -> mispref pays;
+    # dense -> tardy/tall pay).  Reward tiers: new-best 13 / improved 6 /
+    # accepted 2 / rejected 0; segment update every 100 iters with reaction 0.2
+    # and a 0.05 weight floor (exploration never dies).  env ALNSW=1 (default
+    # off -> shipped path untouched).
+    _alnsw_on = os.environ.get("ALNSW", "0") == "1"
+    _OPS = [_op_gls, _op_tall, _op_tardy, _op_mispref, _op_hiload, _op_rand]
+    _wgt = [1.0] * 6
+    _wsc = [0.0] * 6
+    _wus = [0] * 6
+
+    def pick_removal_w(st, rng):
+        ids = list(st.assign.keys())
+        active = [k for k in range(6)
+                  if (k != 0 or use_gls) and (k != 1 or tall_blocks)]
+        tot = sum(_wgt[k] for k in active)
+        rpick = rng.random() * tot
+        acc = 0.0
+        kk = active[-1]
+        for k in active:
+            acc += _wgt[k]
+            if rpick <= acc:
+                kk = k
+                break
+        r = _OPS[kk](st, rng, ids)
+        if r is None:
+            # chosen operator had no candidates -> random fallback, credited to
+            # rand so the dry operator's weight decays via its 0-reward use.
+            _wus[kk] += 1
+            return _op_rand(st, rng, ids)[0], [], 5
+        return r[0], r[1], kk
 
     no_improve = 0
     iteration = 0
@@ -1436,7 +1512,11 @@ def _alns(prob_info, state, bay_unit, deadline, rng, use_gls=False,
     REHEAT_FACTOR = 0.7
     while time.time() < deadline:
         iteration += 1
-        remove_ids, priority = pick_removal(cur, rng)
+        if _alnsw_on:
+            remove_ids, priority, _opk = pick_removal_w(cur, rng)
+        else:
+            remove_ids, priority = pick_removal(cur, rng)
+            _opk = -1
         remove_ids = list(dict.fromkeys(remove_ids))
         if not remove_ids:
             continue
@@ -1477,9 +1557,12 @@ def _alns(prob_info, state, bay_unit, deadline, rng, use_gls=False,
             continue
 
         trial_aug = aug_obj(trial)
+        _prev_o = cur_o
+        _rw_tier = 0
         if trial_aug <= cur_o or rng.random() < math.exp((cur_o - trial_aug) / max(T, 1e-9)):
             cur = trial
             cur_o = trial_aug
+            _rw_tier = 2 if trial_aug >= _prev_o else 6   # accepted-worse / improved
             trial_real = cur_obj(trial)
             if trial_real < best_obj - 1e-9:
                 cand_sol = _build_operations(list(trial.assign.values()))
@@ -1488,12 +1571,24 @@ def _alns(prob_info, state, bay_unit, deadline, rng, use_gls=False,
                     best_obj = trial_real
                     best_assign = {b: dict(a) for b, a in trial.assign.items()}
                     no_improve = 0
+                    _rw_tier = 13                          # new global best
                 else:
                     no_improve += 1
             else:
                 no_improve += 1
         else:
             no_improve += 1
+        if _alnsw_on and _opk >= 0:
+            # Ropke-Pisinger credit + segment update (reaction 0.2, floor 0.05).
+            _wus[_opk] += 1
+            _wsc[_opk] += _rw_tier
+            if iteration % 100 == 0:
+                for _kk in range(6):
+                    if _wus[_kk] > 0:
+                        _wgt[_kk] = max(0.05, 0.8 * _wgt[_kk]
+                                        + 0.2 * (_wsc[_kk] / _wus[_kk]))
+                    _wsc[_kk] = 0.0
+                    _wus[_kk] = 0
 
         if use_gls and no_improve > 0 and no_improve % 50 == 0:
             cands = []
@@ -4106,7 +4201,11 @@ def _worker_entry(args):
                 if _pref_on and os.environ.get("PREFPOLISH", "1") == "1" \
                    and _hyb_deadline - time.time() > 6.0:
                     _cap = max(3.0, (_hyb_deadline - time.time()) * 0.45)
-                    _pr = _attempt(1, "prefaware", _cap)
+                    # lever (b) A/B: PREFTCP=1 builds the pref candidate with the
+                    # preftcp hybrid (preferred bay first + corridor-preserving inside)
+                    # instead of prefaware (preferred bay first + plain bigleft inside).
+                    _pmode = "preftcp" if os.environ.get("PREFTCP", "0") == "1" else "prefaware"
+                    _pr = _attempt(1, _pmode, _cap)
                     if _pr is not None:
                         _pref_sol = _pr[0]
                         _keep(_pr)
@@ -4759,6 +4858,39 @@ def _smallright_construct(prob_info, deadline_s, small_thresh=0.60, step=1, mode
                                     _lvl=int((_A-_room)/max(1.0,_A)*_TCPL)
                                     _fc=int(pt[b])*_lvl
                                     sc=(_fc, h, wy, wx, j)
+                                elif mode=="preftcp":
+                                    # PREF x TCP HYBRID (lever b): preferred bay FIRST
+                                    # (prefaware's Z3 key), then WITHIN the bay use tcp's
+                                    # duration-weighted corridor-loss instead of plain
+                                    # bigleft -- long-stay blocks avoid fragmenting the
+                                    # crane descent corridor of the POPULAR bay, so more
+                                    # preferred blocks physically fit there (Z3 = popular-
+                                    # bay packing limit).  Differs from the dead skypref:
+                                    # (a) only rects ACTIVE at this entry counted,
+                                    # (b) corridor loss pt-weighted + quantised (tcp's two
+                                    # fixes).  best-of candidate only, never sole rule.
+                                    if _tcp_occ is None:
+                                        _act=[bb for (bb,_e) in present_by_bay[j] if _e>cur]
+                                        _tcp_occ,_tcp_cw,_tcp_ch=_occ_grid(_act, bw_j, bh_j)
+                                        _tcp_memo={}
+                                    _cx0=int(wx/_tcp_cw); _cx1=int((wx+w-1e-9)/_tcp_cw)
+                                    _cy0=int(wy/_tcp_ch); _cy1=int((wy+h-1e-9)/_tcp_ch)
+                                    if _cx0<0: _cx0=0
+                                    if _cy0<0: _cy0=0
+                                    if _cx1>_RES-1: _cx1=_RES-1
+                                    if _cy1>_RES-1: _cy1=_RES-1
+                                    _mk=(_cx0,_cy0,_cx1,_cy1)
+                                    _room=_tcp_memo.get(_mk)
+                                    if _room is None:
+                                        _tmp=[bytearray(_r) for _r in _tcp_occ]
+                                        for _iy in range(_cy0,_cy1+1):
+                                            _rr=_tmp[_iy]
+                                            for _ix in range(_cx0,_cx1+1): _rr[_ix]=1
+                                        _room=_ler_of(_tmp,_tcp_cw,_tcp_ch); _tcp_memo[_mk]=_room
+                                    _A=bw_j*bh_j
+                                    _lvl=int((_A-_room)/max(1.0,_A)*_TCPL)
+                                    _fc=int(pt[b])*_lvl
+                                    sc=(_mxp[b]-B[b]["bay_preferences"][j], _fc, h, wy, wx)
                                 elif mode=="unified":
                                     # UNIFIED weighted score: bundles the separate mode
                                     # criteria (flat/left/bottom/corridor/pref) into ONE

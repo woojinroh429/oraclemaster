@@ -1795,3 +1795,11 @@ Z3 레버(prefaware)는 tail 맨끝 단 1회로 굶음. 후처리 seating은 pac
 4/5 손해. **판정: corridor 보존은 밀도↔접근성 트레이드에서 접근성을 사는 것인데, Z1=0 게임에선
 접근성이 이미 공짜 → 인기 베이에 필요한 건 순수 밀도(압축). prefaware+bigleft가 옳은 조합.**
 코드는 env-gated(PREFTCP=0 default) 음수기록으로 보존. Z3 레버 = 인기베이 밀도 확정 강화.
+
+## 레버 (d) ALNS 적응 destroy-가중치 (Ropke-Pisinger 룰렛) — 중립
+유일하게 밴딧 4조건(수천 pull/즉시보상/공유예산/인스턴스별 arm가치)이 성립하는 지점. 구현:
+destroy 오퍼레이터 6종(gls/tall/tardy/mispref/hiload/rand)을 함수로 추출(legacy 경로 의미 보존,
+v56 결과 정확 재현 확인), ALNSW=1이면 세그먼트-갱신 룰렛(보상 13/6/2/0, reaction 0.2, floor 0.05).
+결과: prob_3 +1.86%(Z3 170→148로 밴딧이 mispref 증폭은 실제 작동, Z2 상승으로 상쇄),
+prob_24/28/31/38 전부 byte-identical. 판정: 고정확률이 이미 잘 튜닝됐고 최종해는 대부분 다른
+basin이 결정 → 중립. env-gated off 보존. 밴딧 결론(4회 실험): 이 파이프라인에 밴딧 이득 없음 확정.
