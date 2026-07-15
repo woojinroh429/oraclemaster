@@ -1889,3 +1889,16 @@ prob_38 5회 반복(격리, env -i): 37.83M ×2, 34.51M ×3 = **양봉 분산 ±
 - PREFPOLISH의 승리(prob_28=2.41M, prob_24=608197)는 **여러 런 안정 재현 + 큰 델타**라 진짜.
 - 규칙: 이 파이프라인은 단일 런 A/B가 ±10% 이하에서 무의미. 다회 중앙값 필수. (세션 초반 확립했던
   원칙인데 작은 델타 보고 시 재확인 안 한 실수 — 재발 방지.)
+
+## SHAKE (C++ 가속 공격적 ruin-and-recreate) — validated-NEGATIVE (다회 중앙값)
+가설: 7배 가속(CPPPOLISH)을 활용해 stuck시 15~40% 큰 destroy+재삽입으로 지역최적 탈출.
+구현: no_improve>400시 나쁜블록(w1·tard+w3·pref) 절반 + 랜덤 절반 escalating 뜯어 재구성, 재가열.
+검증(3런 중앙값, base vs SHAKE): prob_3 48370=48370, prob_24 608197=608197, prob_28 2412246=
+2412246, prob_31 6915839=6915839. **4/4 완전동일 = shake가 어디서도 floor를 못 깸.**
+판정: 병목은 local-optima 탈출이 아니라 **구조적 floor**(저밀도=packing-forced Z3, 고밀도=
+conservation-locked Z1). 탐색은 이미 floor를 찾고 있음. env-gated off 보존.
+
+### 종합 (탐색계 레버 전멸)
+밴딧 4종·seating 2종·SHAKE = 전부 무익. 유일하게 채점을 움직인 건 PREFPOLISH(construction 레버,
+P3 −0.32%). 결론: 파이프라인은 achievable floor 근처. 더 밀려면 탐색이 아니라 **근본적으로 다른
+construction**(per-bay exact 패킹 등)이 필요하고, floor 근접 정황상 headroom도 제한적.

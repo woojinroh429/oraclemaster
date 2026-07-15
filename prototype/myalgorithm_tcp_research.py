@@ -1519,6 +1519,8 @@ def _alns(prob_info, state, bay_unit, deadline, rng, use_gls=False,
     T_init = max(1.0, best_obj * 0.0015)
     reheats_used = 0
     REHEAT_FACTOR = 0.7
+    _shake_on = os.environ.get("SHAKE", "0") == "1"
+    _kicks = 0
     while time.time() < deadline:
         iteration += 1
         if _alnsw_on:
@@ -1651,10 +1653,60 @@ def _alns(prob_info, state, bay_unit, deadline, rng, use_gls=False,
                 pass
 
         if no_improve > 400:
-            cur = _rebuild_state_from_assign(prob_info, best_assign)
-            cur_o = aug_obj(cur)
-            T = max(1.0, best_obj * 0.0015)
-            no_improve = 0
+            if _shake_on:
+                # BIG RUIN-AND-RECREATE kick (env SHAKE): the plain reset just returns
+                # to best and keeps making the same timid 2-14 block moves -> it never
+                # escapes the local optimum.  Instead, tear out an ESCALATING fraction
+                # (15%->40%) of the WORST blocks (weighted tardiness+preference) plus a
+                # random spread, rebuild, and accept the result as the new cur (best is
+                # preserved separately, so a temporarily-worse cur is pure
+                # diversification), then reheat hot.  Affordable because CPPPOLISH makes
+                # each reinsertion C++-fast.  Escapes basins the timid ALNS is stuck in.
+                _kc = min(7, _kicks)
+                _frac = min(0.40, 0.15 + 0.04 * _kc)
+                _kk = max(4, int(_frac * n_blocks))
+                _ids = list(cur.assign.keys())
+                def _badness(b):
+                    a = cur.assign[b]; bd = blocks_data[b]; pr = bd["bay_preferences"]
+                    return (w1 * max(0.0, a["exit_time"] - bd["due_date"])
+                            + w3 * (max(pr) - pr[a["bay_id"]]))
+                _ids.sort(key=_badness, reverse=True)
+                _nw = _kk // 2
+                _pool = _ids[_nw:]
+                _vic = _ids[:_nw] + (rng.sample(_pool, min(_kk - _nw, len(_pool)))
+                                     if _pool else [])
+                _trial = cur.clone()
+                for _b in _vic:
+                    if _b in _trial.assign:
+                        _trial.remove(_b)
+                _vic.sort(key=lambda b: (blocks_data[b]["due_date"],
+                                         blocks_data[b]["release_time"]))
+                _ok = True
+                for _b in _vic:
+                    if time.time() > deadline:
+                        _ok = False; break
+                    if _try_place_block(_trial, _b, list(range(n_bays)), deadline) is None:
+                        _ok = False; break
+                if _ok and len(_trial.assign) == n_blocks:
+                    cur = _trial; cur_o = aug_obj(cur)
+                    _to = cur_obj(_trial)
+                    if _to < best_obj - 1e-9:
+                        _ck = check_feasibility(prob_info,
+                                                _build_operations(list(_trial.assign.values())))
+                        if _ck.get("feasible"):
+                            best_obj = _to
+                            best_assign = {b: dict(a) for b, a in _trial.assign.items()}
+                    T = T_init * 1.5
+                else:
+                    cur = _rebuild_state_from_assign(prob_info, best_assign)
+                    cur_o = aug_obj(cur); T = max(1.0, best_obj * 0.0015)
+                _kicks += 1
+                no_improve = 0
+            else:
+                cur = _rebuild_state_from_assign(prob_info, best_assign)
+                cur_o = aug_obj(cur)
+                T = max(1.0, best_obj * 0.0015)
+                no_improve = 0
         T *= cool
 
     if shared is not None and lock is not None:
