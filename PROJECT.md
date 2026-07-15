@@ -1746,3 +1746,15 @@ area 경합을 무시해 비현실적(너무 낙관).
 ### 사용자 "블록=손님" 직관은 정확
 게임이 좌석배정(seating)임을 정확히 짚음. 단 오프라인이라 MAB보다 직접 배정최적화가 맞고, 배정
 가능 슬랙은 greedy가 이미 캡처 → 남은 건 packing-forced. 다음 검증 = ejection-chain LNS.
+
+### ejection-chain seating LNS 프로브 (depth-2 coordinated) — 확정: packing-forced
+파이프라인 해에서 depth-2 연쇄 재배정(A를 선호베이에, 점유블록 C를 다른 베이로 밀어내기) 90초:
+prob_20 Z3 618→612(1 chain, 0.7%), prob_5 307→307(0 chain), prob_3 170→170(0 chain).
+=> greedy 넘어선 coordinated seating도 거의 무효. 잔여 Z3는 인기베이 packing-forced가 확정.
+
+## 최종 결론 (P3 조사 완결)
+게임=Z3 배정, 잔여 Z3=인기베이 밀도한계(packing-forced). 후처리(greedy/ejection/밴딧 3종)로 못 깸.
+P3=105595는 구조적 floor 근처. 유일한 잔여 레버=인기/선호베이를 처음부터 더 빽빽히 크레인-aware하게
+짓는 construction(NP-hard, 한계이득 작음, 과적합 위험). "똑똑한 일반화 파이프라인" 의문의 엄밀한 답:
+파이프라인은 이미 achievable floor 근처, 잔여는 지능부족이 아니라 packing이 물리적으로 강제. shipped
+v55 안전(전부 env-gated default off).
