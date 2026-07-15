@@ -2092,3 +2092,11 @@ spill되며 Z3 폭증. 판정: **면적-완화 바운드는 무용**(면적용�
 가능 최적에 이미 근접(면적최적 실현치 692 > 우리 638). Gurobi 재모델링으로는 P3 레버 안 나옴 —
 binding 제약(크레인 패킹)은 MIP로 싸게 못 모델링. 진짜 레버는 construction 쪽(prefaware). 스크립트:
 z3_gurobi_bound.py, z3_realize_test.py.
+
+## P3 prefaware 강화(PREFPRIMARY/AOSPA) — 추가 이득 없음
+BASE vs PREFPRIMARY=1 vs AOSPA=0.6 (prob_22/29/24): **3개 전부 세 설정 byte-identical**
+(794496 / 421749 / 634232). 이유: best-of가 이미 PREFPOLISH(v58 기본)로 prefaware basin을 포착
+→ prefaware를 더 강제해도 그게 승자가 아닌 인스턴스엔 무효. (예전 prob_3 -7%는 특정 인스턴스 한정.)
+부수: prob_24/29도 run간 7-8% 변동, prob_20은 31%(86k~113k) — P3-proxy A/B는 다회 필수.
+P3 종합: (1)Z3 대체로 60초 floor, (2)Gurobi 면적바운드 무용(실현불가), (3)prefaware 강화 무효
+(이미 포착). PREFPOLISH(v56→v58)가 이미 P3 prefaware 이득을 담고 있고 그 위 추가 레버 없음.
