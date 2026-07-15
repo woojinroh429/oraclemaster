@@ -2079,3 +2079,16 @@ prob_24 60초 knob 시험(FASTBENDERS/TAILRES=0.75/EXROUNDS=20/조합): **전부
 판정: P3의 Z3도 P4의 Z1처럼 **대체로 60초 construction/assignment floor**. Z3 floor = 인기 bay
 packing 한계(선호 블록을 다 못 넣음). 채점 P3를 움직인 유일한 건 PREFPOLISH(construction), 탐색·예산
 knob 아님. P3·P4 동일 벽: 60초 floor, construction만 미세하게 움직임.
+
+## Gurobi MIP Z3-바운드 (연구용, 제출엔 CP-SAT만) — 면적바운드는 무용
+사용자: v55↔v56 대조 + Gurobi로 MIP 재모델링해 P3 레버 찾기.
+v55→v56 실제 변경 = **PREFPOLISH**(prefaware를 예산캡 주고 조기빌드+별도폴리시). 코멘트: "채점게임은
+Z1=0의 Z3인데 모든 primary 모드가 preference-BLIND" → prefaware가 P3 레버. PREFPRIMARY(풀예산
+prefaware) A/B가 prob_3 -7% 기록(단 Z2 상승).
+Gurobi MIP(면적-용량 완화 bay배정, w2·Z2+w3·Z3 최소, 정확해): prob_20 realized Z3=638 vs
+**MIP-optimal Z3=235 (59% gap)** — 커 보였으나, 그 배정은 **1블록만 부족(299/300)**해 실현 실패.
+_spill_realize로 실현하니 **Z3=692 (base 638보다 나쁨)** — 인기bay에 못 들어간 블록이 저선호 bay로
+spill되며 Z3 폭증. 판정: **면적-완화 바운드는 무용**(면적용량 ≠ 크레인용량). 우리 baseline이 실현
+가능 최적에 이미 근접(면적최적 실현치 692 > 우리 638). Gurobi 재모델링으로는 P3 레버 안 나옴 —
+binding 제약(크레인 패킹)은 MIP로 싸게 못 모델링. 진짜 레버는 construction 쪽(prefaware). 스크립트:
+z3_gurobi_bound.py, z3_realize_test.py.
