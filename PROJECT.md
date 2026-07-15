@@ -2008,3 +2008,26 @@ set-packing CP-SAT로 재시도. 두 형태 다 사망:
 construction(27/27, best-of+ALNS+시간배출)보다 나쁨 = 현 construction은 이미 이 패킹을 잘함.
 종합: FFT를 (1)속도 (2)접촉-밀도 두 자연스러운 해석으로 다 시험 → 둘 다 음성. 이 문제 기하에서
 FFT발 밀도 우위는 재현 안 됨. 스크립트: block_def.py, contact_poc.py.
+
+## P4 = 탐색부족이 아니라 construction Z1-floor (수렴 + BLFULLP4 검증)
+사용자 통찰: P5는 친구보다 우리가 좋고 P4는 짐 → "친구가 나은 알고리즘"이 아니라 우리가 P4에서만 약함.
+그리고 크레인 혼잡이 원인이면 더 큰 P5가 더 심해야 하는데 P5는 멀쩡 → P4 병목은 크레인 자체가 아님.
+- **수렴 테스트(60s vs 180s):** prob_28 Z1 114→114, prob_30 161→161, prob_31(P5) 253→253 — **셋 다
+  Z1 완전 flat.** obj 감소분(prob_30 -3.6%, prob_31 -1.2%)은 전부 Z3/Z2. → P4·P5 모두 **Z1은 60초
+  안에 construction floor 도달**, 탐색부족 아님. P5 우위는 "탐색 여유"가 아니라 순수 construction
+  floor 품질. 우리 construction의 Z1 floor가 **mid-size(P4)에서 상대적으로 나쁨** — 모든 튜닝을
+  대형(P5/P6=점수 99.7%)에 맞췄고 mid-size는 방치.
+- **BLFULLP4(P5의 bl_full 워커를 P4에 부여, 3런):** prob_28/30 **완전 동일**. P4는 step=1이 모든
+  워커에서 이미 완성 → best-of가 순수 construction을 이미 포착 → bl_full 무의미. n>=200 게이트는 옳음.
+
+## 모드는 협력하지 않고 경쟁한다 (best-of) — P4 floor의 근본
+사용자 질문: 여러 모드가 협력하나? 답: **아니, 경쟁.**
+- 워커 내부: primary 모드로 완전한 해 1개 + tails(diagonal/leftbottom/bigleft/coreperi 등) 각각
+  **독립된 완전한 해** → best-of 최소 채택.
+- 워커 4개: 서로 다른 primary → best-of-final 최소.
+- 게시판 absorb: 막힌 워커가 남의 best를 흡수+재가열 (blend 아니라 흡수).
+즉 각 모드는 **처음부터 완전한 패킹을 따로 만들고 최소를 취함.** "bigleft의 대형배치 + diagonal의
+틈새전략"을 하나의 패킹으로 **섞는 메커니즘은 없음.** 유일한 해내부 협력: 한 모드 안에서 대형=모드규칙,
+소형=free-span 틈새채움. 함의: **P4 floor = 단일 최고 모드의 결과.** best-of는 멤버 최고를 못 넘음.
+어떤 단일 모드도 block 82를 더 일찍 못 넣으면 floor 고정(=Z1=114 flat 관측과 일치). 낮추려면 (a)진짜
+더 나은 단일 모드 또는 (b)진짜 모드 blend가 필요 — 친구는 zoo가 아니라 하나의 더 나은 construction일 것.
