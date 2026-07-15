@@ -1713,3 +1713,36 @@ TL=60, base(v55) vs AOS(SW-UCB, full-polish-chain pull):
 "똑똑하고 일반화된 판단"은 이미 best-of(across-workers × across-modes) 형태로 존재. 그 위에 밴딧을
 얹어도 basin 층엔 최적화할 공유예산이 없어 이득 없음. 다음 후보 = 밴딧을 polish-오퍼레이터 층으로
 이동 + Thompson Sampling. (env-gated AOS=1 코드는 validated-negative 기록으로 보존, default off.)
+
+## ★ 결정적 진단 (게임의 본질) — 채점은 Z3(선호 베이 배정) 게임
+
+### TS-polish 밴딧도 validated-NEGATIVE
+TL=60 base vs TSPOLISH(discounted Thompson Sampling, Beta-Bernoulli, 5 polish arm):
+prob_28 +1.1%, prob_24 +5.6%, prob_30 +0.7%, prob_38 +9.6%. 5/5 손해. few-pull 페널티
+(polish 윈도우 ~11초에 4pull) + 잘 튜닝된 고정순서를 cold-start 밴딧이 못 이김. => 밴딧 3연속 음수
+(construction-basin AOS, polish-op TS). 이미 고도 튜닝된 파이프라인 위 온라인 밴딧은 안 통함.
+
+### 실제 목적함수 분해 (utils: obj3 = Σ_b(max선호 − 배정베이선호), obj2 = 베이간 정규화 부하불균형)
+로컬 P1~P20 전부 **Z1=0**(지각 완전해결). 목적은 전부 Z2+Z3, **Z3 지배**:
+| inst | Z1 | Z2·w2 | Z3·w3 | obj |
+|---|---|---|---|---|
+| prob_3 | 0 | 22,870 | 25,500 | 48,370 |
+| prob_5 | 0 | 23,674 | 44,850 | 68,524 |
+| prob_20 | 0 | 13,692 | 80,000 | 93,692 |
+w1share≈0.99지만 Z1=0이라 무의미. 채점 P3=105595 ≈ prob_20(93692) 프로파일 → **P3도 Z1≈0,
+Z3 지배**. 그동안 갈아넣은 crane/tardiness/basin/polish-밴딧은 전부 Z1/Z2 겨냥 = 채점 게임(Z3)과 어긋남.
+
+### greedy seating은 이미 수렴 (pref_reassign 안 굶음)
+파이프라인 해 + 60초 추가 _pref_reassign(direct+swap+6pass): prob_3 170→170, prob_5 307→307,
+prob_20 624→612(미미). => 남은 Z3는 greedy로 못 닿음.
+
+### Z3의 물리적 정체 = 인기 베이 밀도한계 = 크레인-패킹
+Z3 = 선호(인기) 베이에 물리적으로 못 들어간 블록. 즉 **seating(손님→선호테이블)과 크레인-aware
+빽빽패킹은 같은 레버**. 인기 베이를 더 빽빽히 크레인-feasible하게 채워야 선호블록이 더 들어가 Z3↓.
+=> P3 레버 = (a) coordinated ejection-chain seating(greedy 넘어선 연쇄 재배정, 미검증) 또는
+(b) 크레인-aware 선호베이 우선 construction(근본 레버, 어려움). 후처리 CP-SAT 완화배정은 시간중첩
+area 경합을 무시해 비현실적(너무 낙관).
+
+### 사용자 "블록=손님" 직관은 정확
+게임이 좌석배정(seating)임을 정확히 짚음. 단 오프라인이라 MAB보다 직접 배정최적화가 맞고, 배정
+가능 슬랙은 greedy가 이미 캡처 → 남은 건 packing-forced. 다음 검증 = ejection-chain LNS.

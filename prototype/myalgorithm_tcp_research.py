@@ -2059,6 +2059,84 @@ def _pref_reassign(prob_info, assign, bay_unit, deadline):
         return assign
 
 
+def _ts_polish(prob_info, assign, bay_unit, deadline, rng,
+               slice_len=None, gamma=None):
+    """Thompson-Sampling polish scheduler (env-gated: TSPOLISH=1).
+
+    Replaces the FIXED-ORDER polish chain (temporal_share -> balance_load ->
+    swap_polish -> shift_forward -> pref_reassign) with an online bandit that
+    picks WHICH operator gets the next time-slice, given which ones have been
+    paying off on THIS instance.  Unlike construction basins -- which run in
+    parallel worker lanes and so share no budget for a bandit to allocate --
+    these polish operators run sequentially and share ONE scarce budget
+    (_pol_dl), so the shared-budget scarcity a bandit optimises actually exists
+    here.  Different instances have different levers (temporal_share on
+    tardiness-dominated P6; pref_reassign on Z3-heavy), and TS discovers each
+    per-run with no memorised instance features -> generalises to unseen P1-P6.
+
+    Bandit = DISCOUNTED Thompson Sampling, Beta-Bernoulli posterior per arm:
+      arm i  = a polish operator.
+      pull   = apply operator i for one bounded slice; success = objective
+               strictly improved.
+      sample = theta_i ~ Beta(alpha_i, beta_i); pick argmax_i theta_i
+               (probability matching -- smoother than UCB in the few-pull
+               regime, no forced one-shot round that burns budget).
+      update = decay each (alpha,beta) toward the uniform prior by gamma (fades
+               stale evidence so a dried-up operator is re-explored later ->
+               handles the diminishing-returns non-stationarity), then
+               success: alpha += 1 else beta += 1.
+    Never-worse: each operator runs on a COPY and its result is kept only if
+    feasible-shaped and strictly better (cheap _objective, == grader), else the
+    incumbent stands; the caller re-checks with check_feasibility and best-of.
+    """
+    import time as _t
+    try:
+        _ops = [_temporal_share, _balance_load, _swap_polish,
+                _shift_forward, _pref_reassign]
+        if slice_len is None:
+            slice_len = float(os.environ.get("TSSLICE", "3.0"))
+        if gamma is None:
+            gamma = float(os.environ.get("TSGAMMA", "0.85"))
+        _nb = len(prob_info["blocks"])
+        _cur = dict(assign)
+        try:
+            _cobj = _objective(list(_cur.values()), prob_info, bay_unit)[0]
+        except Exception:
+            return assign
+        _K = len(_ops)
+        _a = [1.0] * _K
+        _b = [1.0] * _K
+        _eps = 1e-9
+        while deadline - _t.time() > 1.0:
+            # Thompson sample each arm's success-probability; pick the max.
+            _bi, _bs = 0, -1.0
+            for _i in range(_K):
+                _s = rng.betavariate(_a[_i], _b[_i])
+                if _s > _bs:
+                    _bs, _bi = _s, _i
+            _sl_dl = _t.time() + min(slice_len, deadline - _t.time())
+            _succ = False
+            try:
+                _trial = _ops[_bi](prob_info, dict(_cur), bay_unit, _sl_dl)
+                if len(_trial) == _nb:
+                    _tobj = _objective(list(_trial.values()), prob_info, bay_unit)[0]
+                    if _tobj < _cobj - _eps:
+                        _cur, _cobj, _succ = _trial, _tobj, True
+            except Exception:
+                pass
+            # decay toward the uniform prior (alpha=beta=1), then Bernoulli update.
+            for _i in range(_K):
+                _a[_i] = gamma * _a[_i] + (1.0 - gamma)
+                _b[_i] = gamma * _b[_i] + (1.0 - gamma)
+            if _succ:
+                _a[_bi] += 1.0
+            else:
+                _b[_bi] += 1.0
+        return _cur
+    except Exception:
+        return assign
+
+
 def _sa_reassign(prob_info, assign, bay_unit, deadline, rng, swap=False):
     """Strong preference/balance reassignment for LOW-DENSITY Z3/Z2-heavy instances.
 
@@ -4084,14 +4162,25 @@ def _worker_entry(args):
                     # and help on any hidden instance whose profile differs.  Every
                     # step is deadline-bounded by _pol_dl (server timelimit), never
                     # hardcoded; all are best-of-guarded below.
-                    _pa = _temporal_share(prob_info, _pa, _bu, _pol_dl)
-                    _pa = _balance_load(prob_info, _pa, _bu, _pol_dl)
-                    _pa = _swap_polish(prob_info, _pa, _bu, _pol_dl)
-                    _pa = _shift_forward(prob_info, _pa, _bu, _pol_dl)
-                    # preference repair: on low-density instances Z3 dominates and
-                    # this moves violating blocks to preferred bays; harmless (best-
-                    # of-guarded) on P6 where it also shrinks Z2/Z3 with Z1 fixed.
-                    _pa = _pref_reassign(prob_info, _pa, _bu, _pol_dl)
+                    # TS-POLISH (env-gated research): let a discounted Thompson-
+                    # Sampling bandit choose which polish operator gets the next
+                    # slice, instead of the fixed temporal->balance->swap->shift->pref
+                    # order.  The operators share one scarce budget (_pol_dl), so a
+                    # bandit has real work to do here (unlike the parallel construction
+                    # basins).  Default off -> shipped v55 runs the fixed chain
+                    # byte-identically.
+                    if os.environ.get("TSPOLISH", "0") == "1":
+                        _pa = _ts_polish(prob_info, _pa, _bu, _pol_dl,
+                                         random.Random(_WORKER_SEEDS[worker_id % len(_WORKER_SEEDS)] ^ 0x7515))
+                    else:
+                        _pa = _temporal_share(prob_info, _pa, _bu, _pol_dl)
+                        _pa = _balance_load(prob_info, _pa, _bu, _pol_dl)
+                        _pa = _swap_polish(prob_info, _pa, _bu, _pol_dl)
+                        _pa = _shift_forward(prob_info, _pa, _bu, _pol_dl)
+                        # preference repair: on low-density instances Z3 dominates and
+                        # this moves violating blocks to preferred bays; harmless (best-
+                        # of-guarded) on P6 where it also shrinks Z2/Z3 with Z1 fixed.
+                        _pa = _pref_reassign(prob_info, _pa, _bu, _pol_dl)
                     if len(_pa) == len(prob_info["blocks"]):
                         _psol = _build_operations(list(_pa.values()))
                         _pchk = check_feasibility(prob_info, _psol)
