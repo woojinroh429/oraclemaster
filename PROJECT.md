@@ -2031,3 +2031,20 @@ FFT발 밀도 우위는 재현 안 됨. 스크립트: block_def.py, contact_poc.
 소형=free-span 틈새채움. 함의: **P4 floor = 단일 최고 모드의 결과.** best-of는 멤버 최고를 못 넘음.
 어떤 단일 모드도 block 82를 더 일찍 못 넣으면 floor 고정(=Z1=114 flat 관측과 일치). 낮추려면 (a)진짜
 더 나은 단일 모드 또는 (b)진짜 모드 blend가 필요 — 친구는 zoo가 아니라 하나의 더 나은 construction일 것.
+
+## 모드 blend (블록별 규칙 혼합) — validated-NEGATIVE
+사용자 요청: 우리가 찾은 규칙들을 블록별로 섞자 (P6 초고밀도 제외).
+구현(blend_poc.py): 블록마다 각 규칙(BL/LEFT/DIAG)이 위치 제안 → 남는 LER 최대 제안 선택 (미래
+공간 보존). 같은 congested bay 착석 대결:
+- prob_28: BL 24, DIAG 23, LEFT 22, **BLEND 21 (꼴찌)**, 최고 단일 LER=330 > BLEND 274
+- prob_30: DIAG 26, BL/LEFT 25, **BLEND 25**, 최고 LER=336 > BLEND 288
+판정: **blend가 최고 단일 모드보다 나쁨.** 원인: 블록별 LER-max 선택은 **근시안적** — 단일 모드가
+잘 되는 건 **일관성**(모든 블록 bottom-left → 자유공간이 한 덩어리로 모임) 덕인데, 규칙을 섞으면
+일관성이 깨져 공간 파편화 → 덜 들어감. **best-of(단일 모드 경쟁) 아키텍처가 옳았음이 역으로 확증.**
+규칙을 싸게 못 섞는 이유 = 일관성 > 규칙선택. (harness 단일 24/27도 실제 construction 27/27보다
+낮으니 blend는 더더욱 못 넘음.) 스크립트: blend_poc.py.
+
+### P4 조사 최종 상태
+값싼 레버 + FFT(속도·접촉) + 재스케줄(단일·6블록·글로벌) + bl_full-on-P4 + 모드blend = 전부 음성.
+P4 Z1은 best-단일-모드 construction floor이고, 접근 가능한 모든 아이디어로 안 내려감. 남은 길:
+(1) 친구의 실제 방법(cpp) 역설계, (2) v58 유지. 탐색·스케줄·기하 프록시는 소진.
