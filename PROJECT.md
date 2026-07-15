@@ -1803,3 +1803,11 @@ v56 결과 정확 재현 확인), ALNSW=1이면 세그먼트-갱신 룰렛(보�
 결과: prob_3 +1.86%(Z3 170→148로 밴딧이 mispref 증폭은 실제 작동, Z2 상승으로 상쇄),
 prob_24/28/31/38 전부 byte-identical. 판정: 고정확률이 이미 잘 튜닝됐고 최종해는 대부분 다른
 basin이 결정 → 중립. env-gated off 보존. 밴딧 결론(4회 실험): 이 파이프라인에 밴딧 이득 없음 확정.
+
+## 레버 (c) prefsoft (Z2-Z3 파레토 중간점) — validated-NEGATIVE
+가설: stake(최선호-차선호 격차)가 큰 블록만 선호 키, 낮은 블록은 자유 배치 → Z2 절감으로 prob_5류 회수.
+결과 (v56 vs PREFSOFT=1): prob_5 +0.87%(타깃에서도 무익), prob_3 0%, prob_24 **+61%**, prob_28 +11.7%,
+prob_20 −7.2%(분산 아티팩트: prob_20 v56 자체가 86.5k~113.6k 출렁임).
+판정: 파레토 양끝(bigleft primary ↔ full prefaware)을 폴리시-레벨 best-of가 이미 커버 → 중간점은
+어느 우승 케이스도 못 이기는 dominated 후보. full prefaware가 옳은 점. env-gated off 보존.
+(관측: prob_20/prob_5는 고분산 인스턴스 — 단일런 ±수% 판독 불가, prob_24/28의 두자릿수 회귀만 신호.)

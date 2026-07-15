@@ -4186,7 +4186,10 @@ def _worker_entry(args):
                         # can win.  Z1-dominated instances skip it (bigleft/dedicated
                         # worker own their budget).  Single step=1 attempt below keeps the
                         # cost low so it does not starve the ALNS that follows.
-                        _pref_on = (_z3sh >= 0.40)
+                        # PREFTH (lever a-lite): the Z3-share trigger threshold.
+                        # 0.40 = shipped default; lower widens prefaware coverage
+                        # into the mid-band (e.g. prob_30 share 0.29).
+                        _pref_on = (_z3sh >= float(os.environ.get("PREFTH", "0.40")))
                     except Exception:
                         pass
                 # prefaware built EARLY (BEFORE the diagonal/leftbottom/bigleft tails eat
@@ -4204,7 +4207,13 @@ def _worker_entry(args):
                     # lever (b) A/B: PREFTCP=1 builds the pref candidate with the
                     # preftcp hybrid (preferred bay first + corridor-preserving inside)
                     # instead of prefaware (preferred bay first + plain bigleft inside).
-                    _pmode = "preftcp" if os.environ.get("PREFTCP", "0") == "1" else "prefaware"
+                    # (validated-negative: corridor preservation is anti-density.)
+                    # lever (c) A/B: PREFSOFT=1 uses the stake-gated Pareto mid-point.
+                    _pmode = "prefaware"
+                    if os.environ.get("PREFTCP", "0") == "1":
+                        _pmode = "preftcp"
+                    elif os.environ.get("PREFSOFT", "0") == "1":
+                        _pmode = "prefsoft"
                     _pr = _attempt(1, _pmode, _cap)
                     if _pr is not None:
                         _pref_sol = _pr[0]
@@ -4450,6 +4459,17 @@ def _smallright_construct(prob_info, deadline_s, small_thresh=0.60, step=1, mode
     rd=_rof(due,False); ra=_rof(ar,True)
     key=lambda b:(rd[b]+ra[b], due[b])
     _mxp=[max(B[b]["bay_preferences"]) for b in range(n)]   # per-block top preference
+    # prefsoft (lever c, Z2-Z3 Pareto mid-point): a block's STAKE = top-pref minus
+    # second-best-pref -- how much Z3 it loses if displaced from its favourite bay.
+    # High-stake blocks (>= median positive stake) keep the pref-first key; low-
+    # stake blocks pack freely (Z2-friendlier than full prefaware, Z3-tighter than
+    # bigleft).  Precomputed once; only used by mode=="prefsoft".
+    _stk=[0]*n
+    for _b in range(n):
+        _ps=sorted(B[_b]["bay_preferences"], reverse=True)
+        _stk[_b]=_ps[0]-(_ps[1] if len(_ps)>1 else 0)
+    _pos_stk=sorted(s for s in _stk if s>0)
+    _stk_med=_pos_stk[len(_pos_stk)//2] if _pos_stk else 0
     _du_max=max(due) if n else 1
     # feat_w: 블록의 '모든 변수'로 스코어링. 각 특징을 [0,1] 정규화 rank(0=우선)로 바꾼 뒤
     # 가중합. 부호로 방향 반전(양수 w = 그 특징의 '큰/급한' 극단을 먼저).  특징:
@@ -4766,6 +4786,14 @@ def _smallright_construct(prob_info, deadline_s, small_thresh=0.60, step=1, mode
                                     # min -> Z1-dominated instances keep bigleft, so
                                     # never-worse.
                                     sc=(_mxp[b]-B[b]["bay_preferences"][j], h, wx, wy)
+                                elif mode=="prefsoft":
+                                    # Pareto mid-point (lever c): only HIGH-STAKE blocks
+                                    # (top-vs-second pref gap >= median) get the pref-first
+                                    # key; low-stake blocks place freely -> less popular-bay
+                                    # load concentration (Z2) at a small Z3 cost.
+                                    _g=_mxp[b]-B[b]["bay_preferences"][j]
+                                    sc=((_g if (_stk_med>0 and _stk[b]>=_stk_med) else 0),
+                                        h, wx, wy)
                                 elif mode=="skyline" or mode=="skypref":
                                     # SKYLINE (crane-corridor): pick the position that
                                     # LEAVES the largest contiguous descent corridor open
