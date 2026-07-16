@@ -2302,3 +2302,20 @@ BASE(CPPREPAIR=0 SHAKE=0=v58) vs CPPREPAIR=1+SHAKE=1, 60s×2repeat:
 소심한 이동도 40% ruin-recreate도 예산내 탈출 못함.** repair/kick은 잘못된 단계를 최적화. **결정적
 레버는 construction이지 repair가 아님.** → CPPREPAIR/SHAKE env-gated OFF 유지, v58 제출 유지.
 (부수 확인: SHAKE 재삽입도 CPPREPAIR 경로 타도록 게이트 추가 — OFF/SHAKE off면 byte-identical.)
+
+## 재설계 시도 (사용자: construction 재설계 + LNS 크게 흔들기 + SA 많이, sota 참조, 밤샘 OK)
+헤드룸 게이트 먼저: **prob_38 60s 34512341→300s 34202920(-0.9%, 주로 Z3), prob_27 24177428→23388028(-3.3%,
+Z1 실개선).** → 탐색 여지 있음. 단 5x 시간의 baseline 반복에서 나옴(=더 많은 full-quality 반복이 이득).
+
+**repair/throroughput 레버 전수조사 — 전부 NEGATIVE (측정):**
+- **REGRET(bay-regret, Ropke-Pisinger):** O(pool²×n_bays) find_best_placement → 14~19배 느림 → 반복
+  급감 → 더 나쁨(prob_20 203088 vs greedy 178798). 배치비용 벽(58ms/call dense, 0.25ms mid)이 죽임.
+- **FASTREPAIR(raw placement_feasible 5µs + Python 후보루프):** Python 후보생성/루프가 병목 → find_best_
+  placement(전부 C++)보다 느림(prob_27 150 iters). placement_feasible 자체는 2600~10000배 싸지만 무의미.
+- **FBCAP(set_caps(256,k)로 find_best_placement 내부스캔 캡):** k=4 → 4.7배 빠름(+10% tardiness). 그러나
+  실제 ALNS선 cap8/cap4/cap2 **개선 0**(더 많은 반복에도), uncapped CPP만 -9%. 캡=위치품질 저하가
+  downstream 막음(line-2338 효과 재확인). **품질이 양보다 중요.**
+- **SHAKE 저밀도 유해:** prob_20 CPP-alone 178798 < CPP+SHAKE 194158.
+결론: **dense 헤드룸은 60s 예산에 안 들어감**(full-quality 반복이 5x 더 필요, 싸게 만들면 비생산적).
+repair/search 공간 소진. **유일한 남은 레버 = construction.** 현재 4개 order 전부 release-primary(EDD/
+slack 없음) → order sweep으로 더 나은 초기 basin 탐색 중. (전부 env-gated OFF, v58/제출 무관.)
