@@ -3814,8 +3814,14 @@ def _solve_once_impl(prob_info, timelimit=60, seed=12345,
     # the remaining time still runs the normal ALNS/polish.  Best-of with the other
     # (engine+ALNS) workers -> never-worse.  Safe: if the st3dtcs .so is absent
     # (e.g. grader) _load_st3() is None and this block is skipped entirely.
+    # density gate: 3DTCS packing only helps where SPACE is the binding constraint
+    # (temporal oversubscription high).  On low-density (temporal_os low, Z1~0) the
+    # objective is a bay-ASSIGNMENT problem (Z3/Z2) that the CP-SAT polish already
+    # near-optimises, and 3DTCS just steals polish time -> loss.  Gating at ~0.30
+    # cleanly separates the measured wins (>=0.38) from the losses (<=0.27).
     _st3_on = (os.environ.get("ST3DTCS", "0") == "1"
                and (worker_id is None or (worker_id % int(os.environ.get("ST3MOD", "2")) == 0))
+               and _temporal_os(prob_info) >= float(os.environ.get("ST3TOS", "0.30"))
                and _load_st3() is not None)
     if _st3_on:
         try:

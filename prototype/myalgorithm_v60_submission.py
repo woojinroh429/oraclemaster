@@ -3376,8 +3376,14 @@ def _solve_once_impl(prob_info, timelimit=60, seed=12345,
     # within a construction budget; remaining time runs normal ALNS/polish.  If the
     # st3dtcs .so is absent (grader) _load_st3() is None -> this block is skipped and
     # behaviour is identical to the engine build.  Set ST3DTCS=0 to disable.
+    # density gate: 3DTCS packing only helps where SPACE binds (temporal
+    # oversubscription high).  On low-density (temporal_os low, Z1~0) the objective
+    # is a bay-ASSIGNMENT problem the CP-SAT polish already near-optimises, and
+    # 3DTCS just steals polish time.  Gating at ~0.30 separates the measured wins
+    # (>=0.38) from the low-density losses (<=0.27) -> keeps every gain, no loss.
     _st3_on = (os.environ.get("ST3DTCS", "1") == "1"
                and (worker_id is None or (worker_id % int(os.environ.get("ST3MOD", "4")) == 0))
+               and _temporal_os(prob_info) >= float(os.environ.get("ST3TOS", "0.30"))
                and _load_st3() is not None)
     if _st3_on:
         try:
