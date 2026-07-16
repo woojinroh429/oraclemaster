@@ -2275,3 +2275,19 @@ v58 무관). 헬퍼 `_cpp_reinsert`: 매 repair마다 엔진 E를 state로 재�
 construction이 이미 강하고 여러 워커가 같은 basin 도달하기 때문. 빠른 repair의 진짜 가치는 **SHAKE 등
 공격적 재구성의 여유**(후속 레버). 광역 고밀도 배치 측정 진행 중(v59 default화 판단용).
 스크립트: cpprepair_bench.py, cpprepair_solve.py, cpprepair_ab.sh, cpprepair_alns_ab.py.
+
+### CPPREPAIR 광역+결정성 측정 (v59 default화 판단)
+광역 고밀도 10개(포트폴리오 60s): prob_23/27/32/37/38/39/40 **불변(7/10 바이트동일)**, prob_25
+-1052, prob_35 -21720(win), prob_34 +23568(regression 후보). 결정성 재측정(3 repeat):
+- **prob_25:** OFF 266177(×3 결정적) / ON 265604(×3) → **깨끗한 -573(-0.2%) win.**
+- **prob_35:** OFF ~1496845 / ON ~1488160 (ON 최대 < OFF 최소) → **깨끗한 ~-1% win.**
+- **prob_34:** OFF{2623756,2682253,2519465} ON{2741607,2614379,2702271} → **~6% run-분산, 범위 겹침.**
+  앞선 +23568은 대부분 분산(이 인스턴스가 run마다 ~163k 흔들림). 깨끗한 결정적 regression 아님(단
+  ON 중심이 여기선 소폭 나쁨). CPPREPAIR이 이 고분산을 안정화하진 못함.
+**종합 판정:** CPPREPAIR = 안전(항상 feasible)·repair ~10배 빠름·미시적으로 더 나음. 그러나 풀
+포트폴리오선 **13개 중 8개 불변, 3개 소폭 결정적 win(<1%, prob_25/28/35), 1개 고분산 소폭 열세
+(prob_34), 1개 noise(prob_20).** **grader-결정적 대형(P4/P5/P6류: prob_27 24M, prob_38 34M,
+prob_39 7.8M)은 전부 불변** → CPPREPAIR 단독의 기대 grader 이득 ≈ 0 + 소규모 regression 리스크.
+→ **v59 default화 권장 안 함(단독으로는).** 진짜 가치는 repair 10배 절감이 만든 **여유**: 같은
+예산에 훨씬 공격적 재구성(SHAKE 대형 ruin-recreate, 큰 이웃) 가능 → 대형 인스턴스 개선 여지는
+"CPPREPAIR+SHAKE" 조합에 있음(ALNS가 여전히 소심한 2~14블록 이동을 빠르게만 하면 basin 못 벗어남).
