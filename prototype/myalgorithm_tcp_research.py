@@ -1750,12 +1750,15 @@ def _alns(prob_info, state, bay_unit, deadline, rng, use_gls=False,
                         _trial.remove(_b)
                 _vic.sort(key=lambda b: (blocks_data[b]["due_date"],
                                          blocks_data[b]["release_time"]))
-                _ok = True
-                for _b in _vic:
-                    if time.time() > deadline:
-                        _ok = False; break
-                    if _try_place_block(_trial, _b, list(range(n_bays)), deadline) is None:
-                        _ok = False; break
+                if _cpprepair_on:
+                    _ok = _cpp_reinsert(_trial, _repair_E, _vic, n_bays, deadline)
+                else:
+                    _ok = True
+                    for _b in _vic:
+                        if time.time() > deadline:
+                            _ok = False; break
+                        if _try_place_block(_trial, _b, list(range(n_bays)), deadline) is None:
+                            _ok = False; break
                 if _ok and len(_trial.assign) == n_blocks:
                     cur = _trial; cur_o = aug_obj(cur)
                     _to = cur_obj(_trial)

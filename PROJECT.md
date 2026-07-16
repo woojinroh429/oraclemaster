@@ -2291,3 +2291,14 @@ prob_39 7.8M)은 전부 불변** → CPPREPAIR 단독의 기대 grader 이득 �
 → **v59 default화 권장 안 함(단독으로는).** 진짜 가치는 repair 10배 절감이 만든 **여유**: 같은
 예산에 훨씬 공격적 재구성(SHAKE 대형 ruin-recreate, 큰 이웃) 가능 → 대형 인스턴스 개선 여지는
 "CPPREPAIR+SHAKE" 조합에 있음(ALNS가 여전히 소심한 2~14블록 이동을 빠르게만 하면 basin 못 벗어남).
+
+### CPPREPAIR+SHAKE 조합 (payoff 실험: 빠른 repair가 대형 kick 감당 → basin 탈출?)
+가설: repair 10배 절감이 SHAKE(15~40% 블록 ruin-recreate)를 감당가능케 함 → 대형 인스턴스 basin 탈출.
+BASE(CPPREPAIR=0 SHAKE=0=v58) vs CPPREPAIR=1+SHAKE=1, 60s×2repeat:
+- **prob_27(24M) 24177428 / prob_38(34M) 34512341 / prob_39(7.8M) 7843733 / prob_31(6.7M) 6715096
+  → 4개 전부 바이트동일(양repeat).** prob_35만 -18295(-1.2%, CPPREPAIR 단독과 동일 win).
+**결론(결정적 negative):** 빠른 repair+공격적 대형 kick으로도 grader-결정적 대형 인스턴스 전혀 안 움직임.
+= 세션 전체의 핵심 재확인: **P4/P5류는 ALNS newbest=0 — construction이 이미 local optimum이고
+소심한 이동도 40% ruin-recreate도 예산내 탈출 못함.** repair/kick은 잘못된 단계를 최적화. **결정적
+레버는 construction이지 repair가 아님.** → CPPREPAIR/SHAKE env-gated OFF 유지, v58 제출 유지.
+(부수 확인: SHAKE 재삽입도 CPPREPAIR 경로 타도록 게이트 추가 — OFF/SHAKE off면 byte-identical.)
