@@ -2328,3 +2328,11 @@ v61 전체40 검증: 큰 이득 유지(prob_34 -50.7%, prob_35 -32%, prob_28 -11
 중립**(3DTCS 무해, 무익; ALNS 수렴 한계). Z3 floor=0(선호구조상 top베이 가능, spatial-forced) →
 저밀도는 이미 near-optimal. 다음 실험: ST3SHAKE(SHAKE ruined 영역을 3DTCS로 조밀 재패킹 → 초고밀도
 basin 탈출 시도), _st_reinsert 빌드. 전부 env-gated OFF, v61 무영향.
+
+## ST3SHAKE 재검증 — NEGATIVE (machine-state confounding, paired test로 적발)
+초기 신호: prob_38 good-basin 3/5(v61) → 6/6(ST3SHAKE) "안정화". 그러나 **PAIRED 재측정(같은 머신상태
+교대)**: v61 8/8 good = ST3SHAKE 8/8 good, 완전 동일. 초기 "6/6 vs 3/5"는 **다른 머신상태(빠름/혼잡)의
+unpaired 비교** 아티팩트. prob_38 bimodal은 **머신속도 아티팩트**(빠르면 좋은 construction 완성, 혼잡하면
+실패) — 알고리즘 문제 아님. grader는 로컬보다 ~2배 빨라 좋은 basin 안정적으로 잡을 것 → 37.8M은 로컬
+혼잡 아티팩트, grader엔 없을 문제. **ST3SHAKE는 없는 문제를 푸는 것 → OFF 유지, v61이 ship.**
+(교훈: unpaired 비교는 머신상태에 오염됨. paired test가 거짓 win을 걸러냄.)
