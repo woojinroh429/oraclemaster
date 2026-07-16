@@ -2141,3 +2141,16 @@ HD+홀수워커 재배정 best-of) 시험.
 P3의 진짜 레버)을 워커·예산 면에서 굶겨 Z3 폭증. HDSPLIT(절반만 HD)조차 재배정 4워커 best-of
 (feedback/seed 다양성)를 반토막 내 크게 나빠짐. 판정: **저밀도 게이트는 옳음.** 저밀도엔 재배정에
 전 예산·전 워커를 주는 게 맞음. v58 설계 검증됨.
+
+## 저밀도에 NFP — validated-NEGATIVE (실측 동일) + 중요 사실: NFP는 v50~v58 전부 OFF
+사용자 질문: 저밀도에 NFP 쓰면? + 예전엔 고밀도 패킹 좋아지며 P3도 줄었는데 왜.
+사실 확인: **pyclipper가 v50~v58 어느 zip에도 번들 안 됨(_vendor 없음), 그래더 시스템에도 없음
+→ _HAVE_PYCLIP=False → NFP는 최근 전 버전에서 계속 OFF.** 엔진은 grid-scan+정확판정(bottom-left)만.
+실측(pyclipper 로컬 설치해 NFP-on, P3-proxy off/on A/B): prob_22 794496=794496(Z3 1962 동일),
+prob_24 634232 동일, prob_29 400446 vs 398685(노이즈), prob_20 86-87k 동일. **NFP=off와 동일.**
+원인: grid-scan이 이미 모든 feasible 위치를 찾아 bottom-left로 고름 → NFP는 같은 위치를 다른(느린)
+방식으로 생성할 뿐, 배치 동일 → Z3 동일. (예전 "95% 시간·동일 Z1" 실측 재확인.)
+Q2 해소: "패킹 좋아지면 P3↓"는 진짜(Z3=인기bay 패킹한계). 단 NFP는 "더 나은 패킹"이 아니라 "같은
+패킹"이고, 진짜 더 조밀한 방법들(contact/blend/lookahead/beam)은 전부 bottom-left보다 나빴음. 즉
+패킹 레버는 이미 bottom-left에서 max이고 prefaware가 그걸 Z3에 활용 중. (테스트 후 pyclipper 제거,
+그래더와 동일 상태 복원.)
