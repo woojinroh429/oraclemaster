@@ -2232,3 +2232,19 @@ v56 대비: P3 +1140, P4 -41409, P5 -448, P6 0, P1/P2 0. **NET -40717 = v58가 v
   많은 반복 → P4(Z1지배) 패킹 소폭 개선. P3(Z3)는 미세 side-effect. 로컬(느림+변동)선 재현/증폭 불가.
 - CPPGATE(저밀도서 CPPPOLISH off로 P3 회복) 시도 → 전제 미확정(변동)이라 revert. v58 유지.
 판정: **v58 유지 권장(순개선).** P4/P5 추가 개선은 고밀도 ALNS 강화 방향이나 로컬 측정한계로 검증난이.
+
+## ALNS 병목 프로파일 (사용자: 왜 더 돌렸는데 개선 적나) — repair-bound, 극저 처리량
+_alns 루프 계측(PROFALNS, _solve_once 직접, prob_28=P4/Z1, prob_20=P3/Z3):
+- **prob_28: 7 iters/초, 27초에 191회.** repair=99% 시간, clone 0%, feas 0%. reject 92%,
+  improve 0%, **newbest 0개**(P4 개선 전무).
+- **prob_20: 15 iters/초, 212회.** repair=95%, reject 85%, newbest 3개.
+핵심: **ALNS가 repair(`_try_place_block` 재삽입)에 95~99% 묶여 처리량 7~15/초로 극저.** 40초에
+~200회뿐(ALNS는 보통 수천~수만). 그나마 85~92% reject. → "더 돌렸는데 왜 조금밖에"의 답:
+**유효 반복이 몇 백 번뿐 + 대부분 버려짐.** 7배(CPPPOLISH)로도 여전히 몇 백 번. grader가 빨라
+반복이 더 돼 P4 rare-improving move를 잡은 것(로컬 newbest=0 vs grader 개선).
+repair가 왜 느린가: entry_times × bays × orients × candidate_positions × feasibility 조합 스캔.
+REPAIRCAP(entry-time 캡) 시험 → 7→8/초로 미미(entry-time이 주범 아님). 진짜 비용은 **후보 위치
+스캔 + 후보당 Python 객체 생성(_LiteBlock/Block)**. → 큰 speedup 레버 = **repair를 C++ 네이티브로**
+(엔진의 find_best_placement로 위치탐색 전체를 C++에서). 10~50배 가능 → 반복 폭증 → P3/P4 개선 여지.
+(계측 오버헤드가 prob_28 basin을 flip시킴 = timing-sensitivity 재확인. 계측은 revert, 순수 env-gated
+diff만 남음, 제출본 무관.) 스크립트: prof_alns.py.
