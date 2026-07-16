@@ -2171,3 +2171,15 @@ construction(114)이 MIP-realize(189)보다 이미 우수.**
 지각은 크레인 하강의 본질적 난이도이고 우리 크레인패킹은 이미 near-crane-floor(면적최적 실현보다
 나음). 알고리즘 결함 아님. 친구 3.2M은 근본적으로 다른 크레인패킹이거나 다른 문제규모.
 스크립트: z1_gurobi_bound.py, z1_realize.py.
+
+## corridor-first construction 설계 시도 — 전제 검증에서 무효 (파편화지 overhang 아님)
+사용자 요청: 크레인 하강을 1급 자원으로 보는 corridor-first 구성 설계. 빌드 전 전제 검증(빌드 낭비 방지):
+"블록 대기 시 면적은 비었는데 overhang이 크레인을 막느냐(corridor 타겟) vs 큰 블록 gap이 없냐(파편화)".
+- corridor_diag2: 대기 중 바닥 40~42% 비어있으나 크레인 접근=0 (일단 타겟처럼 보임).
+- **corridor_diag3(결정적): waiting block의 FOOTPRINT-feasible(크레인 무시, 순수 2D)=0, CRANE=0.**
+  prob_28 block82, prob_30 block143 둘 다. → 크레인을 완전 무시해도 들어갈 자리 0 = **overhang이 아니라
+  파편화**(29×6 큰 블록용 연속 gap 부재). corridor(overhang 막힌 접근가능 바닥)가 애초에 없음.
+판정: **corridor-first 전제 실패.** 병목은 크레인 통로가 아니라 "큰 대기블록용 연속 빈공간 부재"=순수
+2D 파편화. 연속 빈공간 최대화는 bottom-left가 이미 최선(모든 대안 열세), 대기블록 이전 블록들은 릴리스
+제약상 필수(idea#1 최적증명)라 gap 못 냄. FFT처럼 전제검증으로 빌드 전 차단.
+스크립트: corridor_diag.py, corridor_diag2.py, corridor_diag3.py.
