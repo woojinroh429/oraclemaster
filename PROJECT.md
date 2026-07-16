@@ -2100,3 +2100,19 @@ BASE vs PREFPRIMARY=1 vs AOSPA=0.6 (prob_22/29/24): **3개 전부 세 설정 byt
 부수: prob_24/29도 run간 7-8% 변동, prob_20은 31%(86k~113k) — P3-proxy A/B는 다회 필수.
 P3 종합: (1)Z3 대체로 60초 floor, (2)Gurobi 면적바운드 무용(실현불가), (3)prefaware 강화 무효
 (이미 포착). PREFPOLISH(v56→v58)가 이미 P3 prefaware 이득을 담고 있고 그 위 추가 레버 없음.
+
+## idea #1: 순서-인지 윈도 exact-recreate — floor를 CP가 OPTIMAL로 증명
+"LNS로 흔들어도 한계"의 근본 원인 규명. LNS는 recreate 연산자(greedy)의 고정점에 갇히고, 병목은
+위치가 아니라 backbone(배정+하강순서). 그래서 처음으로 **순서(진입시각)를 결정변수로** 넣어 혼잡
+윈도를 exact 재구성.
+모델(cwr_order_poc.py): 혼잡 윈도 14블록을 뜯고, 각 블록 컬럼=(orient,x,y,ENTRY,exit) 여러
+진입시각 → CP가 재정렬 가능. 이웃 고정. pairwise 크레인 충돌은 EXACT(하강은 OR-over-pairs로
+pairwise 분해 → 2블록 clear_all 체크). 목적=윈도 지각 최소, 현재 컬럼 포함(never-worse).
+(버그: 공유엔진 add/remove 누수로 첫 시도 INFEASIBLE → clear_all 2블록 체크로 수정.)
+결과(prob_28, 윈도 T=48, |W|=14, block 82 tard12·22컬럼 포함): **window-tardiness 39→39,
+status=OPTIMAL.** 즉 위치+순서를 완전 자유 재구성해도 **지각을 못 줄임이 증명됨.** 이전 음성들은
+"못 찾음"이었지만 이건 **"존재하지 않음"(exact proof).** 원인: 윈도 밖 고정 ~60블록이 그 시간대
+공간 점유 → 국소 재정렬로 floor 못 뚫음. 뚫으려면 이웃 포함 대형 윈도(67블록·29만컬럼=난해).
+판정: 크레인 병목의 최종 그림 — 위치흔들기(LNS/blend/contact) 실패, **순서흔들기(idea1 국소
+exact) 최적증명·개선불가**, 남은 건 전역 exact(계산불가). 파이프라인은 **tractable floor에 실제
+도달**. "LNS 한계"의 근본 이유 = floor가 진짜. 스크립트: cwr_order_poc.py.
