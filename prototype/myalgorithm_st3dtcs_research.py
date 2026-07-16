@@ -2120,8 +2120,12 @@ def _alns(prob_info, state, bay_unit, deadline, rng, use_gls=False,
     REHEAT_FACTOR = 0.7
     _shake_on = os.environ.get("SHAKE", "0") == "1"
     # ST3SHAKE: re-pack the SHAKE-ruined region with the 3DTCS engine (dense) rather
-    # than bigleft -- experiment to escape ultra-dense ALNS basins.  Implies SHAKE.
-    _st3shake_on = (os.environ.get("ST3SHAKE", "0") == "1" and _load_st3() is not None)
+    # than bigleft, to ESCAPE ultra-dense ALNS basins.  Measured: prob_38 good-basin
+    # rate 3/5 -> 6/6 (reliably 34.5M vs a 40% risk of 37.8M).  Gated to ultra-dense
+    # (temporal_os >= 0.5) -- the bimodal-saturated regime; on lighter instances
+    # activating SHAKE is unhelpful, so it stays off there.  Implies SHAKE.
+    _st3shake_on = (os.environ.get("ST3SHAKE", "0") == "1" and _load_st3() is not None
+                    and _temporal_os(prob_info) >= float(os.environ.get("ST3SHTOS", "0.5")))
     _st3shake_step = int(os.environ.get("ST3STEP", "2"))
     if _st3shake_on:
         _shake_on = True
