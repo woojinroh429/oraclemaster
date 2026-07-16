@@ -2183,3 +2183,21 @@ construction(114)이 MIP-realize(189)보다 이미 우수.**
 2D 파편화. 연속 빈공간 최대화는 bottom-left가 이미 최선(모든 대안 열세), 대기블록 이전 블록들은 릴리스
 제약상 필수(idea#1 최적증명)라 gap 못 냄. FFT처럼 전제검증으로 빌드 전 차단.
 스크립트: corridor_diag.py, corridor_diag2.py, corridor_diag3.py.
+
+## 견고성/과적합 감사 (본선 베이 모양 대비) — 베이 모양엔 견고, 진짜 이슈는 run 분산
+사용자 우려: 본선 베이가 들쭉날쭉·이상한 모양일 때 대처되나. 감사:
+1. **비직사각형 베이: grader가 지원 안 함.** utils Bay(width,height)만, contains_block도 사각 경계,
+   40인스턴스 전부 {width,height} 키만 → L자/다각형 불가능. 걱정 불필요.
+2. **극단 치수 stress(valid 인스턴스): 전부 feasible.** TALL 30x90, SQUARE 55x55, HUGE 220x50,
+   TINY 50x35, EXTREME-TALL 34x140, MANY 60x40 x6(베이 6개=훈련 2-5 밖) 모두 feasible, 크래시 없음.
+   → 베이 치수·종횡비·개수에 견고. (초기 크래시는 테스트가 bay_preferences 길이≠베이수인 invalid
+   인스턴스여서였고, 수정하니 전부 통과.)
+3. **방향 민감도(transpose 90°): 작고 분산 오염.** 깨끗한 저분산 인스턴스(prob_22 +2~3%,
+   prob_38 +0.2%)에선 transpose가 미세하게 나쁨. 큰 델타(prob_28 -6.7%, prob_30 ±22%)는 run 분산
+   (prob_30 orig 자체 26% 변동)에 오염 → best-of-both-orientation은 clean 레버 아님.
+4. **진짜 견고성 이슈 = run 분산.** prob_30 26%, prob_20 31% 등 동일 run간 basin 변동. grader는
+   인스턴스당 1런이라 나쁜 basin 착지시 손실. 베이모양과 무관, 멀티프로세싱 타이밍 문제.
+5. **경미한 fragility:** 알고리즘이 bay_preferences 길이==n_bays를 가정(grader는 항상 valid하므로
+   실무상 안전, 단 방어코드 없음).
+판정: **베이 모양 견고성 우려는 대체로 기우** — v58은 극단 베이에도 feasible. 베이모양 때문에 재작성
+할 필요 없음(오히려 검증된 v58 성능 잃을 리스크). 스크립트: transpose_test.py, weird_bay_stress.py.
