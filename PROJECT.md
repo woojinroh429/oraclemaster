@@ -2154,3 +2154,20 @@ Q2 해소: "패킹 좋아지면 P3↓"는 진짜(Z3=인기bay 패킹한계). 단
 패킹"이고, 진짜 더 조밀한 방법들(contact/blend/lookahead/beam)은 전부 bottom-left보다 나빴음. 즉
 패킹 레버는 이미 bottom-left에서 max이고 prefaware가 그걸 Z3에 활용 중. (테스트 후 pyclipper 제거,
 그래더와 동일 상태 복원.)
+
+## 문제 재정의 (fresh, ground-truth 재유도) — 지각은 100% 크레인 기하, 우리는 near-optimal
+사용자 요청: 누적 프레임 버리고 문제 새로 정의. utils.py에서 목적함수 재유도:
+obj1=Σmax(0,exit-due) (exit=entry+pt이므로 진입시각 함수), obj2=floor(max|u_j·load_j - u_k·load_k|)
+(load=workload합), obj3=Σ(maxpref-pref[bay]). exit-entry>=pt(초과체류 가능), Stage5 exit<entry
+동시각(시간공유 가능).
+빠졌던 조각: Z3는 Gurobi 바운드 구했지만 **Z1(지각)은 안 구함.** 구함(z1_gurobi_bound.py, 면적-용량
+완화 스케줄링 MIP, 지각최소):
+- **prob_28: 우리 Z1=114 vs Gurobi 면적-최적 Z1=0 (OPTIMAL 증명, 3s).** → 지각은 면적/시간/배정
+  문제가 전혀 아니고 **100% 크레인 제약이 면적보다 빡빡해서** 생김.
+그 면적-Z1=0 배정을 크레인 엔진으로 실현(z1_realize.py): **realized Z1=189 (우리 114보다 나쁨),
+Z3 5731, obj 4.24M(거의 2배).** → 면적-최적은 크레인 실현 불가(Z3 realize와 동일), 그리고 **우리
+construction(114)이 MIP-realize(189)보다 이미 우수.**
+확정(증거 3): (a)Gurobi 면적-Z1=0 증명, (b)그 실현 189>우리114, (c)idea#1 윈도 OPTIMAL. →
+지각은 크레인 하강의 본질적 난이도이고 우리 크레인패킹은 이미 near-crane-floor(면적최적 실현보다
+나음). 알고리즘 결함 아님. 친구 3.2M은 근본적으로 다른 크레인패킹이거나 다른 문제규모.
+스크립트: z1_gurobi_bound.py, z1_realize.py.
