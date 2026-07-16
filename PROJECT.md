@@ -2201,3 +2201,20 @@ construction(114)이 MIP-realize(189)보다 이미 우수.**
    실무상 안전, 단 방어코드 없음).
 판정: **베이 모양 견고성 우려는 대체로 기우** — v58은 극단 베이에도 feasible. 베이모양 때문에 재작성
 할 필요 없음(오히려 검증된 v58 성능 잃을 리스크). 스크립트: transpose_test.py, weird_bay_stress.py.
+
+## run 분산 조사 + ADAPTSTEP (변동 감소) — 분산은 대체로 로컬 아티팩트, ADAPTSTEP은 트레이드오프
+사용자: run 분산 줄이자. 조사:
+- **시드 고정**(_WORKER_SEEDS) → 분산은 100% 타이밍(랜덤 아님).
+- **격리 실행시**: prob_30(n=150) **6런 완전 동일**(3046457). 아까 본 26% 변동은 경합/리소스 누수
+  아티팩트. prob_20(n=300) 격리서도 85.8k~94.4k(~10%, 양봉). prob_38(n=250) 격리 6런 **5good
+  (34.5M)/1bad(37.8M)** → 큰 인스턴스만 실재 양봉(step=1 완성 레이스).
+- **grader ~2배 빠름 가정**(코드 line 3537 명시). 그럼 로컬 57s step=1 = grader ~28s → 여유 완성 →
+  **grader에선 안정적으로 good basin**. 즉 로컬 양봉은 대체로 로컬-하드웨어 아티팩트, grader는 결정론적일
+  가능성 큼.
+- **ADAPTSTEP**(step=1이 pace 뒤처지면 남은 블록 step=2로 → 항상 완성) A/B(prob_38, 6런 격리):
+  BASE 3good/3bad(양봉, 평균 36.15M) vs ADAPT **전부 35.4M(분산 0)**. 분산은 없앴으나 good basin
+  (34.5M)도 35.4M로 끌어내림. 기댓값(35.4M)은 BASE 평균(36.15M)보다 낫지만, grader가 항상 good
+  basin(34.5M) 치면 손해. 판정: **grader 완성 마진 여부에 달린 트레이드오프.** grader 2배 빠름
+  가정 신뢰 → **제출엔 OFF 유지**(v58=34.5M 기대). env-gated default off, off시 byte-identical.
+결론: run 분산은 (1)소형=격리시 결정론적, (2)대형=로컬 양봉이나 grader(빠름)에선 대체로 해소.
+ADAPTSTEP은 분산 보험이나 평균 vs good-basin 트레이드. 스크립트: var_char.sh, iso38.sh, adaptstep_ab.sh.
