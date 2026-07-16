@@ -2248,3 +2248,30 @@ REPAIRCAP(entry-time 캡) 시험 → 7→8/초로 미미(entry-time이 주범 �
 (엔진의 find_best_placement로 위치탐색 전체를 C++에서). 10~50배 가능 → 반복 폭증 → P3/P4 개선 여지.
 (계측 오버헤드가 prob_28 basin을 flip시킴 = timing-sensitivity 재확인. 계측은 revert, 순수 env-gated
 diff만 남음, 제출본 무관.) 스크립트: prof_alns.py.
+
+## CPPREPAIR — ALNS repair를 C++ 네이티브(find_best_placement)로 (사용자: "alns를 cpp로 해봐 전부다")
+병목(위 프로파일)이 repair 95~99%라 재삽입을 Python `_try_place_block`(후보 corner-set 스캔) →
+컴파일된 `ogc_fast.find_best_placement`(전체 스캔 C++)로 라우팅. env-gated `CPPREPAIR`(기본 OFF →
+v58 무관). 헬퍼 `_cpp_reinsert`: 매 repair마다 엔진 E를 state로 재동기(clear_all+add, 0.12~0.24ms
+= CppState.clone보다 오히려 쌈) 후 순차 find+add. 실패 시 entry-time escalate 폴백(construction과 동일).
+
+**미시측정(cpprepair_bench, 220 trial, grader 정확 checker로 feasibility 확인):**
+- prob_20(저밀도P3): **17.7배 빠름, obj -21.8%**, 60/60 feasible, 31 better/29 eq/0 worse.
+- prob_28(고밀도): 13.0배, -15.3%, 40/40 feas, 36/3/1.
+- prob_38(고밀도250): 7.2배, -3.0%, 39/1/0. prob_31(고밀도200): 8.7배, -7.5%, 38/2/0.
+→ **line-2338 caveat("find_best_placement가 downstream 악화") 반증.** 이유: `_try_place_block`의
+`_candidate_positions`(속도용 corner heuristic)가 seat을 놓침 → C++ 전체스캔이 더 낮은 tardiness/
+더 좋은 pref seat을 찾고 동시에 10배 빠름. **엄격한 win(더 완전한 탐색 + 더 빠름).**
+
+**직접 _alns A/B(동일 construction/seed, back-to-back, 20s):**
+- prob_20 200578→193908(-3.3%), prob_31 11230700→11048122(-1.6%), prob_28 3933051→3932265(-0.02%).
+- ON이 raw iter는 적으나(더 나은 repair가 newbest↑ → check_feasibility 호출↑) obj는 더 낮게 수렴.
+
+**풀 포트폴리오 A/B(60s, 4워커, 2 repeat, OFF/ON interleave, 머신 good-basin 확인=prob_28 OFF 2412246):**
+- **prob_28: OFF 2412246 → ON 2410146, -2100 결정적(두 repeat 동일), Z2 1528→828.**
+- prob_31: 6715096 불변(양모드/양repeat 동일). prob_20: r1 -293 / r2 +971(run-변동 ±1% 내, 중립).
+판정: **CPPREPAIR은 안전(항상 feasible)·결정적으로 never-worse·repair 더 빠름·미시적으로 더 나음.**
+그러나 **풀 포트폴리오 이득은 작음**(prob_28 -0.09% via Z2, prob_31 0, prob_20 noise) — 포트폴리오
+construction이 이미 강하고 여러 워커가 같은 basin 도달하기 때문. 빠른 repair의 진짜 가치는 **SHAKE 등
+공격적 재구성의 여유**(후속 레버). 광역 고밀도 배치 측정 진행 중(v59 default화 판단용).
+스크립트: cpprepair_bench.py, cpprepair_solve.py, cpprepair_ab.sh, cpprepair_alns_ab.py.

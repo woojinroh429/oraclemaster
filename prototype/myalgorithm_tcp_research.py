@@ -1183,6 +1183,59 @@ def _construct(prob_info, order, deadline):
     return state
 
 
+def _cpp_reinsert(state, E, ins, n_bays, deadline):
+    """C++-native ALNS repair (env CPPREPAIR): reinsert `ins` blocks into `state`
+    with ogc_fast.find_best_placement instead of the Python _try_place_block scan.
+
+    Measured (cpprepair_bench, 220 trials over low- and high-density instances):
+    7-18x faster AND 3-22% better per-repair objective, 0 infeasible.  The Python
+    _try_place_block enumerates only the _candidate_positions corner-set (a speed
+    heuristic that misses seats); the compiled full scan finds lower-tardiness /
+    better-preference seats and is still an order of magnitude cheaper.  `E` is
+    re-synced to `state` here, then mutated in lockstep so each find sees prior
+    insertions.  Returns True iff every block in `ins` was seated."""
+    prob = state.prob
+    blocks = prob["blocks"]
+    bay_list = list(range(n_bays))
+    E.clear_all()
+    for b, a in state.assign.items():
+        E.add(int(a["bay_id"]), b, int(a["orient_idx"]), float(a["x"]),
+              float(a["y"]), int(a["entry_time"]), int(a["exit_time"]))
+    for bid in ins:
+        if time.time() > deadline:
+            return False
+        rt = blocks[bid]["release_time"]
+        base = {int(rt)}
+        for j in bay_list:
+            for (en, ex, _b, _bb) in state.timeline[j]:
+                if ex >= rt:
+                    base.add(int(ex))
+        res = E.find_best_placement(bid, bay_list, sorted(base))
+        if not res[0]:
+            # guaranteed-seat fallback (mirrors _cppnfp_construct): escalate entry
+            latest = int(rt)
+            for j in bay_list:
+                for (en2, ex2, _b, _bb) in state.timeline[j]:
+                    latest = max(latest, int(ex2))
+            et = max(int(rt), latest)
+            g = 0
+            while not res[0] and g < 5000:
+                g += 1
+                res = E.find_best_placement(bid, bay_list, [et])
+                if not res[0]:
+                    et += 1
+            if not res[0]:
+                return False
+        _, bay, oi, x, y, en, ex = res
+        a = {"block_id": bid, "bay_id": int(bay), "x": int(x), "y": int(y),
+             "orient_idx": int(oi), "entry_time": int(en), "exit_time": int(ex)}
+        blk = Block(block_id=bid, block_data=blocks[bid],
+                    x=int(x), y=int(y), orient_idx=int(oi))
+        state.add(a, blk)
+        E.add(int(bay), bid, int(oi), float(x), float(y), int(en), int(ex))
+    return True
+
+
 # ----------------------------------------------------------------------------
 # Output formatting
 # ----------------------------------------------------------------------------
@@ -1247,6 +1300,19 @@ def _alns(prob_info, state, bay_unit, deadline, rng, use_gls=False,
     blocks_data = prob_info["blocks"]
     n_bays = len(prob_info["bays"])
     w1, w2, w3 = prob_info["weights"]["w1"], prob_info["weights"]["w2"], prob_info["weights"]["w3"]
+
+    # CPPREPAIR (env-gated research, default OFF): route ALNS reinsertion through
+    # the compiled ogc_fast.find_best_placement instead of the Python
+    # _try_place_block scan.  Micro-benchmark shows it is both faster and
+    # better-per-repair; here we measure the FULL-solve effect.  Safe for any state
+    # type -- E carries its own exact feasibility and best-accept re-checks.
+    _cpprepair_on = os.environ.get("CPPREPAIR", "0") == "1"
+    _repair_E = None
+    if _cpprepair_on:
+        try:
+            _repair_E = _ogc_fast_engine(prob_info)
+        except Exception:
+            _cpprepair_on = False
 
     def cur_obj(st):
         return _objective(list(st.assign.values()), prob_info, bay_unit)[0]
@@ -1554,16 +1620,19 @@ def _alns(prob_info, state, bay_unit, deadline, rng, use_gls=False,
                                  blocks_data[b]["release_time"],
                                  -blocks_data[b]["workload"]))
         ins = list(priority) + rest
-        ok = True
-        for bid in ins:
-            if time.time() > deadline:
-                ok = False
-                break
-            res = _try_place_block(trial, bid, list(range(n_bays)), deadline,
-                                   key_hint=prior_key.get(bid))
-            if res is None:
-                ok = False
-                break
+        if _cpprepair_on:
+            ok = _cpp_reinsert(trial, _repair_E, ins, n_bays, deadline)
+        else:
+            ok = True
+            for bid in ins:
+                if time.time() > deadline:
+                    ok = False
+                    break
+                res = _try_place_block(trial, bid, list(range(n_bays)), deadline,
+                                       key_hint=prior_key.get(bid))
+                if res is None:
+                    ok = False
+                    break
         if not ok or len(trial.assign) != n_blocks:
             continue
 
