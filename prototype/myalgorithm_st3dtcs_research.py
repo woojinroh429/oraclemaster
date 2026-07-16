@@ -1448,6 +1448,76 @@ def _st_construct_cpp(prob_info, order, deadline, step=1):
     return state
 
 
+def _st_reinsert(state, ins, n_bays, deadline, step=2):
+    """Reinsert `ins` blocks into `state` with the st3dtcs 3DTCS engine (dense
+    space-time repack).  Syncs the engine to the current post-removal state, then
+    seats each removed block by contact-maximising full scan.  For SHAKE big-kick /
+    region-repack -- denser than bigleft repair, aiming to escape ALNS basins on
+    ultra-dense instances.  Falls back to _try_place_block if the module is absent
+    or a scan finds no seat.  Returns True iff all seated."""
+    _m = _load_st3()
+    if _m is None:
+        for bid in ins:
+            if _try_place_block(state, bid, list(range(n_bays)), deadline) is None:
+                return False
+        return True
+    import numpy as _np
+    prob = state.prob; blocks = prob["blocks"]
+    w1 = float(prob["weights"]["w1"]); w3 = float(prob["weights"]["w3"])
+    bayw = [float(b["width"]) for b in prob["bays"]]
+    bayh = [float(b["height"]) for b in prob["bays"]]
+    _m.st_init(bayw, bayh, _bay_unit_weights(prob["bays"])); _m.st_clear()
+    _olc = {}
+    def _get_ol(bid):
+        r = _olc.get(bid)
+        if r is None:
+            bd = blocks[bid]; ol = []; bb = []
+            for oi in range(len(bd["shape"])):
+                blk = Block(block_id=bid, block_data=bd, x=0.0, y=0.0, orient_idx=oi)
+                ol.append([_np.ascontiguousarray(_np.asarray(L, dtype=_np.float64))
+                           for L in blk.resolved_layers()])
+                b = _orient_bbox(bd, oi)
+                bb.append([float(b[0]), float(b[1]), float(b[2]), float(b[3])])
+            r = (ol, bb); _olc[bid] = r
+        return r
+    cur_load = [0.0] * n_bays
+    for bid, a in state.assign.items():           # sync engine to the reduced state
+        wl = blocks[bid]["workload"]
+        _m.st_add(_get_ol(bid)[0][a["orient_idx"]], float(a["x"]), float(a["y"]),
+                  int(a["entry_time"]), int(a["exit_time"]), int(a["bay_id"]), float(wl))
+        cur_load[a["bay_id"]] += wl
+    order = sorted(ins, key=lambda b: (blocks[b]["due_date"], blocks[b]["release_time"]))
+    for bid in order:
+        if time.time() > deadline:
+            return False
+        bd = blocks[bid]
+        rt = int(bd["release_time"]); pt = int(bd["processing_time"]); due = float(bd["due_date"])
+        prefs = [float(p) for p in bd["bay_preferences"]]; wl = float(bd["workload"])
+        base = {rt}
+        for j in range(n_bays):
+            for (en, ex, _b, _bb) in state.timeline[j]:
+                if ex >= rt:
+                    base.add(int(ex))
+        ol, bb = _get_ol(bid)
+        res = _m.st_best(ol, bb, rt, pt, due, prefs, w1, w3, list(cur_load), wl,
+                         sorted(base), int(step))
+        if not res[0]:
+            if _try_place_block(state, bid, list(range(n_bays)), deadline) is None:
+                return False
+            a = state.assign[bid]
+            _m.st_add(_get_ol(bid)[0][a["orient_idx"]], float(a["x"]), float(a["y"]),
+                      int(a["entry_time"]), int(a["exit_time"]), int(a["bay_id"]), wl)
+            cur_load[a["bay_id"]] += wl
+            continue
+        _, bay, oi, x, y, en, ex = res
+        a = {"block_id": bid, "bay_id": int(bay), "x": int(x), "y": int(y),
+             "orient_idx": int(oi), "entry_time": int(en), "exit_time": int(ex)}
+        state.add(a, Block(block_id=bid, block_data=bd, x=int(x), y=int(y), orient_idx=int(oi)))
+        _m.st_add(ol[oi], float(x), float(y), int(en), int(ex), int(bay), wl)
+        cur_load[bay] += wl
+    return True
+
+
 def _cpp_reinsert(state, E, ins, n_bays, deadline):
     """C++-native ALNS repair (env CPPREPAIR): reinsert `ins` blocks into `state`
     with ogc_fast.find_best_placement instead of the Python _try_place_block scan.
@@ -2049,6 +2119,12 @@ def _alns(prob_info, state, bay_unit, deadline, rng, use_gls=False,
     reheats_used = 0
     REHEAT_FACTOR = 0.7
     _shake_on = os.environ.get("SHAKE", "0") == "1"
+    # ST3SHAKE: re-pack the SHAKE-ruined region with the 3DTCS engine (dense) rather
+    # than bigleft -- experiment to escape ultra-dense ALNS basins.  Implies SHAKE.
+    _st3shake_on = (os.environ.get("ST3SHAKE", "0") == "1" and _load_st3() is not None)
+    _st3shake_step = int(os.environ.get("ST3STEP", "2"))
+    if _st3shake_on:
+        _shake_on = True
     _kicks = 0
     while time.time() < deadline:
         iteration += 1
@@ -2217,7 +2293,12 @@ def _alns(prob_info, state, bay_unit, deadline, rng, use_gls=False,
                         _trial.remove(_b)
                 _vic.sort(key=lambda b: (blocks_data[b]["due_date"],
                                          blocks_data[b]["release_time"]))
-                if _fast_on:
+                if _st3shake_on:
+                    # 3DTCS dense re-packing of the ruined region -- aims to escape
+                    # the ALNS basin on ultra-dense instances (where bigleft repair
+                    # just re-converges).  step from ST3STEP (coarse=fast).
+                    _ok = _st_reinsert(_trial, _vic, n_bays, deadline, _st3shake_step)
+                elif _fast_on:
                     _ok = _fast_reinsert(_trial, _repair_E, _vic, n_bays, deadline)
                 elif _regret_on:
                     _ok = _regret_reinsert(_trial, _repair_E, _vic, n_bays, deadline, _regret_k)

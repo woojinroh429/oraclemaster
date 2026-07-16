@@ -2319,3 +2319,12 @@ Z1 실개선).** → 탐색 여지 있음. 단 5x 시간의 baseline 반복에�
 결론: **dense 헤드룸은 60s 예산에 안 들어감**(full-quality 반복이 5x 더 필요, 싸게 만들면 비생산적).
 repair/search 공간 소진. **유일한 남은 레버 = construction.** 현재 4개 order 전부 release-primary(EDD/
 slack 없음) → order sweep으로 더 나은 초기 basin 탐색 중. (전부 env-gated OFF, v58/제출 무관.)
+
+## v61: 밀도 게이트(temporal_os) + 초고밀도 분석 + ST3SHAKE 실험
+v60(3DTCS)의 저밀도 손해 원인: 저밀도는 배정(Z3 assignment) 문제라 패킹(3DTCS) 무의미 + 폴리시
+시간 뺏김. 해결: **temporal_os>=0.30 게이트** (이득 0.38~0.42 vs 손해 0.15~0.27 깨끗이 분리).
+v61 전체40 검증: 큰 이득 유지(prob_34 -50.7%, prob_35 -32%, prob_28 -11.7%, prob_36 -8.8%),
+저밀도 손해 제거(게이트 OFF=v59경로). **초고밀도 prob_38 bimodal(34.5M/37.8M ~60%good) — v61==v59
+중립**(3DTCS 무해, 무익; ALNS 수렴 한계). Z3 floor=0(선호구조상 top베이 가능, spatial-forced) →
+저밀도는 이미 near-optimal. 다음 실험: ST3SHAKE(SHAKE ruined 영역을 3DTCS로 조밀 재패킹 → 초고밀도
+basin 탈출 시도), _st_reinsert 빌드. 전부 env-gated OFF, v61 무영향.
