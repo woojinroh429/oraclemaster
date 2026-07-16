@@ -2218,3 +2218,17 @@ construction(114)이 MIP-realize(189)보다 이미 우수.**
   가정 신뢰 → **제출엔 OFF 유지**(v58=34.5M 기대). env-gated default off, off시 byte-identical.
 결론: run 분산은 (1)소형=격리시 결정론적, (2)대형=로컬 양봉이나 grader(빠름)에선 대체로 해소.
 ADAPTSTEP은 분산 보험이나 평균 vs good-basin 트레이드. 스크립트: var_char.sh, iso38.sh, adaptstep_ab.sh.
+
+## v58 grader 결과 분석 (사용자: P4/P5 줄고 P3 늘어 "기묘") — 사실 NET 개선, 분산 아님
+grader v58: P1 11280, P2 31368, P3 106395, P4 3907387, P5 10447795, P6 28543769.
+v56 대비: P3 +1140, P4 -41409, P5 -448, P6 0, P1/P2 0. **NET -40717 = v58가 v56보다 나음**
+(P4 개선이 P3 소폭 악화를 압도). "기묘"가 아니라 순개선.
+- **분산 아님:** P6가 v56=v58 바이트동일 → grader 결정론적(분산 있으면 최대 P6부터 흔들림). P3/P4/P5
+  변화는 v58 코드(DEOVERFIT+CPPPOLISH)의 결정적 효과.
+- **원인 격리 실패 (측정한계):** 로컬 A/B로 DEOVERFIT/CPPPOLISH 효과 분리 시도 → prob_22가
+  794496↔809181로 ~2% 변동, prob_20 ~8% 변동. grader 효과(~1%)가 **로컬 run-변동보다 작아**
+  결정적 격리 불가. (초기 "CPPPOLISH가 P3 악화" 관측은 단일런 변동이었음.)
+- **가장 그럴듯한 메커니즘(미확정):** grader가 로컬보다 빠름 → CPPPOLISH 7배 ALNS가 grader에선 더
+  많은 반복 → P4(Z1지배) 패킹 소폭 개선. P3(Z3)는 미세 side-effect. 로컬(느림+변동)선 재현/증폭 불가.
+- CPPGATE(저밀도서 CPPPOLISH off로 P3 회복) 시도 → 전제 미확정(변동)이라 revert. v58 유지.
+판정: **v58 유지 권장(순개선).** P4/P5 추가 개선은 고밀도 ALNS 강화 방향이나 로컬 측정한계로 검증난이.
