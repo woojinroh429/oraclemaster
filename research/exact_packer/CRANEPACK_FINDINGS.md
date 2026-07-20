@@ -50,3 +50,28 @@ area가 크레인 실현성의 나쁜 대리(cf=0.70도 infeasible) → 배정�
 ## 파일
 - cranepack.cpp (핵심 모듈), packtest/packall/packbay (clique/bay 검증), z3cp (relocator A/B), hybtest (Gurobi 비교=죽은길).
 - 빌드: `g++ -O3 -shared -std=c++17 -fPIC -march=x86-64-v2 $(python3.12 -m pybind11 --includes) cranepack.cpp -o cranepack.cpython-312-x86_64-linux-gnu.so`
+
+## ★ 2일차 추가: cranepack-oracle LBBD 배정 조사 (사용자 선택 방향) ★
+목적함수 86%가 Z3라, "더 나은 bay 배정"으로 20%를 노림. 결과: **v71을 못 이김.**
+
+측정 (prob_20, n=300, m=5):
+- **배정 하한(area 제약 없음): obj 40662, Z3 144** — 매혹적이나 **실현 불가능**.
+  cranepack이 그 배정에서 276-281/300만 fit (인기 베이 과포화: bay1은 62개 원하는데 43개만 fit).
+- count-cap LBBD (베이별 cranepack fit으로 카디널리티 tighten): fit 289/300, **Z3 721** (미수렴).
+- spill-cascade (unplaced를 차선 pref로): ~295/300에서 정체, **Z3 1673으로 폭발**.
+- **v71 실제: Z3 634 완전 실현 (obj 92450)** — 위 어느 것보다 나음.
+
+핵심: **엔트리 재타이밍은 fit을 안 늘림** (bay1 43→43, bay2 +1, bay4 −1).
+→ 베이는 시간 무관 **공간적으로 진짜 과포화**. 시간 staggering은 미개발 레버가 아님(v71 SA가 이미 보유).
+
+**정직한 결론:**
+- Z3=144 LB는 크레인 실현 불가능한 하한(면적/공간 무시). 실현가능 Z3 바닥 ≈ 600-700.
+- v71(Z3 634)은 **이미 실현가능 최적 근처**. area-Benders + timing-aware 실현자가 잘 작동.
+- **cranepack-LBBD 배정도, 밀도 레버도 v71을 견고하게 못 이긴다.**
+- 경쟁자 20% 갭: (a) 히든 인스턴스가 훈련 prob_20과 다르거나(grader P3=102625 ≠ local 92450),
+  (b) 우리가 못 짚은 기법이거나, (c) 측정 스케일 차이. **이 세션 레버로는 재현 안 됨.**
+
+## 최종 상태
+- **v71이 여전히 최선 (제출 유지).** v72는 밀도 오퍼레이터 통합했으나 net-win 아님 → 미채택.
+- cranepack.cpp는 검증된 우수 인프라 (100배 빠른 exact 크레인 패커) — 향후 재사용 자산으로 보존.
+- 파일: lbbdprobe/lbbdsweep/lbbdloop (배정 조사), z3cp (relocator), packtest/packall/packbay (패커 검증).
