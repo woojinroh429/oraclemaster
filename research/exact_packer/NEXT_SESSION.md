@@ -69,3 +69,23 @@ exact가 많이 넣음(10, +43%). 더 넣음 → 스필↓ → Z3↓(P3) & Z1↓
 - 패커는 v71의 z3_relocate 자리(더 강한 버전)에 LNS 오퍼레이터로. best-of 워커라 never-worse 유지.
 - v71이 현 제출 최선 (P3=102625). 패커 win 검증 전까지 v71 유지.
 - 전체 A/B: prob_13/17/19/20 중앙값, 89271(prob_20 floor) 대비.
+
+## ★ 추가 발견: coarse-to-fine 불필요, step6이 천장 (ctf.py) ★
+실험: step6 전역해(10) → fine ±5 재배치(step1) → **여전히 10, 개선 없음**.
+이유: bay1은 면적상 258% 과포화 → **10이 물리적 천장**이고 coarse-6이 이미 잡음.
+결론:
+- **C++ 목표 단순화 = "step6 set-packing을 빠르게" 하나면 됨.** 해상도 더 안 올려도 됨.
+- coarse-to-fine 기계 안 만들어도 됨 (덜 과포화된 clique엔 보너스로 도울 수 있으나 필수 아님).
+- 여전히 파이썬은 clique당 ~65s (conf 14s + solve 15s + overhead) → C++로 ~1s 목표.
+
+## ★ 최종 C++ 스코프 (다음 세션 이것만 하면 됨) ★
+1. 입력: clique 블록 리스트 + 각 블록의 shape/layers/release/proc/prefs, 베이 W,H.
+2. coarse step-6 컬럼 생성 (C++).
+3. 쌍별 충돌 (위 j>=k 규칙, C++; fastconf.py 로직 그대로).
+4. set-packing max independent-set 풀기:
+   - 옵션A: Gurobi C API (모델 = gpack6과 동일). 가장 확실.
+   - 옵션B: 커스텀 B&B (greedy 하한 warm-start + clique bound). 의존성 없음.
+5. greedy(st_best) warm-start.
+6. 반환: 배치 리스트 (block, x, y, orient). 파이썬이 exact-verify 후 배정 반영.
+목표: prob_20 bay1 clique17에서 greedy=7 대비 10을 ~1초에.
+그다음: 모든 저밀도 베이의 binding clique들에 적용(LNS) → 전체 A/B (prob_13/17/19/20 중앙값, 89271 대비) → 이기면 v72로 통합.
