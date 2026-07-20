@@ -75,3 +75,37 @@ area가 크레인 실현성의 나쁜 대리(cf=0.70도 infeasible) → 배정�
 - **v71이 여전히 최선 (제출 유지).** v72는 밀도 오퍼레이터 통합했으나 net-win 아님 → 미채택.
 - cranepack.cpp는 검증된 우수 인프라 (100배 빠른 exact 크레인 패커) — 향후 재사용 자산으로 보존.
 - 파일: lbbdprobe/lbbdsweep/lbbdloop (배정 조사), z3cp (relocator), packtest/packall/packbay (패커 검증).
+
+## ★ 3일차: 고밀도(P4/P5/P6) cranepack 적용 — throughput headroom은 실재, 하지만 변환 실패 ★
+저밀도가 Z3(배정)면 고밀도는 Z1(지각). 지각은 "동시에 몇 블록 처리하느냐"에 직결 → cranepack 밀도가 직접 레버 가설.
+
+**측정 1 — joint window reopt (step3_cpsat / step3c):**
+- redesign_notes의 disjunctive-scheduling joint reopt 실행: prob_26 within-window tardiness delta<0 (CP-SAT가 현재보다 나쁨).
+- 원인: step3의 conflict가 **order-independent union**(어느 순서든 충돌하면 금지) → 과보수 → 유효한 현재 배치를 금지.
+- fastconf order-dependent 시도(step3c)도 2값 staggered 근사라 여전히 과보수(delta<0).
+- 정확 모델 = R(안착)/DA/DB(하강 sweep) 3성분 + 시간조건부 활성화. 복잡하고 gain 작을 전망(moved 2/12).
+
+**측정 2 — throughput headroom (hdthru.py): ★실재하는 신호★**
+- prob_26 peak 순간: bay0@t40 v71 동시=17 vs **cranepack 최대동시=25 (+8)**; bay1@t20 19 vs 23 (+4).
+- **v71이 고밀도 베이를 크게 under-pack** (저밀도 +2 대비 +8, 훨씬 큼).
+
+**측정 3 — cranepack space-time 스케줄러 (hdsched.py): 변환 실패**
+- v71 assignment 고정, 각 베이를 cranepack 그리디(매 이벤트 최대 동시 admit)로 재스케줄.
+- 결과: prob_21 Z1 169→**440 (obj 2.7M→6.3M, 크게 악화)**.
+- 원인: cranepack은 **count 최대화지 tardiness 최소화 아님** → 잘못된(비긴급) 블록을 일찍 넣어 긴급 블록 지연.
+  **로컬 지표(동시성/밀도) ≠ 목적함수(지각).** v71의 튜닝된 3DTCS decoder가 이미 이 정렬을 처리.
+
+## ★ 세션 종합 결론 (정직) ★
+**모든 레버가 v71을 못 이긴다 — 일관된 근최적:**
+| 레짐 | 레버 | 신호 | 목적함수 결과 |
+|------|------|------|---------------|
+| 저밀도 Z3 | 밀도 relocate | +2 blocks | prob_20 회귀/무이득 |
+| 저밀도 Z3 | LBBD 배정 | LB 40662 | 실현불가, v71 근최적 |
+| 고밀도 Z1 | joint reopt | headroom有 | delta<=0 (과보수 모델) |
+| 고밀도 Z1 | throughput | +8 동시 | 그리디 스케줄 크게 악화 |
+
+공통 패턴: **로컬 headroom 지표(밀도/동시성/개별 earlier-entry)가 실재하나 목적함수로 변환 안 됨.**
+v71의 area-Benders + timing 실현자(저밀도) + 3DTCS decoder(고밀도)가 이미 근최적.
+
+**cranepack.cpp = 검증된 우수 인프라(100배 빠른 exact 크레인 패커) — 보존.** 경쟁자 20% 갭은 이 세션 레버로 재현 불가.
+향후: 정확 R/DA/DB joint 모델(작은 gain 가능), 또는 tardiness-aware(count 아닌) cranepack 목적함수 확장이 유일한 미탐색 각도.
