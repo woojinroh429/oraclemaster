@@ -32,3 +32,16 @@ Fast conflict: numba _g_classify_pair (0.48us, 300x shapely), 0-mismatch prob_20
 
 ## Files
 gmaster oracle lbbd congestion conflictgen fastconf raster gpack{2..6}
+
+## Update: FFT mask + the REAL bottleneck
+fftmask.py: FFT cross-correlation conflict masks, R=3, verified vs exact (1.1-1.4%
+false-neg from raster coarseness, safe via exact-verify+cut). BUT measured: at fine
+grid (step2, 9796 cols) the mask approach is 73s -- because the bottleneck is COLUMN
+COUNT (21M column-pairs), not per-conflict speed. Neither numba nor FFT beats the
+column explosion.
+
+CONCLUSION: the only fix is EXTREME-POINT columns (10k -> few hundred), and even then
+Python iteration over pairs is marginal -> the packer must move to C++ (Gurobi C API
+or a custom branch-and-bound). Next build: (1) extreme-point candidate positions for
+the clique set-packing, (2) C++ conflict+solve. gpack6 (step6, warm-start) is the
+current working reference: greedy=7 -> Gurobi=10, ~18s/clique.
