@@ -26,6 +26,29 @@ def _cl(ai, aj, pi, pj):
     if pi is None or pj is None: return False
     return pi.intersection(pj).area > 0.0
 
+def relation3(Aa, Ap, Ba, Bp):
+    """Decompose crane geometry into 3 ORDER-INDEPENDENT components (for the correct
+    time-conditional joint scheduler):
+      R  = resting overlap (A_k vs B_k, some k)          -> conflict whenever co-present
+      DA = A sweeps B (A_k vs B_j, j>k)                  -> active when A is the later
+           entrant (A descends) OR the earlier exiter (A ascends) through B
+      DB = B sweeps A (B_k vs A_j, j>k)                  -> symmetric
+    Returns (R, DA, DB) booleans."""
+    Ka, Kb = len(Aa), len(Ba)
+    R = any(_cl(Aa[k], Ba[k], Ap[k], Bp[k]) for k in range(min(Ka, Kb)))
+    DA = False
+    for k in range(Ka):
+        for j in range(k+1, Kb):
+            if _cl(Aa[k], Ba[j], Ap[k], Bp[j]): DA = True; break
+        if DA: break
+    DB = False
+    for k in range(Kb):
+        for j in range(k+1, Ka):
+            if _cl(Ba[k], Aa[j], Bp[k], Ap[j]): DB = True; break
+        if DB: break
+    return R, DA, DB
+
+
 def conflict(Aa, Ap, ea, xa, Ba, Bp, eb, xb):
     """Aa/Ap: A layer arrs/polys; Ba/Bp: B.  entry/exit ea,xa / eb,xb."""
     if not (ea < xb and eb < xa): return False

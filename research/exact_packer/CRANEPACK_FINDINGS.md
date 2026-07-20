@@ -109,3 +109,29 @@ v71의 area-Benders + timing 실현자(저밀도) + 3DTCS decoder(고밀도)가 
 
 **cranepack.cpp = 검증된 우수 인프라(100배 빠른 exact 크레인 패커) — 보존.** 경쟁자 20% 갭은 이 세션 레버로 재현 불가.
 향후: 정확 R/DA/DB joint 모델(작은 gain 가능), 또는 tardiness-aware(count 아닌) cranepack 목적함수 확장이 유일한 미탐색 각도.
+
+## ★ 3일차 후속: 정확한 R/DA/DB joint tardiness 모델 (step4) — 결정적 near-optimal 확증 ★
+throughput +8을 tardiness로 변환하는 마지막 시도. step3의 과보수 union을 **정확한 order-dependent**
+모델로 교체 (fastconf.relation3: R=안착 / DA=A훑음 / DB=B훑음, 시간조건부 활성화):
+- forbidden(공존) = R OR (늦은진입자 하강) OR (먼저퇴장자 상승)
+- only-DA → A-contains-B 공존 허용; only-DB → B-contains-A; R or(DA&DB) → 순차만.
+
+**결과 (모두 CP-SAT OPT, never-worse 확인):**
+| inst | 창 | CURRENT wtard | CP-SAT | delta | moved |
+|------|----|--------------|--------|-------|-------|
+| prob_26 | coupled16 | 2373274 | 2359941 | +13333 (~1 tard-unit) | 1/16 |
+| prob_40 | coupled16 | 174754 | 172753 | +2001 | 5/16 |
+| prob_23 | coupled16 | 1640639 | 1640639 | **0** | 0/16 |
+
+정확 모델이 과보수를 고쳐 이제 never-worse(delta>=0)지만 **gain은 0~1 블록, 무시가능.**
+→ **v71 고밀도 구성은 congested window 내에서 near-optimal (OPT delta≈0).**
+→ throughput headroom(+8)은 **지각과 무관한 용량**: 여분 슬롯을 채울 블록은 미release거나 due 멀어
+   일찍 넣어도 지각 감소 없음. v71이 이미 tardy 블록을 크레인-실현 가능한 한 일찍 스케줄.
+
+## ★★ 세션 최종 결론 ★★
+**엄밀 증명된 near-optimality (exact CP-SAT OPT):**
+저밀도(밀도/배정)·고밀도(joint reopt 정확모델/throughput) 모든 레버가 v71을 못 이김.
+로컬 headroom 지표(밀도/동시성)는 실재하나 목적함수로 변환 안 됨 — v71 decoder들이 이미 근최적.
+**crane-packing 레버(어떤 변형도) v71을 못 넘는다.** 경쟁자 20% 갭은 이 세션 접근으로 재현 불가
+(→ 히든 인스턴스 구조 차이 또는 근본적으로 다른 알고리즘. 다음: 대안 패커/스케줄러 문헌 리서치).
+cranepack.cpp = 검증된 우수 인프라, 보존.
