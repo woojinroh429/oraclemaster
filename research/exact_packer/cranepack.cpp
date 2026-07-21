@@ -674,36 +674,31 @@ py::tuple refine(py::list blocks, py::list baydims, py::list bayunit,
 }
 
 // ============================================================================
-// pack_schedule: DENSE TEMPORAL PLACER for a FIXED bay assignment.
-//   A clean-room replacement for the old ogc_fast realiser (source lost).  Places
-//   blocks in EDD order; each block enters at the earliest crane-feasible instant
-//   >= its release, at the "bigleft" dense position (min x, then min y) so big
-//   blocks cluster left and leave a contiguous right free-span.  Uses the SAME
-//   validated crane_conflict + poly_overlap as pack(), so output is utils-exact.
-//   Minimises tardiness (blocks slip to the next freeing event only when the bay
-//   is momentarily full).  This is the "good realiser" the schedule/assignment
-//   experiments need.
-// Inputs:
-//   blocks : list of (orient_layers, obbs)   # obbs = (x0,y0,x1,y1) per orient
-//   bays   : list of (W, H)
-//   assign : list[int]  bay index per block (FIXED)
-//   rel,pt,due : list[int]
-//   step   : coarse grid step for the position scan
-// Returns: (placements[list of (bay,orient,x,y,entry,exit) per block, -1 if unplaced],
-//           total_tardiness, placed_count, ontime_count)
+// pack_schedule: SMART DENSE TEMPORAL PLACER for a FIXED bay assignment.
+//   Clean-room replacement for the lost ogc_fast realiser.  Event-driven like the
+//   v77 construction: at each event time it admits all pending released blocks in
+//   urgency order (EDD), each placed at the crane-feasible position that best
+//   preserves packability:
+//     - BIG blocks (area-rank < 0.60): bigleft (min bbox height h, then min x) so
+//       the tardiness drivers cluster left, leaving a contiguous right free-span.
+//     - SMALL blocks (area-rank >= 0.60): tuck into the position that MAXIMISES the
+//       largest contiguous free horizontal span in the bottom band (BAND=0.6),
+//       preserving room for future big blocks (the validated v77 free-span rule).
+//   Blocks that do not fit now wait to the next freeing event (tardiness accrues).
+//   Uses the validated crane_conflict + poly_overlap, so output is utils-exact.
+// Returns (placements[(bay,orient,x,y,entry,exit) or -1 if unplaced], tardiness,
+//          placed_count, ontime_count).
 py::tuple pack_schedule(py::list blocks, py::list bays, py::list assign,
                         py::list rel_, py::list pt_, py::list due_, int step){
-    int n=(int)py::len(blocks);
-    int nbay=(int)py::len(bays);
-    // parse blocks
+    const double BAND=0.6, SMALL_THRESH=0.60;
+    int n=(int)py::len(blocks), nbay=(int)py::len(bays);
     std::vector<std::vector<std::vector<Poly>>> BL(n);
     std::vector<std::vector<std::array<double,4>>> OBB(n);
+    std::vector<double> minarea(n,1e18);
     for(int b=0;b<n;b++){
         py::tuple bt=py::cast<py::tuple>(blocks[b]);
-        py::list orients=py::cast<py::list>(bt[0]);
-        py::list obbs=py::cast<py::list>(bt[1]);
-        int no=(int)py::len(orients);
-        BL[b].resize(no); OBB[b].resize(no);
+        py::list orients=py::cast<py::list>(bt[0]), obbs=py::cast<py::list>(bt[1]);
+        int no=(int)py::len(orients); BL[b].resize(no); OBB[b].resize(no);
         for(int o=0;o<no;o++){
             for(auto L: py::cast<py::list>(orients[o])){
                 py::array_t<double> arr=py::cast<py::array_t<double>>(L);
@@ -712,71 +707,100 @@ py::tuple pack_schedule(py::list blocks, py::list bays, py::list assign,
                 BL[b][o].push_back(std::move(P));
             }
             py::tuple ob=py::cast<py::tuple>(obbs[o]);
-            OBB[b][o]={py::cast<double>(ob[0]),py::cast<double>(ob[1]),
-                       py::cast<double>(ob[2]),py::cast<double>(ob[3])};
+            double x0=py::cast<double>(ob[0]),y0=py::cast<double>(ob[1]),x1=py::cast<double>(ob[2]),y1=py::cast<double>(ob[3]);
+            OBB[b][o]={x0,y0,x1,y1}; double ar=(x1-x0)*(y1-y0); if(ar<minarea[b]) minarea[b]=ar;
         }
     }
     std::vector<double> Wd(nbay),Hd(nbay);
     for(int j=0;j<nbay;j++){ py::tuple t=py::cast<py::tuple>(bays[j]); Wd[j]=py::cast<double>(t[0]); Hd[j]=py::cast<double>(t[1]); }
     std::vector<int> asg(n),rel(n),pt(n),due(n);
     for(int b=0;b<n;b++){ asg[b]=py::cast<int>(assign[b]); rel[b]=py::cast<int>(rel_[b]); pt[b]=py::cast<int>(pt_[b]); due[b]=py::cast<int>(due_[b]); }
+    std::vector<int> byarea(n); for(int i=0;i<n;i++) byarea[i]=i;
+    std::sort(byarea.begin(),byarea.end(),[&](int a,int b){ return minarea[a]>minarea[b]; });
+    std::vector<double> arank(n);
+    for(int r=0;r<n;r++) arank[byarea[r]]=(n>1)?(double)r/(double)(n-1):0.0;
 
     std::vector<std::vector<Col>> pres(nbay);
     std::vector<std::array<int,6>> res(n,{-1,-1,-1,-1,-1,-1});
-    // EDD dispatch order
-    std::vector<int> order(n); for(int i=0;i<n;i++) order[i]=i;
-    std::sort(order.begin(),order.end(),[&](int a,int b){ if(due[a]!=due[b])return due[a]<due[b]; return rel[a]<rel[b]; });
-
+    auto free_span=[](std::vector<std::pair<double,double>>& occ,double bw,double wx,double w,double wy,double band_top)->double{
+        double fm=0.0,c2=0.0;
+        if(wy<band_top){
+            double lo=wx,hi=wx+w; bool ins=false;
+            for(auto&ab:occ){
+                if(!ins&&lo<ab.first){ if(lo>c2){double g=lo-c2;if(g>fm)fm=g;} if(hi>c2)c2=hi; ins=true; }
+                if(ab.first>c2){double g=ab.first-c2;if(g>fm)fm=g;} if(ab.second>c2)c2=ab.second;
+            }
+            if(!ins){ if(lo>c2){double g=lo-c2;if(g>fm)fm=g;} if(hi>c2)c2=hi; }
+            if(bw>c2){double g=bw-c2;if(g>fm)fm=g;} return fm;
+        }
+        for(auto&ab:occ){ if(ab.first>c2){double g=ab.first-c2;if(g>fm)fm=g;} if(ab.second>c2)c2=ab.second; }
+        if(bw>c2){double g=bw-c2;if(g>fm)fm=g;} return fm;
+    };
     auto build_col=[&](int b,int o,int ix,int iy,int en,int ex)->Col{
         Col c; c.block=b;c.orient=o;c.x=ix;c.y=iy;c.entry=en;c.exit=ex;
         for(auto&P:BL[b][o]){ Poly Q; Q.reserve(P.size()); for(auto&p:P) Q.emplace_back(p.first+ix,p.second+iy); c.layers.push_back(std::move(Q)); }
         bbox_of(c); return c;
     };
-
-    double tard=0; int placed=0, ontime=0;
-    for(int oi=0; oi<n; oi++){
-        int b=order[oi]; int j=asg[b]; double W=Wd[j],H=Hd[j];
-        int no=(int)BL[b].size();
-        int t=rel[b]; bool done=false; int guard=0;
-        while(!done && guard<200000){
+    double tard=0; int placed=0,ontime=0;
+    for(int j=0;j<nbay;j++){
+        double W=Wd[j],H=Hd[j],band_top=H*BAND;
+        std::vector<int> mine; for(int b=0;b<n;b++) if(asg[b]==j) mine.push_back(b);
+        if(mine.empty()) continue;
+        std::vector<char> done(n,0); int remaining=(int)mine.size();
+        int t=INT_MAX; for(int b:mine) t=std::min(t,rel[b]);
+        int guard=0;
+        while(remaining>0 && guard<400000){
             guard++;
-            // find the bigleft-optimal feasible position at time t across orients
-            int bo=-1,bx=0,by=0; long bestscore=LLONG_MAX; Col bestcol;
-            for(int o=0;o<no;o++){
-                double x0=OBB[b][o][0],y0=OBB[b][o][1],x1=OBB[b][o][2],y1=OBB[b][o][3];
-                double w=x1-x0,h=y1-y0;
-                if(w>W+1e-9||h>H+1e-9) continue;
-                int lo_x=(int)std::ceil(-x0), hi_x=(int)std::floor(W-x1);
-                int lo_y=(int)std::ceil(-y0), hi_y=(int)std::floor(H-y1);
-                bool found=false;
-                for(int ix=lo_x; ix<=hi_x && !found; ix+=step){
-                    for(int iy=lo_y; iy<=hi_y; iy+=step){
-                        Col cand=build_col(b,o,ix,iy,t,t+pt[b]);
-                        bool ok=true;
-                        for(const Col& c: pres[j]) if(crane_conflict(cand,c)){ ok=false; break; }
-                        if(ok){
-                            long sc=(long)(ix-lo_x)*100000L+(long)(iy-lo_y);
-                            if(sc<bestscore){ bestscore=sc; bo=o;bx=ix;by=iy; bestcol=std::move(cand); }
-                            found=true; break;   // first feasible iy at this ix is bigleft-optimal for this (o,ix)
+            std::vector<std::pair<double,double>> occ;
+            for(auto&c:pres[j]) if(c.exit>t && c.by0<band_top) occ.push_back({c.bx0,c.bx1});
+            std::sort(occ.begin(),occ.end());
+            std::vector<int> pend; for(int b:mine) if(!done[b]&&rel[b]<=t) pend.push_back(b);
+            std::sort(pend.begin(),pend.end(),[&](int a,int b){ if(due[a]!=due[b])return due[a]<due[b]; return minarea[a]>minarea[b]; });
+            int admitted=0;
+            for(int b:pend){
+                bool is_small=arank[b]>=SMALL_THRESH; int no=(int)BL[b].size();
+                std::tuple<double,double,double> bestsc(1e18,1e18,1e18);
+                int bo=-1,bx=0,by=0; Col bestcol;
+                for(int o=0;o<no;o++){
+                    double x0=OBB[b][o][0],y0=OBB[b][o][1],x1=OBB[b][o][2],y1=OBB[b][o][3];
+                    double w=x1-x0,h=y1-y0; if(w>W+1e-9||h>H+1e-9) continue;
+                    int lo_x=(int)std::ceil(-x0),hi_x=(int)std::floor(W-x1),lo_y=(int)std::ceil(-y0),hi_y=(int)std::floor(H-y1);
+                    for(int ix=lo_x; ix<=hi_x; ix+=step){
+                        for(int iy=lo_y; iy<=hi_y; iy+=step){
+                            double cx0=x0+ix,cy0=y0+iy,cx1=x1+ix,cy1=y1+iy;
+                            bool need=false;
+                            for(auto&c:pres[j]) if(t<c.exit&&c.entry<t+pt[b]&&!(cx1<=c.bx0||c.bx1<=cx0||cy1<=c.by0||c.by1<=cy0)){ need=true; break; }
+                            Col cand; bool ok=true;
+                            if(need){ cand=build_col(b,o,ix,iy,t,t+pt[b]); for(auto&c:pres[j]) if(crane_conflict(cand,c)){ ok=false; break; } }
+                            if(!ok) continue;
+                            double wx=cx0,wy=cy0; std::tuple<double,double,double> sc;
+                            if(is_small){ double fs=free_span(occ,W,wx,w,wy,band_top); sc=std::make_tuple(-fs,wy,wx); }
+                            else sc=std::make_tuple(h,wx,wy);
+                            if(sc<bestsc){ bestsc=sc; bo=o;bx=ix;by=iy; if(!need) cand=build_col(b,o,ix,iy,t,t+pt[b]); bestcol=std::move(cand); }
                         }
                     }
                 }
+                if(bo>=0){
+                    if(bestcol.by0<band_top){ occ.push_back({bestcol.bx0,bestcol.bx1}); std::sort(occ.begin(),occ.end()); }
+                    pres[j].push_back(std::move(bestcol)); res[b]={j,bo,bx,by,t,t+pt[b]};
+                    int td=t+pt[b]-due[b]; if(td>0) tard+=td; else ontime++;
+                    placed++; done[b]=1; remaining--; admitted++;
+                }
             }
-            if(bo>=0){
-                pres[j].push_back(std::move(bestcol));
-                res[b]={j,bo,bx,by,t,t+pt[b]};
-                int td=t+pt[b]-due[b]; if(td>0) tard+=td; else ontime++;
-                placed++; done=true;
+            int nt=INT_MAX;
+            if(admitted==0){
+                for(auto&c:pres[j]) if(c.exit>t) nt=std::min(nt,c.exit);
+                if(nt==INT_MAX) for(int b:mine) if(!done[b]&&rel[b]>t) nt=std::min(nt,rel[b]);
             } else {
-                int nt=INT_MAX;
-                for(const Col& c: pres[j]) if(c.exit>t) nt=std::min(nt,c.exit);
-                if(nt==INT_MAX) t+=step; else t=nt;
+                for(int b:mine) if(!done[b]&&rel[b]>t) nt=std::min(nt,rel[b]);
+                for(auto&c:pres[j]) if(c.exit>t) nt=std::min(nt,c.exit);
             }
+            t=(nt==INT_MAX)?t+step:nt;
         }
     }
     py::list out;
     for(int b=0;b<n;b++) out.append(py::make_tuple(res[b][0],res[b][1],res[b][2],res[b][3],res[b][4],res[b][5]));
-    return py::make_tuple(out, tard, placed, ontime);
+    return py::make_tuple(out,tard,placed,ontime);
 }
 
 PYBIND11_MODULE(cranepack,m){
