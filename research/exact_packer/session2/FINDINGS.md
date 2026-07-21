@@ -361,3 +361,15 @@ which v77 already integrates (exact_reassign + VLNS -> 87156). Swapping in the w
 new engine makes it worse. Reaching top's ~81k needs either a much stronger/faster
 oracle or an assignment insight we do not have; v77's existing P3 path is already near
 the best this toolchain supports. Ship unchanged (v77).
+
+### P3 budget rebalance (EXFRAC) — dead end; 87156 is v77's converged floor
+Parametrised the exact_reassign budget fraction (EXFRAC, default 0.35) and swept it.
+prob_20: 0.35->87156, 0.22->93674, 0.12->97102 (LESS exact = worse warm = worse final);
+0.50->87156 (MORE exact = same). prob_17: 0.35=0.22=62841, 0.12->65375. prob_19:
+0.35=0.22=58987, 0.12->66685. Conclusion: 0.35 is optimal/tied; the exact_reassign warm
+is CONVERGED (more time doesn't improve it) and VLNS reaches its floor within budget --
+i.e. P3 is WARM-limited and 87156 is v77's converged floor on prob_20. Also: v77's
+low-density result is perfectly CONSISTENT across 6 clean runs (87156 x6) -- the earlier
+"18% variance" was purely CPU contention from concurrent experiments, not inherent.
+Net: no P3 lever remains in budget/variance/engine; beating ~81k needs a better
+assignment optimiser, which is oracle-limited. v77's P3 path is at its floor.
