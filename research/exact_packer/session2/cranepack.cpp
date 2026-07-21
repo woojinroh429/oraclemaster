@@ -409,7 +409,257 @@ py::tuple pack(py::list blocks, double W, double H, int step,
                           coldesc, edges, warmcols);
 }
 
+// ================= C++ VLNS refiner (whole SLS loop in C++) =================
+// Precomputes block geometry once, then runs the window-repack stochastic local search
+// (SA on the Z2+Z3 assignment objective) entirely in C++ -- no per-iteration Python
+// overhead -> several x more iterations in the same wall time.  Returns the best
+// assignment by the internal objective; Python re-verifies it with the grader (falls
+// back to the warm if the rare geometry mismatch makes it infeasible -> never-worse).
+struct BGeom {
+    std::vector<std::vector<Poly>> ol;      // [orient][layer] at origin
+    std::vector<std::array<double,4>> obb;  // [orient] (x0,y0,x1,y1)
+    int release, proc, due;
+    std::vector<double> prefs;              // per bay
+    double maxpref, workload;
+};
+
+py::tuple refine(py::list blocks, py::list baydims, py::list bayunit,
+                 double w2, double w3, py::list init, double budget_s, uint64_t seed,
+                 int WIN, int NPULL, int STEP){
+    auto T0 = std::chrono::high_resolution_clock::now();
+    int nblk = (int)py::len(blocks);
+    int m = (int)py::len(baydims);
+    std::vector<BGeom> G(nblk);
+    for(int b=0;b<nblk;b++){
+        py::tuple bt = py::cast<py::tuple>(blocks[b]);
+        py::list orients = py::cast<py::list>(bt[0]);
+        py::list obbs    = py::cast<py::list>(bt[1]);
+        G[b].release=py::cast<int>(bt[2]); G[b].proc=py::cast<int>(bt[3]); G[b].due=py::cast<int>(bt[4]);
+        for(auto p : py::cast<py::list>(bt[5])) G[b].prefs.push_back(py::cast<double>(p));
+        G[b].workload=py::cast<double>(bt[6]);
+        G[b].maxpref=*std::max_element(G[b].prefs.begin(),G[b].prefs.end());
+        int no=(int)py::len(orients);
+        G[b].ol.resize(no); G[b].obb.resize(no);
+        for(int o=0;o<no;o++){
+            for(auto L : py::cast<py::list>(orients[o])){
+                py::array_t<double> arr=py::cast<py::array_t<double>>(L);
+                auto a=arr.unchecked<2>(); Poly P;
+                for(py::ssize_t i=0;i<a.shape(0);i++) P.emplace_back(a(i,0),a(i,1));
+                G[b].ol[o].push_back(std::move(P));
+            }
+            py::tuple ob=py::cast<py::tuple>(obbs[o]);
+            G[b].obb[o]={py::cast<double>(ob[0]),py::cast<double>(ob[1]),py::cast<double>(ob[2]),py::cast<double>(ob[3])};
+        }
+    }
+    std::vector<std::pair<double,double>> BD(m);
+    std::vector<double> BU(m);
+    for(int j=0;j<m;j++){ py::tuple t=py::cast<py::tuple>(baydims[j]); BD[j]={py::cast<double>(t[0]),py::cast<double>(t[1])}; BU[j]=py::cast<double>(bayunit[j]); }
+    // assignment: [bay,orient,x,y,entry,exit]
+    std::vector<std::array<int,6>> A(nblk);
+    for(int b=0;b<nblk;b++){ py::tuple t=py::cast<py::tuple>(init[b]);
+        for(int k=0;k<6;k++) A[b][k]=py::cast<int>(t[k]); }
+
+    // world Col for a placement (single layer set)
+    auto world_col=[&](int b,int o,int x,int y,int en,int ex)->Col{
+        Col c; c.block=b;c.orient=o;c.x=x;c.y=y;c.entry=en;c.exit=ex;
+        for(auto& P : G[b].ol[o]){ Poly Q; Q.reserve(P.size());
+            for(auto&p:P) Q.emplace_back(p.first+x,p.second+y); c.layers.push_back(std::move(Q)); }
+        bbox_of(c); return c;
+    };
+    auto obj_assign=[&](const std::vector<std::array<int,6>>& AA)->double{
+        std::vector<double> load(m,0.0); double z3=0;
+        for(int b=0;b<nblk;b++){ int j=AA[b][0]; load[j]+=G[b].workload; z3+=G[b].maxpref-G[b].prefs[j]; }
+        double mx=-1e18,mn=1e18;
+        for(int j=0;j<m;j++){ double v=BU[j]*load[j]; mx=std::max(mx,v); mn=std::min(mn,v); }
+        return w2*std::floor(mx-mn)+w3*z3;
+    };
+    Xorshift rng(seed);
+
+    // pack a window: place a max-preference-weighted subset of `cand` (global block ids)
+    // into bay J, avoiding `frozen` obstacle cols.  Returns chosen placement per cand
+    // (o,x,y,en,ex); cand not in the map were dropped.  single_entry=release.
+    auto ent_cands=[&](int b, std::vector<std::pair<int,int>>& out){
+        int lo=G[b].release, hi=G[b].due-G[b].proc;
+        auto add=[&](int t){ if(t>=0 && t+G[b].proc<=G[b].due) out.push_back({t,t+G[b].proc}); };
+        if(hi<=lo){ add(lo); return; }
+        std::set<int> ts; for(int k=0;k<3;k++) ts.insert(lo+((hi-lo)*k)/2);
+        for(int t:ts) add(t);
+    };
+    auto pack_window=[&](int J,const std::vector<int>& cand,const std::vector<Col>& frozen,
+                         std::map<int,std::array<int,5>>& out, bool multi_entry=false, int step=-1)->void{
+        if(step<0) step=STEP;
+        double W=BD[J].first, H=BD[J].second;
+        std::vector<Col> cols; std::vector<int> colblk; // block-local idx
+        std::vector<double> wt(cand.size());
+        std::map<int,int> g2l; for(size_t i=0;i<cand.size();i++){ g2l[cand[i]]=(int)i; wt[i]=G[cand[i]].prefs[J]; }
+        for(size_t li=0; li<cand.size(); li++){
+            int b=cand[li];
+            std::vector<std::pair<int,int>> ees;
+            if(multi_entry) ent_cands(b,ees); else { int en=G[b].release; if(en+G[b].proc<=G[b].due) ees.push_back({en,en+G[b].proc}); }
+            if(ees.empty()) continue;
+            for(int o=0;o<(int)G[b].ol.size();o++){
+                double x0=G[b].obb[o][0],y0=G[b].obb[o][1],x1=G[b].obb[o][2],y1=G[b].obb[o][3];
+                int xlo=(int)std::ceil(-x0),xhi=(int)std::floor(W-x1),ylo=(int)std::ceil(-y0),yhi=(int)std::floor(H-y1);
+                if(xlo>xhi||ylo>yhi) continue;
+                for(int x=xlo;x<=xhi;x+=step) for(int y=ylo;y<=yhi;y+=step) for(auto&ee:ees){
+                    Col c=world_col(b,o,x,y,ee.first,ee.second);
+                    bool bad=false; for(const Col& f:frozen){ if(crane_conflict(c,f)){bad=true;break;} }
+                    if(bad) continue;
+                    colblk.push_back((int)li); cols.push_back(std::move(c));
+                }
+            }
+        }
+        int nc=(int)cols.size(); if(nc==0) return;
+        std::vector<std::vector<int>> adj(nc);
+        for(int a=0;a<nc;a++) for(int b2=a+1;b2<nc;b2++){
+            if(colblk[a]==colblk[b2]) continue;
+            const Col&ca=cols[a],&cb=cols[b2];
+            if(ca.bx1<=cb.bx0||cb.bx1<=ca.bx0||ca.by1<=cb.by0||cb.by1<=ca.by0) continue;
+            if(!(ca.entry<cb.exit&&cb.entry<ca.exit)) continue;
+            if(crane_conflict(ca,cb)){ adj[a].push_back(b2); adj[b2].push_back(a); }
+        }
+        for(auto&v:adj) std::sort(v.begin(),v.end());
+        int L=(int)cand.size();
+        std::vector<std::vector<int>> colsOf(L);
+        for(int c=0;c<nc;c++) colsOf[colblk[c]].push_back(c);
+        // max-weight MIS: iterated greedy (weight-desc) + (1,1)/(2,1) swaps + restarts
+        std::vector<int> sel(L,-1); std::vector<int> blocked(nc,0); std::vector<char> sf(nc,0);
+        auto addc=[&](int c){ sel[colblk[c]]=c; sf[c]=1; for(int nb:adj[c]) blocked[nb]++; };
+        auto remc=[&](int c){ sel[colblk[c]]=-1; sf[c]=0; for(int nb:adj[c]) blocked[nb]--; };
+        auto clr=[&](){ for(int l=0;l<L;l++) if(sel[l]>=0) remc(sel[l]); };
+        auto wsel=[&](){ double s=0; for(int l=0;l<L;l++) if(sel[l]>=0) s+=wt[l]; return s; };
+        std::vector<int> ord(L); for(int l=0;l<L;l++) ord[l]=l;
+        std::sort(ord.begin(),ord.end(),[&](int a,int b){return wt[a]>wt[b];});
+        auto greedy=[&](const std::vector<int>& o2){ for(int l:o2){ if(sel[l]>=0) continue; for(int c:colsOf[l]) if(blocked[c]==0){addc(c);break;} } };
+        auto swap1=[&]()->bool{ for(int l=0;l<L;l++){ int s=sel[l]; if(s<0)continue; double ws=wt[l];
+            std::vector<int> fr; for(int c:adj[s]) if(!sf[c]&&blocked[c]==1&&sel[colblk[c]]<0) fr.push_back(c);
+            for(int c1:fr) if(wt[colblk[c1]]>ws+1e-9){ remc(s); addc(c1); return true; }
+            for(size_t i=0;i<fr.size();i++) for(size_t k=i+1;k<fr.size();k++){ int c1=fr[i],c2=fr[k];
+                if(colblk[c1]==colblk[c2]) continue; if(wt[colblk[c1]]+wt[colblk[c2]]<=ws+1e-9) continue;
+                if(std::binary_search(adj[c1].begin(),adj[c1].end(),c2)) continue; remc(s); addc(c1); addc(c2); return true; } }
+            return false; };
+        auto lopt=[&](){ while(swap1()){} };
+        std::vector<int> best_sel(L,-1); double bw=-1e18;
+        auto save=[&](){ double cw=wsel(); if(cw>bw+1e-9){bw=cw; best_sel=sel;} };
+        clr(); greedy(ord); lopt(); save();
+        for(int it=0; it<150; it++){ clr();
+            for(int i=L-1;i>0;i--){int j=(int)(rng.next()%(i+1)); std::swap(ord[i],ord[j]);}
+            greedy(ord); lopt(); save(); }
+        for(int l=0;l<L;l++) if(best_sel[l]>=0){ const Col&c=cols[best_sel[l]];
+            out[cand[l]]={c.orient,c.x,c.y,c.entry,c.exit}; }
+    };
+
+    // fallback: place bumped block b into best OTHER crane-feasible bay (freeze that bay)
+    auto fallback=[&](const std::vector<std::array<int,6>>& AA,int b,int avoid,std::array<int,6>& res)->bool{
+        std::vector<int> order; for(int j=0;j<m;j++) if(j!=avoid) order.push_back(j);
+        std::sort(order.begin(),order.end(),[&](int p,int q){return G[b].prefs[p]>G[b].prefs[q];});
+        for(int J:order){ std::vector<Col> froz;
+            for(int x=0;x<nblk;x++) if(x!=b&&AA[x][0]==J) froz.push_back(world_col(x,AA[x][1],AA[x][2],AA[x][3],AA[x][4],AA[x][5]));
+            std::vector<int> cand{b}; std::map<int,std::array<int,5>> out; pack_window(J,cand,froz,out);
+            auto it=out.find(b); if(it!=out.end()){ res={J,it->second[0],it->second[1],it->second[2],it->second[3],it->second[4]}; return true; } }
+        return false;
+    };
+
+    // one window-repack move on AA (in place); returns true if a valid trial was produced.
+    auto window_repack=[&](std::vector<std::array<int,6>>& AA)->bool{
+        std::vector<int> cbays; for(int j=0;j<m;j++){ int cnt=0; for(int b=0;b<nblk;b++) if(AA[b][0]==j)cnt++; if(cnt>=2)cbays.push_back(j); }
+        if(cbays.empty()) return false;
+        int J=cbays[rng.next()%cbays.size()];
+        std::vector<int> inbay; for(int b=0;b<nblk;b++) if(AA[b][0]==J) inbay.push_back(b);
+        int sb=inbay[rng.next()%inbay.size()]; int st=AA[sb][4];
+        std::sort(inbay.begin(),inbay.end(),[&](int a,int b){return std::abs(AA[a][4]-st)<std::abs(AA[b][4]-st);});
+        std::vector<int> window(inbay.begin(), inbay.begin()+std::min((int)inbay.size(),WIN));
+        std::vector<int> pull; for(int b=0;b<nblk;b++) if(AA[b][0]!=J && G[b].prefs[J]>G[b].prefs[AA[b][0]]) pull.push_back(b);
+        for(int i=(int)pull.size()-1;i>0;i--){int j=(int)(rng.next()%(i+1)); std::swap(pull[i],pull[j]);}
+        for(int i=0;i<std::min((int)pull.size(),NPULL);i++) window.push_back(pull[i]);
+        std::set<int> wset(window.begin(),window.end());
+        std::vector<Col> frozen; for(int b:inbay) if(!wset.count(b)) frozen.push_back(world_col(b,AA[b][1],AA[b][2],AA[b][3],AA[b][4],AA[b][5]));
+        std::map<int,std::array<int,5>> placed; pack_window(J,window,frozen,placed,true); // multi-entry
+        if(placed.empty()) return false;
+        // apply to AA
+        for(auto& kv:placed){ int b=kv.first; AA[b]={J,kv.second[0],kv.second[1],kv.second[2],kv.second[3],kv.second[4]}; }
+        // bumped: in inbay∩window but not placed -> fallback
+        for(int b:window){ bool wasIn=wset.count(b)&&std::find(inbay.begin(),inbay.end(),b)!=inbay.end();
+            if(wasIn && !placed.count(b)){ std::array<int,6> res; if(!fallback(AA,b,J,res)) return false; AA[b]=res; } }
+        return true;
+    };
+
+    auto elapsed=[&](){ return std::chrono::duration<double>(std::chrono::high_resolution_clock::now()-T0).count(); };
+
+    // descent move: pull spilled block b into preferred bay J by freeing FREE time-
+    // neighbours and requiring ALL of {F, b} to crane-fit (aggressive insertion the
+    // gentle window-repack cannot make).  Applies to AA in place; true if it fit all.
+    auto try_insert=[&](std::vector<std::array<int,6>>& AA,int b,int J,int FREE)->bool{
+        std::vector<int> inbay; for(int x=0;x<nblk;x++) if(x!=b&&AA[x][0]==J) inbay.push_back(x);
+        int rb=G[b].release, db=G[b].due;
+        std::vector<int> Fall; for(int x:inbay){ int ex=AA[x][5],en=AA[x][4]; if(!(ex<=rb||db<=en)) Fall.push_back(x); }
+        std::sort(Fall.begin(),Fall.end(),[&](int p,int q){return std::abs(AA[p][4]-rb)<std::abs(AA[q][4]-rb);});
+        std::vector<int> F(Fall.begin(), Fall.begin()+std::min((int)Fall.size(),FREE));
+        std::set<int> Fs(F.begin(),F.end());
+        std::vector<Col> frozen; for(int x:inbay) if(!Fs.count(x)) frozen.push_back(world_col(x,AA[x][1],AA[x][2],AA[x][3],AA[x][4],AA[x][5]));
+        std::vector<int> cand=F; cand.push_back(b);
+        std::map<int,std::array<int,5>> placed; pack_window(J,cand,frozen,placed,true,6); // multi-entry, fine grid
+        if((int)placed.size()!=(int)cand.size()) return false;   // could not fit all
+        for(auto& kv:placed){ int bb=kv.first; AA[bb]={J,kv.second[0],kv.second[1],kv.second[2],kv.second[3],kv.second[4]}; }
+        return true;
+    };
+
+    // ---- phase 1: descent (systematic spilled-block relocation) ----
+    {
+        double curo=obj_assign(A); double dl=budget_s*0.45;
+        for(int pass=0; pass<6 && elapsed()<dl; pass++){
+            std::vector<int> cands; for(int b=0;b<nblk;b++) if(G[b].prefs[A[b][0]]<G[b].maxpref) cands.push_back(b);
+            std::sort(cands.begin(),cands.end(),[&](int p,int q){return (G[p].maxpref-G[p].prefs[A[p][0]])>(G[q].maxpref-G[q].prefs[A[q][0]]);});
+            int moved=0;
+            for(int b:cands){ if(elapsed()>dl) break; int j=A[b][0];
+                std::vector<int> tg; for(int jt=0;jt<m;jt++) if(G[b].prefs[jt]>G[b].prefs[j]) tg.push_back(jt);
+                std::sort(tg.begin(),tg.end(),[&](int p,int q){return G[b].prefs[p]>G[b].prefs[q];});
+                for(int jt:tg){ std::vector<std::array<int,6>> snap=A;
+                    if(try_insert(A,b,jt,10)){ double no=obj_assign(A); if(no<curo-1e-6){curo=no;moved++;break;} else A=snap; }
+                    else A=snap; } }
+            if(moved==0) break;
+        }
+    }
+
+    // ruin-recreate kick: re-home k blocks (spilled-biased) to their best feasible bay
+    // -> jump basins when window-repack stalls.
+    auto ruin_recreate=[&](std::vector<std::array<int,6>>& AA,int k){
+        std::vector<int> pool; for(int b=0;b<nblk;b++) if(G[b].prefs[AA[b][0]]<G[b].maxpref) pool.push_back(b);
+        if(pool.empty()) for(int b=0;b<nblk;b++) pool.push_back(b);
+        for(int i=(int)pool.size()-1;i>0;i--){int j=(int)(rng.next()%(i+1)); std::swap(pool[i],pool[j]);}
+        int kk=std::min(k,(int)pool.size());
+        for(int i=0;i<kk;i++){ int b=pool[i]; std::array<int,6> res; if(fallback(AA,b,-1,res)) AA[b]=res; }
+    };
+
+    std::vector<std::array<int,6>> best=A, cur=A;
+    double bestobj=obj_assign(A), curobj=bestobj;
+    double Temp=std::max(1.0,bestobj*0.01); int stall=0; long iters=0;
+    while(elapsed()<budget_s){
+        iters++;
+        std::vector<std::array<int,6>> trial=cur;
+        bool ok;
+        if(stall>=25){ ruin_recreate(trial, 6+(int)(rng.next()%11)); ok=true; stall=0; }
+        else ok=window_repack(trial);
+        if(!ok) continue;
+        double tobj=obj_assign(trial);
+        double d=tobj-curobj;
+        if(d<-1e-6 || (double)(rng.next()%1000000)/1000000.0 < std::exp(-d/std::max(1e-9,Temp))){
+            cur.swap(trial); curobj=tobj;
+            if(curobj<bestobj-1e-6){ best=cur; bestobj=curobj; stall=0; } else stall++;
+        } else stall++;
+        Temp*=0.997;
+        if(stall>0 && stall%60==0){ cur=best; curobj=bestobj; }
+    }
+    py::list outA;
+    for(int b=0;b<nblk;b++){ auto&a=best[b]; outA.append(py::make_tuple(a[0],a[1],a[2],a[3],a[4],a[5])); }
+    return py::make_tuple(bestobj, outA, iters);
+}
+
 PYBIND11_MODULE(cranepack,m){
+    m.def("refine",&refine,
+          py::arg("blocks"),py::arg("baydims"),py::arg("bayunit"),
+          py::arg("w2"),py::arg("w3"),py::arg("init"),py::arg("budget_s"),
+          py::arg("seed")=7,py::arg("WIN")=6,py::arg("NPULL")=2,py::arg("STEP")=8);
     m.def("pack",&pack,
           py::arg("blocks"),py::arg("W"),py::arg("H"),py::arg("step"),
           py::arg("time_budget_s"),py::arg("seed")=12345,py::arg("warm")=py::none(),
