@@ -542,9 +542,27 @@ py::tuple refine(py::list blocks, py::list baydims, py::list bayunit,
         std::vector<int> best_sel(L,-1); double bw=-1e18;
         auto save=[&](){ double cw=wsel(); if(cw>bw+1e-9){bw=cw; best_sel=sel;} };
         clr(); greedy(ord); lopt(); save();
-        for(int it=0; it<150; it++){ clr();
+        for(int it=0; it<60; it++){ clr();
             for(int i=L-1;i>0;i--){int j=(int)(rng.next()%(i+1)); std::swap(ord[i],ord[j]);}
             greedy(ord); lopt(); save(); }
+        // force/repair (pack()'s optimum-reaching loop): kick an excluded block in,
+        // remove its conflicts, repair -> escapes MIS local optima the swaps can't.
+        auto load_best=[&](){ clr(); for(int l=0;l<L;l++) if(best_sel[l]>=0){int c=best_sel[l]; if(blocked[c]==0) addc(c);} };
+        load_best(); int since=0;
+        for(int it=0; it<120; it++){
+            double before=wsel(); int pick=-1,tr=0;
+            while(tr++<2*L){ int l=(int)(rng.next()%L); if(sel[l]<0&&!colsOf[l].empty()){pick=l;break;} }
+            if(pick<0){ clr(); for(int i=L-1;i>0;i--){int j=(int)(rng.next()%(i+1));std::swap(ord[i],ord[j]);} greedy(ord); lopt();
+                        if(wsel()>=before-1e-9) save(); else load_best(); continue; }
+            int c=colsOf[pick][rng.next()%colsOf[pick].size()];
+            for(int nb:adj[c]) if(sf[nb]) remc(nb);
+            addc(c);
+            for(int i=L-1;i>0;i--){int j=(int)(rng.next()%(i+1));std::swap(ord[i],ord[j]);} greedy(ord); lopt();
+            double after=wsel();
+            if(after>=before-1e-9) save(); else { load_best(); since++; }
+            if(after>before+1e-9) since=0;
+            if(since>50){ clr(); for(int i=L-1;i>0;i--){int j=(int)(rng.next()%(i+1));std::swap(ord[i],ord[j]);} greedy(ord); lopt(); save(); load_best(); since=0; }
+        }
         for(int l=0;l<L;l++) if(best_sel[l]>=0){ const Col&c=cols[best_sel[l]];
             out[cand[l]]={c.orient,c.x,c.y,c.entry,c.exit}; }
     };
@@ -636,13 +654,11 @@ py::tuple refine(py::list blocks, py::list baydims, py::list bayunit,
     double Temp=std::max(1.0,bestobj*0.01); int stall=0; long iters=0;
     while(elapsed()<budget_s){
         iters++;
-        std::vector<std::array<int,6>> trial=cur;
-        bool ok;
+        std::vector<std::array<int,6>> trial=cur; bool ok;
         if(stall>=25){ ruin_recreate(trial, 6+(int)(rng.next()%11)); ok=true; stall=0; }
         else ok=window_repack(trial);
         if(!ok) continue;
-        double tobj=obj_assign(trial);
-        double d=tobj-curobj;
+        double tobj=obj_assign(trial); double d=tobj-curobj;
         if(d<-1e-6 || (double)(rng.next()%1000000)/1000000.0 < std::exp(-d/std::max(1e-9,Temp))){
             cur.swap(trial); curobj=tobj;
             if(curobj<bestobj-1e-6){ best=cur; bestobj=curobj; stall=0; } else stall++;

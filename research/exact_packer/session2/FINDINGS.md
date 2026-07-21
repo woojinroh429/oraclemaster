@@ -128,3 +128,23 @@
   VLNS는 어디서든 never-worse(prob_31 강제=무변)이므로 구조적 통합 안전하나 Z1-지배엔 무익.
 
 ## 최종 제출 = submit_v74.zip (저밀도 -9.1%, 고밀도 무회귀/일부 대폭개선, 완벽 일관)
+
+## 6. Pure-C++ VLNS (v75) + the warm-limited finding
+- `cranepack.refine()`: whole low-density SLS in C++ (descent FREE~10 + window-repack +
+  ruin-recreate + SA). MIS strengthened with pack()'s force/repair loop + multi-entry +
+  fine-grid descent -> ~10-50x more iterations than the Python loop (2600 vs 50).
+- v75 = v74 with `_vlns_refine` replaced by ONE `CP.refine()` call (Python SLS removed;
+  only a single final check_feasibility guard kept so a rare geometry mismatch can never
+  ship an infeasible solution -> returns the feasible warm instead).
+- **A/B v74 vs v75 (4-trial median): net -0.2% (EQUIVALENT).** prob_20 -1.8% (v75 wins,
+  85558 vs 87156, both consistent), prob_13 +1.5% (v75 loses median but hits 70973 once,
+  below v74's best), prob_17 tie, prob_19 tie (v75 hits 56709 once, below v74's 58987).
+- **KEY FINDING: low-density is WARM-limited, not refinement-limited.** v75's better
+  outliers (70973, 56709) came from different exact_reassign WARMS, not from more SLS
+  iterations -- each warm basin has a floor the SLS reaches in ~50 iters, so the 50x C++
+  iteration speedup does NOT lower the objective. Multi-restart-from-descent inside
+  refine() did not help (confirmed the variance is warm-driven). The remaining lever is
+  WARM DIVERSITY (more exact_reassign modes/seeds, or a cheap greedy-warm fan-out that
+  the fast C++ refine could each polish + best-of), not faster refinement.
+- **Recommendation: v74 stays the ship** (proven -9.1% vs v71, broad-sweep + HD-checked).
+  v75 (pure C++) is an equivalent alternative kept for the warm-diversity direction.
