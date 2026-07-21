@@ -243,3 +243,26 @@ put cranepack's true max-concurrency into the master (or as feasibility cuts).
 That is the remaining (larger, still-uncertain) work; the area version is a
 measured negative. Also: the naive realiser positions worse than v77's
 bigleft/free-span greedy, compounding the loss.
+
+### Crane-capacity master — decisive pre-measurement (capprobe.py) = NEGATIVE
+Before building a cranepack-capacity master, measured the necessary condition:
+at each bay's most-congested instant on prob_38, can cranepack co-place MORE
+than v77 achieved there? (If not, there is no concurrency to recover.)
+
+prob_38 (v77 Z1 2629):
+- bay0 @t=44: v77 concurrent=13, cranepack_max=15  -> ROOM +2  (but only 15% of Z1)   [6s]
+- bay1 @t=43: v77=27, cranepack=26 -> NO room   (40% of Z1)   [134s]
+- bay2 @t=45: v77=39, cranepack=37 -> NO room   (45% of Z1)   [111s]
+
+Conclusion: the bays generating 85% of the tardiness (bay1, bay2) have NO
+concurrency room -- v77's greedy already packs at/above cranepack's reach there.
+Two further nails: (1) cranepack actually found FEWER than v77 on the dense bays
+(26<27, 37<39) -- its coarse step-4 grid is WEAKER than v77's exact engine at high
+density, so it cannot even supply a useful higher-capacity signal; (2) each
+cranepack window took 110-134s -- computationally impossible online in a 30s budget.
+
+Net: the schedule-first / crane-capacity-master direction does NOT pay off on
+high-density. It re-confirms (now with a direct concurrency measurement) that
+v77's greedy is already near the crane concurrency limit on the binding bays --
+i.e. high-density Z1 is near-optimal. Cheap measurement, saved a large build.
+Shipped solver unchanged (v77).
