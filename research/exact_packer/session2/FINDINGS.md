@@ -392,3 +392,26 @@ area/count relaxations Gurobi needs cannot capture, so Gurobi predicts gains tha
 not physically realise. v77's specialised packers (cranepack VLNS, bigleft) already
 operate at the crane-feasible frontier. v77 (the cleaned build) is near-optimal on
 both regimes; ship it.
+
+### ROOT-CAUSE investigation: why Gurobi can't close the P4/P5 gap (PROVEN)
+User flagged real gaps to top teams (P4 ~3.2M vs our 3.8M, P5 ~9.0M vs 10.4M) and
+suspected the packer lacks degrees of freedom. Investigated three hypotheses:
+ - H1 crane rule over-conservative: NO. utils check_entry = new layer k vs existing
+   layer j>=k with time co-presence -- exactly our crane_conflict. Not over-strict.
+ - H2 grid too coarse: NO. cranepack step 6->4 both place 26 in prob_38 bay1's binding
+   window (finer doesn't help); v77 bigleft gets 27. Packer is at ~the limit there.
+ - H3 exact Gurobi (conflict-graph): PROVEN INTRACTABLE. cgraph.py builds the exact
+   crane conflict-graph for ONE bay (85 blocks, 5 candidate positions -> 17412
+   position-conflict pairs) as order-variable big-M disjunctions; Gurobi finds NO
+   feasible solution in 60s.
+
+Root cause (definitive): the crane constraint couples GEOMETRY and ENTRY-ORDER (who
+enters first descends past the other), so the conflict graph depends on the schedule
+being optimised -- a non-convex, order-dependent feasibility region. The exact MIP
+needs a per-pair order variable + big-M, an intractable weak-LP model even for one
+bay; the tractable relaxation (area) is wrong and evaporates on realisation. There is
+no tractable-AND-exact MIP middle ground -- which is exactly why specialised
+heuristics (cranepack) win and Gurobi's home is smaller subproblems / the assignment
+layer. So the P4/P5 gap to top teams is NOT Gurobi-closeable and NOT a packer bug; it
+is most likely a stronger METAHEURISTIC (global large-neighbourhood search over
+assignment+schedule+packing jointly). That is the realistic lever, not Gurobi.
