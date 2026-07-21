@@ -373,3 +373,22 @@ low-density result is perfectly CONSISTENT across 6 clean runs (87156 x6) -- the
 "18% variance" was purely CPU contention from concurrent experiments, not inherent.
 Net: no P3 lever remains in budget/variance/engine; beating ~81k needs a better
 assignment optimiser, which is oracle-limited. v77's P3 path is at its floor.
+
+### High-density bay-redistribution (free assignment) — predicted -20%, evaporates on realise
+Fresh untried angle: v77 under-uses bay0 on prob_38 (Cbar=[7609,16941,19745] -- bay0
+half the others). A free Gurobi assign+schedule (per-bay achievable area cap, min
+w1*Z1+w3*Z3) PREDICTS Z1=2096 (-20%) by moving 156/250 blocks to balance congestion.
+But realised (force ext_bay into the dense construction): Z1=3091-3292 (WORSE than v77's
+2629), obj 41.8-44.5M vs 37.8M -> LOSE. It did cut Z3 (9238->2001) but raised Z1 more;
+net worse. Same failure as every other Gurobi angle: the area cap over-promises Z1
+feasibility; the redistribution doesn't crane-pack on-time.
+
+### SESSION CONCLUSION (high-density + P3 exhaustively explored)
+Every improvement lever tried -- high-density scheduling (Gurobi/area/cranepack),
+grid set-packing MIP, cranepack-capacity, new engine, bay redistribution; P3 budget
+rebalance, assignment LBBD, variance -- either matches v77 or evaporates on crane
+realisation. ROOT CAUSE: the binding constraint is geometric crane-packing, which the
+area/count relaxations Gurobi needs cannot capture, so Gurobi predicts gains that do
+not physically realise. v77's specialised packers (cranepack VLNS, bigleft) already
+operate at the crane-feasible frontier. v77 (the cleaned build) is near-optimal on
+both regimes; ship it.
