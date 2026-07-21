@@ -287,3 +287,31 @@ heuristics/engines beat a general MIP -- the MIP must discretise (killing the
 continuous placement freedom the engine exploits) and the fine-grid model explodes.
 Gurobi's genuine strength here is the ASSIGNMENT + SCHEDULING layers, not the
 nesting. (Consistent with the earlier naive-MIP 36s result and cranepack's 60x win.)
+
+### Gurobi scheduling with NoRel + achievable capacity (gsched2.py) — definitive negative
+Gave Gurobi every fair chance at the SCHEDULING layer (not nesting): per-bay
+time-indexed min-tardiness, capacity = v77's peak achieved concurrent footprint area
+(demonstrably achievable, not full-bay), NoRelHeurTime on, warm-started from v77.
+Then a CLEAN controlled realisation: the SAME dense packer (v71 _smallright bigleft)
+run with rank order (A) vs Gurobi's schedule order (B, via ext_entry) -- isolating the
+schedule lever from realiser quality.
+
+Result (Z1, same packer):
+  prob_38 (tOS .72):  A rank=2629,  Gurobi pred=2226,  B Gurobi-order=3130  -> LOSE
+  prob_37 (tOS .50):  A rank= 584,  Gurobi pred= 492,  B Gurobi-order= 733  -> LOSE
+
+The area-relaxed "gain" (-15/16%) is an ILLUSION: Gurobi optimises entry times under an
+area capacity that is blind to packing density, so its "optimal" schedule is a POOR
+packing dispatch order.  v77's rank order (big-first) packs densely (preserves free
+span), which matters more than the schedule.  A control (realctl.py) separately showed
+a naive engine realiser packs +63% worse than v77 on v77's OWN schedule -- so earlier
+"realise loss" numbers were realiser noise; this test removed that confound and Gurobi
+still loses.
+
+FINAL: across capprobe (no concurrency room), gpackgrid (grid MIP loses to engine),
+and gsched2 (Gurobi order loses to rank with the same packer), every angle converges:
+high-density Z1 is near-optimal under v77's greedy. A general MIP cannot beat it because
+the binding constraint is geometric crane-packing DENSITY, which the LP relaxations do
+not capture -- and v77's greedy already co-optimises packing+schedule near the frontier.
+Gurobi/NoRel work as designed; this problem's high-density regime just isn't where a
+monolithic MIP wins. Ship unchanged (v77).
