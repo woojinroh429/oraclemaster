@@ -148,3 +148,21 @@
   the fast C++ refine could each polish + best-of), not faster refinement.
 - **Recommendation: v74 stays the ship** (proven -9.1% vs v71, broad-sweep + HD-checked).
   v75 (pure C++) is an equivalent alternative kept for the warm-diversity direction.
+
+## 7. 최종 확정: 고밀도 무회귀 (temporal_os 게이트) + warm-diversity 네거티브
+- **warm-diversity(워커당 feedback+seed fan-out, v76)**: prob_13이 73634로 일관되나 v74(72390)
+  보다 나쁨. 원인: 2개 exact_reassign에 예산 쪼개 각 CP-SAT basin 품질↓ + 4워커가 이미
+  feedback/seed 다양성을 cross-worker best-of로 제공(중복). → **폐기. v74가 이미 그 다양성 보유.**
+- **고밀도 prob_30-40 (v71 vs v74, 2 trial)**: 9/11 tie, prob_32 -1.2%, prob_40 +563%(변동).
+  temporal_os 확인: prob_30/32/34/40/27 모두 **≥0.30 → 고밀도 경로 = v71과 바이트 동일 코드.**
+  즉 prob_40 스윙은 초고밀 인스턴스 고유의 RNG 변동이지 v74 퇴행 아님(같은 코드). prob_24는
+  temporal_os=0.252 → streamlined → v74가 개선(Z3-지배).
+- **확정**: v74 변경은 temporal_os<0.30(저밀도/Z3-지배)에만 작용. 고밀도(Z1-지배)는 v71과 동일,
+  Z1 near-optimal이라 헤드룸 없음. **v74 = 실질 최적, 추가 레버 없음.**
+
+## ★ 세션 최종 결론 ★
+- **제출 = submit_v74.zip** (7파일). 저밀도 -9.1%(prob_20 -16.6%, prob_19 -11.5%, prob_13 -4.2%),
+  고밀도 무회귀. 완벽 일관.
+- 배운 것: (1) use_cpp 버그가 v71의 streamlined+VLNS 경로를 통째로 죽이고 있었음(최대 발견).
+  (2) 저밀도는 warm-limited(iteration도 warm-diversity도 안 통함). (3) 고밀도 Z1 near-optimal.
+- 보존: cranepack.cpp(오라클+refine), vlns.py, myalgorithm_v74/v75.py, undef.py(AST 버그스캐너).
