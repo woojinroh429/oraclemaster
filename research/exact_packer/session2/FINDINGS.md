@@ -73,3 +73,44 @@
 2. (고밀도) tardiness-aware cranepack move: 넓은 entry 후보 + '이른 feasible entry' 가중치로
    space-time 조밀 스케줄 → Z1 감소. 그 뒤 Z3-polish.
 3. 현 제출 최선 = v71 (P3=102625). 통합 win 검증 전까지 유지.
+
+## ★★★ 4. 근본 버그 발견 + v74 (이번 세션 최대 성과) ★★★
+
+### use_cpp NameError — streamlined 경로가 v71 포함 모든 버전에서 크래시
+`_streamlined_lowdensity(prob_info, bay_unit, deadline, rng, worker_id)` 함수 본문이
+호출자(`_solve_once_impl`)의 지역변수 `use_cpp`를 참조(`_is_guard = ... not use_cpp`)하는데
+자기 시그니처엔 없어서 **항상 NameError로 크래시**. 호출부(3696)가 try/except로 삼켜서
+**조용히 old 폴백 경로(construction+ALNS)로**. 즉:
+- 제출된 v71의 저밀도는 streamlined/exact_reassign이 한 번도 안 돌고 폴백으로 나온 값.
+- v72/v73의 cranepack/VLNS 통합 코드는 크래시 지점 뒤라 실행조차 안 됨 (marginal = 폴백 노이즈).
+- standalone VLNS(_exact_reassign/_vlns_refine 직접 호출)만 진짜였음.
+
+**수정 = use_cpp를 파라미터로 전달** (시그니처 + 호출부 한 줄씩). 이걸로 streamlined+VLNS가
+파이프라인에서 실제로 돌기 시작.
+
+### v74 = use_cpp 수정 + clean 저밀도(shake/ALNS 제거, exact_reassign warm → full-budget VLNS)
+저밀도 A/B (v71 vs v74, 5 trial median):
+| inst | v71 | v74 | Δ | v74 일관성 |
+|---|---|---|---|---|
+| prob_20 | 104525 | **87156** | **-16.6%** | 87156 ×5 (동일) |
+| prob_13 | 75988 | **72789** | **-4.2%** | 72789 ×5 |
+| prob_17 | 62841 | 62841 | 0% | 62841 ×5 |
+| prob_19 | 66685 | **58987** | **-11.5%** | 58987 ×5 |
+| 합 | 310039 | **281773** | **-9.1%** | |
+- **완벽 일관 (매 인스턴스 5회 동일값). v71의 변동(prob_20 98840~110181)이 사라짐.**
+- 워커 다양성: 짝=exact_reassign feedback basin, 홀=seed basin. seed 워커가 prob_19의 58987 basin을 염.
+
+고밀도 무회귀 체크 (v71 vs v74, 2 trial):
+- prob_24 동일(993419), prob_34 노이즈내(+0.8%), prob_38 -83%(v71 408M outlier 회피), prob_40 -19%.
+- streamlined는 temporal_os<0.30 게이트라 Z1-지배 고밀도엔 무영향; 일부 Z3-지배 고밀도는 오히려 안정화.
+
+### v74 파이프라인 구조 (clean 저밀도)
+각 저밀도 워커: `exact_reassign(mode, 0.35*budget) → _vlns_refine(나머지 full) → return`.
+- _vlns_refine: 초기 descent(z3_relocate_cp, FREE~10) → window_repack SLS(cranepack 1회/iter,
+  WIN6/step8/single_entry, 125+ iters/30s) + stall시 ruin_recreate kick. best만 grader 검증(never-worse).
+- ALNS/SA-shake/sa_reassign 전부 제거 (저밀도엔 무용, 예산만 씀). cranepack 없으면 기존 shake로 폴백.
+- 제출: submit_v74.zip (7파일: myalgorithm, utils, ogc×3, st3dtcs, cranepack).
+
+### 다음
+- 광범위 스윕(prob_1~40 대표) 무회귀 최종확인 후 v74 제출.
+- (남음) 고밀도 tardiness-aware cranepack move (#44) — Z1-지배 초고밀엔 아직 레버 없음.
