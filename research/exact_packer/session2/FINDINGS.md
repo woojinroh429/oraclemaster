@@ -210,3 +210,36 @@ without them; prob_28 (the prefaware instance) is preserved.
 prob_40 (n=250, large hi_ratio) has ~8-10x objective variance across trials in
 BOTH v74 and v77 (1.99M vs ~17-19M) — a timing race in the bl_full worker's
 step=1 completion under CPU contention. Candidate for a future robustness fix.
+
+---
+
+## High-density LBBD prototype (Gurobi master + cranepack/engine oracle) — hdlbbd.py
+
+Motivation: on high-density instances the entire Z1 (tardiness) is congestion-
+WAITING — measured floor Z1 (every block enters at its release) = 0 for
+prob_27/38/40/37, while v77 achieves Z1 1796/2629/2751/488. And Z1 is 91-93% of
+the score on prob_27/38. So there is 100% theoretical room IF a smarter schedule
+can admit more blocks concurrently.
+
+Prototype (research/exact_packer/hdlbbd.py): fix v77's bay assignment; per bay,
+a Gurobi time-indexed min-sum-tardiness MASTER with a per-time AREA-cumulative
+capacity (demand = true union-of-layers footprint, cap = bay area * eta);
+realise the resulting entry schedule and grade.
+
+Result on prob_38 (v77 Z1 = 2629):
+- Master (area, eta=1.0) predicts Z1 = 675 (optimistic).
+- Realised with COARSE cranepack (step 2): Z1 ~1891 but 783 crane violations —
+  the coarse grid lets blocks overlap slightly; utils rejects it. Illusion.
+- Realised with the EXACT ogc_fast engine (== utils feasibility): Z1 = **4711**,
+  WORSE than v77's 2629. obj 65.6M vs 37.8M.
+
+Diagnosis / conclusion (empirical confirmation of the area-proxy thesis):
+The AREA-cumulative master OVER-PROMISES concurrency — it schedules early entries
+believing blocks fit by area, but the crane descent-conflict prevents that
+density, so the exact realisation slips and LOSES to v77's crane-tuned greedy.
+This is exactly why the old _cpsat_schedule (also area-master) was disabled.
+To win, the master's capacity must be CRANE-AWARE (cranepack), not area — i.e.
+put cranepack's true max-concurrency into the master (or as feasibility cuts).
+That is the remaining (larger, still-uncertain) work; the area version is a
+measured negative. Also: the naive realiser positions worse than v77's
+bigleft/free-span greedy, compounding the loss.
