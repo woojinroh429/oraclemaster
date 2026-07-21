@@ -315,3 +315,33 @@ the binding constraint is geometric crane-packing DENSITY, which the LP relaxati
 not capture -- and v77's greedy already co-optimises packing+schedule near the frontier.
 Gurobi/NoRel work as designed; this problem's high-density regime just isn't where a
 monolithic MIP wins. Ship unchanged (v77).
+
+---
+
+## P3 (low-density) headroom analysis — real improvement lead (gassign.py, gassignpack.py)
+
+Grader v74: P3 = 90545 (much improved). Top teams ~81000. P3 is low-density
+(Z1=0 target): objective = w2*Z2(imbalance) + w3*Z3(preference), pure assignment.
+
+Unconstrained assignment optimum (Gurobi, PROVEN gap=0.00):
+  prob_20: LB=40644 (Z2=3774,Z3=144)  v77~87-102k   headroom huge
+  prob_17: LB=39006                    v77 62841
+  prob_18: LB=20568                    v77 40602
+Decomposition (prob_20): objective is ~88% Z3 (preference), 12% Z2. v77 achieves
+Z2=2016/Z3=725; the optimum is Z2=3774/Z3=144 -- v77 OVER-BALANCES (minimises Z2)
+when w3(125) >> w2(6), pushing blocks OUT of their preferred bays (Z3 5x worse).
+
+BUT the unconstrained optimum is NOT achievable: forcing that assignment (ext_bay)
+packs only 299/300, and spilling the last block makes it LATE -> Z1>0 -> with the
+huge w1 (26667) the objective explodes to ~4M. So Z1=0 is sacred at low density, and
+v77's 96156 (Z1=0) is a real feasible point. The true target is the best Z1=0-PACKABLE
+assignment (~81k for top teams), not the 40644 unconstrained LB.
+
+Two real P3 levers (unlike the high-density dead-ends):
+ 1. VARIANCE: v77's low-density result swings 87k-103k across runs (~18%). Reliably
+    hitting the good basin alone is ~10%.
+ 2. Z2/Z3 TRADEOFF: the area-Benders in _exact_reassign appears to over-tighten the
+    popular (preferred) bay, forcing balance and inflating Z3. Weighting the assignment
+    more toward preference while keeping Z1=0-packable is the path toward 81k.
+Next: measure the best Z1=0-packable assignment (crane-count cap, not area) and reduce
+the exact_reassign variance.
