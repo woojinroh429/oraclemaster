@@ -114,3 +114,17 @@
 ### 다음
 - 광범위 스윕(prob_1~40 대표) 무회귀 최종확인 후 v74 제출.
 - (남음) 고밀도 tardiness-aware cranepack move (#44) — Z1-지배 초고밀엔 아직 레버 없음.
+
+## 5. 버그헌트 + 고밀도 최종결론
+- **AST undefined-name 스캐너(undef.py)로 v71 전체 스캔**: 진짜 잠재버그는 `use_cpp` 하나뿐.
+  `_pyclip`(NFP)도 걸렸으나 호출부가 `_HAVE_PYCLIP`로 게이트된 dead code라 무해.
+- **넓은 무회귀 스윕(v71 vs v74, prob_1/8/14/18/24/27/31/36/40)**: 퇴행 0. 오히려
+  prob_14 −11.9%, prob_18 −11.3%(저밀도), prob_24 −10.1%, prob_40 −35.2%(고밀도) 개선.
+  → **use_cpp 수정이 저·고밀도 불문 Z3-지배 인스턴스를 자동 개선**(streamlined VLNS 도달).
+- **고밀도 Z1(지각)은 near-optimal (병렬세션 7730e6f, CP-SAT OPTIMAL 증명)**: 밀도 헤드룸은
+  tardiness-무관(늦게 release된 블록은 빽빽이 넣어도 지각 안 줆). prob_27/31/36(Z1-지배)은 v74도 무변.
+  → tardiness-aware cranepack(#44)은 **dead-end**. 고밀도 추가 헤드룸 없음.
+- **통합**: temporal_os 게이트가 "Z3-지배(VLNS −10~35%) vs Z1-지배(near-optimal)"를 올바르게 분리.
+  VLNS는 어디서든 never-worse(prob_31 강제=무변)이므로 구조적 통합 안전하나 Z1-지배엔 무익.
+
+## 최종 제출 = submit_v74.zip (저밀도 -9.1%, 고밀도 무회귀/일부 대폭개선, 완벽 일관)
