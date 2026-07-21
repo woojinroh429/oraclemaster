@@ -345,3 +345,19 @@ Two real P3 levers (unlike the high-density dead-ends):
     more toward preference while keeping Z1=0-packable is the path toward 81k.
 Next: measure the best Z1=0-packable assignment (crane-count cap, not area) and reduce
 the exact_reassign variance.
+
+### P3 assignment LBBD (Gurobi+NoRel master + pack_schedule oracle) — oracle-limited
+Built the Gurobi (NoRel) assignment master + new-engine crane-feasibility Benders cut
+(gp3.py). Result on prob_20: collapses.
+  r0: theo Z3-opt assign 42791, engine reports Z1=206 -> over-tighten capf to ~0.45
+  r1: theo balloons to 97394, still late -> tighten more
+  r2: master infeasible -> collapse. No Z1=0 assignment found; no win vs v77 87156.
+
+Diagnosis: Gurobi/NoRel work (master solves fine); the FEASIBILITY ORACLE is the
+bottleneck. pack_schedule (a 1-pass greedy) over-reports tardiness on assignments that
+are largely feasible, so the Benders cut over-tightens and the master collapses. A
+correct LBBD here needs a STRONG+FAST packer oracle at v77's cranepack-VLNS quality --
+which v77 already integrates (exact_reassign + VLNS -> 87156). Swapping in the weaker
+new engine makes it worse. Reaching top's ~81k needs either a much stronger/faster
+oracle or an assignment insight we do not have; v77's existing P3 path is already near
+the best this toolchain supports. Ship unchanged (v77).
