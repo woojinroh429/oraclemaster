@@ -266,3 +266,24 @@ high-density. It re-confirms (now with a direct concurrency measurement) that
 v77's greedy is already near the crane concurrency limit on the binding bays --
 i.e. high-density Z1 is near-optimal. Cheap measurement, saved a large build.
 Shipped solver unchanged (v77).
+
+### "Gurobi done right" — grid set-packing for one packing window (gpackgrid.py)
+Tested whether a PROPER Gurobi formulation (not naive big-M) can match the engine
+on the fine 2D nesting subproblem: cell set-packing, y[b,o,p] with per-block <=1 and
+per-cell <=1 (tight relaxation + clique cuts), union-of-layers footprint rasterised
+to a grid; MIPFocus=1, Presolve=2, Symmetry=2, Cuts=2.
+
+prob_38 bay1 window (v77 concurrent = 27):
+- grid step 2: Gurobi placed 24, bound=inf (no bound in 20s), 73936 vars, solve 20s
+  -> LOSES to v77 (27) and cranepack (26).
+
+Reason (discretisation dilemma): a grid fine enough to match continuous exact
+placement is too large (74k binaries at step 2 already yields no bound in 20s);
+a coarser grid over-reserves boundary cells -> under-packs. Ranking on this window:
+exact ogc_fast engine (27) > cranepack heuristic (26) > Gurobi grid MIP (24).
+
+Conclusion: fine 2D irregular NESTING is a domain where specialised geometric
+heuristics/engines beat a general MIP -- the MIP must discretise (killing the
+continuous placement freedom the engine exploits) and the fine-grid model explodes.
+Gurobi's genuine strength here is the ASSIGNMENT + SCHEDULING layers, not the
+nesting. (Consistent with the earlier naive-MIP 36s result and cranepack's 60x win.)
