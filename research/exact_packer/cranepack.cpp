@@ -689,7 +689,8 @@ py::tuple refine(py::list blocks, py::list baydims, py::list bayunit,
 // Returns (placements[(bay,orient,x,y,entry,exit) or -1 if unplaced], tardiness,
 //          placed_count, ontime_count).
 py::tuple pack_schedule(py::list blocks, py::list bays, py::list assign,
-                        py::list rel_, py::list pt_, py::list due_, int step){
+                        py::list rel_, py::list pt_, py::list due_, int step,
+                        py::object prio_){
     const double BAND=0.6, SMALL_THRESH=0.60;
     int n=(int)py::len(blocks), nbay=(int)py::len(bays);
     std::vector<std::vector<std::vector<Poly>>> BL(n);
@@ -715,6 +716,8 @@ py::tuple pack_schedule(py::list blocks, py::list bays, py::list assign,
     for(int j=0;j<nbay;j++){ py::tuple t=py::cast<py::tuple>(bays[j]); Wd[j]=py::cast<double>(t[0]); Hd[j]=py::cast<double>(t[1]); }
     std::vector<int> asg(n),rel(n),pt(n),due(n);
     for(int b=0;b<n;b++){ asg[b]=py::cast<int>(assign[b]); rel[b]=py::cast<int>(rel_[b]); pt[b]=py::cast<int>(pt_[b]); due[b]=py::cast<int>(due_[b]); }
+    std::vector<double> prio(n); for(int b=0;b<n;b++) prio[b]=(double)due[b];
+    if(!prio_.is_none()){ int i=0; for(auto v: py::cast<py::list>(prio_)){ if(i<n) prio[i]=py::cast<double>(v); i++; } }
     std::vector<int> byarea(n); for(int i=0;i<n;i++) byarea[i]=i;
     std::sort(byarea.begin(),byarea.end(),[&](int a,int b){ return minarea[a]>minarea[b]; });
     std::vector<double> arank(n);
@@ -755,7 +758,7 @@ py::tuple pack_schedule(py::list blocks, py::list bays, py::list assign,
             for(auto&c:pres[j]) if(c.exit>t && c.by0<band_top) occ.push_back({c.bx0,c.bx1});
             std::sort(occ.begin(),occ.end());
             std::vector<int> pend; for(int b:mine) if(!done[b]&&rel[b]<=t) pend.push_back(b);
-            std::sort(pend.begin(),pend.end(),[&](int a,int b){ if(due[a]!=due[b])return due[a]<due[b]; return minarea[a]>minarea[b]; });
+            std::sort(pend.begin(),pend.end(),[&](int a,int b){ if(prio[a]!=prio[b])return prio[a]<prio[b]; return minarea[a]>minarea[b]; });
             int admitted=0;
             for(int b:pend){
                 bool is_small=arank[b]>=SMALL_THRESH; int no=(int)BL[b].size();
@@ -806,7 +809,7 @@ py::tuple pack_schedule(py::list blocks, py::list bays, py::list assign,
 PYBIND11_MODULE(cranepack,m){
     m.def("pack_schedule",&pack_schedule,
           py::arg("blocks"),py::arg("bays"),py::arg("assign"),
-          py::arg("rel"),py::arg("pt"),py::arg("due"),py::arg("step")=2);
+          py::arg("rel"),py::arg("pt"),py::arg("due"),py::arg("step")=2,py::arg("prio")=py::none());
     m.def("refine",&refine,
           py::arg("blocks"),py::arg("baydims"),py::arg("bayunit"),
           py::arg("w2"),py::arg("w3"),py::arg("init"),py::arg("budget_s"),
