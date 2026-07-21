@@ -166,3 +166,47 @@
 - 배운 것: (1) use_cpp 버그가 v71의 streamlined+VLNS 경로를 통째로 죽이고 있었음(최대 발견).
   (2) 저밀도는 warm-limited(iteration도 warm-diversity도 안 통함). (3) 고밀도 Z1 near-optimal.
 - 보존: cranepack.cpp(오라클+refine), vlns.py, myalgorithm_v74/v75.py, undef.py(AST 버그스캐너).
+
+---
+
+## v77: High-density path cleanup (myalgorithm.py 5969 -> 5187 lines, -13%)
+
+Goal (user): the high-density path is "혼잡" (congested); strip unnecessary
+things, accept 3-4% loss for clean code.
+
+### TIER-1 — dead-code removal (byte-identical, validated zero-regression)
+Removed code that never runs in production:
+- `_cpsat_schedule` / `_replay_schedule` / `_try_global_schedule` + the
+  `_USE_GLOBAL_CPSAT = False` block (hardcoded off) — 217 lines.
+- `_repair_touch` + its call (gated on `repair_ok`, always False).
+- `_smallright_construct` dead dispatch zoo: `feat_w` 12-feature scorer,
+  `atc`/`stdens`/`sac`/`cpsat`/`ext_entry`/`tcp` orders — production only ever
+  passes `mode` + `step` (order defaults to "rank").
+- `_hybrid_construct` dead order variants (rank_a/rank_a2/area_due/rank_d/
+  bigfirst/baylimit/cpsat) — production uses only rank/edd.
+- `coreperi_flag` and `il_mode` dead branches (both constants False).
+- BRKGA `else` fallback + PREFPOLISH legacy branch (dead at env defaults).
+- Mode `bigbottom` (no caller).
+- The 8 gate lambdas' overfit-fingerprint comment essays (180 lines) -> a
+  concise worker-role table (50 lines), preserving the exact boolean outcomes.
+
+Validation (v74 vs v77, 30s, 2 trials): identical on prob_21/26/31/33/35/38 and
+LD guards prob_19/20/13; prob_36 within 0.09% noise; prob_40 shows the same
+pre-existing timing-race variance in BOTH versions.
+
+### TIER-2 — construction mode-zoo collapse (validated equal-or-better)
+Ablation (v74, DIRS_EXTRA/BRKGA/PREFAWARE off) showed corner/BRKGA/prefaware are
+NO-OPS on high-density (prob_30/35/38 identical across all settings; corner even
+HURTS prob_21). So collapsed the hybrid worker's constructors to the proven set:
+- Kept: flatbl, bigleft, leftbottom (primaries) + prefaware (the Z3 lever).
+- Removed: corner_primary (cornerTL/BL/TR/BR), diagonal, coreperi + `parker`.
+
+Validation (v74 vs v77, hi_ratio set): prob_27 **-3.9%** (better), prob_33 more
+stable, prob_36/37/38/39/28 identical. The removed modes' "wins" (e.g. the
+diagonal "prob_37 -9%" comment) were overfit noise — prob_37 is byte-identical
+without them; prob_28 (the prefaware instance) is preserved.
+
+### Known pre-existing issue (NOT introduced by cleanup)
+prob_40 (n=250, large hi_ratio) has ~8-10x objective variance across trials in
+BOTH v74 and v77 (1.99M vs ~17-19M) — a timing race in the bl_full worker's
+step=1 completion under CPU contention. Candidate for a future robustness fix.
