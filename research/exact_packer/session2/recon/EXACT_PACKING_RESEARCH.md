@@ -67,3 +67,17 @@ the concurrency PoC, unlikely to beat the heuristic.  Not recommended.
 - arXiv 2206.00032 — A new MIP model for irregular strip packing
 - Lastra-Díaz & Ortuño — NFP-CM-VS exact models (irregular strip packing)
 - Gurobi 13 release notes; Gurobi Non-Convex Quadratic Optimization; MIQCP FAQ
+
+## Rollout (pilot) look-ahead test — NEGATIVE (rollout_test.py)
+
+Clean standalone test: construct one congested bay greedy vs k-step position rollout
+(fast recon engine).  Per-bay Z1:
+- prob_30 bay1: heuristic 139 | greedy 411 | rollout 452 (rollout WORSE than greedy)
+- prob_27 bay1: heuristic 1321 | greedy 2204 | rollout 2097 (rollout -5% vs greedy)
+Even when rollout beats greedy, BOTH are far worse than the polished pipeline result
+(2097 vs 1321).  Conclusion: the myopic bottom-left construction is NOT the binding
+limit — the ALNS polish dominates and overwrites construction quality, so look-ahead in
+construction does not change the final answer.  This unifies every construction/placement
+negative this session (ORDER0, anti-shadow, sweep, Gurobi exact, rollout).  The only real
+lever is the polish (ALNS), which is packing-search-time-bound (prob_27 1796@15s ->
+1564@60s) and already accelerated as far as accessible by RASTER.
