@@ -44,10 +44,17 @@ def cpack(bay, avail, present, t, weights):
     res=CP.pack(binL,float(W),float(H),STEP,TLP,seed=1,warm=None,frozen=froz,weights=[float(w) for w in weights])
     return {avail[loc]:(o,x,y,t,t+pt[b_i]) for (loc,o,x,y,en,ex),b_i in [(r,avail[r[0]]) for r in res[1]]}
 
+KROLL=10   # k-step rollout depth (then estimate the tail with a valid waiting LB)
+def waitLB(waiting, t):
+    return sum(max(0, max(t,rel[b])+pt[b]-due[b]) for b in waiting)
+
 def greedy_finish(bay, present, waiting, t, tard, guard_cap):
-    """Greedy completion from a partial state; returns total tardiness (or None if stuck)."""
-    present=dict(present); waiting=set(waiting); guard=0
+    """k-step greedy rollout: admit up to KROLL blocks, then estimate the remaining tail
+    with a valid waiting-tardiness lower bound.  Returns an ESTIMATE of total tardiness
+    (cheap enough to call as a pilot look-ahead at every event)."""
+    present=dict(present); waiting=set(waiting); guard=0; steps=0
     while waiting and guard<guard_cap:
+        if steps>=KROLL: return tard + waitLB(waiting, t)
         guard+=1
         for b in [b for b,v in present.items() if v[4]<=t]: del present[b]
         avail=[b for b in waiting if rel[b]<=t]
@@ -61,6 +68,9 @@ def greedy_finish(bay, present, waiting, t, tard, guard_cap):
             if not cands: return None
             t=min(cands); continue
         for b,v in got.items(): present[b]=v; waiting.discard(b); tard+=max(0,v[4]-due[b])
+        steps+=1
+        nc=[v[4] for v in present.values() if v[4]>t]+[rel[b] for b in waiting if rel[b]>t]
+        t=min(nc) if nc else t+1
     return tard if not waiting else None
 
 def rollout_bay(bay, blocks, cap):
