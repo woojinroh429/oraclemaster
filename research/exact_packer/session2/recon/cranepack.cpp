@@ -335,8 +335,13 @@ py::tuple pack(py::list blocks, double W, double H, int step,
 
     // exploit seed: weight-priority greedy (place heaviest blocks first)
     clear_all(); greedy_extend(worder); local_opt(); save_if_better();
+    // Full-cardinality is provably optimal: no selection can place more than nblk
+    // blocks, and with non-negative weights placing every block maximises weight too.
+    // So once best==nblk we can stop immediately -- this saves the wasted tail of every
+    // SUCCESSFUL pack (the common case in the low-density relocator, where success ==
+    // "all of F+b fit").  Correctness-preserving; only skips search that cannot improve.
     // initial random restarts (each hardened with the swap local opt) to get incumbent
-    for(int it=0; it<200 && now_s()<time_budget_s; it++){
+    for(int it=0; it<200 && now_s()<time_budget_s && best<nblk; it++){
         clear_all();
         for(int i=nblk-1;i>0;i--){ int j=rng.randint(i+1); std::swap(border[i],border[j]); }
         greedy_extend(border);
@@ -346,7 +351,7 @@ py::tuple pack(py::list blocks, double W, double H, int step,
     load_best();
 
     // iterated local search: force a random excluded block in (kick conflicts), repair.
-    while(now_s()<time_budget_s){
+    while(now_s()<time_budget_s && best<nblk){
         // snapshot current working weight
         double before=wsel();
         // pick a random excluded block that has at least one column

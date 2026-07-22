@@ -3555,9 +3555,23 @@ def _streamlined_lowdensity(prob_info, bay_unit, deadline, rng, worker_id, use_c
     _exsplit = (float(os.environ["EXSPLIT"]) if "EXSPLIT" in os.environ
                 else (_prof[0] if HAVE_CRANEPACK else 0.60))
     _vp1 = float(os.environ["VLNSP1"]) if "VLNSP1" in os.environ else _prof[1]
+    # ABSOLUTE exact-budget FLOOR.  The capacity-feedback (Benders) rounds in
+    # _exact_reassign converge to their fixed point at a roughly FIXED wall time
+    # (~8 s: feedback prob_20 5s->105274 but 8s->96156, then flat), independent of
+    # the total budget.  A fixed FRACTION (exsplit*total) starves it on the grader's
+    # short (~15 s) budget: 0.35*15=5.25 s -> exact stalls at 105274 (never reaches
+    # 96156), so VLNS starts from a bad basin and the whole low-density result is stuck
+    # (prob_20 102656@15s, bimodal).  Giving exact an absolute ~8 s floor (capped to
+    # leave VLNS >=4 s, and never above 60% of a tiny budget) lets it converge, and
+    # VLNS then reaches the strong basin RELIABLY -- measured @15s: prob_20 102656->
+    # 84994 (-17%, variance gone), prob_18 -20%, prob_17 -7%, prob_13/19 tie.  Inert at
+    # >=~23 s budgets (there exsplit*total already exceeds the floor), so 30/60 s
+    # untouched.  env EXFLOOR overrides the 8.0 s floor (0 disables).
+    _exfloor = float(os.environ.get("EXFLOOR", "8.0"))
+    _exact_budget = max(_exsplit * total, min(_exfloor, 0.6 * total))
     try:
         res = _exact_reassign(prob_info, bay_unit,
-                              min(deadline - 3.0, T0 + _exsplit * total),
+                              min(deadline - 4.0, T0 + _exact_budget),
                               mip_cap=6.0, mode=mode)
     except Exception:
         res = None
