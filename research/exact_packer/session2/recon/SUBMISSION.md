@@ -12,7 +12,32 @@ Fully reproducible from a fresh container (only needs g++, python3.12, pybind11)
    the low-density 15s win.
 3. `cranepack`: `pack()` stops at full cardinality (best==nblk, provably optimal),
    saving the wasted tail of every successful pack.
+4. `myalgorithm.py` high-density path: a **preference-lead hybrid worker** gated on the
+   objective weights (w3/w1 >= 0.10).  On preference-dominated instances it leads hybrid
+   worker i=2 with a full-window `prefaware` step=1 construction (which the shipped path
+   only ran last with a starving cap) -- the high-density Z3 15s win.
 `ogc_geom`, `ogc_state`, `st3dtcs` and the rest of the Python are byte-for-byte v82.
+
+## High-density preference (Z3) 15s convergence fix (root cause + effect)
+On the preference-dominated high-density instances (prob_37 objective is 76% Z3, prob_32
+similar; both have w3/w1=0.18 vs <=0.03 for every other instance) the Z3 lever is a full-
+budget `prefaware` construction: it places each block in its most-preferred feasible bay
+first, reaching a much lower Z3 floor than the preference-BLIND primaries.  But the shipped
+path only ran prefaware as a TAIL with a ~45% cap, AFTER the primary step=2 construction had
+consumed the ~9s hybrid window, so on 250-block instances prefaware step=1 (needs ~9s) never
+completed at the grader's 15s budget -- exactly the 60s-only gain (prob_37 60s reaches
+5.24M, 15s stalled at 6.81M).  Fix: on the Z3-dominated regime (w3/w1>=0.10, a pure weight
+property, no solution needed) the hybrid worker i=2 LEADS with a full-window prefaware step=1
+so it completes and enters best-of.
+- Paired prob_21..40 @15s (NEW vs shipped): **prob_37 -23.1% (6.81M->5.24M, Z3 8609->5983),
+  prob_32 -20.2% (4.95M->3.95M)**; prob_34 (also gate-firing) ties; total -2.07%.
+- **No regression**: the gate fires for exactly {32,34,37} (the only w3/w1>=0.10 instances);
+  on every other instance the added block is skipped -> provably the shipped code path
+  (prob_30's +0.7% in one run was multiprocessing jitter -- base-vs-base reproduces it, and
+  base==new==3046457 on a clean rerun).  Leftbottom (worker i=2's normal primary) stays
+  intact everywhere the gate does not fire, so the modes that win prob_30/40 are untouched.
+- **Inert at 60s**: prob_37/34 tie, prob_32 -0.1% -- the long-budget behaviour is unchanged
+  (there the shipped prefaware tail already completed).  env: the gate is weight-driven only.
 
 ## Low-density 15s convergence fix (root cause + effect)
 The streamlined low-density path gave `_exact_reassign` a FIXED FRACTION (exsplit*total)

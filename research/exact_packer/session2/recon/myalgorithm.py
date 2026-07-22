@@ -4477,6 +4477,36 @@ def _worker_entry(args):
                         if _hyb_deadline - time.time() > 6.0:
                             _keep(_attempt(1, _mode))
 
+                # PREFERENCE-LEAD worker (the 4th hybrid worker, _wid%4==3): leads with a
+                # FULL-WINDOW prefaware step=1 construction.  On preference-dominated
+                # instances a full-budget preference-aware construction reaches the
+                # 60s-quality Z3 floor in ~9s (measured prob_37 6.81M->5.24M at 15s, -23%;
+                # its Z3 8609->5983), but the shipped path only ran prefaware LAST with a
+                # tiny cap so it never completed at the 15s budget on 250-block instances.
+                # Leading with it (the full hybrid window, not a 45% cap) lets it complete
+                # and enter best-of.  Surfaced as _pref_sol for separate polish, exactly
+                # as the tail prefaware path does.  Runs on hybrid worker i=2 (a hybrid
+                # worker in every routing: [1,2] for n>=200, [1,2,3] for n<200).
+                # STRUCTURAL GATE w3/w1: this worker leads prefaware INSTEAD of its
+                # leftbottom primary, so it must fire only when prefaware genuinely wins
+                # -- otherwise the leftbottom candidate it would have produced is lost and
+                # best-of (min over the OTHER workers) cannot recover it (measured:
+                # unconditionally repurposing i=2 regressed prob_30 +16.7%, prob_40 +7.1%).
+                # Preference-dominance is a pure property of the weights: prob_37 has
+                # w3/w1=0.18 (prefaware -23%), every other instance <=0.03 (prefaware
+                # loses).  Gating on w3/w1>=0.10 selects exactly the Z3-dominated regime,
+                # leaving the leftbottom worker intact everywhere else -> no regression.
+                _w_g = prob_info.get("weights", {})
+                _pref_lead = (_w_g.get("w1", 1) > 0 and
+                              _w_g.get("w3", 0) >= 0.10 * _w_g.get("w1", 1))
+                if (_wid % 4 == 2) and _pref_lead:
+                    _keep(_attempt(1, "prefaware"))
+                    if _best[0] is not None:
+                        _pref_sol = _best[0][0]
+                    if _hyb_deadline - time.time() > 6.0:
+                        _keep(_attempt(2, _primary_mode))
+                    return _best[0]
+
                 # primary construction: step=2 fast feasible safety net, then step=1
                 # higher-quality kept iff it completes and improves.
                 _keep(_attempt(2, _primary_mode))
