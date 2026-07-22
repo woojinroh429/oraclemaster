@@ -5,9 +5,29 @@ produces `submit_build/submit_recon.zip` = { myalgorithm.py, utils.py, 5 .so }.
 Fully reproducible from a fresh container (only needs g++, python3.12, pybind11).
 
 ## What changed vs the previous submission (v82)
-Only `ogc_fast` changed: it is the RECONSTRUCTED engine with a tardiness-first
-find_best_placement + the exact-preserving RASTER bitmask (see README.md).  The other
-four modules and all Python are byte-for-byte the shipped v82.
+1. `ogc_fast`: the RECONSTRUCTED engine with a tardiness-first find_best_placement +
+   the exact-preserving RASTER bitmask (see README.md) -- the high-density win.
+2. `myalgorithm.py` low-density path: an **absolute exact-budget floor** (~8s) so the
+   assignment optimiser (`_exact_reassign`) converges before VLNS on short budgets --
+   the low-density 15s win.
+3. `cranepack`: `pack()` stops at full cardinality (best==nblk, provably optimal),
+   saving the wasted tail of every successful pack.
+`ogc_geom`, `ogc_state`, `st3dtcs` and the rest of the Python are byte-for-byte v82.
+
+## Low-density 15s convergence fix (root cause + effect)
+The streamlined low-density path gave `_exact_reassign` a FIXED FRACTION (exsplit*total)
+of the budget, but its capacity-feedback (Benders) rounds converge at a roughly FIXED
+~8s wall time regardless of total.  On the grader's short ~15s budget that fraction
+(0.35*15 = 5.25s) STARVED it -- exact stalled at its pre-convergence assignment
+(prob_20 105274 instead of the 96156 fixed point), so VLNS started from a bad basin and
+the result was stuck/bimodal (prob_20 102656@15s).  Fix: floor the exact budget at an
+absolute ~8s (capped to leave VLNS >=4s), so exact converges reliably.
+- Full prob_1..20 paired @15s (NEW vs OLD): **0 regressions, total -5.2%**.
+  Wins: prob_18 -24.5%, prob_12 -15.2%, prob_5 -14.4%, prob_20 -8.9%, prob_17 -7.6%,
+  prob_14 -4.7%; all others tie.  prob_20 variance eliminated (stable 84994).
+- **Inert at >=~23s budgets** (there exsplit*total already exceeds the floor): prob_20
+  30s NEW==OLD==84998, 60s NEW==OLD==81899.  So the fix strictly helps the short-budget
+  regime and never touches the long-budget behaviour.  env EXFLOOR overrides (0 = off).
 
 ## Validated effect (recon vs shipped v82, full-40 paired, 15s)
 - 0 infeasible everywhere.
