@@ -36,3 +36,15 @@ overlap matching shapely `area>0`; c==0 boundary-touch == feasible), plus:
     for m in ogc_fast ogc_geom ogc_state; do
       g++ -O3 -shared -std=c++17 -fPIC $INC $m.cpp -o $m.cpython-312-x86_64-linux-gnu.so
     done
+
+## forbidden-bitmap sweep (SWEEP env, default OFF)
+
+A per-(bay,entry_time) forbidden bay-grid bitmap F[k] per new-layer index (built from
+the crane j>=k rule over present blocks) lets a candidate be accepted without the
+per-present-block loop when its layers are disjoint from F[k] (exact confirm otherwise
+-> feasibility identical, validated SWEEP on==off).  Measured NOT faster in this regime:
+rebuilding F each call costs more than it saves at the moderate candidate/present-block
+counts here (microbench prob_27: 4.79 -> 4.96 ms/find).  Kept, gated off; the per-pair
+RASTER fast-reject is already the sweet spot.  prob_27 is iteration-bound (recon reaches
+1564 at 60s vs 1798 at 15s) so it needs a genuine feasibility speedup or an exact
+(Gurobi/CP-SAT) bay-window repair, not this sweep.

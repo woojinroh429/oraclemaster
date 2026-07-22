@@ -162,6 +162,48 @@ struct BlockShape {
 };
 struct Placed { int en,ex,bid,orient; double ox,oy,bx0,by0,bx1,by1; int bay; };
 
+static bool SWEEP = [](){ const char* e=std::getenv("SWEEP"); return e ? (e[0]=='1') : false; }();
+
+// OR rasterized layer L (world integer position wox,woy) into a bay-grid bitmap
+// F (bayH rows, wpr uint64 words per row, world col 0 == bit 0).
+static void or_layer_into_map(std::vector<uint64_t>& F,int wpr,int bayH,
+                              const LayerData& L,int wox,int woy){
+    if(L.cw==0) return;
+    long colbase=(long)wox+L.cx0;
+    for(int r=0;r<L.ch;r++){
+        int Y=woy+L.cy0+r; if(Y<0||Y>=bayH) continue;
+        const uint64_t* Lr=&L.bits[(size_t)r*L.wpr]; uint64_t* Fr=&F[(size_t)Y*wpr];
+        for(int lw=0;lw<L.wpr;lw++){
+            uint64_t v=Lr[lw]; if(!v) continue;
+            long bit0=colbase+(long)lw*64;
+            long wi=bit0>>6; int off=(int)((bit0%64+64)%64); if(bit0<0&&off) wi=-(((-bit0)+63)>>6);
+            if(off==0){ if(wi>=0&&wi<wpr) Fr[wi]|=v; }
+            else{ if(wi>=0&&wi<wpr) Fr[wi]|=(v<<off);
+                  if((wi+1)>=0&&(wi+1)<wpr) Fr[wi+1]|=(v>>(64-off)); }
+        }
+    }
+}
+// does rasterized layer L (world wox,woy) overlap bay-grid bitmap F?
+static bool layer_hits_map(const std::vector<uint64_t>& F,int wpr,int bayH,
+                           const LayerData& L,int wox,int woy){
+    if(L.cw==0) return true;
+    long colbase=(long)wox+L.cx0;
+    for(int r=0;r<L.ch;r++){
+        int Y=woy+L.cy0+r; if(Y<0||Y>=bayH) continue;
+        const uint64_t* Lr=&L.bits[(size_t)r*L.wpr]; const uint64_t* Fr=&F[(size_t)Y*wpr];
+        for(int lw=0;lw<L.wpr;lw++){
+            uint64_t v=Lr[lw]; if(!v) continue;
+            long bit0=colbase+(long)lw*64;
+            long wi=bit0>>6; int off=(int)((bit0%64+64)%64); if(bit0<0&&off) wi=-(((-bit0)+63)>>6);
+            uint64_t fw=0;
+            if(wi>=0&&wi<wpr) fw|=(Fr[wi]>>off);
+            if(off&&(wi+1)>=0&&(wi+1)<wpr) fw|=(Fr[wi+1]<<(64-off));
+            if(v&fw) return true;
+        }
+    }
+    return false;
+}
+
 struct Engine {
     std::vector<BlockShape> shapes;
     std::vector<std::vector<Placed>> timeline;
@@ -289,14 +331,52 @@ struct Engine {
                     prefpen = mx - bs.prefs[bay];
                 }
                 double bstep = std::max(1.0, std::min(bw[bay],bh[bay])/GRID_DIV);
+                // SWEEP: build per-new-layer forbidden bay-grid bitmaps once per (bay,en);
+                // a candidate whose layers are all disjoint from F[k] is DEFINITELY feasible
+                // (conservative maps) -> skip the exact per-present-block loop.
+                int maxL=0; for(int oi=0;oi<norient;oi++) maxL=std::max(maxL,(int)bs.orients[oi].layers.size());
+                int bayH=(int)std::ceil(bh[bay]); int bayW=(int)std::ceil(bw[bay]);
+                int wpr=(bayW+64)>>6;   // +1 col slack
+                std::vector<std::vector<uint64_t>> F;
+                bool use_sweep = SWEEP && RASTER && maxL>0 && bayH>0 && bayH<20000;
+                if(use_sweep){
+                    F.assign(maxL, std::vector<uint64_t>((size_t)bayH*wpr,0ULL));
+                    for(const Placed& te: timeline[bay]){
+                        if(!(en < te.ex && te.en < ex)) continue;
+                        bool newdesc=(te.en<=en&&en<te.ex)||(te.en<ex&&ex<=te.ex);
+                        bool tedesc =(en<=te.en&&te.en<ex)||(en<te.ex&&te.ex<=ex);
+                        if(!newdesc&&!tedesc) continue;
+                        const OrientData& eod=shapes[te.bid].orients[te.orient];
+                        int ne=(int)eod.layers.size();
+                        int tox=(int)std::floor(te.ox+0.5), toy=(int)std::floor(te.oy+0.5);
+                        for(int j=0;j<ne;j++){ const LayerData& L=eod.layers[j]; if(L.npts<3)continue;
+                            // newdesc: te layer j forbids new layers k<=j  -> F[0..min(j,maxL-1)]
+                            if(newdesc){ int hi=std::min(j,maxL-1); for(int k=0;k<=hi;k++) or_layer_into_map(F[k],wpr,bayH,L,tox,toy); }
+                            // tedesc: te layer j forbids new layers k>=j    -> F[j..maxL-1]
+                            if(tedesc){ for(int k=std::max(j,0);k<maxL;k++) or_layer_into_map(F[k],wpr,bayH,L,tox,toy); }
+                        }
+                    }
+                }
                 for(int oi=0; oi<norient; oi++){
+                    const OrientData& od=bs.orients[oi]; int nl=(int)od.layers.size();
                     std::vector<std::pair<double,double>> cand;
                     candidates(bid,oi,bay,bstep,cand);
                     for(auto& c: cand){
                         double x=std::round(c.first), y=std::round(c.second);
-                        if(!placement_feasible(bay,bid,oi,x,y,en,ex)) continue;
                         double score = tard*1e12 + prefpen*1e8 + y*1e3 + x;
-                        if(score<bestscore){bestscore=score;found=true;
+                        if(score>=bestscore) continue;   // can't beat current best -> skip work
+                        // bounds
+                        if(od.x0+x<-1e-6||od.y0+y<-1e-6||od.x1+x>bw[bay]+1e-6||od.y1+y>bh[bay]+1e-6) continue;
+                        bool ok;
+                        if(use_sweep){
+                            int ix=(int)x, iy=(int)y; bool clear=true;
+                            for(int k=0;k<nl&&clear;k++){ const LayerData& L=od.layers[k]; if(L.npts<3)continue;
+                                if(layer_hits_map(F[k],wpr,bayH,L,ix,iy)) clear=false; }
+                            ok = clear ? true : placement_feasible(bay,bid,oi,x,y,en,ex);
+                        } else {
+                            ok = placement_feasible(bay,bid,oi,x,y,en,ex);
+                        }
+                        if(ok){bestscore=score;found=true;
                             bbay=bay;bori=oi;bx=x;by=y;ben=en;bex=ex;}
                     }
                 }
