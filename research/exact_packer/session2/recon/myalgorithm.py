@@ -3569,9 +3569,13 @@ def _streamlined_lowdensity(prob_info, bay_unit, deadline, rng, worker_id, use_c
     # untouched.  env EXFLOOR overrides the 8.0 s floor (0 disables).
     _exfloor = float(os.environ.get("EXFLOOR", "8.0"))
     _exact_budget = max(_exsplit * total, min(_exfloor, 0.6 * total))
+    # Reserve for VLNS scales with the budget so tiny budgets (the streamlined path
+    # activates at total>=4s) never starve exact -- at total=4 the reserve is ~1.4s
+    # (matching the old deadline-3 behaviour), at the >=11s budgets it is the full 4s.
+    _vlns_reserve = min(4.0, 0.35 * total)
     try:
         res = _exact_reassign(prob_info, bay_unit,
-                              min(deadline - 4.0, T0 + _exact_budget),
+                              min(deadline - _vlns_reserve, T0 + _exact_budget),
                               mip_cap=6.0, mode=mode)
     except Exception:
         res = None
