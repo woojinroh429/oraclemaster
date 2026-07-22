@@ -48,3 +48,18 @@ counts here (microbench prob_27: 4.79 -> 4.96 ms/find).  Kept, gated off; the pe
 RASTER fast-reject is already the sweet spot.  prob_27 is iteration-bound (recon reaches
 1564 at 60s vs 1798 at 15s) so it needs a genuine feasibility speedup or an exact
 (Gurobi/CP-SAT) bay-window repair, not this sweep.
+
+## Gurobi exact-repair PoC (gurobi_poc.py) — NEGATIVE
+
+Q: can an exact (Gurobi) entry-time re-schedule of the most-congested bay beat the
+heuristic?  bay1 of prob_27 (112 blk, heur bay-Z1=1319):
+- concurrency-capped (<= heuristic Cmax=34) exact min-tardiness => 526 (looks like -60%).
+- BUT realizing that schedule under REAL crane packability (place every block at its
+  Gurobi entry or the earliest feasible time after) => 2195, WORSE than the heuristic.
+  The concurrency relaxation is illusory: the ~30 blocks that don't crane-pack at the
+  relaxed schedule cascade into large delays.
+Conclusion: the heuristic (recon reaches 1564 total at 60s) is already near the
+achievable frontier under real packability; crane packability does not relax into a
+useful MIP (loose => illusory, tight => geometric intractability — same wall task #20
+hit).  prob_27's 15s(1796)->60s(1564) gap is packing-search TIME, not schedule
+sub-optimality.  Do NOT port this to C++.
