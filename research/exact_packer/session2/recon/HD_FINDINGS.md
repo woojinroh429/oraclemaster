@@ -134,3 +134,25 @@ quality-identical) and, even at ~10-30x, likely only rescues MID-density (150-20
 prob_38's 77s decode would still be ~3-8s -> ~2-3 generations, still decode-bound on the
 250-block class.  Payoff is therefore bounded to the mid-density regime where BRKGA is
 already close; the 250-block P5/P6 class stays greedy-territory.
+
+## Path-1 VERDICT: word-parallel free-space is only ~2x on our bay geometry (2026-07-23)
+Before committing to the large bit-parallel free-space decoder build, a standalone
+micro-benchmark measured its ceiling: naive per-cell feasibility scan vs word-parallel
+bitmap erosion (infeasible_x = OR over the block's set cells of the forbidden row big-shifted
+by dx), on a representative 180x16 bay with ~60 placed rects and a ~40-cell block layer.
+Result: **1.9x** (3.92 -> 2.08 us/scan).  Not the hoped 10-30x, because the bays are SMALL
+and THIN: 180 wide = only ~3 machine words (so the 64-way word parallelism barely applies),
+16 tall = few rows, and each of the block's ~40 raster cells still needs its own big-shift
+while the naive scan early-breaks on the first forbidden cell.  With the F[k] build overhead
+on top, a real decoder would be ~1.5-2x -> prob_35's 6s decode -> ~3s -> ~5 generations in
+15s, far from the ~40 needed for BRKGA anytime search to beat greedy.
+
+FINAL CONCLUSION of the BRKGA/decoder line: a ~100x decode speedup (needed for population
+anytime convergence at 15s) is NOT achievable on this problem, because (a) contact/gather/
+neighbor work is already negligible, (b) the cost is the raw step=1 cell count, (c) coarsening
+that count loses the fine feasibility coverage that Z1 quality depends on, and (d) the only
+quality-preserving cell-count reducer -- word-parallel free-space -- is capped at ~2x by the
+small/thin bay geometry.  The friend's fast-decoder metaheuristic likely relies on larger
+bays (where word-parallelism pays) and/or simpler (non-per-layer, non-crane) feasibility.
+For THIS problem the greedy directional heuristics + the shipped FSCAN acceleration remain
+the better construction; BRKGA stays a mid-density best-of contributor, not the primary.
