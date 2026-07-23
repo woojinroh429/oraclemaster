@@ -31,7 +31,32 @@ Fully reproducible from a fresh container (only needs g++, python3.12, pybind11)
    (min) tails so they can never regress; the v74 DIRS_EXTRA corner-primary block is
    deliberately NOT restored (it starves the winning primary at 15s -- see below).
 
+7. `myalgorithm.py` worker routing: on a **CPU-limited grader** (fewer than 4 usable
+   cores -> n_workers<4) the last worker was the numba guard, which lands junk on
+   ultra-dense P6 and cannot complete bl_full in 15s -- a wasted worker.  Now that
+   worker also joins the hybrid best-of (the engine worker is preserved at n_workers=3).
+   Inert at n_workers>=4; big recovery if the grader is 2-3 cores (see below).
+
 `ogc_geom`, `ogc_state`, `st3dtcs` and the rest of the Python are byte-for-byte v82.
+
+## CPU-limited-grader worker utilisation (root cause + effect)
+`n_workers = min(WORKERS=4, len(os.sched_getaffinity(0)))`.  A grader confined to 2
+cores silently runs 2 workers -- and forcing 4 processes onto 2 cores is catastrophic
+(measured prob_38 46x worse, prob_20 +21%: each worker gets half a core so the winning
+worker never converges), so the min() cap is correct -- never oversubscribe.  But at
+n_workers<4 the last worker is the numba guard, which on ultra-dense P6 lands junk
+(obj 46x the winner) and, as bl_full, cannot finish a 250-block step=1 in 15s -> dead
+weight when workers are already scarce.
+- Fix: at n_workers<4 (hi_ratio only) also route the LAST worker to the hybrid best-of,
+  so the scarce workers cover the winning primaries (bigleft/leftbottom) instead of the
+  dead guard.  W0 stays the engine worker at n_workers==3 (it wins some mid-density,
+  e.g. prob_35 -- making it hybrid regressed +45%).  Feasibility guaranteed (flat_bl
+  step=2 + _safe_sequential).
+- **4-core: byte-inert** (prob_38/35/20 identical to the prior baseline).
+- **2-core sim (prob_21..40 @15s): 11 wins** (prob_35 -41.6%, prob_21 -24.5%, prob_28
+  -19.9%, prob_33 -7.1%, prob_31 -5.0%, prob_38/40 -1.1% == the 4-core result), 9 ties,
+  **0 regressions, 0 infeasible**.  3-core: prob_35 tie (engine preserved), prob_30
+  -14.3%.  Low-density/P3 untouched (not hi_ratio).  env HYBRIDALL=0 reverts.
 
 ## High-density P5/P6 regression fix -- restore diagonal/coreperi modes (root cause + effect)
 The recon rebuild of the `_smallright_construct` scoring block kept only
