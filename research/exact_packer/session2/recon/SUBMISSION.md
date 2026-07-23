@@ -44,6 +44,31 @@ Fully reproducible from a fresh container (only needs g++, python3.12, pybind11)
    place_custom iterates only the feasible cells (no full-grid enumeration, no per-cell
    pybind).  Byte-identical construction; 24s -> ~15s.  See below.
 
+9. `ogc_fast` + `myalgorithm.py`: **tardiness-aware BEAM-LOOKAHEAD constructor**
+   (`_beam_construct`, default on; env `BEAM=0` disables).  ROOT CAUSE it fixes: on
+   contended mid/high-density the popular bay is only ~67-71% AREA-full yet released
+   blocks WAIT -- the binding limit is crane descent clearance, not area -- and one-shot
+   greedy leaves that simultaneous-occupancy capacity on the table, locking in tardiness
+   that the downstream ALNS cannot recover (it only trims Z3, never Z1 below the
+   construction floor).  The beam is event-driven; at each event it branches on the
+   highest-priority ready block that has a real choice (K diverse positions) and scores
+   each branch by a FULL greedy rollout to completion (projected total tardiness), keeping
+   the W best partial states.  This finds tighter simultaneous packings -> fewer waiting
+   blocks -> lower Z1 that SURVIVES the ALNS.  New engine methods make the rollout exact
+   AND fast: `greedy_rollout(_from)` (event-driven leftbottom completion in C++) and a
+   dual-raster `lb_best` -- a conservative TOUCH raster (disjoint => provably feasible)
+   plus a tight INTERIOR raster (overlap => provably infeasible, area>0), so only the thin
+   boundary band needs an exact `placement_feasible`; this cut a 150-block rollout ~431ms
+   -> ~31ms (14x) with byte-identical results, and a full mid-density beam ~170s -> ~17s.
+   Adaptive width: wide W4K4 for mid-density, narrow W2K3 for extreme (where a wide beam
+   over-explores the imperfect rollout heuristic and misranks).  Wired into
+   `_try_smallright`'s best-of on worker 1 only (workers 2/3 keep the mode zoo as the
+   best-of safety net), gated to w1>=5000 (Z1-dominated) AND temporal_os<0.72 (mid+extreme,
+   not P6-scale) AND n<200 AND budget>24s.  best-of keeps min so inside the band it can
+   only improve; outside it construction is byte-identical.  Validated paired @60s
+   (isolated, deterministic): prob_30 -11.0%, prob_23 -7.5%, prob_26 -2.7%, prob_27 -2.2%;
+   prob_25 (w1=667) and P6 (n>=200) excluded, 0 regressions, 0 infeasible.
+
 `ogc_geom`, `ogc_state`, `st3dtcs` and the rest of the Python are byte-for-byte v82.
 
 ## High-density construction convergence -- windowed C++ scan (root cause + effect)
