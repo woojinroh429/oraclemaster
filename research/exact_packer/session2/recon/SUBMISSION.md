@@ -16,7 +16,32 @@ Fully reproducible from a fresh container (only needs g++, python3.12, pybind11)
    objective weights (w3/w1 >= 0.10).  On preference-dominated instances it leads hybrid
    worker i=2 with a full-window `prefaware` step=1 construction (which the shipped path
    only ran last with a starving cap) -- the high-density Z3 15s win.
+5. `ogc_fast` + `myalgorithm.py`: **FSCAN construction acceleration** (default on).  A new
+   SWEEP-pruned C++ `feasible_scan` replaces the per-cell `placement_feasible` pybind
+   round-trips on place_custom's full-grid scan -- byte-identical feasibility set + visit
+   order, ~1.5x faster full-grid construction.  This lets the higher-Z1-quality step=1
+   build COMPLETE inside the ~9s hybrid window on the 100-150 block instances where it
+   otherwise times out, so the winning worker lands the step=1 basin -- the high-density
+   Z1 15s win.
 `ogc_geom`, `ogc_state`, `st3dtcs` and the rest of the Python are byte-for-byte v82.
+
+## High-density Z1 15s convergence fix -- FSCAN (root cause + effect)
+The Z1-dominated high-density instances are convergence-limited at 15s: the fine-grid step=1
+construction packs a lower Z1 than step=2 (prob_38 2494 vs 2654) but needs ~21-23s on 250-block
+instances / ~9-11s on 150-block instances, so at the grader's 15s budget it TIMES OUT and the
+winning worker falls back to the worse step=2 basin.  The scan cost is the per-cell
+`placement_feasible` calls; the winning bottleneck (dense feasible cells) is the O(present)
+overlap loop.  Fix: a SWEEP-pruned C++ `feasible_scan` returns every feasible (bay,orient,ix,iy)
+of the full-grid first scan in one call (conservative forbidden bitmap -> a cell that misses
+every layer map is DEFINITELY feasible, skipping the exact loop).  Byte-identical -> the Python
+scorer sees an identical candidate stream.  ~1.5x on full-grid construction, enough to let
+step=1 complete in the window on the 100-150 block class.
+- Paired all-40 @15s (FSCAN on vs off): **prob_24 -30.9%, prob_27 -10.6%**, prob_16/26/30
+  smaller; total high-density -2.64%, low-density -0.11%; **0 regressions, 0 infeasible**.
+- The 250-block class is windows-rescan dominated (feasible_scan only accelerates the
+  windowless first scan; rebuilding the bitmap for a few-cell rescan is net-negative so those
+  keep the direct check), so it is ~inert there (prob_38/40 tie) -- no non-monotone P5/P6 risk.
+  env FSCAN=0 disables.
 
 ## High-density preference (Z3) 15s convergence fix (root cause + effect)
 On the preference-dominated high-density instances (prob_37 objective is 76% Z3, prob_32

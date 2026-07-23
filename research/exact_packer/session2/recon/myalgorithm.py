@@ -4760,6 +4760,18 @@ def _smallright_construct(prob_info, deadline_s, small_thresh=0.60, step=1, mode
     8-21%.  Returns recs or {} on failure (best-of falls back to rank -> no regress).
     """
     import time as _t, heapq as _hq, math as _m
+    import numpy as _np
+    # FSCAN: replace place_custom's per-cell placement_feasible pybind round-trips on the
+    # FULL-GRID scan with ONE SWEEP-pruned C++ feasible_scan (byte-identical feasibility set
+    # + visit order -> identical placement).  ~1.5x faster full-grid construction, which lets
+    # step=1 (the higher-Z1-quality build) COMPLETE inside the ~9s hybrid window on the
+    # 100-150 block instances where it otherwise times out -> the winning worker lands the
+    # step=1 basin.  Validated paired @15s over all 40 train instances: prob_24 -30.9%,
+    # prob_27 -10.6%, prob_16/26/30 smaller, 0 regressions, 0 infeasible.  The 250-block
+    # class is windows-rescan dominated (feasible_scan only accelerates the windowless first
+    # scan) so it is ~inert there (prob_38/40 tie) -- no non-monotone basin risk on P5/P6.
+    # env FSCAN=0 disables.
+    _FSCAN = os.environ.get("FSCAN", "1") == "1"
     try:
         E = _ogc_fast_engine(prob_info); E.clear_all()
     except Exception:
@@ -4860,6 +4872,16 @@ def _smallright_construct(prob_info, deadline_s, small_thresh=0.60, step=1, mode
         # scan -> identical placement, far fewer feasibility calls.
         ex=cur+pt[b]; best=None; best_sc=None
         _tc = [] if topm else None
+        _fs_set=None
+        if _FSCAN and windows is None:
+            # one SWEEP-pruned C++ scan gives every feasible (bay,orient,ix,iy) for the
+            # FULL-GRID first scan; the loop tests membership instead of a per-cell
+            # placement_feasible pybind round-trip.  Only for windows is None: a windowed
+            # rescan is a handful of cells, so rebuilding the whole forbidden bitmap for it
+            # is net-negative -- those keep the direct per-cell check.
+            _blist=(bay_list if ext_bay is None else [ext_bay[b]])
+            _arr=E.feasible_scan(b,_blist,cur,ex,step)
+            _fs_set={(int(r[0]),int(r[1]),int(r[2]),int(r[3])) for r in _arr}
         for j in (bay_list if ext_bay is None else [ext_bay[b]]):
             bw_j=bays[j]["width"]; bh_j=bays[j]["height"]
             occ_base=None
@@ -4889,7 +4911,7 @@ def _smallright_construct(prob_info, deadline_s, small_thresh=0.60, step=1, mode
                     _ixseq=None
                 for ix in (range(lo_x, hi_x+1, step) if _ixseq is None else _ixseq):
                     for iy in (range(lo_y, hi_y+1, step) if _ixseq is None else sorted(_pbi[ix])):
-                        if E.placement_feasible(j,b,oi,float(ix),float(iy),cur,ex):
+                        if (((j,oi,ix,iy) in _fs_set) if _fs_set is not None else E.placement_feasible(j,b,oi,float(ix),float(iy),cur,ex)):
                             wx=ix+x0; wy=iy+y0
                             if mode=="leftbottom":
                                 # LEFT-BOTTOM (horizontal-first): fill left-to-right

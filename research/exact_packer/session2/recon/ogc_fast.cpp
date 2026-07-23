@@ -17,6 +17,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <cstdint>
+#include <cstring>
 #include <vector>
 #include <tuple>
 #include <algorithm>
@@ -385,6 +386,81 @@ struct Engine {
         }
         return {found,bbay,bori,bx,by,ben,bex};
     }
+
+    // Full-grid feasible-position scan replicating place_custom's inner (bay,orient,ix,iy)
+    // loop EXACTLY (same ceil/floor grid, same bay->orient->ix->iy order, same
+    // placement_feasible) in ONE C++ call.  Returns feasible (bay,orient,ix,iy) as an
+    // Nx4 int array so the Python scorer consumes an identical candidate stream.
+    py::array_t<int> feasible_scan(int bid, std::vector<int> bay_list, int en, int ex, int step){
+        const BlockShape& bs=shapes[bid];
+        int norient=(int)bs.orients.size();
+        std::vector<int> out;
+        for(int bay : bay_list){
+            double bw_j=bw[bay], bh_j=bh[bay];
+            // SWEEP prune: build per-new-layer forbidden bay-grid bitmaps once per bay
+            // (conservative -> a position whose layers miss every F[k] is DEFINITELY
+            // feasible, skipping the O(present) exact loop that dominates on feasible
+            // cells in a dense bay).  Identical feasibility set as the exact scan.
+            int maxL=0; for(int oi=0;oi<norient;oi++) maxL=std::max(maxL,(int)bs.orients[oi].layers.size());
+            int bayH=(int)std::ceil(bh_j), bayW=(int)std::ceil(bw_j);
+            int wpr=(bayW+64)>>6;
+            std::vector<std::vector<uint64_t>> F;
+            bool use_sweep = RASTER && maxL>0 && bayH>0 && bayH<20000;
+            if(use_sweep){
+                F.assign(maxL, std::vector<uint64_t>((size_t)bayH*wpr,0ULL));
+                for(const Placed& te: timeline[bay]){
+                    if(!(en < te.ex && te.en < ex)) continue;
+                    bool newdesc=(te.en<=en&&en<te.ex)||(te.en<ex&&ex<=te.ex);
+                    bool tedesc =(en<=te.en&&te.en<ex)||(en<te.ex&&te.ex<=ex);
+                    if(!newdesc&&!tedesc) continue;
+                    const OrientData& eod=shapes[te.bid].orients[te.orient];
+                    int ne=(int)eod.layers.size();
+                    int tox=(int)std::floor(te.ox+0.5), toy=(int)std::floor(te.oy+0.5);
+                    for(int j=0;j<ne;j++){ const LayerData& L=eod.layers[j]; if(L.npts<3)continue;
+                        if(newdesc){ int hi=std::min(j,maxL-1); for(int k=0;k<=hi;k++) or_layer_into_map(F[k],wpr,bayH,L,tox,toy); }
+                        if(tedesc){ for(int k=std::max(j,0);k<maxL;k++) or_layer_into_map(F[k],wpr,bayH,L,tox,toy); }
+                    }
+                }
+            }
+            for(int oi=0; oi<norient; oi++){
+                const OrientData& od=bs.orients[oi]; int nl=(int)od.layers.size();
+                double w=od.x1-od.x0, h=od.y1-od.y0;
+                if(w>bw_j+1e-9 || h>bh_j+1e-9) continue;
+                int lo_x=(int)std::ceil(-od.x0), hi_x=(int)std::floor(bw_j-od.x1);
+                int lo_y=(int)std::ceil(-od.y0), hi_y=(int)std::floor(bh_j-od.y1);
+                for(int ix=lo_x; ix<=hi_x; ix+=step)
+                    for(int iy=lo_y; iy<=hi_y; iy+=step){
+                        bool ok;
+                        if(use_sweep){
+                            bool clear=true;
+                            for(int k=0;k<nl&&clear;k++){ const LayerData& L=od.layers[k]; if(L.npts<3)continue;
+                                if(layer_hits_map(F[k],wpr,bayH,L,ix,iy)) clear=false; }
+                            ok = clear ? true : placement_feasible(bay,bid,oi,(double)ix,(double)iy,en,ex);
+                        } else ok = placement_feasible(bay,bid,oi,(double)ix,(double)iy,en,ex);
+                        if(ok){ out.push_back(bay); out.push_back(oi); out.push_back(ix); out.push_back(iy); }
+                    }
+            }
+        }
+        int nrows=(int)out.size()/4;
+        py::array_t<int> arr({nrows,4});
+        if(nrows>0) std::memcpy(arr.mutable_data(), out.data(), out.size()*sizeof(int));
+        return arr;
+    }
+
+    // Batch feasibility for an explicit (xs,ys) position list of ONE (bay,orient).
+    // Returns a bool mask in the same order -> lets place_custom keep its EXACT position
+    // enumeration + tie-break order (byte-identical) while replacing N per-position pybind
+    // round-trips with a single call.  Works for both the full-grid and windowed loops.
+    py::array_t<bool> feasible_mask(int bay,int bid,int orient,
+                                    py::array_t<int,py::array::c_style|py::array::forcecast> xs,
+                                    py::array_t<int,py::array::c_style|py::array::forcecast> ys,
+                                    int en,int ex){
+        int n=(int)xs.shape(0);
+        py::array_t<bool> out(n);
+        const int* xp=xs.data(); const int* yp=ys.data(); bool* op=out.mutable_data();
+        for(int i=0;i<n;i++) op[i]=placement_feasible(bay,bid,orient,(double)xp[i],(double)yp[i],en,ex);
+        return out;
+    }
 };
 
 int classify_pair(py::array_t<double,py::array::c_style|py::array::forcecast> A,
@@ -411,5 +487,7 @@ PYBIND11_MODULE(ogc_fast,m){
         .def("clear_all",&Engine::clear_all)
         .def("compute_bbox",&Engine::compute_bbox)
         .def("placement_feasible",&Engine::placement_feasible)
-        .def("find_best_placement",&Engine::find_best_placement);
+        .def("find_best_placement",&Engine::find_best_placement)
+        .def("feasible_scan",&Engine::feasible_scan)
+        .def("feasible_mask",&Engine::feasible_mask);
 }
