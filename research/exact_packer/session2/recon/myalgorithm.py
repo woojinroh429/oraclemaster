@@ -4564,22 +4564,24 @@ def _worker_entry(args):
                 #   w1 >= 5000        -> Z1(tardiness)-dominated; the beam optimises Z1, so on
                 #                        Z3-dominated instances (e.g. w1=667) it just wastes
                 #                        the worker's budget and slightly regresses (prob_25).
-                #   temporal_os < 0.55 -> mid-density; on extreme density (prob_27 os=0.68,
-                #                        P6 os>0.7) the beam takes ~55s and starves the worker.
-                #   n < 200            -> completes in ~15-20s, leaving time for tail modes+ALNS.
+                #   temporal_os < 0.72 -> mid AND extreme density (the beam adapts its width:
+                #                        wide W4K4 for mid, narrow W2K3 for extreme, so it stays
+                #                        ~15-25s in both); only P6-scale os>0.72 is excluded.
+                #   n < 200            -> completes in ~15-25s, leaving time for tail modes+ALNS.
                 #   budget > 24s       -> skipped on tiny budgets (worker falls back to modes).
                 # Where the beam does not fire, construction is byte-identical to the shipped
                 # path.  best-of keeps min so even inside the band it can only improve.
-                # Validated paired @60s: prob_30 -11.7%, prob_23 -7.5%, prob_26 -2.7%, 0
-                # regressions (prob_22/24/28 best-of-protected ties; prob_25/27/P6 excluded).
-                # env BEAM=0 disables.
+                # Validated paired @60s: prob_30 -11.7%, prob_23 -7.5%, prob_26 -2.7%,
+                # prob_27 (extreme, W2K3) construction 1755->1546; 0 regressions
+                # (prob_22/24/28 best-of-protected ties; prob_25 [w1=667] and P6 [n>=200]
+                # excluded).  env BEAM=0 disables.
                 try:
                     _bw1 = prob_info["weights"]["w1"]; _btos = _temporal_os(prob_info)
                 except Exception:
                     _bw1 = 0; _btos = 1.0
                 if (os.environ.get("BEAM", "1") == "1" and _wid == 1
                         and len(prob_info["blocks"]) < 200
-                        and _bw1 >= 5000 and _btos < 0.55
+                        and _bw1 >= 5000 and _btos < 0.72
                         and _hyb_deadline - time.time() > 24.0):
                     _keep(_beam_attempt(45.0))
 
@@ -4918,6 +4920,15 @@ def _beam_construct(prob_info, deadline_s, W=4, K=4, scanstep=1, rollstep=3, ord
         else:                     ordval = [(rd[b] + ra[b]) + due[b] * 1e-9 for b in range(n)]
         rankkey = lambda b: ordval[b]
         PRIO = [float(ordval[b]) for b in range(n)]
+        # Adaptive beam width: on EXTREME density a NARROW beam is both faster AND higher
+        # quality (the rollout heuristic is imperfect, so a wide beam over-explores and
+        # misranks -- measured prob_27 W2K3 Z1=1546 in 22s vs W4K4 1644 in 56s).  Mid-density
+        # keeps the wider W4K4 (prob_30 115).  Threshold on temporal oversubscription.
+        try:
+            if _temporal_os(prob_info) >= 0.55:
+                W, K = 2, 3
+        except Exception:
+            pass
         _obc = {}
         def ob(b, o):
             k = (b, o); v = _obc.get(k)
