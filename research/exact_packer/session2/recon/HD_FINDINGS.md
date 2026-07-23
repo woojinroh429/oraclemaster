@@ -170,3 +170,23 @@ block past its tight due.  With ~zero slack there is nothing to coarsen, so the 
 fire.  Tardiness here reduces ONLY via better packing (fit more blocks on-time), which is the
 packing-quality / decode-speed wall documented above.  Another angle confirmed blocked by the
 problem's own structure.
+
+## Temporal load-balancing assignment lever -- blocked: assignment already Z1-optimal (2026-07-23)
+Idea (user): assign blocks to bays to balance temporal demand across bays -> fewer per-bay
+overflows -> less Z1, as an assignment-only lever that dodges the decode-speed wall.  Tested:
+- Per-bay temporal area-load in the current solution is already roughly BALANCED and uniformly
+  high (prob_38 bays 699/679/671% peak; system ~600% at all congested times): the
+  tardiness-greedy assignment already spreads load (a block that cannot enter its preferred bay
+  early overflows to another to minimise its own tardiness).
+- DIRECT TEST (STLOADF): reordered the decoder key to put load-balance BEFORE preference
+  (tard,load,pref,contact), scanning all bays.  Result byte-IDENTICAL obj/Z1/Z2 on prob_38
+  (54259843/3921/1925) and prob_40 -- the assignment does not change, because each block already
+  goes to its minimum-TARDINESS feasible bay and, on these tight instances, tardiness always
+  decides (no tie for load to break).
+CONCLUSION: the assignment is already tardiness-optimal per block and already load-balanced; no
+free Z1 in reassignment.  This EXHAUSTS the high-density Z1 lever space -- BRKGA anytime, EP/
+coarse decoders, urgency-adaptive step, and temporal load balancing all reduce to the same
+structural wall: tight due dates make every block critical, so Z1 falls ONLY by packing more
+on-time per bay-time (crane-clearance-tight fine packing) whose cost is irreducible on this
+small-bay/per-layer-crane geometry.  Shipped greedy + FSCAN is the right construction; the
+high-density Z1 is at a structural floor.
