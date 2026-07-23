@@ -4508,17 +4508,25 @@ def _worker_entry(args):
                     return _best[0]
 
                 # primary construction: step=2 fast feasible safety net, then step=1
-                # higher-quality kept iff it completes and improves.
-                _keep(_attempt(2, _primary_mode))
+                # higher-quality kept iff it completes and improves.  (v74's DIRS_EXTRA
+                # corner-primary REPLACED this primary step=1 on odd workers with corner
+                # constructions, which starves the winning primary at the tight 15s budget
+                # -- measured prob_27 26.20M->27.25M, matching v74's own 27.25M.  Dropped:
+                # corners are a mid-density lever, never a P5/P6 winner, and the corner
+                # scoring branches stay available for any future best-of tail use.)
+                _keep(_attempt(2, _primary_mode))     # fast safety net
                 if _hyb_deadline - time.time() > 6.0:
-                    _keep(_attempt(1, _primary_mode))
+                    _keep(_attempt(1, _primary_mode)) # higher-quality; kept iff finished + better
 
-                # Tail variants, fed to best-of so whichever wins an instance survives:
+                # Tail variants, always fed to best-of so whichever wins an instance
+                # survives (each is the sole winner on some instance family):
+                #   diagonal   -- Diagonal Fill (Kwon & Lee 2015): tighter corner packing,
+                #                 wins some P6 (prob_37/40 ~9%).
                 #   leftbottom -- forces all blocks left; the P4 winner (big right span).
                 #   bigleft    -- large blocks left-first, small gap-fill; the P6 winner.
-                # Whichever is this worker's primary is already covered above; the other
-                # runs here so every worker sees both proven fills.
-                _tails = ["leftbottom", "bigleft"]
+                #   coreperi   -- long-stay big blocks -> periphery; gate-free best-of tail,
+                #                 kept where it wins (a hidden P5 at any ratio), ignored else.
+                _tails = ["diagonal", "leftbottom", "bigleft", "coreperi"]
                 # tcp (temporal-corridor) best-of variant: wins low-mid density construction
                 # (p9 -15%, p24/P5 -3.5%) and stays crane-FEASIBLE where compaction fails
                 # (p35).  best-of keeps min -> never-worse; env-gated for A/B (default off).
@@ -4803,6 +4811,15 @@ def _smallright_construct(prob_info, deadline_s, small_thresh=0.60, step=1, mode
     # dispatch key: "urgent AND big" first (due-rank + area-rank), then due.
     key=lambda b:(rd[b]+ra[b], due[b])
     _mxp=[max(B[b]["bay_preferences"]) for b in range(n)]   # per-block top preference
+    # core-periphery 'parker' set: long-stay (pt top 40%) + big (not small) + slack
+    # (>= median) blocks are driven to the outer corner (max wx+wy) so they do not
+    # split the centre for long, preserving a contiguous free span along the time axis.
+    # Used only by mode=="coreperi" (a gate-free best-of tail); best-of keeps min ->
+    # never-worse where coreperi does not win.
+    _slk=[due[b]-rel[b]-pt[b] for b in range(n)]
+    _pts=sorted(pt); _pt60=_pts[int(0.6*(n-1))] if n else 0
+    _sks=sorted(_slk); _skmed=_sks[len(_sks)//2] if n else 0
+    parker=[(ra[b]<0.60) and (pt[b]>=_pt60) and (_slk[b]>=_skmed) for b in range(n)]
     def bbox(b,oi):
         # Use the placement-invariant _orient_bbox memo (keyed by block+orient)
         # instead of recomputing min/max over all layer vertices every call.
@@ -4913,7 +4930,32 @@ def _smallright_construct(prob_info, deadline_s, small_thresh=0.60, step=1, mode
                     for iy in (range(lo_y, hi_y+1, step) if _ixseq is None else sorted(_pbi[ix])):
                         if (((j,oi,ix,iy) in _fs_set) if _fs_set is not None else E.placement_feasible(j,b,oi,float(ix),float(iy),cur,ex)):
                             wx=ix+x0; wy=iy+y0
-                            if mode=="leftbottom":
+                            if mode in ("bigbottom","cornerBL","cornerBR","cornerTL","cornerTR"):
+                                # Research direction family (flatness h primary, then a
+                                # directional secondary key).  Small blocks keep free-span.
+                                # Gate-free best-of variants (run via the adaptive corner
+                                # best-of); best-of keeps min -> never-worse.
+                                if not is_small:
+                                    _dr=(bw_j-(wx+w)); _dt=(bh_j-(wy+h))
+                                    if mode=="bigbottom":   sc=(h, wy, wx, j)
+                                    elif mode=="cornerBL":  sc=(h, wx+wy, wx, j)
+                                    elif mode=="cornerBR":  sc=(h, _dr+wy, wx, j)
+                                    elif mode=="cornerTL":  sc=(h, wx+_dt, wx, j)
+                                    else:                   sc=(h, _dr+_dt, wx, j)  # cornerTR
+                                else:
+                                    if occ_base is None:
+                                        occ_base,_bt=_band_occ_base(j,cur,bh_j); _band_top_j=_bt
+                                    fs=_free_span_with(occ_base,bw_j,wx,w,wy,_band_top_j)
+                                    sc=(-fs, wy, wx)
+                            elif mode=="diagonal":
+                                # Diagonal Fill (Kwon & Lee 2015): fill toward the bay
+                                # corner along the diagonal (minimise wx+wy) instead of
+                                # pure bottom-left.  Packs some P6 instances tighter ->
+                                # less tardiness (prob_37 619->566, prob_40 2936->2670,
+                                # ~9%).  Loses on others (prob_38/39) so this is a best-of
+                                # variant, never the sole rule -> no regression.
+                                sc=(wx+wy, h, wy, wx, j)
+                            elif mode=="leftbottom":
                                 # LEFT-BOTTOM (horizontal-first): fill left-to-right
                                 # THEN bottom.  In wide-short bays a large contiguous
                                 # free span is left on the RIGHT for big (tardiness-
@@ -4924,7 +4966,18 @@ def _smallright_construct(prob_info, deadline_s, small_thresh=0.60, step=1, mode
                                 # flat_bl: prefer the FLATTEST orientation (min bbox
                                 # height h) so vertical room is left for other blocks
                                 # in wide-short bays, then bottom-left.
-                                if mode=="bigleft":
+                                if mode=="coreperi":
+                                    # CORE-PERIPHERY: 'parker' blocks (long-stay big +
+                                    # slack) go to the outer corner (max wx+wy) so they
+                                    # do not split the centre for long; the rest keep
+                                    # bigleft (bottom-left).  Preserves a contiguous
+                                    # free span along the time axis -> wins some P5/P4/P6
+                                    # (prob_33 obj -14.4%).  best-of tail, never-worse.
+                                    if parker[b]:
+                                        sc=(-(wx+wy), h, j)
+                                    else:
+                                        sc=(h, wx, wy, j)
+                                elif mode=="bigleft":
                                     # BIG-LEFT: large blocks (the tardiness drivers)
                                     # fill LEFT-first (horizontal) so they cluster to
                                     # one side, leaving a large contiguous free span
