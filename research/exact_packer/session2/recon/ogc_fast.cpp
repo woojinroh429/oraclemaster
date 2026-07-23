@@ -109,7 +109,11 @@ struct LayerData {
     std::vector<double> pts; int npts;
     // conservative cell raster (never under-marks): bit(r,c) set if the polygon
     // touches unit cell (cx0+c, cy0+r).  Fast disjoint-proof pre-filter.
-    int cx0=0,cy0=0,cw=0,ch=0,wpr=0; std::vector<uint64_t> bits;
+    // bits_in: TIGHT interior raster (cell CENTER strictly inside the polygon only, no
+    // edge-touch).  Two interior rasters overlap ~iff the polygons share positive area,
+    // so it matches the grader's area>0 rule -- used by the approx rollout so that touching
+    // (zero-gap) placements are NOT falsely forbidden.
+    int cx0=0,cy0=0,cw=0,ch=0,wpr=0; std::vector<uint64_t> bits, bits_in;
     void rasterize(){
         if(npts<3){ cw=ch=0; return; }
         double mnx=pts[0],mny=pts[1],mxx=pts[0],mxy=pts[1];
@@ -119,13 +123,16 @@ struct LayerData {
         cw=(int)std::ceil(mxx)-cx0; ch=(int)std::ceil(mxy)-cy0;
         if(cw<=0)cw=1; if(ch<=0)ch=1; wpr=(cw+63)>>6;
         bits.assign((size_t)ch*wpr,0ULL);
+        bits_in.assign((size_t)ch*wpr,0ULL);
         for(int r=0;r<ch;r++){int wy=cy0+r;
             for(int c=0;c<cw;c++){int wx=cx0+c; bool hit=false;
                 double ccx=wx+0.5, ccy=wy+0.5;
-                { bool inside=false;int j=npts-1;
+                bool inside=false;
+                { int j=npts-1;
                   for(int i=0;i<npts;i++){double yi=pts[2*i+1],yj=pts[2*j+1],xi=pts[2*i],xj=pts[2*j];
                     if((yi>ccy)!=(yj>ccy)){double xint=(xj-xi)*(ccy-yi)/(yj-yi)+xi; if(ccx<xint)inside=!inside;} j=i;}
                   if(inside) hit=true; }
+                if(inside) bits_in[(size_t)r*wpr+(c>>6)] |= (1ULL<<(c&63));
                 if(!hit){ for(int i=0;i<npts&&!hit;i++){int ni=(i+1)%npts;
                     if(seg_hits_cell(pts[2*i],pts[2*i+1],pts[2*ni],pts[2*ni+1],wx,wy)) hit=true; } }
                 if(hit) bits[(size_t)r*wpr+(c>>6)] |= (1ULL<<(c&63));
@@ -168,12 +175,13 @@ static bool SWEEP = [](){ const char* e=std::getenv("SWEEP"); return e ? (e[0]==
 // OR rasterized layer L (world integer position wox,woy) into a bay-grid bitmap
 // F (bayH rows, wpr uint64 words per row, world col 0 == bit 0).
 static void or_layer_into_map(std::vector<uint64_t>& F,int wpr,int bayH,
-                              const LayerData& L,int wox,int woy){
+                              const LayerData& L,int wox,int woy,bool interior=false){
     if(L.cw==0) return;
+    const std::vector<uint64_t>& Lb = interior ? L.bits_in : L.bits;
     long colbase=(long)wox+L.cx0;
     for(int r=0;r<L.ch;r++){
         int Y=woy+L.cy0+r; if(Y<0||Y>=bayH) continue;
-        const uint64_t* Lr=&L.bits[(size_t)r*L.wpr]; uint64_t* Fr=&F[(size_t)Y*wpr];
+        const uint64_t* Lr=&Lb[(size_t)r*L.wpr]; uint64_t* Fr=&F[(size_t)Y*wpr];
         for(int lw=0;lw<L.wpr;lw++){
             uint64_t v=Lr[lw]; if(!v) continue;
             long bit0=colbase+(long)lw*64;
@@ -186,12 +194,13 @@ static void or_layer_into_map(std::vector<uint64_t>& F,int wpr,int bayH,
 }
 // does rasterized layer L (world wox,woy) overlap bay-grid bitmap F?
 static bool layer_hits_map(const std::vector<uint64_t>& F,int wpr,int bayH,
-                           const LayerData& L,int wox,int woy){
+                           const LayerData& L,int wox,int woy,bool interior=false){
     if(L.cw==0) return true;
+    const std::vector<uint64_t>& Lb = interior ? L.bits_in : L.bits;
     long colbase=(long)wox+L.cx0;
     for(int r=0;r<L.ch;r++){
         int Y=woy+L.cy0+r; if(Y<0||Y>=bayH) continue;
-        const uint64_t* Lr=&L.bits[(size_t)r*L.wpr]; const uint64_t* Fr=&F[(size_t)Y*wpr];
+        const uint64_t* Lr=&Lb[(size_t)r*L.wpr]; const uint64_t* Fr=&F[(size_t)Y*wpr];
         for(int lw=0;lw<L.wpr;lw++){
             uint64_t v=Lr[lw]; if(!v) continue;
             long bit0=colbase+(long)lw*64;
@@ -402,9 +411,13 @@ struct Engine {
             int bayH=(int)std::ceil(bh[bay]); int bayW=(int)std::ceil(bw[bay]);
             int wpr=(bayW+64)>>6;
             bool use_sweep = RASTER && maxL>0 && bayH>0 && bayH<20000;
-            std::vector<std::vector<uint64_t>> F;
+            // F = conservative TOUCH forbidden-map (disjoint => provably feasible).
+            // Fin = tight INTERIOR forbidden-map (overlap => provably infeasible, area>0).
+            // Between them lies the boundary band where an exact placement_feasible is needed.
+            std::vector<std::vector<uint64_t>> F, Fin;
             if(use_sweep){
                 F.assign(maxL, std::vector<uint64_t>((size_t)bayH*wpr,0ULL));
+                Fin.assign(maxL, std::vector<uint64_t>((size_t)bayH*wpr,0ULL));
                 for(const Placed& te: timeline[bay]){
                     if(!(cur < te.ex && te.en < ex)) continue;
                     bool newdesc=(te.en<=cur&&cur<te.ex)||(te.en<ex&&ex<=te.ex);
@@ -414,8 +427,8 @@ struct Engine {
                     int ne=(int)eod.layers.size();
                     int tox=(int)std::floor(te.ox+0.5), toy=(int)std::floor(te.oy+0.5);
                     for(int j=0;j<ne;j++){ const LayerData& L=eod.layers[j]; if(L.npts<3)continue;
-                        if(newdesc){ int hi=std::min(j,maxL-1); for(int k=0;k<=hi;k++) or_layer_into_map(F[k],wpr,bayH,L,tox,toy); }
-                        if(tedesc){ for(int k=std::max(j,0);k<maxL;k++) or_layer_into_map(F[k],wpr,bayH,L,tox,toy); }
+                        if(newdesc){ int hi=std::min(j,maxL-1); for(int k=0;k<=hi;k++){ or_layer_into_map(F[k],wpr,bayH,L,tox,toy,false); or_layer_into_map(Fin[k],wpr,bayH,L,tox,toy,true); } }
+                        if(tedesc){ for(int k=std::max(j,0);k<maxL;k++){ or_layer_into_map(F[k],wpr,bayH,L,tox,toy,false); or_layer_into_map(Fin[k],wpr,bayH,L,tox,toy,true); } }
                     }
                 }
             }
@@ -437,14 +450,19 @@ struct Engine {
                         if(found && sc>=bestsc) break;   // wy only grows within this ix
                         bool ok;
                         if(use_sweep){
-                            bool clear=true;
+                            bool clear=true;                    // disjoint from TOUCH map?
                             for(int k=0;k<nl&&clear;k++){ const LayerData& L=od.layers[k]; if(L.npts<3)continue;
-                                if(layer_hits_map(F[k],wpr,bayH,L,ix,iy)) clear=false; }
-                            // approx (rollout scoring): bitmap-only -- map-hit == infeasible, NO
-                            // exact fallback.  The map is conservative so this over-rejects
-                            // uniformly (packs a touch less), preserving branch RANKING while
-                            // eliminating every placement_feasible call in the hot loop.
-                            ok = clear ? true : (approx ? false : placement_feasible(bay,bid,oi,(double)ix,(double)iy,cur,ex));
+                                if(layer_hits_map(F[k],wpr,bayH,L,ix,iy,false)) clear=false; }
+                            if(clear) ok=true;                  // provably feasible
+                            else if(approx) ok=false;           // approx: touch-hit => reject (lossy)
+                            else {
+                                bool ihit=false;                // overlaps INTERIOR map?
+                                for(int k=0;k<nl&&!ihit;k++){ const LayerData& L=od.layers[k]; if(L.npts<3)continue;
+                                    if(layer_hits_map(Fin[k],wpr,bayH,L,ix,iy,true)) ihit=true; }
+                                // interior overlap => genuine area>0 overlap => provably infeasible;
+                                // otherwise it's the boundary band -> one exact check.
+                                ok = ihit ? false : placement_feasible(bay,bid,oi,(double)ix,(double)iy,cur,ex);
+                            }
                         } else ok = placement_feasible(bay,bid,oi,(double)ix,(double)iy,cur,ex);
                         if(ok){ bestsc=sc; found=true; obay=bay; oori=oi; oix=ix; oiy=iy; break; }
                     }
