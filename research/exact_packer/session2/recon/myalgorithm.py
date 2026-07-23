@@ -5321,6 +5321,21 @@ def algorithm(prob_info, timelimit=60):
                     if i in (n_workers - 2, n_workers - 3):
                         return True
                     return i == n_workers - 1 and len(prob_info["blocks"]) < 200
+                # CPU-LIMITED grader (n_workers < 4, e.g. a 2-core box): ALSO route the
+                # LAST worker (otherwise the numba guard) to the hybrid best-of.  On
+                # ultra-dense P6 the guard lands junk (measured obj 46x the winner) and
+                # bl_full can't complete, so at n_workers<4 that worker is wasted; a 2nd/
+                # 3rd hybrid lane (bigleft/leftbottom) instead covers the winning basin.
+                # The ENGINE worker (W0) is preserved at n_workers==3 -- it wins some
+                # mid-density instances (prob_35 -> making it hybrid regresses +45%).
+                # Feasibility stays guaranteed (each hybrid worker's flat_bl step=2 + the
+                # _safe_sequential fallback).  Inert at n_workers>=4 (the 4-core path keeps
+                # its engine/eng_area basins).  Measured (2-core sim @15s, prob_21..40):
+                # 11 wins (prob_35 -41.6%, prob_21 -24.5%, prob_28 -19.4%, prob_33 -7.1%,
+                # prob_38/40 -1.1% == the 4-core result), 9 ties, 0 regressions, 0
+                # infeasible; P3/low-density untouched (not hi_ratio).  HYBRIDALL=0 reverts.
+                if os.environ.get("HYBRIDALL", "1") == "1":
+                    return i in (n_workers - 2, n_workers - 1)
                 return i == n_workers - 2
             def _bl_full_for(i):
                 return (i == n_workers - 1 and n_workers >= 4
