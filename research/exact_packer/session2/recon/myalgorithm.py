@@ -4889,46 +4889,71 @@ def _smallright_construct(prob_info, deadline_s, small_thresh=0.60, step=1, mode
         # scan -> identical placement, far fewer feasibility calls.
         ex=cur+pt[b]; best=None; best_sc=None
         _tc = [] if topm else None
-        _fs_set=None
+        # Feasibility comes from ONE C++ scan per bay -- feasible_scan (windowless first
+        # scan) or feasible_scan_win (SWEEP-pruned windowed rescan) -- grouped by
+        # (bay,orient).  The loop then iterates ONLY the feasible cells instead of
+        # enumerating the full grid and testing each cell.  This removes the 250-block
+        # step=1 bottleneck: ~18.5M per-cell placement_feasible pybind round-trips AND the
+        # Python grid enumeration over them.  Byte-identical: same feasible set, same
+        # (ix,iy)-ascending visit order, same scoring/tie-break.  env WINMASK=0 reverts the
+        # windowed path to the per-cell check; FSCAN=0 reverts the first scan.
+        _fs_by_jo=None
         if _FSCAN and windows is None:
-            # one SWEEP-pruned C++ scan gives every feasible (bay,orient,ix,iy) for the
-            # FULL-GRID first scan; the loop tests membership instead of a per-cell
-            # placement_feasible pybind round-trip.  Only for windows is None: a windowed
-            # rescan is a handful of cells, so rebuilding the whole forbidden bitmap for it
-            # is net-negative -- those keep the direct per-cell check.
             _blist=(bay_list if ext_bay is None else [ext_bay[b]])
             _arr=E.feasible_scan(b,_blist,cur,ex,step)
-            _fs_set={(int(r[0]),int(r[1]),int(r[2]),int(r[3])) for r in _arr}
+            _fs_by_jo={}
+            for r in _arr:
+                _fs_by_jo.setdefault((int(r[0]),int(r[1])),[]).append((int(r[2]),int(r[3])))
         for j in (bay_list if ext_bay is None else [ext_bay[b]]):
             bw_j=bays[j]["width"]; bh_j=bays[j]["height"]
             occ_base=None
+            _win_by_oi=None
+            if windows is not None:
+                _wr=windows.get(j)
+                if not _wr: continue
+                if os.environ.get("WINMASK","1")=="1":
+                    _rf=[]
+                    for (_wlx,_whx,_wly,_why) in _wr:
+                        _rf.append(int(_wlx)); _rf.append(int(_whx)); _rf.append(int(_wly)); _rf.append(int(_why))
+                    _wa=E.feasible_scan_win(b,j,cur,ex,step,_rf)
+                    _win_by_oi={}
+                    for r in _wa:
+                        _win_by_oi.setdefault(int(r[0]),[]).append((int(r[1]),int(r[2])))
+                    for _o in _win_by_oi: _win_by_oi[_o]=sorted(set(_win_by_oi[_o]))
             for oi in range(len(B[b]["shape"])):
                 x0,y0,x1,y1=bbox(b,oi); w=x1-x0; h=y1-y0
                 if w>bw_j+1e-9 or h>bh_j+1e-9: continue
                 lo_x=_m.ceil(-x0); hi_x=_m.floor(bw_j-x1)
                 lo_y=_m.ceil(-y0); hi_y=_m.floor(bh_j-y1)
-                if windows is not None:
-                    _rects=windows.get(j)
-                    if not _rects: continue
-                    _pbi={}
-                    for (wlx,whx,wly,why) in _rects:
+                # feasible (ix,iy) for this (bay,orient), ix-asc/iy-asc order:
+                if _win_by_oi is not None:
+                    _fc=_win_by_oi.get(oi,[])
+                elif _fs_by_jo is not None:
+                    _fc=_fs_by_jo.get((j,oi),[])
+                elif windows is not None:
+                    # windowed, WINMASK off: rebuild the _pbi cells + per-cell check
+                    _pbi=set()
+                    for (wlx,whx,wly,why) in _wr:
                         _ax=lo_x if wlx<=lo_x else lo_x+((wlx-lo_x+step-1)//step)*step
                         _bx=hi_x if whx>hi_x else whx
                         _ay=lo_y if wly<=lo_y else lo_y+((wly-lo_y+step-1)//step)*step
                         _by=hi_y if why>hi_y else why
                         _ii=_ax
                         while _ii<=_bx:
-                            _lst=_pbi.get(_ii)
-                            if _lst is None: _lst=set(); _pbi[_ii]=_lst
                             _jj=_ay
-                            while _jj<=_by: _lst.add(_jj); _jj+=step
+                            while _jj<=_by: _pbi.add((_ii,_jj)); _jj+=step
                             _ii+=step
-                    _ixseq=sorted(_pbi)
+                    _fc=[(ix,iy) for (ix,iy) in sorted(_pbi)
+                         if E.placement_feasible(j,b,oi,float(ix),float(iy),cur,ex)]
                 else:
-                    _ixseq=None
-                for ix in (range(lo_x, hi_x+1, step) if _ixseq is None else _ixseq):
-                    for iy in (range(lo_y, hi_y+1, step) if _ixseq is None else sorted(_pbi[ix])):
-                        if (((j,oi,ix,iy) in _fs_set) if _fs_set is not None else E.placement_feasible(j,b,oi,float(ix),float(iy),cur,ex)):
+                    # windowless, FSCAN off: per-cell check over the full grid
+                    _fc=[(ix,iy) for ix in range(lo_x,hi_x+1,step) for iy in range(lo_y,hi_y+1,step)
+                         if E.placement_feasible(j,b,oi,float(ix),float(iy),cur,ex)]
+                _fc_by_ix={}
+                for (ix,iy) in _fc: _fc_by_ix.setdefault(ix,[]).append(iy)
+                for ix in sorted(_fc_by_ix):
+                    for iy in _fc_by_ix[ix]:
+                        if True:
                             wx=ix+x0; wy=iy+y0
                             if mode in ("bigbottom","cornerBL","cornerBR","cornerTL","cornerTR"):
                                 # Research direction family (flatness h primary, then a

@@ -461,6 +461,64 @@ struct Engine {
         for(int i=0;i<n;i++) op[i]=placement_feasible(bay,bid,orient,(double)xp[i],(double)yp[i],en,ex);
         return out;
     }
+
+    // WINDOWED SWEEP-pruned feasibility scan for ONE bay: replicates place_custom's
+    // windowed cell enumeration (per orient: lo/hi bbox clamp + per-rect step-aligned
+    // sub-range, matching the Python _pbi build) and returns every feasible (orient,ix,iy)
+    // in ONE C++ call with the SWEEP forbidden-bitmap prune -- replacing the per-cell
+    // placement_feasible pybind round-trips (the 250-block step=1 rescan bottleneck:
+    // ~18.5M calls / ~19s).  rects_flat = [wlx,whx,wly,why]*R.  The Python side consumes
+    // it as a membership set over its own (oi,ix,iy) enumeration, so order is irrelevant
+    // and the feasibility set is identical.
+    py::array_t<int> feasible_scan_win(int bid, int bay, int en, int ex, int step,
+                                       std::vector<int> rects_flat){
+        const BlockShape& bs=shapes[bid];
+        int norient=(int)bs.orients.size();
+        int R=(int)rects_flat.size()/4;
+        std::vector<int> out;
+        double bw_j=bw[bay], bh_j=bh[bay];
+        int maxL=0; for(int oi=0;oi<norient;oi++) maxL=std::max(maxL,(int)bs.orients[oi].layers.size());
+        int bayH=(int)std::ceil(bh_j), bayW=(int)std::ceil(bw_j);
+        int wpr=(bayW+64)>>6;
+        // Direct per-cell C++ checks (no SWEEP bitmap: measured net-neutral on the small
+        // windowed rescans, and the build/count overhead is pure cost).  The pybind boundary
+        // is crossed ONCE per (bay,orient) instead of once per cell.
+        bool use_sweep=false;
+        std::vector<std::vector<uint64_t>> F;
+        for(int oi=0; oi<norient; oi++){
+            const OrientData& od=bs.orients[oi]; int nl=(int)od.layers.size();
+            double w=od.x1-od.x0, h=od.y1-od.y0;
+            if(w>bw_j+1e-9 || h>bh_j+1e-9) continue;
+            int lo_x=(int)std::ceil(-od.x0), hi_x=(int)std::floor(bw_j-od.x1);
+            int lo_y=(int)std::ceil(-od.y0), hi_y=(int)std::floor(bh_j-od.y1);
+            for(int r=0;r<R;r++){
+                int wlx=rects_flat[4*r], whx=rects_flat[4*r+1], wly=rects_flat[4*r+2], why=rects_flat[4*r+3];
+                // step-aligned sub-range, matching the Python _pbi clamp exactly (the
+                // branch is only taken when wlx>lo_x, so integer div is on positives ->
+                // C++ '/' == Python '//').
+                int ax = (wlx<=lo_x)? lo_x : lo_x+((wlx-lo_x+step-1)/step)*step;
+                int bx = (whx>hi_x)? hi_x : whx;
+                int ay = (wly<=lo_y)? lo_y : lo_y+((wly-lo_y+step-1)/step)*step;
+                int by = (why>hi_y)? hi_y : why;
+                for(int ix=ax; ix<=bx; ix+=step){
+                    for(int iy=ay; iy<=by; iy+=step){
+                        bool ok;
+                        if(use_sweep){
+                            bool clear=true;
+                            for(int k=0;k<nl&&clear;k++){ const LayerData& L=od.layers[k]; if(L.npts<3)continue;
+                                if(layer_hits_map(F[k],wpr,bayH,L,ix,iy)) clear=false; }
+                            ok = clear ? true : placement_feasible(bay,bid,oi,(double)ix,(double)iy,en,ex);
+                        } else ok = placement_feasible(bay,bid,oi,(double)ix,(double)iy,en,ex);
+                        if(ok){ out.push_back(oi); out.push_back(ix); out.push_back(iy); }
+                    }
+                }
+            }
+        }
+        int nrows=(int)out.size()/3;
+        py::array_t<int> arr({nrows,3});
+        if(nrows>0) std::memcpy(arr.mutable_data(), out.data(), out.size()*sizeof(int));
+        return arr;
+    }
 };
 
 int classify_pair(py::array_t<double,py::array::c_style|py::array::forcecast> A,
@@ -489,5 +547,6 @@ PYBIND11_MODULE(ogc_fast,m){
         .def("placement_feasible",&Engine::placement_feasible)
         .def("find_best_placement",&Engine::find_best_placement)
         .def("feasible_scan",&Engine::feasible_scan)
+        .def("feasible_scan_win",&Engine::feasible_scan_win)
         .def("feasible_mask",&Engine::feasible_mask);
 }
