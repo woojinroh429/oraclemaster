@@ -113,3 +113,24 @@ REMAINING PATHS (not yet attempted):
    large, uncertain.
 2. Parallelize the BRKGA population across the 4 cores (2 -> ~8 generations).  Modest.
 3. Keep greedy for high-density (it wins), BRKGA for mid-density only.  Pragmatic.
+
+## Path-1 (free-space decoder) diagnostic (2026-07-23)
+Profiled WHERE the 3DTCS decode's time goes, to target the right structure:
+- Contact scoring OFF (STNOC): prob_35 6.26->6.37s, prob_38 77.6->74.4s -> contact is ~4%,
+  NOT the cost.
+- Spatial-index neighbor count (CELL 1e6->16): decode unchanged, obj byte-identical -> the
+  per-cell neighbor loop is NOT the cost.
+- Hoisting the neighbor gather to once-per-(bay,entry) instead of per-cell (STHOIST): decode
+  unchanged (6.17->6.04s), obj byte-identical -> gather overhead is NOT the cost.
+CONCLUSION: the cost is the RAW CELL COUNT of the step=1 full-grid scan itself
+(~2880 cells x 8 orients x entry_times x n_blocks ~ 9M cheap iterations on a 200-block
+mid-density instance), with irreducibly-small per-cell work.  Coarsening the grid reduces
+the count but loses feasibility coverage (Z1 quality).  The ONLY quality-preserving way to
+cut it is to STOP scanning cells: represent per-bay free space as a bitmap and find feasible
+positions by BIT-PARALLEL 2D erosion (block-layer bitmap slid across the forbidden bitmap,
+64 x-positions per word-AND), per crane layer k against forbidden map F[k].  This is a large,
+intricate build (per-layer bit-parallel erosion + exact crane j>=k logic, must stay
+quality-identical) and, even at ~10-30x, likely only rescues MID-density (150-200 block):
+prob_38's 77s decode would still be ~3-8s -> ~2-3 generations, still decode-bound on the
+250-block class.  Payoff is therefore bounded to the mid-density regime where BRKGA is
+already close; the 250-block P5/P6 class stays greedy-territory.
