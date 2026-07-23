@@ -1892,9 +1892,59 @@ def _alns(prob_info, state, bay_unit, deadline, rng, use_gls=False,
             except Exception:
                 pass
 
-        if no_improve > 400:
-            cur = _rebuild_state_from_assign(prob_info, best_assign)
-            cur_o = aug_obj(cur)
+        if no_improve > int(os.environ.get("COOPNI", "400")):
+            # COOPERATIVE BIG-SHAKE (env COOPSHAKE): on stall, PULL the shared global best
+            # (if better than this worker's) and apply a LARGE ruin-recreate to it -- so all
+            # workers' post-convergence budget concentrates on DIVERSIFYING the global best
+            # basin (each worker's seeded large destroy opens a different basin) instead of
+            # every worker spinning a small-neighbourhood search in its own local optimum.
+            # best_assign is preserved -> the incumbent is never lost -> never-worse.
+            if os.environ.get("COOPSHAKE", "0") == "1":
+                _base = best_assign
+                if shared is not None and lock is not None:
+                    try:
+                        with lock:
+                            if (shared.get("best_assign") is not None
+                                    and shared["best_cost"] < best_obj - 1e-9):
+                                _base = _deserialize_assign(shared["best_assign"])
+                    except Exception:
+                        _base = best_assign
+                _cst = _rebuild_state_from_assign(prob_info, _base)
+                _ids = list(_cst.assign.keys())
+                _ok = False
+                if len(_ids) >= 8:
+                    _lo = float(os.environ.get("COOPLO", "0.20"))
+                    _hi = float(os.environ.get("COOPHI", "0.40"))
+                    _kk = rng.randint(max(4, int(_lo * len(_ids))), max(5, int(_hi * len(_ids))))
+                    _rem = rng.sample(_ids, min(_kk, len(_ids)))
+                    for _b in _rem:
+                        if _b in _cst.assign:
+                            _cst.remove(_b)
+                    _ins = sorted(_rem, key=lambda b: (blocks_data[b]["due_date"],
+                                                       blocks_data[b]["release_time"],
+                                                       -blocks_data[b]["workload"]))
+                    try:
+                        if _cpprepair_on:
+                            _ok = _cpp_reinsert(_cst, _repair_E, _ins, n_bays, deadline)
+                        else:
+                            _ok = all(_try_place_block(_cst, _b, list(range(n_bays)), deadline) is not None
+                                      for _b in _ins)
+                    except Exception:
+                        _ok = False
+                if _ok and len(_cst.assign) == n_blocks:
+                    cur = _cst
+                    cur_o = aug_obj(cur)
+                    # if the shaken base equals the global best and it beats our best, adopt it
+                    _br = cur_obj(_rebuild_state_from_assign(prob_info, _base)) if _base is not best_assign else best_obj
+                    if _br < best_obj - 1e-9:
+                        best_obj = _br
+                        best_assign = {b: dict(a) for b, a in _base.items()}
+                else:
+                    cur = _rebuild_state_from_assign(prob_info, best_assign)
+                    cur_o = aug_obj(cur)
+            else:
+                cur = _rebuild_state_from_assign(prob_info, best_assign)
+                cur_o = aug_obj(cur)
             T = max(1.0, best_obj * 0.0015)
             no_improve = 0
         T *= cool
