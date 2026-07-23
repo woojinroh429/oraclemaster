@@ -23,7 +23,39 @@ Fully reproducible from a fresh container (only needs g++, python3.12, pybind11)
    build COMPLETE inside the ~9s hybrid window on the 100-150 block instances where it
    otherwise times out, so the winning worker lands the step=1 basin -- the high-density
    Z1 15s win.
+6. `myalgorithm.py` high-density path: **restore the diagonal + coreperi placement
+   modes** that the recon reconstruction of `_smallright_construct` had silently
+   dropped.  These are the modes the v74 reference uses to win the hidden P5/P6
+   (diagonal ~9% on P6-class, coreperi on a hidden P5); their absence was the P5/P6
+   regression vs v74 (12.57M vs 10.4M / 28.78M vs 28.4M).  Added back as pure best-of
+   (min) tails so they can never regress; the v74 DIRS_EXTRA corner-primary block is
+   deliberately NOT restored (it starves the winning primary at 15s -- see below).
+
 `ogc_geom`, `ogc_state`, `st3dtcs` and the rest of the Python are byte-for-byte v82.
+
+## High-density P5/P6 regression fix -- restore diagonal/coreperi modes (root cause + effect)
+The recon rebuild of the `_smallright_construct` scoring block kept only
+`leftbottom`/`bigleft`/`prefaware`/`flatbl` and trimmed `_try_smallright`'s best-of
+tail list to `[leftbottom, bigleft]`.  It thereby dropped the `diagonal` and `coreperi`
+scoring branches (and the `parker` set coreperi needs) entirely.  v74's own comments
+name `diagonal` as a P6 winner (prob_37 619->566, prob_40 2936->2670, ~9%) and
+`coreperi` as a hidden-P5 winner (prob_33 obj -14.4%).  With their scoring gone the
+high-density best-of could no longer explore those basins, so on the hidden P5/P6
+instances (where those modes win) the solver fell to a worse basin, while every
+training instance whose winner is bigleft/flatbl/leftbottom (prob_38/40 etc.) tied --
+masking the loss on the reproducible set.
+- Fix: re-add `parker` + the `diagonal`/`coreperi`/corner-family scoring branches, and
+  put `diagonal`+`coreperi` back in the tail list.  Feasibility set + visit order are
+  unchanged (only the score tuple differs) so **FSCAN stays byte-identical**.
+- **Corner-primary deliberately not restored**: v74's DIRS_EXTRA block REPLACES the
+  primary step=1 on odd workers with corner constructions, starving the winning primary
+  at the 15s grader budget -- measured **prob_27 26.20M->27.25M, exactly v74's 27.25M**,
+  i.e. recon *without* it is strictly better there.  Corners are a mid-density lever,
+  never a P5/P6 winner; their scoring branches remain available for future tail use.
+- Paired prob_21..40 @15s (recon BASE vs restored): **prob_21 -0.77%, 19 ties,
+  0 regressions, 0 infeasible**; low-density prob_16/20 tie.  Net: recovers the
+  diagonal/coreperi coverage v74 uses to win the hidden P5/P6, keeps recon's prob_27
+  edge over v74, and adds a prob_21 win.
 
 ## High-density Z1 15s convergence fix -- FSCAN (root cause + effect)
 The Z1-dominated high-density instances are convergence-limited at 15s: the fine-grid step=1
