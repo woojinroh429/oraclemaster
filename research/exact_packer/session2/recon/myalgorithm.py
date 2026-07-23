@@ -4438,7 +4438,7 @@ def _worker_entry(args):
                 # it completes, is feasible, and improves.  On low-density instances
                 # step=2 may be infeasible (touching/crane-blocked cell); step=1 is
                 # the fallback there.  best-of keeps only feasible results -> no -1.
-                def _attempt(_step, _mode="flatbl", _cap=None):
+                def _attempt(_step, _mode="flatbl", _cap=None, _order="rank"):
                     if _hyb_deadline - time.time() <= 6.0:
                         return None
                     try:
@@ -4446,7 +4446,7 @@ def _worker_entry(args):
                         if _cap is not None:
                             _bud = max(1.0, min(_bud, _cap))
                         _srr = _smallright_construct(prob_info, _bud,
-                                                     step=_step, mode=_mode)
+                                                     step=_step, mode=_mode, order=_order)
                         if _srr and len(_srr) == len(prob_info["blocks"]):
                             _ops = {}
                             for _b, _a in _srr.items():
@@ -4576,6 +4576,20 @@ def _worker_entry(args):
                         _keep(_pr)
                 for _tm in _tails:
                     _tail(_tm)
+                # ORDER-DIVERSITY tails: retry the primary mode with alternate dispatch
+                # orders (different block placement priority -> a different packing basin).
+                # v74 order diversity, dropped in recon (only "rank" remained).  Gated on
+                # remaining budget, so on 250-block (construction consumes the whole window)
+                # they are simply skipped; on the faster-converging construction-bound
+                # classes -- where the mode zoo has plateaued -- they add best-of candidates
+                # that can break the plateau.  Pure dispatch order -> best-of keeps min ->
+                # never-worse.  DEFAULT OFF pending full-40 validation -- with ORDERDIV
+                # unset the order param stays "rank", so construction is byte-identical to
+                # the shipped path; env ORDERDIV=1 enables the order-diversity tails.
+                if os.environ.get("ORDERDIV", "0") == "1":
+                    for _od in ("stdens", "sac3", "stdens_u"):
+                        if _hyb_deadline - time.time() > 6.0:
+                            _keep(_attempt(1, _primary_mode, None, _od))
                 return _best[0]
 
             def _try_order(_od):
@@ -4757,7 +4771,7 @@ def _demand_ratio(prob, areas, bay_caps):
 
 
 
-def _smallright_construct(prob_info, deadline_s, small_thresh=0.60, step=1, mode="flatbl", ext_bay=None):
+def _smallright_construct(prob_info, deadline_s, small_thresh=0.60, step=1, mode="flatbl", ext_bay=None, order="rank"):
     """Position-policy constructor for space-contended P6.  Small blocks (area_rank
     >= small_thresh) are tucked into positions that PRESERVE the largest contiguous
     free span in each bay (so big blocks -- the dominant tardiness driver -- get
@@ -4808,8 +4822,26 @@ def _smallright_construct(prob_info, deadline_s, small_thresh=0.60, step=1, mode
         for _p,_i in enumerate(o): r[_i]=_p/max(1,n-1)
         return r
     rd=_rof(due,False); ra=_rof(ar,True)
-    # dispatch key: "urgent AND big" first (due-rank + area-rank), then due.
-    key=lambda b:(rd[b]+ra[b], due[b])
+    # dispatch ORDER (block placement priority within each event time).  Different
+    # orders build DIFFERENT packings, so best-of across orders finds a better basin on
+    # construction-bound instances where the mode zoo has plateaued (v74 order diversity
+    # restored; recon had only "rank").  All are pure dispatch orders -> feasibility
+    # unchanged, best-of keeps min -> never-worse.
+    _du_max=max(due) if due else 1
+    if order=="stdens":
+        # space-time density: place by area*processing (occupy space-time first).
+        key=lambda b:(ar[b]*pt[b], due[b])
+    elif order=="stdens_u":
+        key=lambda b:(ar[b]*pt[b]*(1.0+due[b]/max(1,_du_max)), due[b])
+    elif isinstance(order,str) and order.startswith("sac"):
+        # sacrifice: exile the K worst (area*pt) blocks to the back of the dispatch
+        # (placed late, only when space remains -> they naturally take the tardiness,
+        # protecting the rest).  K = suffix digits (sac3 -> 3).
+        _kk=''.join(c for c in order[3:] if c.isdigit()); _K=int(_kk) if _kk else 3
+        _vic=set(sorted(range(n), key=lambda b:-(ar[b]*pt[b]))[:_K])
+        key=lambda b:(1 if b in _vic else 0, rd[b]+ra[b], due[b])
+    else:  # "rank" (default): "urgent AND big" first (due-rank + area-rank), then due.
+        key=lambda b:(rd[b]+ra[b], due[b])
     _mxp=[max(B[b]["bay_preferences"]) for b in range(n)]   # per-block top preference
     # core-periphery 'parker' set: long-stay (pt top 40%) + big (not small) + slack
     # (>= median) blocks are driven to the outer corner (max wx+wy) so they do not
