@@ -393,7 +393,7 @@ struct Engine {
     // disjoint from the maps is DEFINITELY feasible (skip the exact per-present check);
     // only map-hitting candidates fall back to placement_feasible -> big speedup in the
     // rollout inner loop while staying EXACT.
-    inline bool lb_best(int bid,int cur,int step,int& obay,int& oori,int& oix,int& oiy){
+    inline bool lb_best(int bid,int cur,int step,int& obay,int& oori,int& oix,int& oiy,bool approx=false){
         const BlockShape& bs=shapes[bid]; int P=(int)bs.pt; int ex=cur+P;
         int norient=(int)bs.orients.size();
         int maxL=0; for(int oi=0;oi<norient;oi++) maxL=std::max(maxL,(int)bs.orients[oi].layers.size());
@@ -440,7 +440,11 @@ struct Engine {
                             bool clear=true;
                             for(int k=0;k<nl&&clear;k++){ const LayerData& L=od.layers[k]; if(L.npts<3)continue;
                                 if(layer_hits_map(F[k],wpr,bayH,L,ix,iy)) clear=false; }
-                            ok = clear ? true : placement_feasible(bay,bid,oi,(double)ix,(double)iy,cur,ex);
+                            // approx (rollout scoring): bitmap-only -- map-hit == infeasible, NO
+                            // exact fallback.  The map is conservative so this over-rejects
+                            // uniformly (packs a touch less), preserving branch RANKING while
+                            // eliminating every placement_feasible call in the hot loop.
+                            ok = clear ? true : (approx ? false : placement_feasible(bay,bid,oi,(double)ix,(double)iy,cur,ex));
                         } else ok = placement_feasible(bay,bid,oi,(double)ix,(double)iy,cur,ex);
                         if(ok){ bestsc=sc; found=true; obay=bay; oori=oi; oix=ix; oiy=iy; break; }
                     }
@@ -463,9 +467,30 @@ struct Engine {
     // this is a pure evaluation (the beam calls it thousands of times to score branches).
     // want_full=true also returns the placements [bid,bay,ori,ix,iy,en,ex]* for the fine
     // final solution.  step = grid step (coarse for scoring, 1 for the final build).
+    // Same as greedy_rollout but the starting placement state is passed in as a flat array
+    // [bid,bay,ori,ix,iy,en,ex]* (built into the timeline in C++), so the caller need not
+    // reconstruct the engine via N pybind add() calls -- removes the Python hot-loop overhead.
     std::pair<double,std::vector<int>>
-    greedy_rollout(std::vector<double> prio, int cur0, int step, bool want_full, int maxplace){
+    greedy_rollout_from(std::vector<int> state_flat, std::vector<double> prio, int cur0,
+                        int step, bool want_full, int maxplace, bool approx){
         auto saved = timeline;
+        for(auto& t : timeline) t.clear();
+        for(size_t i=0;i+6<state_flat.size();i+=7)
+            add(state_flat[i+1],state_flat[i],state_flat[i+2],
+                (double)state_flat[i+3],(double)state_flat[i+4],state_flat[i+5],state_flat[i+6]);
+        auto r = greedy_rollout_core(prio,cur0,step,want_full,maxplace,approx);
+        timeline = saved;
+        return r;
+    }
+    std::pair<double,std::vector<int>>
+    greedy_rollout(std::vector<double> prio, int cur0, int step, bool want_full, int maxplace, bool approx){
+        auto saved = timeline;
+        auto r = greedy_rollout_core(prio,cur0,step,want_full,maxplace,approx);
+        timeline = saved;
+        return r;
+    }
+    std::pair<double,std::vector<int>>
+    greedy_rollout_core(std::vector<double> prio, int cur0, int step, bool want_full, int maxplace, bool approx){
         int nb=(int)shapes.size();
         std::vector<char> placed(nb,0);
         for(auto& bay:timeline) for(auto& p:bay) if(p.bid>=0&&p.bid<nb) placed[p.bid]=1;
@@ -482,7 +507,7 @@ struct Engine {
             std::vector<char> placedset(nb,0); bool any=false;
             for(int b:ready){
                 int obay,oori,oix,oiy;
-                if(lb_best(b,cur,step,obay,oori,oix,oiy)){
+                if(lb_best(b,cur,step,obay,oori,oix,oiy,approx)){
                     int ex=cur+(int)shapes[b].pt;
                     add(obay,b,oori,(double)oix,(double)oiy,cur,ex);
                     double dd=shapes[b].due; tard += (ex>dd)?(ex-dd):0.0;
@@ -502,8 +527,7 @@ struct Engine {
             if(nextt>=(long)1e18){ if(!pending.empty()){ cur=cur+1; continue; } else break; }
             cur=(int)nextt;
         }
-        timeline = saved;
-        return {tard, out};
+        return {tard, out};   // caller (wrapper) restores timeline
     }
 
     // Full-grid feasible-position scan replicating place_custom's inner (bay,orient,ix,iy)
@@ -669,5 +693,6 @@ PYBIND11_MODULE(ogc_fast,m){
         .def("feasible_scan_win",&Engine::feasible_scan_win)
         .def("feasible_mask",&Engine::feasible_mask)
         .def("greedy_rollout",&Engine::greedy_rollout)
+        .def("greedy_rollout_from",&Engine::greedy_rollout_from)
         .def("best_cell_lb",&Engine::best_cell_lb);
 }
