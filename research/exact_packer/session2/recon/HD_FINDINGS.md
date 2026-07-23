@@ -156,3 +156,17 @@ small/thin bay geometry.  The friend's fast-decoder metaheuristic likely relies 
 bays (where word-parallelism pays) and/or simpler (non-per-layer, non-crane) feasibility.
 For THIS problem the greedy directional heuristics + the shipped FSCAN acceleration remain
 the better construction; BRKGA stays a mid-density best-of contributor, not the primary.
+
+## Tardiness-avoidance placement policy (urgency-adaptive step) -- no slack to exploit (2026-07-23)
+Idea (user): keep OUR dispatch order but add a dynamic no-tardiness placement policy -- place
+TIGHT blocks with the fine step=1 (protect their earliest-feasible entry -> min Z1) and SLACK
+blocks with a coarse step (their extra delay is absorbed by slack), so the decode is cheaper
+where it can be while Z1 is preserved.  Implemented (env URGSTEP: per-block step from
+slack = due - frontier - pt).  Measured effect: NONE -- obj byte-identical, decode time
+unchanged.  ROOT CAUSE: the instances have almost NO slack -- median (due-release-pt)/pt = 0.2
+and 0% of blocks have slack > 0.5*pt on prob_24/27/35/38.  Every block is on the critical path
+(due ~= release + 1.2*pt), which is exactly WHY these are high-Z1: any congestion delays a
+block past its tight due.  With ~zero slack there is nothing to coarsen, so the policy cannot
+fire.  Tardiness here reduces ONLY via better packing (fit more blocks on-time), which is the
+packing-quality / decode-speed wall documented above.  Another angle confirmed blocked by the
+problem's own structure.
