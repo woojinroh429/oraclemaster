@@ -387,6 +387,125 @@ struct Engine {
         return {found,bbay,bori,bx,by,ben,bex};
     }
 
+    // Leftbottom best feasible cell for block `bid` at time [cur,cur+pt): min (h,wx,wy,bay).
+    // found=false if none. Used by greedy_rollout (hot loop, all-C++).  Uses a per-(bay)
+    // forbidden-layer bitmap (built once per call): a candidate whose layers are all
+    // disjoint from the maps is DEFINITELY feasible (skip the exact per-present check);
+    // only map-hitting candidates fall back to placement_feasible -> big speedup in the
+    // rollout inner loop while staying EXACT.
+    inline bool lb_best(int bid,int cur,int step,int& obay,int& oori,int& oix,int& oiy){
+        const BlockShape& bs=shapes[bid]; int P=(int)bs.pt; int ex=cur+P;
+        int norient=(int)bs.orients.size();
+        int maxL=0; for(int oi=0;oi<norient;oi++) maxL=std::max(maxL,(int)bs.orients[oi].layers.size());
+        bool found=false; double bestsc=1e300;
+        for(int bay=0;bay<n_bays;bay++){
+            int bayH=(int)std::ceil(bh[bay]); int bayW=(int)std::ceil(bw[bay]);
+            int wpr=(bayW+64)>>6;
+            bool use_sweep = RASTER && maxL>0 && bayH>0 && bayH<20000;
+            std::vector<std::vector<uint64_t>> F;
+            if(use_sweep){
+                F.assign(maxL, std::vector<uint64_t>((size_t)bayH*wpr,0ULL));
+                for(const Placed& te: timeline[bay]){
+                    if(!(cur < te.ex && te.en < ex)) continue;
+                    bool newdesc=(te.en<=cur&&cur<te.ex)||(te.en<ex&&ex<=te.ex);
+                    bool tedesc =(cur<=te.en&&te.en<ex)||(cur<te.ex&&te.ex<=ex);
+                    if(!newdesc&&!tedesc) continue;
+                    const OrientData& eod=shapes[te.bid].orients[te.orient];
+                    int ne=(int)eod.layers.size();
+                    int tox=(int)std::floor(te.ox+0.5), toy=(int)std::floor(te.oy+0.5);
+                    for(int j=0;j<ne;j++){ const LayerData& L=eod.layers[j]; if(L.npts<3)continue;
+                        if(newdesc){ int hi=std::min(j,maxL-1); for(int k=0;k<=hi;k++) or_layer_into_map(F[k],wpr,bayH,L,tox,toy); }
+                        if(tedesc){ for(int k=std::max(j,0);k<maxL;k++) or_layer_into_map(F[k],wpr,bayH,L,tox,toy); }
+                    }
+                }
+            }
+            for(int oi=0;oi<norient;oi++){
+                const OrientData& od=bs.orients[oi]; int nl=(int)od.layers.size();
+                double w=od.x1-od.x0, h=od.y1-od.y0;
+                if(w>bw[bay]+1e-9||h>bh[bay]+1e-9) continue;
+                // taller orients can never beat a found (h,wx,wy) with wx=wy=0
+                double orient_floor=((h*1e6+0.0)*1e4+0.0)*4.0+bay;
+                if(found && orient_floor>=bestsc) continue;
+                int lo_x=(int)std::ceil(-od.x0), hi_x=(int)std::floor(bw[bay]-od.x1);
+                int lo_y=(int)std::ceil(-od.y0), hi_y=(int)std::floor(bh[bay]-od.y1);
+                for(int ix=lo_x; ix<=hi_x; ix+=step){
+                    double wx=ix+od.x0;
+                    if(found && ((h*1e6+wx)*1e4+0.0)*4.0+bay>=bestsc) break;  // wx only grows
+                    for(int iy=lo_y; iy<=hi_y; iy+=step){
+                        double wy=iy+od.y0;
+                        double sc=((h*1e6+wx)*1e4+wy)*4.0+bay;
+                        if(found && sc>=bestsc) break;   // wy only grows within this ix
+                        bool ok;
+                        if(use_sweep){
+                            bool clear=true;
+                            for(int k=0;k<nl&&clear;k++){ const LayerData& L=od.layers[k]; if(L.npts<3)continue;
+                                if(layer_hits_map(F[k],wpr,bayH,L,ix,iy)) clear=false; }
+                            ok = clear ? true : placement_feasible(bay,bid,oi,(double)ix,(double)iy,cur,ex);
+                        } else ok = placement_feasible(bay,bid,oi,(double)ix,(double)iy,cur,ex);
+                        if(ok){ bestsc=sc; found=true; obay=bay; oori=oi; oix=ix; oiy=iy; break; }
+                    }
+                }
+            }
+        }
+        return found;
+    }
+
+    // Python-facing leftbottom best cell: (found,bay,ori,ix,iy) for block bid at [cur,cur+pt).
+    std::tuple<bool,int,int,int,int> best_cell_lb(int bid,int cur,int step){
+        int obay=-1,oori=-1,oix=0,oiy=0;
+        bool f=lb_best(bid,cur,step,obay,oori,oix,oiy);
+        return {f,obay,oori,oix,oiy};
+    }
+
+    // Event-driven greedy completion from the CURRENT timeline.  Places every UNPLACED
+    // block (leftbottom, earliest feasible event time) in `prio` dispatch order and returns
+    // total tardiness of the newly-placed blocks.  The timeline is cloned and restored, so
+    // this is a pure evaluation (the beam calls it thousands of times to score branches).
+    // want_full=true also returns the placements [bid,bay,ori,ix,iy,en,ex]* for the fine
+    // final solution.  step = grid step (coarse for scoring, 1 for the final build).
+    std::pair<double,std::vector<int>>
+    greedy_rollout(std::vector<double> prio, int cur0, int step, bool want_full, int maxplace){
+        auto saved = timeline;
+        int nb=(int)shapes.size();
+        std::vector<char> placed(nb,0);
+        for(auto& bay:timeline) for(auto& p:bay) if(p.bid>=0&&p.bid<nb) placed[p.bid]=1;
+        std::vector<int> pending;
+        for(int b=0;b<nb;b++) if(!placed[b]) pending.push_back(b);
+        double tard=0.0; std::vector<int> out; int nplaced=0;
+        int cur=cur0; long guard=0;
+        while(!pending.empty()){
+            if(maxplace>0 && nplaced>=maxplace) break;
+            if(++guard>2000000) break;
+            std::vector<int> ready;
+            for(int b:pending) if((int)shapes[b].rt<=cur) ready.push_back(b);
+            std::sort(ready.begin(),ready.end(),[&](int a,int c){return prio[a]<prio[c];});
+            std::vector<char> placedset(nb,0); bool any=false;
+            for(int b:ready){
+                int obay,oori,oix,oiy;
+                if(lb_best(b,cur,step,obay,oori,oix,oiy)){
+                    int ex=cur+(int)shapes[b].pt;
+                    add(obay,b,oori,(double)oix,(double)oiy,cur,ex);
+                    double dd=shapes[b].due; tard += (ex>dd)?(ex-dd):0.0;
+                    placedset[b]=1; any=true; nplaced++;
+                    if(want_full){ out.push_back(b);out.push_back(obay);out.push_back(oori);
+                                   out.push_back(oix);out.push_back(oiy);out.push_back(cur);out.push_back(ex);}
+                }
+            }
+            if(any){
+                std::vector<int> np; np.reserve(pending.size());
+                for(int b:pending) if(!placedset[b]) np.push_back(b);
+                pending.swap(np);
+            }
+            long nextt=(long)2e18;
+            for(int b:pending){ long r=(long)shapes[b].rt; if(r>cur && r<nextt) nextt=r; }
+            for(auto& bay:timeline) for(auto& p:bay){ if(p.ex>cur && p.ex<nextt) nextt=p.ex; }
+            if(nextt>=(long)1e18){ if(!pending.empty()){ cur=cur+1; continue; } else break; }
+            cur=(int)nextt;
+        }
+        timeline = saved;
+        return {tard, out};
+    }
+
     // Full-grid feasible-position scan replicating place_custom's inner (bay,orient,ix,iy)
     // loop EXACTLY (same ceil/floor grid, same bay->orient->ix->iy order, same
     // placement_feasible) in ONE C++ call.  Returns feasible (bay,orient,ix,iy) as an
@@ -548,5 +667,7 @@ PYBIND11_MODULE(ogc_fast,m){
         .def("find_best_placement",&Engine::find_best_placement)
         .def("feasible_scan",&Engine::feasible_scan)
         .def("feasible_scan_win",&Engine::feasible_scan_win)
-        .def("feasible_mask",&Engine::feasible_mask);
+        .def("feasible_mask",&Engine::feasible_mask)
+        .def("greedy_rollout",&Engine::greedy_rollout)
+        .def("best_cell_lb",&Engine::best_cell_lb);
 }
