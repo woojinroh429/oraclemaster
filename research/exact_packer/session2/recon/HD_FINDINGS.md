@@ -73,3 +73,43 @@ The only untapped lever for the Z1-dominated 250-block instances is making step=
 fit 15s. `place_custom` is Python-loop bound and RASTER-neutral, so the path is a *windowed*
 C++ scan offload -- modest (~1.9x ceiling), thin 15s margin, and delicate to keep byte-identical.
 Not pursued; the shipped Z3 fix is the safe, validated win.
+
+## BRKGA / anytime-metaheuristic vs greedy -- decode-speed investigation (2026-07-23)
+Goal: replace the hand-designed direction heuristics (flatbl/bigleft/leftbottom) with a
+population search over a contact-maximizing decoder (the "friend's approach" = decoder-based
+BRKGA), which the literature says beats greedy on packing IF the decoder is cheap enough for
+many generations (anytime convergence).  We already HAVE this: `st3dtcs.st_best` scores each
+placement by (tard, pref, load, -contact, y, x) -- no hand-coded direction -- and `_brkga_st`
+runs a BRKGA over block orders decoded by it.  It WINS on mid-density (prob_35 -29%) but is
+gated off on high-density.
+
+MEASURED (the key numbers):
+- **BRKGA does only ~2 generations in 15s** on 150-200 block instances (prob_35/34/28):
+  per-decode 5-7s, first decode 6.3s.  A real GA needs hundreds -- so it is not searching,
+  just picking the best of ~2 seed orders.  This is the whole reason it loses to greedy.
+- Target to make BRKGA viable: decode ~6s -> ~50-70ms (~100x) for 200+ generations.
+
+ATTEMPTS (all reverted -- none shippable):
+- **Extreme-Point candidate decoder** (`st_best_ep`, bbox-flush + wall corners instead of the
+  full grid): 9-12x faster decode (0.5-0.6s mid-density; prob_38 60s->6.9s and it COMPLETES
+  250/250 where the grid times out at 219/250).  BUT single-decode quality is 2.8-3.3x WORSE,
+  and BRKGA-EP with 13-21 generations STILL loses to grid-BRKGA's 2 generations (prob_35 EP
+  3.66M vs grid 1.13M).
+- Coarse grid (step=2/3/4): same story -- 2-6x faster, 2x worse obj.
+- Spatial-index fix (CELL 1e6 -> 16; the shipped index is inert, one cell per bay): decode
+  UNCHANGED (6.13->6.15s) and obj byte-identical -> neighbor-gathering is NOT the bottleneck.
+
+ROOT BARRIER (why coarsening fails): the first key (tard,pref,load) is POSITION-INDEPENDENT,
+so the (x,y) scan only decides the contact tie-break AND feasibility.  In a dense bay a block
+fits only at specific cells, so any sparse/coarse candidate set MISSES the feasible position
+and pushes the block to a later entry_time -> Z1 spikes.  Quality (low Z1) therefore REQUIRES
+a fine step=1 feasibility scan, which is inherently ~14M cheap cell-checks per decode.  There
+is no free lunch via candidate reduction; greedy and BRKGA hit the same wall.
+
+REMAINING PATHS (not yet attempted):
+1. A free-space / NFP-vertex decoder that answers "earliest-feasible position for this shape"
+   sub-linearly (maintained skyline or free-polygon per bay; contact-optimal positions lie on
+   NFP boundary vertices -> a finite candidate set).  The principled fast-AND-accurate decoder;
+   large, uncertain.
+2. Parallelize the BRKGA population across the 4 cores (2 -> ~8 generations).  Modest.
+3. Keep greedy for high-density (it wins), BRKGA for mid-density only.  Pragmatic.
