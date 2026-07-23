@@ -37,7 +37,33 @@ Fully reproducible from a fresh container (only needs g++, python3.12, pybind11)
    worker also joins the hybrid best-of (the engine worker is preserved at n_workers=3).
    Inert at n_workers>=4; big recovery if the grader is 2-3 cores (see below).
 
+8. `ogc_fast` + `myalgorithm.py`: **windowed C++ feasibility + feasible-cell iteration**
+   (construction convergence).  The 250-block step=1 construction took ~24s (> the 15s
+   budget) so the larger high-density instances fell back to the worse step=2 basin.
+   New `feasible_scan_win` returns a bay's window feasible cells in ONE C++ call and
+   place_custom iterates only the feasible cells (no full-grid enumeration, no per-cell
+   pybind).  Byte-identical construction; 24s -> ~15s.  See below.
+
 `ogc_geom`, `ogc_state`, `st3dtcs` and the rest of the Python are byte-for-byte v82.
+
+## High-density construction convergence -- windowed C++ scan (root cause + effect)
+place_custom's FREE-REGION temporal rescans did ~18.5M per-cell `placement_feasible`
+pybind round-trips PLUS a Python enumeration of the whole window grid to test each cell
+-- ~24s for a 250-block step=1 build, over the 15s budget, so the winning worker timed
+out into the step=2 basin.
+- Fix: `feasible_scan_win` (C++) returns every feasible `(orient,ix,iy)` of a bay's
+  window cells in one call (replicating place_custom's per-orient bbox clamp + per-rect
+  step-aligned enumeration exactly); place_custom then iterates ONLY the feasible cells
+  (grouped by bay,orient) instead of enumerating the full grid + testing each cell.
+- **Byte-identical**: same feasible set, same `(ix,iy)`-ascending visit order, same
+  scoring/tie-break -- verified by identical placement md5 across bigleft/leftbottom/
+  flatbl/diagonal.  So it can never change a result, only reach it faster.
+- Effect: construction 24s -> ~15s -> step=1 completes / more ALNS runs.  Paired
+  prob_1..40 @15s: **prob_27 -10.6% (26.19M->23.40M, below the v74 reference's 27.25M)**,
+  prob_14 -4.6%, prob_33 -1.0%, prob_37 improved; every other instance ties; **0
+  regressions, 0 infeasible** (40/40 feasible on the packaged zip, max 16.0s).  The
+  250-block prob_38/40 still tie (construction ~15s ~ the budget) -- byte-identical so
+  never worse.  env WINMASK=0 reverts the windowed path to the per-cell check.
 
 ## CPU-limited-grader worker utilisation (root cause + effect)
 `n_workers = min(WORKERS=4, len(os.sched_getaffinity(0)))`.  A grader confined to 2
