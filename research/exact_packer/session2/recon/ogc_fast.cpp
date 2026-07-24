@@ -748,6 +748,24 @@ struct Engine {
         }
         return tardy;
     }
+    // WATERFILL admissible lower bound on final obj2 (load imbalance), ported from the
+    // reference _h_obj2: pour remaining workload w_rem into the lower u_i*L_i levels; the
+    // reachable min of max_ij|u_i L_i - u_j L_j| is a true LB.
+    double wb_hobj2(const std::vector<double>& loads, const std::vector<double>& u, double w_rem){
+        int m=n_bays; if(m<2) return 0.0;
+        std::vector<std::pair<double,double>> v(m);
+        for(int i=0;i<m;i++) v[i]={u[i]*loads[i], u[i]};
+        std::sort(v.begin(),v.end());
+        double vmax=v[m-1].first, rem=w_rem, level=v[0].first, caps=0.0; int idx=0;
+        while(rem>1e-12 && level<vmax-1e-12){
+            while(idx<m && v[idx].first<=level+1e-12){ caps+=1.0/v[idx].second; idx++; }
+            double nxt = idx<m? v[idx].first : vmax; nxt=std::min(nxt,vmax);
+            double need=(nxt-level)*caps;
+            if(need>=rem){ level += (caps>0.0)? rem/caps : 0.0; rem=0.0; }
+            else { rem-=need; level=nxt; }
+        }
+        return std::max(0.0, vmax-level);
+    }
     void load_flat_into(const std::vector<int>& flat, std::vector<std::vector<Placed>>& TL){
         for(auto& t:TL) t.clear();
         for(size_t i=0;i+6<flat.size();i+=7){
@@ -765,33 +783,38 @@ struct Engine {
             for(auto& s: sel) out.push_back({bay,s[0],s[1],s[2],s[3]});  // bay,orient,ix,iy,contact
         }
     }
-    struct WBState { std::vector<int> flat; std::vector<char> placed; double gt, gz3, gcontact; int nplaced; };
-    // FIXED-ORDER depth-consistent beam (friend's structure): at level i EVERY state places
-    // block order[i] at its EARLIEST feasible entry, branching on K contact candidates.  All
-    // states are at the same depth -> ranking compares like-for-like -> width helps monotonically.
-    // Levers: contact-perimeter candidates, contact reward (-mu*gcontact), free-cap-integral h_z1.
+    struct WBState { std::vector<int> flat; std::vector<char> placed; std::vector<double> loads; double gt, gz3, gcontact; int nplaced; };
+    // FAITHFUL PORT (milestone 1): fixed-order depth-consistent beam with the reference's
+    // ACCURATE scoring -- per-candidate objective-delta selection (d_rank), per-bay load
+    // tracking, waterfill h_obj2, free-cap-integral h_z1, contact reward.  cps = candidates
+    // kept per state (objective-selected), the reference's cand_per_state.
     std::pair<double,std::vector<int>>
-    wide_beam(std::vector<int> order, std::vector<double> areas, int B, int K,
-              int step, double w1p, double w3p, double mu, double time_budget_s, int nent){
+    wide_beam(std::vector<int> order, std::vector<double> areas, std::vector<double> workloads,
+              int B, int K, int step, double w1p, double w2p, double w3p, double mu,
+              double time_budget_s, int nent, int cps){
         int nb=(int)shapes.size();
         std::vector<double> mxp(nb,0);
         double area_total=0; for(int j=0;j<n_bays;j++) area_total+=bw[j]*bh[j];
         double avg_a=0; for(int b=0;b<nb;b++) avg_a+=areas[b]; avg_a = nb? avg_a/nb : 1.0;
+        double avg_ba = n_bays? area_total/n_bays : 1.0;
+        std::vector<double> u(n_bays); for(int j=0;j<n_bays;j++) u[j]= (bw[j]*bh[j]>1e-9)? avg_ba/(bw[j]*bh[j]) : 1.0;
         for(int b=0;b<nb;b++){ const auto&pr=shapes[b].prefs; double mx=pr.empty()?0:pr[0]; for(double v:pr)if(v>mx)mx=v; mxp[b]=mx; }
+        int nord=(int)order.size();
+        std::vector<double> suffix_w(nord+1,0.0);
+        for(int i=nord-1;i>=0;i--) suffix_w[i]=suffix_w[i+1]+workloads[order[i]];
+        double mu_pos = 1e-3*std::min(w1p,w3p), wait_w = mu_pos*20.0;
         _perlayer = (std::getenv("OGC_PERLAYER")!=nullptr);
-        // pre-populate footprint caches SERIALLY so the parallel region only reads them.
         for(int b=0;b<nb;b++) for(int oi=0;oi<(int)shapes[b].orients.size();oi++){ footprint(b,oi); if(_perlayer) footprintL(b,oi); }
-        WBState init; init.placed.assign(nb,0); init.gt=0; init.gz3=0; init.gcontact=0; init.nplaced=0;
+        WBState init; init.placed.assign(nb,0); init.loads.assign(n_bays,0.0); init.gt=0; init.gz3=0; init.gcontact=0; init.nplaced=0;
         std::vector<WBState> beam; beam.push_back(std::move(init));
         auto t0=std::chrono::steady_clock::now();
         auto elapsed=[&](){ return std::chrono::duration<double>(std::chrono::steady_clock::now()-t0).count(); };
-        for(int level=0; level<(int)order.size(); level++){
+        for(int level=0; level<nord; level++){
             if(elapsed()>time_budget_s) break;
             int bi=order[level]; int r=(int)shapes[bi].rt, pt=(int)shapes[bi].pt; double dd=shapes[bi].due;
+            double wl=workloads[bi], w_rem=suffix_w[level+1];
             const auto& pr=shapes[bi].prefs;
             int nbeam=(int)beam.size();
-            // PARALLEL over beam states: each thread keeps its own scratch timeline TL and
-            // writes children into its own slot (no shared mutation -> lock-free).
             std::vector<std::vector<WBState>> perstate(nbeam);
             #pragma omp parallel
             {
@@ -804,29 +827,43 @@ struct Engine {
                     std::vector<int> entries; entries.push_back(r);
                     for(int bay=0;bay<n_bays;bay++) for(const Placed& te: TL[bay]) if(te.ex>r) entries.push_back(te.ex);
                     std::sort(entries.begin(),entries.end()); entries.erase(std::unique(entries.begin(),entries.end()),entries.end());
-                    // MULTI-ENTRY: gather candidates from the earliest `nent` FEASIBLE entry
-                    // times (not just the earliest).  A later entry costs this block tardiness
-                    // but may leave a much tighter bay -> lower FUTURE tardiness (which h_z1
-                    // sees); the beam trades off via the rank.
-                    auto& out=perstate[si];
-                    int nfound=0;
+                    // gather candidates over the earliest `nent` feasible entries
+                    std::vector<std::array<int,6>> cl;   // bay,oi,ix,iy,ct,entry
+                    int emin=-1, nfound=0;
                     for(int e : entries){
                         scan_all_bays(TL,bi,e,e+pt,step,K,lcand);
                         if(lcand.empty()) continue;
-                        int ex=e+pt;
-                        for(auto& cd : lcand){
-                            int bay=cd[0],oi=cd[1],ix=cd[2],iy=cd[3],ct=cd[4];
-                            WBState c; c.flat=st.flat; c.placed=st.placed; c.nplaced=st.nplaced+1;
-                            c.flat.push_back(bi); c.flat.push_back(bay); c.flat.push_back(oi);
-                            c.flat.push_back(ix); c.flat.push_back(iy); c.flat.push_back(e); c.flat.push_back(ex);
-                            c.placed[bi]=1;
-                            c.gt = st.gt + (ex>dd?(ex-dd):0.0);
-                            double pen=(bay<(int)pr.size())?(mxp[bi]-pr[bay]):mxp[bi];
-                            c.gz3 = st.gz3 + pen;
-                            c.gcontact = st.gcontact + ct;
-                            out.push_back(std::move(c));
-                        }
+                        if(emin<0) emin=e;
+                        for(auto& cd : lcand) cl.push_back({cd[0],cd[1],cd[2],cd[3],cd[4],e});
                         if(++nfound >= nent) break;
+                    }
+                    if(cl.empty()) continue;
+                    // OBJECTIVE-DELTA (d_rank) selection: keep the top `cps` candidates by the
+                    // true marginal objective, not raw contact -> finer positions finally help.
+                    double hb = wb_hobj2(st.loads,u,w_rem);
+                    std::vector<std::pair<double,int>> dr(cl.size());
+                    for(size_t j=0;j<cl.size();j++){
+                        int bay=cl[j][0],ct=cl[j][4],e=cl[j][5]; int ex=e+pt;
+                        double tardy = ex>dd? (double)(ex-dd):0.0;
+                        double pen = (bay<(int)pr.size())? (mxp[bi]-pr[bay]) : mxp[bi];
+                        std::vector<double> nl=st.loads; nl[bay]+=wl;
+                        double dbal = w2p*(wb_hobj2(nl,u,w_rem)-hb);
+                        dr[j] = { w1p*tardy + w3p*pen + dbal - mu*(double)ct + wait_w*(double)(e-emin), (int)j };
+                    }
+                    std::sort(dr.begin(),dr.end(),[](const std::pair<double,int>&a,const std::pair<double,int>&b){return a.first<b.first;});
+                    int keepc=std::min((int)dr.size(),cps);
+                    auto& out=perstate[si];
+                    for(int t=0;t<keepc;t++){
+                        auto& cd=cl[dr[t].second];
+                        int bay=cd[0],oi=cd[1],ix=cd[2],iy=cd[3],ct=cd[4],e=cd[5]; int ex=e+pt;
+                        WBState c; c.flat=st.flat; c.placed=st.placed; c.loads=st.loads; c.nplaced=st.nplaced+1;
+                        c.flat.push_back(bi); c.flat.push_back(bay); c.flat.push_back(oi);
+                        c.flat.push_back(ix); c.flat.push_back(iy); c.flat.push_back(e); c.flat.push_back(ex);
+                        c.placed[bi]=1; c.loads[bay]+=wl;
+                        c.gt = st.gt + (ex>dd?(double)(ex-dd):0.0);
+                        double pen=(bay<(int)pr.size())?(mxp[bi]-pr[bay]):mxp[bi];
+                        c.gz3 = st.gz3 + pen; c.gcontact = st.gcontact + ct;
+                        out.push_back(std::move(c));
                     }
                 }
             }
@@ -838,8 +875,9 @@ struct Engine {
             #pragma omp parallel for schedule(dynamic)
             for(int i=0;i<nch;i++){
                 WBState& c=children[i];
-                double h = (c.nplaced<nb) ? wb_hz1(c.flat,c.placed,areas,area_total,avg_a) : 0.0;
-                keyed[i] = {w1p*(c.gt+h) + w3p*c.gz3 - mu*c.gcontact, i};
+                double hz = (c.nplaced<nb) ? wb_hz1(c.flat,c.placed,areas,area_total,avg_a) : 0.0;
+                double ho = (c.nplaced<nb) ? wb_hobj2(c.loads,u,w_rem) : 0.0;
+                keyed[i] = {w1p*(c.gt+hz) + w2p*ho + w3p*c.gz3 - mu*c.gcontact, i};
             }
             std::sort(keyed.begin(),keyed.end(),[](const std::pair<double,int>&a,const std::pair<double,int>&b){return a.first<b.first;});
             // FRONT-LOADED width (env OGC_WBFRONT=1): wide early, narrow to BMIN late.  A
@@ -854,8 +892,13 @@ struct Engine {
             for(int i=0;i<keep;i++) nb2.push_back(std::move(children[keyed[i].second]));
             beam.swap(nb2);
         }
+        // FINAL pick = min EXACT objective (cum_hard + w2*floor(obj2_now)); contact/h are guides.
         double best_obj=1e18; std::vector<int> best_flat;
-        for(auto& st : beam) if(st.nplaced==nb){ double ob=w1p*st.gt+w3p*st.gz3; if(ob<best_obj){best_obj=ob;best_flat=st.flat;} }
+        for(auto& st : beam) if(st.nplaced==nb){
+            double o2=0.0; for(int i=0;i<n_bays;i++) for(int j=i+1;j<n_bays;j++){ double d=std::fabs(u[i]*st.loads[i]-u[j]*st.loads[j]); if(d>o2)o2=d; }
+            double ob=w1p*st.gt + w2p*std::floor(o2) + w3p*st.gz3;
+            if(ob<best_obj){best_obj=ob;best_flat=st.flat;}
+        }
         return {best_obj,best_flat};
     }
     // Returns projected TARDINESS (Z1) by default; if w3p>0 returns the projected OBJECTIVE
@@ -1079,7 +1122,7 @@ PYBIND11_MODULE(ogc_fast,m){
         .def("best_cell_lb",&Engine::best_cell_lb)
         .def("set_bcl_prefw",&Engine::set_bcl_prefw)
         .def("wide_beam",&Engine::wide_beam,
-             py::arg("order"),py::arg("areas"),py::arg("B"),py::arg("K"),
-             py::arg("step"),py::arg("w1p"),py::arg("w3p"),py::arg("mu"),py::arg("time_budget_s"),
-             py::arg("nent")=1);
+             py::arg("order"),py::arg("areas"),py::arg("workloads"),py::arg("B"),py::arg("K"),
+             py::arg("step"),py::arg("w1p"),py::arg("w2p"),py::arg("w3p"),py::arg("mu"),
+             py::arg("time_budget_s"),py::arg("nent")=1,py::arg("cps")=6);
 }
