@@ -22,6 +22,10 @@
 #include <tuple>
 #include <algorithm>
 #include <functional>
+#include <chrono>
+#include <array>
+#include <climits>
+#include <map>
 namespace py = pybind11;
 static double GRID_DIV = [](){ const char* e=std::getenv("GRIDDIV"); return e? atof(e):4.0; }();
 
@@ -517,6 +521,245 @@ struct Engine {
         timeline = saved;
         return r;
     }
+    // ===================== WIDE-BEAM (no-rollout) constructor =====================
+    // Friend's method: keep B partial states ("multiverses"); branch the highest-priority
+    // ready block on per-bay K diverse crane-aware feasible candidate positions (NOT
+    // leftbottom -- diverse spread, the beam's composite score picks the tight ones); score
+    // children by g + congestion-h (cheap area-relaxed schedule, no rollout); keep top-B;
+    // late-prune.  Wide breadth + cheap accurate scoring; everything in C++ so K can be ~30.
+    void load_flat(const std::vector<int>& flat){
+        for(auto& t:timeline) t.clear();
+        for(size_t i=0;i+6<flat.size();i+=7){
+            int bid=flat[i],bay=flat[i+1],orient=flat[i+2];
+            double ox=(double)flat[i+3],oy=(double)flat[i+4]; int en=flat[i+5],ex=flat[i+6];
+            const OrientData& od=shapes[bid].orients[orient];
+            timeline[bay].push_back({en,ex,bid,orient,ox,oy,od.x0+ox,od.y0+oy,od.x1+ox,od.y1+oy,bay});
+        }
+    }
+    // Collect feasible (orient,ix,iy) for a block in ONE bay (sweep-pruned, exact set),
+    // then pick up to K positions spread across the bay (diverse, no leftbottom bias):
+    // sort by (iy,ix) and take K evenly-spaced.  Timeline must already hold the state.
+    // ---- footprint cache: union of a block-orient's layer touch-rasters (for contact) ----
+    struct FP { int cx0,cy0,cw,ch; std::vector<char> g; };
+    std::map<int,FP> _fpcache;
+    const FP& footprint(int bid,int oi){
+        int key=bid*64+oi; auto it=_fpcache.find(key); if(it!=_fpcache.end()) return it->second;
+        const OrientData& od=shapes[bid].orients[oi];
+        int cx0=INT_MAX,cy0=INT_MAX,cx1=INT_MIN,cy1=INT_MIN;
+        for(const auto&L:od.layers){ if(L.cw==0)continue;
+            cx0=std::min(cx0,L.cx0); cy0=std::min(cy0,L.cy0);
+            cx1=std::max(cx1,L.cx0+L.cw); cy1=std::max(cy1,L.cy0+L.ch); }
+        FP fp;
+        if(cx0==INT_MAX){ fp.cx0=fp.cy0=fp.cw=fp.ch=0; return _fpcache.emplace(key,std::move(fp)).first->second; }
+        fp.cx0=cx0; fp.cy0=cy0; fp.cw=cx1-cx0; fp.ch=cy1-cy0; fp.g.assign((size_t)fp.cw*fp.ch,0);
+        for(const auto&L:od.layers){ if(L.cw==0)continue;
+            for(int r=0;r<L.ch;r++) for(int c=0;c<L.cw;c++)
+                if(L.bits[(size_t)r*L.wpr+(c>>6)] & (1ULL<<(c&63))){
+                    int gc=(L.cx0+c)-cx0, gr=(L.cy0+r)-cy0;
+                    if(gc>=0&&gc<fp.cw&&gr>=0&&gr<fp.ch) fp.g[(size_t)gr*fp.cw+gc]=1; }
+        }
+        return _fpcache.emplace(key,std::move(fp)).first->second;
+    }
+    // bay occupancy grid (union footprint of blocks present during [en,ex)).
+    void buildOcc(int bay,int en,int ex,int bayW,int bayH,std::vector<char>& occ){
+        occ.assign((size_t)bayW*bayH,0);
+        for(const Placed& te: timeline[bay]){
+            if(!(en<te.ex && te.en<ex)) continue;
+            const FP& fp=footprint(te.bid,te.orient);
+            int tox=(int)std::floor(te.ox+0.5), toy=(int)std::floor(te.oy+0.5);
+            for(int r=0;r<fp.ch;r++) for(int c=0;c<fp.cw;c++) if(fp.g[(size_t)r*fp.cw+c]){
+                int wx=tox+fp.cx0+c, wy=toy+fp.cy0+r;
+                if(wx>=0&&wx<bayW&&wy>=0&&wy<bayH) occ[(size_t)wy*bayW+wx]=1; }
+        }
+    }
+    // CONTACT PERIMETER (tight-packing quality): count of the block's boundary cells whose
+    // outward 4-neighbour is a bay wall or an occupied cell.  High = nestled tightly.
+    int contact_at(const FP& fp,int ix,int iy,const std::vector<char>& occ,int bayW,int bayH){
+        static const int DX[4]={1,-1,0,0}, DY[4]={0,0,1,-1};
+        int ct=0;
+        for(int r=0;r<fp.ch;r++) for(int c=0;c<fp.cw;c++){
+            if(!fp.g[(size_t)r*fp.cw+c]) continue;
+            for(int k=0;k<4;k++){
+                int nc=c+DX[k], nr=r+DY[k];
+                if(nc>=0&&nc<fp.cw&&nr>=0&&nr<fp.ch && fp.g[(size_t)nr*fp.cw+nc]) continue; // internal edge
+                int wx=ix+fp.cx0+nc, wy=iy+fp.cy0+nr;
+                if(wx<0||wx>=bayW||wy<0||wy>=bayH){ ct++; continue; }      // bay wall
+                if(occ[(size_t)wy*bayW+wx]) ct++;                          // touches a block
+            }
+        }
+        return ct;
+    }
+    // per-bay: feasible positions, scored by CONTACT (desc) with low-top tie-break, top-K
+    // spread across columns.  outsel = (orient,ix,iy,contact).  NOT leftbottom.
+    void scan_bay_contact(int bid,int bay,int en,int ex,int step,int K,
+                          std::vector<std::array<int,4>>& outsel){
+        const BlockShape& bs=shapes[bid]; int norient=(int)bs.orients.size();
+        double bw_j=bw[bay], bh_j=bh[bay];
+        int maxL=0; for(int oi=0;oi<norient;oi++) maxL=std::max(maxL,(int)bs.orients[oi].layers.size());
+        int bayH=(int)std::ceil(bh_j), bayW=(int)std::ceil(bw_j); int wpr=(bayW+64)>>6;
+        std::vector<std::vector<uint64_t>> F;
+        bool use_sweep = RASTER && maxL>0 && bayH>0 && bayH<20000;
+        if(use_sweep){
+            F.assign(maxL, std::vector<uint64_t>((size_t)bayH*wpr,0ULL));
+            for(const Placed& te: timeline[bay]){
+                if(!(en < te.ex && te.en < ex)) continue;
+                bool newdesc=(te.en<=en&&en<te.ex)||(te.en<ex&&ex<=te.ex);
+                bool tedesc =(en<=te.en&&te.en<ex)||(en<te.ex&&te.ex<=ex);
+                if(!newdesc&&!tedesc) continue;
+                const OrientData& eod=shapes[te.bid].orients[te.orient]; int ne=(int)eod.layers.size();
+                int tox=(int)std::floor(te.ox+0.5), toy=(int)std::floor(te.oy+0.5);
+                for(int j=0;j<ne;j++){ const LayerData& L=eod.layers[j]; if(L.npts<3)continue;
+                    if(newdesc){ int hi=std::min(j,maxL-1); for(int k=0;k<=hi;k++) or_layer_into_map(F[k],wpr,bayH,L,tox,toy); }
+                    if(tedesc){ for(int k=std::max(j,0);k<maxL;k++) or_layer_into_map(F[k],wpr,bayH,L,tox,toy); }
+                }
+            }
+        }
+        std::vector<char> occ; buildOcc(bay,en,ex,bayW,bayH,occ);
+        // (contact, orient, ix, iy) for each feasible position
+        std::vector<std::array<int,4>> all;
+        for(int oi=0; oi<norient; oi++){
+            const OrientData& od=bs.orients[oi]; int nl=(int)od.layers.size();
+            double w=od.x1-od.x0, h=od.y1-od.y0;
+            if(w>bw_j+1e-9 || h>bh_j+1e-9) continue;
+            const FP& fp=footprint(bid,oi);
+            int lo_x=(int)std::ceil(-od.x0), hi_x=(int)std::floor(bw_j-od.x1);
+            int lo_y=(int)std::ceil(-od.y0), hi_y=(int)std::floor(bh_j-od.y1);
+            for(int ix=lo_x; ix<=hi_x; ix+=step) for(int iy=lo_y; iy<=hi_y; iy+=step){
+                bool ok;
+                if(use_sweep){ bool clear=true;
+                    for(int k=0;k<nl&&clear;k++){ const LayerData& L=od.layers[k]; if(L.npts<3)continue;
+                        if(layer_hits_map(F[k],wpr,bayH,L,ix,iy)) clear=false; }
+                    ok = clear ? true : placement_feasible(bay,bid,oi,(double)ix,(double)iy,en,ex);
+                } else ok = placement_feasible(bay,bid,oi,(double)ix,(double)iy,en,ex);
+                if(ok){ int ct=contact_at(fp,ix,iy,occ,bayW,bayH); all.push_back({ct,oi,ix,iy}); }
+            }
+        }
+        int tot=(int)all.size();
+        if(tot==0) return;
+        // rank by CONTACT desc, then low top-edge (iy) -> tight, high-quality positions.
+        std::sort(all.begin(),all.end(),[](const std::array<int,4>&a,const std::array<int,4>&b){
+            if(a[0]!=b[0]) return a[0]>b[0]; return a[3]<b[3]; });
+        if(tot<=K){ for(auto&p:all) outsel.push_back({p[1],p[2],p[3],p[0]}); return; }
+        // take top-K by contact but spread in x so the K aren't all the same column
+        int xthr=(int)std::max(1.0, bw_j/(double)(K));
+        std::vector<int> chosenx;
+        for(auto& p : all){ if((int)outsel.size()>=K) break;
+            bool far=true; for(int cx:chosenx) if(std::abs(p[2]-cx)<xthr){far=false;break;}
+            if(far){ outsel.push_back({p[1],p[2],p[3],p[0]}); chosenx.push_back(p[2]); } }
+        for(auto& p : all){ if((int)outsel.size()>=K) break;
+            bool dup=false; for(auto&q:outsel) if(q[0]==p[1]&&q[1]==p[2]&&q[2]==p[3]){dup=true;break;}
+            if(!dup) outsel.push_back({p[1],p[2],p[3],p[0]}); }
+    }
+    // FREE-CAPACITY-INTEGRAL Z1 tail heuristic (ported from the reference beamsolver _h_z1):
+    // remaining blocks, due-sorted cumulative area demand D_k, are poured into the state's
+    // free-capacity integral F(t) (rate = area_total - occupancy*avg_area); the k-th estimated
+    // completion past due_k is future tardiness the exact g cannot see yet.  Predicts real
+    // congestion delay far better than a flat area relaxation.  Returns raw tardiness.
+    double wb_hz1(const std::vector<int>& flat, const std::vector<char>& placed,
+                  const std::vector<double>& areas, double area_total, double avg_a){
+        int nb=(int)shapes.size();
+        std::vector<std::pair<int,double>> ev;
+        for(size_t i=0;i+6<flat.size();i+=7){ int en=flat[i+5],ex=flat[i+6];
+            ev.push_back({en,1.0}); ev.push_back({ex,-1.0}); }
+        std::vector<std::pair<int,double>> rem; int minrel=INT_MAX;
+        for(int b=0;b<nb;b++) if(!placed[b]){ rem.push_back({(int)shapes[b].due,areas[b]}); minrel=std::min(minrel,(int)shapes[b].rt); }
+        if(rem.empty()) return 0.0;
+        std::sort(rem.begin(),rem.end());
+        std::sort(ev.begin(),ev.end());
+        double t=(minrel==INT_MAX)?0.0:(double)minrel;
+        double F=0.0, occ=0.0, tardy=0.0, D=0.0; int idx=0;
+        while(idx<(int)ev.size() && (double)ev[idx].first<=t){ occ+=ev[idx].second; idx++; }
+        for(auto& rd : rem){
+            int due_k=rd.first; D += rd.second;
+            while(true){
+                double cap=std::max(area_total*0.15, area_total-occ*avg_a);
+                double nxt=(idx<(int)ev.size())?(double)ev[idx].first:1e18;
+                double need_t=(D-F)/cap;
+                if(t+need_t<=nxt){ double tau=t+need_t; if(tau>due_k) tardy+=(tau-due_k); F=D; if(tau>t)t=tau; break; }
+                else { F+=cap*(nxt-t); t=nxt; occ+=ev[idx].second; idx++; }
+            }
+        }
+        return tardy;
+    }
+    void scan_all_bays(int bid,int en,int ex,int step,int K,std::vector<std::array<int,5>>& out){
+        out.clear();
+        for(int bay=0;bay<n_bays;bay++){
+            std::vector<std::array<int,4>> sel;
+            scan_bay_contact(bid,bay,en,ex,step,K,sel);
+            for(auto& s: sel) out.push_back({bay,s[0],s[1],s[2],s[3]});  // bay,orient,ix,iy,contact
+        }
+    }
+    struct WBState { std::vector<int> flat; std::vector<char> placed; double gt, gz3, gcontact; int nplaced; };
+    // FIXED-ORDER depth-consistent beam (friend's structure): at level i EVERY state places
+    // block order[i] at its EARLIEST feasible entry, branching on K contact candidates.  All
+    // states are at the same depth -> ranking compares like-for-like -> width helps monotonically.
+    // Levers: contact-perimeter candidates, contact reward (-mu*gcontact), free-cap-integral h_z1.
+    std::pair<double,std::vector<int>>
+    wide_beam(std::vector<int> order, std::vector<double> areas, int B, int K,
+              int step, double w1p, double w3p, double mu, double time_budget_s){
+        int nb=(int)shapes.size();
+        std::vector<double> mxp(nb,0);
+        double area_total=0; for(int j=0;j<n_bays;j++) area_total+=bw[j]*bh[j];
+        double avg_a=0; for(int b=0;b<nb;b++) avg_a+=areas[b]; avg_a = nb? avg_a/nb : 1.0;
+        for(int b=0;b<nb;b++){ const auto&pr=shapes[b].prefs; double mx=pr.empty()?0:pr[0]; for(double v:pr)if(v>mx)mx=v; mxp[b]=mx; }
+        auto saved=timeline;
+        WBState init; init.placed.assign(nb,0); init.gt=0; init.gz3=0; init.gcontact=0; init.nplaced=0;
+        std::vector<WBState> beam; beam.push_back(std::move(init));
+        auto t0=std::chrono::steady_clock::now();
+        auto elapsed=[&](){ return std::chrono::duration<double>(std::chrono::steady_clock::now()-t0).count(); };
+        std::vector<std::array<int,5>> cand;
+        for(int level=0; level<(int)order.size(); level++){
+            if(elapsed()>time_budget_s) break;
+            int bi=order[level]; int r=(int)shapes[bi].rt, pt=(int)shapes[bi].pt; double dd=shapes[bi].due;
+            const auto& pr=shapes[bi].prefs;
+            std::vector<WBState> children; children.reserve(beam.size()*K*n_bays);
+            for(auto& st : beam){
+                load_flat(st.flat);
+                // candidate entry times: release, plus distinct future exit times (a block that
+                // can't fit now may fit once something leaves).  Scan ASCENDING, take the
+                // EARLIEST entry that yields feasible positions -> minimal tardiness.
+                std::vector<int> entries; entries.push_back(r);
+                for(int bay=0;bay<n_bays;bay++) for(const Placed& te: timeline[bay]) if(te.ex>r) entries.push_back(te.ex);
+                std::sort(entries.begin(),entries.end()); entries.erase(std::unique(entries.begin(),entries.end()),entries.end());
+                int entry=-1; cand.clear();
+                for(int e : entries){
+                    scan_all_bays(bi,e,e+pt,step,K,cand);
+                    if(!cand.empty()){ entry=e; break; }
+                }
+                if(entry<0) continue;   // truly unplaceable in this state -> drops out
+                int ex=entry+pt;
+                for(auto& cd : cand){
+                    int bay=cd[0],oi=cd[1],ix=cd[2],iy=cd[3],ct=cd[4];
+                    WBState c; c.flat=st.flat; c.placed=st.placed; c.nplaced=st.nplaced+1;
+                    c.flat.push_back(bi); c.flat.push_back(bay); c.flat.push_back(oi);
+                    c.flat.push_back(ix); c.flat.push_back(iy); c.flat.push_back(entry); c.flat.push_back(ex);
+                    c.placed[bi]=1;
+                    c.gt = st.gt + (ex>dd?(ex-dd):0.0);
+                    double pen=(bay<(int)pr.size())?(mxp[bi]-pr[bay]):mxp[bi];
+                    c.gz3 = st.gz3 + pen;
+                    c.gcontact = st.gcontact + ct;
+                    children.push_back(std::move(c));
+                }
+            }
+            if(children.empty()) break;
+            std::vector<std::pair<double,int>> keyed; keyed.reserve(children.size());
+            for(int i=0;i<(int)children.size();i++){
+                WBState& c=children[i];
+                double h = (c.nplaced<nb) ? wb_hz1(c.flat,c.placed,areas,area_total,avg_a) : 0.0;
+                double rank = w1p*(c.gt+h) + w3p*c.gz3 - mu*c.gcontact;
+                keyed.push_back({rank, i});
+            }
+            std::sort(keyed.begin(),keyed.end(),[](const std::pair<double,int>&a,const std::pair<double,int>&b){return a.first<b.first;});
+            std::vector<WBState> nb2; int keep=std::min((int)keyed.size(),B);
+            nb2.reserve(keep);
+            for(int i=0;i<keep;i++) nb2.push_back(std::move(children[keyed[i].second]));
+            beam.swap(nb2);
+        }
+        double best_obj=1e18; std::vector<int> best_flat;
+        for(auto& st : beam) if(st.nplaced==nb){ double ob=w1p*st.gt+w3p*st.gz3; if(ob<best_obj){best_obj=ob;best_flat=st.flat;} }
+        timeline=saved;
+        return {best_obj,best_flat};
+    }
     // Returns projected TARDINESS (Z1) by default; if w3p>0 returns the projected OBJECTIVE
     // w1p*Z1 + w3p*Z3 of the newly-placed blocks (Z3 = sum of bay-preference penalties), and
     // prefw biases lb_best toward preferred bays so the rollout can trade Z1 against Z3.
@@ -736,5 +979,8 @@ PYBIND11_MODULE(ogc_fast,m){
              py::arg("want_full"),py::arg("maxplace"),py::arg("approx"),
              py::arg("w1p")=0.0,py::arg("w3p")=0.0,py::arg("prefw")=0.0)
         .def("best_cell_lb",&Engine::best_cell_lb)
-        .def("set_bcl_prefw",&Engine::set_bcl_prefw);
+        .def("set_bcl_prefw",&Engine::set_bcl_prefw)
+        .def("wide_beam",&Engine::wide_beam,
+             py::arg("order"),py::arg("areas"),py::arg("B"),py::arg("K"),
+             py::arg("step"),py::arg("w1p"),py::arg("w3p"),py::arg("mu"),py::arg("time_budget_s"));
 }
