@@ -4726,11 +4726,20 @@ def _worker_entry(args):
                 elif (os.environ.get("OGC_CBEAM", "1") == "1"
                         and len(prob_info["blocks"]) <= 200
                         and _hyb_deadline - time.time() > 90.0):
-                    if _btos < 0.58 and _wid % 4 != 3:
+                    # PHYSICAL density gate (demand_ratio, the reference's own measure) instead
+                    # of the train-tuned temporal_os: contact wins at dr <= 0.69, loses at
+                    # dr >= 0.93 (a wide, robust margin), so gate at 0.80.  This drives the
+                    # contact-vs-mode-zoo worker allocation by a capacity property of the
+                    # instance, not a threshold fitted to prob_1-40 -- addressing the overfit
+                    # concern while keeping each regime its best treatment (a fixed gate-free
+                    # allocation measurably loses the mid-density wins; the friend likewise gates
+                    # its TRI behaviour on demand_ratio 0.84).
+                    _dr = _demand_ratio_phys(prob_info)
+                    if _dr < 0.90 and _wid % 4 != 3:
                         _cbcfg = {0: (0.1, "edd", 0.0), 1: (0.1, "lst", 0.0),
                                   2: (0.05, "edd", 0.0)}.get(_wid % 4, (0.1, "edd", 0.0))
                         _keep(_contact_attempt(*_cbcfg))
-                    elif (0.58 <= _btos < 0.90 and _wid % 4 in (0, 1)
+                    elif (0.90 <= _dr < 1.20 and _wid % 4 in (0, 1)
                           and os.environ.get("OGC_CDENSE", "0") == "1"):
                         # HIGH-density contact (env OGC_CDENSE, default OFF pending @300s
                         # validation that it beats the mode zoo without regressing via the
