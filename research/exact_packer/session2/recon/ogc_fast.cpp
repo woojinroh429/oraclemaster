@@ -638,6 +638,160 @@ struct Engine {
         }
         return out;
     }
+    // THREAD-LOCAL-timeline variant of best_cell_contact (for the parallel contact_beam): same
+    // Phase2 contact-max position (with fut_beta wall-push) + Phase3 cross-bay d_rank, but scans
+    // against a passed TL instead of this->timeline so beam states expand concurrently.  Appends
+    // up to topk (bay,oi,ix,iy,ct) sorted by d_rank into `out`.
+    void best_cell_contact_tl(const std::vector<std::vector<Placed>>& TL,int bid,int cur,int step,
+                              double pos_lam,double prefw,double mu,double w1,double w3,
+                              double fut_beta,double mean_proc,int topk,std::vector<std::array<int,5>>& out){
+        const BlockShape& bs=shapes[bid]; int P=(int)bs.pt; int ex=cur+P; double dd=shapes[bid].due;
+        double s_max=0; if(!bs.prefs.empty()){ s_max=bs.prefs[0]; for(double v:bs.prefs) if(v>s_max)s_max=v; }
+        double tardy = ex>dd? (double)(ex-dd):0.0;
+        int norient=(int)bs.orients.size();
+        struct Cand{ double drank; int bay,oi,ix,iy,ct; };
+        std::vector<Cand> cands;
+        int maxLb=0; for(int oi=0;oi<norient;oi++) maxLb=std::max(maxLb,(int)bs.orients[oi].layers.size());
+        for(int bay=0;bay<n_bays;bay++){
+            double bw_j=bw[bay],bh_j=bh[bay];
+            int bayH=(int)std::ceil(bh_j),bayW=(int)std::ceil(bw_j); int wpr=(bayW+64)>>6;
+            std::vector<char> occ; buildOcc(TL[bay],cur,ex,bayW,bayH,occ);
+            std::vector<std::vector<uint64_t>> F;
+            bool use_sweep=RASTER&&maxLb>0&&bayH>0&&bayH<20000;
+            if(use_sweep){ F.assign(maxLb,std::vector<uint64_t>((size_t)bayH*wpr,0ULL));
+                for(const Placed& te: TL[bay]){ if(!(cur<te.ex&&te.en<ex))continue;
+                    bool ndd=(te.en<=cur&&cur<te.ex)||(te.en<ex&&ex<=te.ex);
+                    bool td=(cur<=te.en&&te.en<ex)||(cur<te.ex&&te.ex<=ex); if(!ndd&&!td)continue;
+                    const OrientData& eod=shapes[te.bid].orients[te.orient]; int ne=(int)eod.layers.size();
+                    int tox=(int)std::floor(te.ox+0.5),toy=(int)std::floor(te.oy+0.5);
+                    for(int j=0;j<ne;j++){const LayerData&L=eod.layers[j];if(L.npts<3)continue;
+                        if(ndd){int hi=std::min(j,maxLb-1);for(int k=0;k<=hi;k++)or_layer_into_map(F[k],wpr,bayH,L,tox,toy);}
+                        if(td){for(int k=std::max(j,0);k<maxLb;k++)or_layer_into_map(F[k],wpr,bayH,L,tox,toy);}}}}
+            double pen = (bay<(int)bs.prefs.size())? (s_max-bs.prefs[bay]) : s_max;
+            double bestsc=1e300; int boi=-1,bix=0,biy=0,bct=0;
+            for(int oi=0;oi<norient;oi++){ const OrientData& od=bs.orients[oi]; int nl=(int)od.layers.size();
+                double w=od.x1-od.x0,h=od.y1-od.y0; if(w>bw_j+1e-9||h>bh_j+1e-9)continue;
+                const FP& fp=footprint(bid,oi);
+                int lox=(int)std::ceil(-od.x0),hix=(int)std::floor(bw_j-od.x1);
+                int loy=(int)std::ceil(-od.y0),hiy=(int)std::floor(bh_j-od.y1);
+                for(int ix=lox;ix<=hix;ix+=step)for(int iy=loy;iy<=hiy;iy+=step){
+                    bool ok; if(use_sweep){bool clear=true;
+                        for(int k=0;k<nl&&clear;k++){const LayerData&L=od.layers[k];if(L.npts<3)continue;
+                            if(layer_hits_map(F[k],wpr,bayH,L,ix,iy))clear=false;}
+                        ok=clear?true:placement_feasible_tl(TL[bay],bay,bid,oi,(double)ix,(double)iy,cur,ex);
+                    } else ok=placement_feasible_tl(TL[bay],bay,bid,oi,(double)ix,(double)iy,cur,ex);
+                    if(!ok)continue;
+                    int ct=contact_at(fp,ix,iy,occ,bayW,bayH);
+                    double sc = -(double)ct + ((double)iy+od.y1)*pos_lam + (double)ix*pos_lam*0.01 + prefw*pen;
+                    if(fut_beta>0.0){ double dl=(double)ix+od.x0,dr=bw_j-((double)ix+od.x1);
+                        double db=(double)iy+od.y0,dt=bh_j-((double)iy+od.y1);
+                        double dwall=std::min(std::min(dl,dr),std::min(db,dt));
+                        sc += fut_beta*((double)P/std::max(1e-9,mean_proc))*dwall; }
+                    if(sc<bestsc){bestsc=sc;boi=oi;bix=ix;biy=iy;bct=ct;}
+                }
+            }
+            if(boi<0)continue;
+            double drank = w1*tardy + w3*pen - mu*(double)bct;
+            cands.push_back({drank,bay,boi,bix,biy,bct});
+        }
+        std::sort(cands.begin(),cands.end(),[](const Cand&a,const Cand&b){return a.drank<b.drank;});
+        int m=std::min((int)cands.size(),std::max(1,topk));
+        for(int i=0;i<m;i++) out.push_back({cands[i].bay,cands[i].oi,cands[i].ix,cands[i].iy,cands[i].ct});
+    }
+    struct CBState { std::vector<int> flat; std::vector<char> placed; std::vector<double> loads; double gt,gz3,gcontact; int nplaced; };
+    // C++ CONTACT BEAM (OpenMP over beam states): the fast engine port of the Python _contact_beam
+    // so a WIDE beam (B~50) fits in budget on congested instances.  Fixed dispatch `order`; each
+    // state expands its dispatched block into its top-K contact positions (best_cell_contact_tl),
+    // states ranked by cum_hard - mu*cum_contact + w2*obj2(loads) + w1*hz1, pruned to B; survivors
+    // completed by a contact rollout.  Returns (exact obj, full flat) or (1e18,{}) on timeout.
+    std::pair<double,std::vector<int>>
+    contact_beam(std::vector<int> order, std::vector<double> areas, std::vector<double> workloads,
+                 int B, int K, int step, double pos_lam, double prefw, double mu,
+                 double w1, double w2, double w3, double fut_beta, double mean_proc, double time_budget_s){
+        int nb=(int)shapes.size();
+        for(int b=0;b<nb;b++) for(int oi=0;oi<(int)shapes[b].orients.size();oi++) footprint(b,oi);
+        double area_total=0; for(int j=0;j<n_bays;j++) area_total+=bw[j]*bh[j];
+        double avg_a=0; for(int b=0;b<nb;b++) avg_a+=areas[b]; avg_a=nb?avg_a/nb:1.0;
+        double avg_ba=n_bays?area_total/n_bays:1.0;
+        std::vector<double> u(n_bays); for(int j=0;j<n_bays;j++) u[j]=(bw[j]*bh[j]>1e-9)?avg_ba/(bw[j]*bh[j]):1.0;
+        std::vector<double> mxp(nb,0); for(int b=0;b<nb;b++){const auto&pr=shapes[b].prefs;double mx=pr.empty()?0:pr[0];for(double v:pr)if(v>mx)mx=v;mxp[b]=mx;}
+        int nord=(int)order.size();
+        auto obj2f=[&](const std::vector<double>& loads){ double mn=1e18,mx=-1e18; for(int j=0;j<n_bays;j++){double v=u[j]*loads[j]; if(v<mn)mn=v; if(v>mx)mx=v;} return n_bays>1?(mx-mn):0.0; };
+        CBState init; init.placed.assign(nb,0); init.loads.assign(n_bays,0.0); init.gt=0;init.gz3=0;init.gcontact=0;init.nplaced=0;
+        std::vector<CBState> beam; beam.push_back(std::move(init));
+        auto t0=std::chrono::steady_clock::now();
+        auto elapsed=[&](){ return std::chrono::duration<double>(std::chrono::steady_clock::now()-t0).count(); };
+        for(int level=0; level<nord; level++){
+            if(elapsed()>time_budget_s) return {1e18,{}};
+            int bi=order[level]; int r=(int)shapes[bi].rt, pt=(int)shapes[bi].pt; double dd=shapes[bi].due;
+            double wl=workloads[bi]; const auto& pr=shapes[bi].prefs;
+            int nbeam=(int)beam.size();
+            std::vector<std::vector<CBState>> perstate(nbeam);
+            #pragma omp parallel
+            {
+                std::vector<std::vector<Placed>> TL(n_bays);
+                std::vector<std::array<int,5>> cc;
+                #pragma omp for schedule(dynamic)
+                for(int si=0;si<nbeam;si++){
+                    CBState& st=beam[si];
+                    load_flat_into(st.flat, TL);
+                    int cur=r; cc.clear();
+                    best_cell_contact_tl(TL,bi,cur,step,pos_lam,prefw,mu,w1,w3,fut_beta,mean_proc,K,cc);
+                    if(cc.empty()){
+                        std::vector<int> ents; ents.push_back(r);
+                        for(int bay=0;bay<n_bays;bay++) for(const Placed& te:TL[bay]) if(te.ex>r) ents.push_back(te.ex);
+                        std::sort(ents.begin(),ents.end()); ents.erase(std::unique(ents.begin(),ents.end()),ents.end());
+                        for(int e:ents){ if(e==r)continue; cc.clear();
+                            best_cell_contact_tl(TL,bi,e,step,pos_lam,prefw,mu,w1,w3,fut_beta,mean_proc,K,cc);
+                            if(!cc.empty()){cur=e;break;} }
+                    }
+                    auto& outv=perstate[si];
+                    if(cc.empty()){ outv.push_back(st); continue; }
+                    int exx=cur+pt;
+                    for(auto& cd: cc){
+                        int bay=cd[0],oi=cd[1],ix=cd[2],iy=cd[3],ct=cd[4];
+                        CBState c; c.flat=st.flat; c.placed=st.placed; c.loads=st.loads; c.nplaced=st.nplaced+1;
+                        c.flat.push_back(bi);c.flat.push_back(bay);c.flat.push_back(oi);c.flat.push_back(ix);c.flat.push_back(iy);c.flat.push_back(cur);c.flat.push_back(exx);
+                        c.placed[bi]=1; c.loads[bay]+=wl;
+                        c.gt = st.gt + (exx>dd?(double)(exx-dd):0.0);
+                        double pen=(bay<(int)pr.size())?(mxp[bi]-pr[bay]):mxp[bi];
+                        c.gz3=st.gz3+pen; c.gcontact=st.gcontact+ct;
+                        outv.push_back(std::move(c));
+                    }
+                }
+            }
+            std::vector<CBState> children;
+            for(auto& ps:perstate) for(auto& c:ps) children.push_back(std::move(c));
+            if(children.empty()) return {1e18,{}};
+            int nch=(int)children.size();
+            std::vector<std::pair<double,int>> keyed(nch);
+            #pragma omp parallel for schedule(dynamic)
+            for(int i=0;i<nch;i++){ CBState& c=children[i];
+                double hz = (c.nplaced<nb)? wb_hz1(c.flat,c.placed,areas,area_total,avg_a):0.0;
+                keyed[i]={ w1*c.gt + w3*c.gz3 - mu*c.gcontact + w2*obj2f(c.loads) + w1*hz, i };
+            }
+            std::sort(keyed.begin(),keyed.end(),[](const std::pair<double,int>&a,const std::pair<double,int>&b){return a.first<b.first;});
+            int keep=std::min(nch,B);
+            std::vector<CBState> nb2; nb2.reserve(keep);
+            for(int i=0;i<keep;i++) nb2.push_back(std::move(children[keyed[i].second]));
+            beam.swap(nb2);
+        }
+        double best_obj=1e18; std::vector<int> best_flat;
+        for(auto& st: beam){
+            auto res = greedy_contact_from(st.flat, order, step, pos_lam, prefw, mu, w1, w3, fut_beta, mean_proc);
+            std::vector<int>& flat = res.second;
+            if((int)flat.size()!=7*nb) continue;
+            double z1=0,z3=0; std::vector<double> loads(n_bays,0.0);
+            for(size_t i=0;i+6<flat.size();i+=7){ int b=flat[i],bay=flat[i+1],ex2=flat[i+6];
+                double dd2=shapes[b].due; if(ex2>dd2) z1+=ex2-dd2;
+                z3 += (bay<(int)shapes[b].prefs.size())?(mxp[b]-shapes[b].prefs[bay]):mxp[b];
+                loads[bay]+=workloads[b];
+            }
+            double ob = w1*z1 + w2*std::floor(obj2f(loads)) + w3*z3;
+            if(ob<best_obj){best_obj=ob;best_flat=flat;}
+        }
+        return {best_obj,best_flat};
+    }
 
     // Event-driven greedy completion from the CURRENT timeline.  Places every UNPLACED
     // block (leftbottom, earliest feasible event time) in `prio` dispatch order and returns
@@ -1520,6 +1674,11 @@ PYBIND11_MODULE(ogc_fast,m){
              py::arg("prefw"),py::arg("mu"),py::arg("w1"),py::arg("w3"),
              py::arg("fut_beta")=0.0,py::arg("mean_proc")=1.0)
         .def("hz1_est",&Engine::hz1_est,py::arg("flat"),py::arg("areas"))
+        .def("contact_beam",&Engine::contact_beam,
+             py::arg("order"),py::arg("areas"),py::arg("workloads"),py::arg("B"),py::arg("K"),
+             py::arg("step"),py::arg("pos_lam"),py::arg("prefw"),py::arg("mu"),
+             py::arg("w1"),py::arg("w2"),py::arg("w3"),py::arg("fut_beta"),
+             py::arg("mean_proc"),py::arg("time_budget_s"))
         .def("set_bcl_prefw",&Engine::set_bcl_prefw)
         .def("wide_beam",&Engine::wide_beam,
              py::arg("order"),py::arg("areas"),py::arg("workloads"),py::arg("B"),py::arg("K"),
