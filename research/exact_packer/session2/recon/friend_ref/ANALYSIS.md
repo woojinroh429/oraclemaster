@@ -170,6 +170,24 @@ whether a 2+2 core split (each engine 2 workers @300s) or a time-split retains t
 ALT path = port the friend's true-objective-delta beam ranking into our contact beam (make the
 low/mid win OURS). Both under evaluation.
 
+### BUDGET FINDING (ensemble @140s test) — decisive
+- **Ours @140s** still beats friend@300 on ALL high/ultra (prob_33 7.51M, prob_38 34.17M,
+  prob_27 22.78M) → **our engine converges by ~140s on the instances we win** (huge slack).
+- **Friend @140s**: prob_24 → 312,169 (WORSE than our 225,553!), prob_21 → 560,601 (still
+  beats us), prob_32 → 2,720,574 (still beats us). → friend needs near-full budget for prob_24.
+- ⟹ On a **4-core / 300s** budget, a best-of ensemble must split time, which makes OUR 9 wins
+  WORSE (ours@130s < ours@300s) while only partly capturing the friend's 3. **Net-negative at
+  300s.** The ensemble only pays off at **~500s total** (the friend's real budget), where
+  ours converges in ~160s (wins safe) and the freed ~340s funds a near-full friend run.
+- **Two clean paths forward:**
+  1. **500s ensemble** (if the user will run the friend's ~500s budget): our engine +
+     convergence-early-stop frees time → run friend on the remainder → best-of → match/beat
+     friend on ALL 12. Requires the budget decision.
+  2. **Port low/mid win into our engine** (budget-robust, any T): the 3 losses are Z3-routing
+     dominated (prob_24 friend Z3=482 vs ours 681; prob_32 ours Z3 much higher). Port the
+     friend's true-objective-delta candidate ranking (w1·tardy + w3·pref − mu·contact) so our
+     contact beam routes to preferred bays like theirs. Fixes low/mid at any budget, stays ours.
+
 ⚠️ prob_33 (our high-density P5 proxy) — OURS already beats the friend by 22%. Either the
 real hidden P5 instance differs from our train proxies, or the user's tested submission was an
 OLDER version than our current one. The full sweep will show WHERE we actually lose → the real
