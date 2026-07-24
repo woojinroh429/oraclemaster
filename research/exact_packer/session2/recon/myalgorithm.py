@@ -4674,11 +4674,20 @@ def _worker_entry(args):
                     except Exception:
                         return None
                     return None
+                # DENSITY GATE: contact-max packing wins on mid/low density (it routes blocks
+                # into preferred bays) but HURTS throughput on ultra-dense instances where the
+                # binding limit is fitting-everything-early, not preference -- measured prob_27
+                # (tos 0.68) 22.8M -> 26.0M when contact ran on all workers.  temporal_os cleanly
+                # separates the regimes (win <=0.44, lose >=0.68), so gate at 0.58.  Also reserve
+                # worker _wid%4==3 for the pure mode zoo so best-of always retains the old-quality
+                # candidate (belt-and-suspenders: never-worse even inside the band).
                 if (os.environ.get("OGC_CBEAM", "1") == "1"
                         and len(prob_info["blocks"]) <= 200
+                        and _btos < 0.58
+                        and _wid % 4 != 3
                         and _hyb_deadline - time.time() > 90.0):
                     _cbcfg = {0: (0.1, "edd"), 1: (0.1, "lst"),
-                              2: (0.05, "edd"), 3: (0.15, "edd_big")}.get(_wid % 4, (0.1, "edd"))
+                              2: (0.05, "edd")}.get(_wid % 4, (0.1, "edd"))
                     _keep(_contact_attempt(_cbcfg[0], _cbcfg[1]))
 
                 if (os.environ.get("BEAM", "1") == "1"
