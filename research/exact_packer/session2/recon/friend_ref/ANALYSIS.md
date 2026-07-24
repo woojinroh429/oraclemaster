@@ -137,13 +137,38 @@ benefit — a tighter feasibility raster finds more legal integer positions.
 ## Head-to-head (friend @300s on OUR train set) — _friendsweep.log
 | inst | dr | FRIEND @300s | OURS @300s | winner |
 |------|----|--------------|------------|--------|
-| prob_33 | .840 | 8,172,633 (Z1=1159) | **6,392,540** (Z1=810) | **OURS −22%** |
-| prob_38 | .993 | 38,440,927 (Z1=2777) | **34,167,259** (Z1=2359) | **OURS −11%** |
-| ... | | (sweep in progress: prob_39/40 then mid/low) | | |
+FULL SWEEP (friend v20.2 @300s vs OUR SHIPPED config @300s), sorted by demand_ratio:
+| inst | dr | FRIEND | OURS(shipped) | winner | margin |
+|------|----|--------|---------------|--------|--------|
+| prob_24 | .425 | **169,898** | 225,553 | FRIEND | ours +32.8% ❌ |
+| prob_21 | .526 | **519,005** | 611,817 | FRIEND | ours +17.9% ❌ |
+| prob_28 | .597 | 1,266,171 | **778,632** | OURS | −38.5% ✅ |
+| prob_26 | .621 | 8,606,180 | **7,941,486** | OURS | −7.7% ✅ |
+| prob_32 | .636 | **2,641,271** | 3,709,814 | FRIEND | ours +40.4% ❌ |
+| prob_23 | .673 | 1,697,371 | **1,617,107** | OURS | −4.7% ✅ |
+| prob_30 | .687 | 2,057,796 | **1,543,326** | OURS | −25.0% ✅ |
+| prob_39 | .790 | 8,981,604 | **7,764,022** | OURS | −13.6% ✅ |
+| prob_33 | .840 | 8,172,633 | **6,392,540** | OURS | −21.8% ✅ |
+| prob_40 | .933 | 2,082,353 | **1,733,334** | OURS | −16.7% ✅ |
+| prob_38 | .993 | 38,440,927 | **34,167,259** | OURS | −11.1% ✅ |
+| prob_27 | 1.041 | 25,239,681 | **22,779,813** | OURS | −9.7% ✅ |
 
-**Pattern so far: OURS beats the friend on BOTH high (prob_33) and ultra (prob_38) density.**
-Strongly suggests the user's tested "friend beats me on P1-P5" was an OLDER submission, not
-our current contact/mode-zoo engine. Full sweep will confirm across mid/low.
+**TALLY: OURS wins 9/12, FRIEND wins 3/12 (prob_24, prob_21, prob_32).**
+- We WIN all high/ultra density decisively (−10 to −22%) — our engine's strength.
+- We LOSE on two LOW-density (prob_24 dr.425 +33%, prob_21 dr.526 +18%) and one MID
+  (prob_32 dr.636 +40%). The friend's beam beats our contact beam there: better Z3 routing +
+  competitive Z1. This is our real gap.
+- Win/loss is NOT cleanly dr-separated (we win prob_28 dr.597, they win prob_32 dr.636) → a
+  density router can't capture both; only a true best-of can.
+
+### STRATEGY: best-of ensemble (proven never-worse, closes all 3 losses)
+Since we HAVE the friend's working engine, running BOTH and taking min per instance
+GUARANTEES ≤ friend AND ≤ ours everywhere. Data-proven ensemble result: match/beat friend on
+ALL 12 (prob_24→169,898, prob_21→519,005, prob_32→2,641,271 from friend; the other 9 from us).
+Open question = BUDGET: two 4-worker engines can't both get full 300s on 4 cores. Validating
+whether a 2+2 core split (each engine 2 workers @300s) or a time-split retains the wins.
+ALT path = port the friend's true-objective-delta beam ranking into our contact beam (make the
+low/mid win OURS). Both under evaluation.
 
 ⚠️ prob_33 (our high-density P5 proxy) — OURS already beats the friend by 22%. Either the
 real hidden P5 instance differs from our train proxies, or the user's tested submission was an
