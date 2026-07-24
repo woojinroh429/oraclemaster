@@ -28,10 +28,34 @@ TIGHT/conservative raster × future-value beta × in-worker width ladder. Determ
 (no random noise — reproducible). `esh` (E2 layer-accounting) runs as ladder rung 3 on
 leftover time (instance-dependent sign, zero-sum as a slot).
 
-### Beam construction (solve_beam)
+### Beam construction (solve_beam) [Agent A, CONFIRMED — full detail]
 Beam over ALL bays × orientations × integer positions. numba raster + fused sweep.
-Candidates ranked by TRUE objective delta. Beam kept diverse by per-parent quota,
-pruned by an admissible obj2 bound. `auto_beam_width(n, area, budget)`. [details ← Agent A]
+**Design philosophy (the key discipline): "contact chooses the POSITION; the true-objective
+delta chooses the CANDIDATE."** Contact scaled to `mu=1e-3*min(w1,w3)` so it NEVER outvotes
+a real tardiness/pref difference.
+- **State**: per-bay placed list, loads, `cum_hard = w1*Στardy + w3*Σprefpen` (EXACT hard
+  obj), `cum_contact` (search guide only), order-independent `canon` XOR hash (dedup layouts).
+- **Candidate score (the ranking)**: `d_rank = w1*tardy + w2*Δobj2 + w3*(s_max-pref[bay])
+  - mu*contact + wait_w*(entry-e_min)`. Candidates ranked by this TRUE objective delta.
+- **Position score (Phase 2, picks ONE pos per bay/orient)**: `sc = -contact +
+  (pys+top_h)*pos_lam + pxs*pos_lam*0.01` (+ fut_beta term). `pos_lam` 0.01=contact-first,
+  0.5=low-skyline.
+- **Beam rank(st)** = `cum_hard + w2*h(loads) - mu*cum_contact`, h = admissible waterfill obj2.
+- **Final pick** = min over beam of EXACT `true_obj = cum_hard + w2*floor(obj2_now)`.
+- **Pruning**: per-parent diversity quota (`max(2,(B+1)//2)` children/parent), canonical dedup,
+  admissible-obj2 + suffix-Z3 incumbent prune (cut child if `cum_hard + w2*(h-1) + z3_lb ≥
+  incumbent`), obj3-pref guard (never cut the zero-penalty option).
+- **auto_beam_width** = `2*tl*0.8 / (n*est_state_cost)`, clamp [2,192]; TIGHT costs 1.5×.
+- **schedule**: flat (congested — width to the end) / decay / hybrid. **order** (biggest
+  diversification axis): edd/lst/edd_big/edd_at/edd_tri/dispatch.
+
+### ⚠️ KEY REALIZATION (ours vs theirs)
+Our engine is ALREADY EXACT on feasibility (`placement_feasible` scans integer cells with
+exact layer-overlap), so we do NOT have the friend's "ghost gap" problem → **TIGHT raster is
+likely NOT our gap.** Our P5 gap is more likely: (1) the beam RANKING by TRUE objective delta
+(Z1-aware) with a WIDE beam (up to 192) enabled by admissible pruning — vs our contact-first
+beam; (2) the refined improvement ladder (FBI justify + ALNS + rung_G). This reframes the
+port priority below.
 
 ### Improvement LADDER (deterministic, fixed slices — key design)
 `[justify 2s, repair 25s, lns k14 45s, rebalance 4s, rung_g 44s, lns k20 45s, rebalance 4s]`
@@ -91,8 +115,55 @@ benefit — a tighter feasibility raster finds more legal integer positions.
   against LONG-STAYING blocks**), profile rings for true adjacency. ← time-weighted contact
   is a lever we don't have.
 
-## Head-to-head (friend @300s on OUR train set) — [filling in from _friendsweep.log]
-(pending)
+## Orchestration & convergence [Agent B, CONFIRMED]
+- **4 independent ProcessPoolExecutor workers, NO shared incumbent** (no Manager dict, no
+  best-sharing). Only the FINAL objective compared. Cross-worker reuse = losers' block→bay
+  maps for disagree-ruin. (Ours DOES share via Manager dict — a difference.)
+- Budget waterfall: workers 0.68–0.78·T, collection cap 0.78–0.88·T, improve loop 0.96·T−2,
+  validation 0.995·T. `[T5]` rung widths from NOMINAL budget shares (PHI table) so engine
+  speed changes only HOW MANY rungs fire, never the trajectory (deterministic).
+- **CONVERGENCE EARLY-STOP: they have NONE.** Construction = single forward beam sweep to
+  completion (only a predictive TIME guard collapses beam→width 1 if predicted to overrun).
+  Improvement = fixed pass LADDER + infinitely-cycled EXTRA block, bounded ONLY by the time
+  deadline. No patience/plateau/stall counter — they deliberately burn the whole budget.
+  ⟹ the user's "수렴하면 중지" must be BUILT by us. Reusable idea: patience counter
+  (passes_since_improvement) + their monotone `min()`/`_adopt` accept-gate so stopping is
+  always safe (never returns a worse solution).
+- Speed levers (why their beam is affordable): (1) fused feasibility+contact sweep,
+  integer-lattice only, early-exit, contact only for feasible; (2) crane clearance pre-baked
+  into blocked grid via masks_ge/masks_le cumulative unions → hot kernel is plain layerwise
+  AND; (3) aggressive caching (grid_cache + content-signature reuse + memoized exact-verify).
 
-## PORT LIST (prioritized) — [synthesized after agent reports]
-(pending)
+## Head-to-head (friend @300s on OUR train set) — _friendsweep.log
+| inst | dr | FRIEND @300s | OURS @300s | winner |
+|------|----|--------------|------------|--------|
+| prob_33 | .840 | 8,172,633 (Z1=1159) | **6,392,540** (Z1=810) | **OURS −22%** |
+| ... | | (sweep in progress: prob_38/39/40 P6-class next, then mid/low) | | |
+
+⚠️ prob_33 (our high-density P5 proxy) — OURS already beats the friend by 22%. Either the
+real hidden P5 instance differs from our train proxies, or the user's tested submission was an
+OLDER version than our current one. The full sweep will show WHERE we actually lose → the real
+port target. Do NOT over-invest in porting before the head-to-head map is complete.
+
+## PORT LIST (prioritized, Z1-dominated) [synthesized]
+1. **FBI justify_time** ⭐ (LOW difficulty, monotone Z1 reducer, works on ANY solution):
+   right pass slides on-time blocks as late as due−proc (obj-invariant, opens early space),
+   left pass pulls late blocks as early as release into that space (monotone Z1↓). O(bay)
+   boolean moves via a precomputed time-invariant pairwise collision matrix. Cheap → run every
+   loop. We have `_shift_forward` (left-ish); need the right-open + round-trip. Clean win.
+2. **True-objective-delta beam ranking + admissible obj2 waterfill pruning** (MED): rank
+   candidates by `w1*tardy + w2*Δobj2 + w3*pref − mu*contact`, prune children whose provable
+   LB ≥ incumbent → run a WIDER beam same budget. Our contact beam is contact-first; this is
+   Z1-aware. The real structural P5 lever IF the sweep shows we lose high-density.
+3. **ALNS refinements** (MED): disagree-guided ruin (ruin blocks the workers disagree on),
+   SA-lite acceptance (`temp=0.002*cur*frac_left`), adaptive op weights `+1/+0.1/×0.9` [0.2,8].
+4. **rung_G guided reconstruction** (MED): rebuild incumbent as ONE beam path (entry order) +
+   soft bay anchor (`anchor_w=0.5*w3`) + incumbent pruning → escapes LNS-unreachable basins.
+5. **fut_beta wall-push** (VERY LOW): `+fut_beta*(proc/mean_proc)*dwall` pushes long-residency
+   blocks to walls. We already have this term in best_cell_contact.
+
+## Convergence early-stop DESIGN (to build — user asked)
+Add to our improvement loop / worker coordinator: track `best_cost` over time; a
+`no_gain_seconds` / `passes_since_improvement` patience counter. When patience exceeded AND
+the instance is NOT high-density (needs full budget), return early. Keep the monotone best-of
+so early return is always safe. Only-stop-when-truly-converged; high-density always runs full.
