@@ -5010,7 +5010,7 @@ def _demand_ratio(prob, areas, bay_caps):
 
 
 
-def _contact_beam(prob_info, deadline_s, B=24, K=4, pos_lam=0.1, prefw=0.0, order="edd", mum=1.0):
+def _contact_beam(prob_info, deadline_s, B=24, K=4, pos_lam=0.1, prefw=0.0, order="edd", mum=1.0, fut_beta=0.0):
     """CONTACT-MAXIMISING beam (faithful port of the reference's core lever).  Fixed dispatch
     order; per state each dispatched block takes its cross-bay best CONTACT position
     (E.best_cell_contact = Phase2 sc = -contact + skyline*pos_lam, Phase3 d_rank).  States
@@ -5032,6 +5032,7 @@ def _contact_beam(prob_info, deadline_s, B=24, K=4, pos_lam=0.1, prefw=0.0, orde
         w = prob_info["weights"]; w1 = float(w["w1"]); w2 = float(w.get("w2", 0)); w3 = float(w["w3"])
         AR, _bc, _sc = _footprint_areas(prob_info); areas_l = [float(AR[b]) for b in range(n)]
         wl = [float(BL[b].get("workload", AR[b])) for b in range(n)]
+        _meanp = (sum(pt) / n) if n else 1.0
         barea = [prob_info["bays"][j]["width"] * prob_info["bays"][j]["height"] for j in range(m)]
         avgba = sum(barea) / m if m else 1.0
         u = [avgba / barea[j] if barea[j] > 0 else 1.0 for j in range(m)]
@@ -5062,13 +5063,13 @@ def _contact_beam(prob_info, deadline_s, B=24, K=4, pos_lam=0.1, prefw=0.0, orde
             cur = rel[bi]; newbeam = []
             for (recs, loads, cumC) in beam:
                 reconstruct(recs)
-                rows = E.best_cell_contact(bi, cur, 1, pos_lam, prefw, mu, w1, w3, K)
+                rows = E.best_cell_contact(bi, cur, 1, pos_lam, prefw, mu, w1, w3, K, fut_beta, _meanp)
                 ents = [cur]
                 if rows.shape[0] == 0:
                     ents = sorted({rel[bi]} | {r[6] for r in recs.values() if r[6] > rel[bi]})
                 placed_any = False
                 for e in ents:
-                    rr = rows if e == cur else E.best_cell_contact(bi, e, 1, pos_lam, prefw, mu, w1, w3, K)
+                    rr = rows if e == cur else E.best_cell_contact(bi, e, 1, pos_lam, prefw, mu, w1, w3, K, fut_beta, _meanp)
                     if rr.shape[0] == 0:
                         continue
                     for row in rr[:K]:
@@ -5101,7 +5102,7 @@ def _contact_beam(prob_info, deadline_s, B=24, K=4, pos_lam=0.1, prefw=0.0, orde
             reconstruct(recs); st = []
             for r in recs.values():
                 st.extend((r[0], r[1], r[2], r[3], r[4], r[5], r[6]))
-            _val, flat = E.greedy_contact_from(list(st), order_ids, 1, pos_lam, prefw, mu, w1, w3)
+            _val, flat = E.greedy_contact_from(list(st), order_ids, 1, pos_lam, prefw, mu, w1, w3, fut_beta, _meanp)
             rr = {}
             for i in range(0, len(flat), 7):
                 b, bay, o, ix, iy, en, ex = flat[i:i + 7]; rr[b] = (b, bay, o, ix, iy, en, ex)

@@ -498,7 +498,8 @@ struct Engine {
     // d_rank = w1*tardy + w3*pen - mu*contact.  Returns up to `topk` rows (bay,ori,ix,iy,contact)
     // sorted by d_rank -- the fast core of the friend's beam candidate stage.
     py::array_t<int> best_cell_contact(int bid,int cur,int step,double pos_lam,double prefw,
-                                       double mu,double w1,double w3,int topk){
+                                       double mu,double w1,double w3,int topk,
+                                       double fut_beta=0.0,double mean_proc=1.0){
         const BlockShape& bs=shapes[bid]; int P=(int)bs.pt; int ex=cur+P; double dd=shapes[bid].due;
         double s_max=0; if(!bs.prefs.empty()){ s_max=bs.prefs[0]; for(double v:bs.prefs) if(v>s_max)s_max=v; }
         double tardy = ex>dd? (double)(ex-dd):0.0;
@@ -537,6 +538,15 @@ struct Engine {
                     if(!ok)continue;
                     int ct=contact_at(fp,ix,iy,occ,bayW,bayH);
                     double sc = -(double)ct + ((double)iy+od.y1)*pos_lam + (double)ix*pos_lam*0.01 + prefw*pen;
+                    if(fut_beta>0.0){
+                        // FUTURE-VALUE (reference fut_beta): push blocks toward walls so the bay
+                        // CENTRE stays open for later crane descents -- the lever that keeps Z1
+                        // low on congested instances (contact alone fragments the descent paths).
+                        double dl=(double)ix+od.x0, dr=bw_j-((double)ix+od.x1);
+                        double db=(double)iy+od.y0, dt=bh_j-((double)iy+od.y1);
+                        double dwall=std::min(std::min(dl,dr),std::min(db,dt));
+                        sc += fut_beta*((double)P/std::max(1e-9,mean_proc))*dwall;
+                    }
                     if(sc<bestsc){bestsc=sc;boi=oi;bix=ix;biy=iy;bct=ct;}
                 }
             }
@@ -555,7 +565,8 @@ struct Engine {
     // Used to RANK contact-beam nodes by a faithful contact rollout (analog of greedy_rollout_from).
     std::pair<double,std::vector<int>>
     greedy_contact_from(std::vector<int> state_flat, std::vector<int> order, int step, double pos_lam,
-                        double prefw, double mu, double w1, double w3){
+                        double prefw, double mu, double w1, double w3,
+                        double fut_beta=0.0, double mean_proc=1.0){
         int nb=(int)shapes.size();
         for(auto&t:timeline) t.clear();
         std::vector<char> placed(nb,0);
@@ -572,7 +583,7 @@ struct Engine {
             std::vector<int> ready; for(int b:pending) if((int)shapes[b].rt<=cur) ready.push_back(b);
             bool any=false;
             for(int b: ready){
-                py::array_t<int> r=best_cell_contact(b,cur,step,pos_lam,prefw,mu,w1,w3,1);
+                py::array_t<int> r=best_cell_contact(b,cur,step,pos_lam,prefw,mu,w1,w3,1,fut_beta,mean_proc);
                 if(r.shape(0)<1) continue;
                 const int* d=r.data(); int bay=d[0],oi=d[1],ix=d[2],iy=d[3];
                 int ex=cur+(int)shapes[b].pt; add(bay,b,oi,(double)ix,(double)iy,cur,ex); placed[b]=1;
@@ -1499,13 +1510,15 @@ PYBIND11_MODULE(ogc_fast,m){
         .def("best_cell_lb",&Engine::best_cell_lb)
         .def("best_cell_contact",&Engine::best_cell_contact,
              py::arg("bid"),py::arg("cur"),py::arg("step"),py::arg("pos_lam"),py::arg("prefw"),
-             py::arg("mu"),py::arg("w1"),py::arg("w3"),py::arg("topk"))
+             py::arg("mu"),py::arg("w1"),py::arg("w3"),py::arg("topk"),
+             py::arg("fut_beta")=0.0,py::arg("mean_proc")=1.0)
         .def("greedy_contact",&Engine::greedy_contact,
              py::arg("order"),py::arg("step"),py::arg("pos_lam"),py::arg("prefw"),
              py::arg("mu"),py::arg("w1"),py::arg("w3"))
         .def("greedy_contact_from",&Engine::greedy_contact_from,
              py::arg("state_flat"),py::arg("order"),py::arg("step"),py::arg("pos_lam"),
-             py::arg("prefw"),py::arg("mu"),py::arg("w1"),py::arg("w3"))
+             py::arg("prefw"),py::arg("mu"),py::arg("w1"),py::arg("w3"),
+             py::arg("fut_beta")=0.0,py::arg("mean_proc")=1.0)
         .def("hz1_est",&Engine::hz1_est,py::arg("flat"),py::arg("areas"))
         .def("set_bcl_prefw",&Engine::set_bcl_prefw)
         .def("wide_beam",&Engine::wide_beam,
