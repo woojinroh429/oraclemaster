@@ -402,12 +402,18 @@ struct Engine {
     // disjoint from the maps is DEFINITELY feasible (skip the exact per-present check);
     // only map-hitting candidates fall back to placement_feasible -> big speedup in the
     // rollout inner loop while staying EXACT.
-    inline bool lb_best(int bid,int cur,int step,int& obay,int& oori,int& oix,int& oiy,bool approx=false){
+    inline bool lb_best(int bid,int cur,int step,int& obay,int& oori,int& oix,int& oiy,bool approx=false,double prefw=0.0){
         const BlockShape& bs=shapes[bid]; int P=(int)bs.pt; int ex=cur+P;
         int norient=(int)bs.orients.size();
         int maxL=0; for(int oi=0;oi<norient;oi++) maxL=std::max(maxL,(int)bs.orients[oi].layers.size());
+        double mxpref=0.0; if(prefw!=0.0 && !bs.prefs.empty()){ mxpref=bs.prefs[0]; for(double v:bs.prefs) if(v>mxpref)mxpref=v; }
         bool found=false; double bestsc=1e300;
         for(int bay=0;bay<n_bays;bay++){
+            // Z3-aware bay offset: when prefw>0, bias placement toward the block's
+            // preferred bays (min bay-preference penalty) so the rollout balances Z1
+            // (tight packing) against Z3 (bay preference).  prefw==0 -> pure leftbottom.
+            double bayoff = (double)bay;
+            if(prefw!=0.0 && bay<(int)bs.prefs.size()) bayoff += prefw*(mxpref-bs.prefs[bay]);
             int bayH=(int)std::ceil(bh[bay]); int bayW=(int)std::ceil(bw[bay]);
             int wpr=(bayW+64)>>6;
             bool use_sweep = RASTER && maxL>0 && bayH>0 && bayH<20000;
@@ -437,16 +443,16 @@ struct Engine {
                 double w=od.x1-od.x0, h=od.y1-od.y0;
                 if(w>bw[bay]+1e-9||h>bh[bay]+1e-9) continue;
                 // taller orients can never beat a found (h,wx,wy) with wx=wy=0
-                double orient_floor=((h*1e6+0.0)*1e4+0.0)*4.0+bay;
+                double orient_floor=((h*1e6+0.0)*1e4+0.0)*4.0+bayoff;
                 if(found && orient_floor>=bestsc) continue;
                 int lo_x=(int)std::ceil(-od.x0), hi_x=(int)std::floor(bw[bay]-od.x1);
                 int lo_y=(int)std::ceil(-od.y0), hi_y=(int)std::floor(bh[bay]-od.y1);
                 for(int ix=lo_x; ix<=hi_x; ix+=step){
                     double wx=ix+od.x0;
-                    if(found && ((h*1e6+wx)*1e4+0.0)*4.0+bay>=bestsc) break;  // wx only grows
+                    if(found && ((h*1e6+wx)*1e4+0.0)*4.0+bayoff>=bestsc) break;  // wx only grows
                     for(int iy=lo_y; iy<=hi_y; iy+=step){
                         double wy=iy+od.y0;
-                        double sc=((h*1e6+wx)*1e4+wy)*4.0+bay;
+                        double sc=((h*1e6+wx)*1e4+wy)*4.0+bayoff;
                         if(found && sc>=bestsc) break;   // wy only grows within this ix
                         bool ok;
                         if(use_sweep){
@@ -475,9 +481,11 @@ struct Engine {
     // Python-facing leftbottom best cell: (found,bay,ori,ix,iy) for block bid at [cur,cur+pt).
     std::tuple<bool,int,int,int,int> best_cell_lb(int bid,int cur,int step){
         int obay=-1,oori=-1,oix=0,oiy=0;
-        bool f=lb_best(bid,cur,step,obay,oori,oix,oiy);
+        bool f=lb_best(bid,cur,step,obay,oori,oix,oiy,false,bcl_prefw);
         return {f,obay,oori,oix,oiy};
     }
+    double bcl_prefw=0.0;   // preference weight used by best_cell_lb (set via set_bcl_prefw)
+    void set_bcl_prefw(double w){ bcl_prefw=w; }
 
     // Event-driven greedy completion from the CURRENT timeline.  Places every UNPLACED
     // block (leftbottom, earliest feasible event time) in `prio` dispatch order and returns
@@ -490,31 +498,37 @@ struct Engine {
     // reconstruct the engine via N pybind add() calls -- removes the Python hot-loop overhead.
     std::pair<double,std::vector<int>>
     greedy_rollout_from(std::vector<int> state_flat, std::vector<double> prio, int cur0,
-                        int step, bool want_full, int maxplace, bool approx){
+                        int step, bool want_full, int maxplace, bool approx,
+                        double w1p=0.0, double w3p=0.0, double prefw=0.0){
         auto saved = timeline;
         for(auto& t : timeline) t.clear();
         for(size_t i=0;i+6<state_flat.size();i+=7)
             add(state_flat[i+1],state_flat[i],state_flat[i+2],
                 (double)state_flat[i+3],(double)state_flat[i+4],state_flat[i+5],state_flat[i+6]);
-        auto r = greedy_rollout_core(prio,cur0,step,want_full,maxplace,approx);
+        auto r = greedy_rollout_core(prio,cur0,step,want_full,maxplace,approx,w1p,w3p,prefw);
         timeline = saved;
         return r;
     }
     std::pair<double,std::vector<int>>
-    greedy_rollout(std::vector<double> prio, int cur0, int step, bool want_full, int maxplace, bool approx){
+    greedy_rollout(std::vector<double> prio, int cur0, int step, bool want_full, int maxplace, bool approx,
+                   double w1p=0.0, double w3p=0.0, double prefw=0.0){
         auto saved = timeline;
-        auto r = greedy_rollout_core(prio,cur0,step,want_full,maxplace,approx);
+        auto r = greedy_rollout_core(prio,cur0,step,want_full,maxplace,approx,w1p,w3p,prefw);
         timeline = saved;
         return r;
     }
+    // Returns projected TARDINESS (Z1) by default; if w3p>0 returns the projected OBJECTIVE
+    // w1p*Z1 + w3p*Z3 of the newly-placed blocks (Z3 = sum of bay-preference penalties), and
+    // prefw biases lb_best toward preferred bays so the rollout can trade Z1 against Z3.
     std::pair<double,std::vector<int>>
-    greedy_rollout_core(std::vector<double> prio, int cur0, int step, bool want_full, int maxplace, bool approx){
+    greedy_rollout_core(std::vector<double> prio, int cur0, int step, bool want_full, int maxplace,
+                        bool approx, double w1p=0.0, double w3p=0.0, double prefw=0.0){
         int nb=(int)shapes.size();
         std::vector<char> placed(nb,0);
         for(auto& bay:timeline) for(auto& p:bay) if(p.bid>=0&&p.bid<nb) placed[p.bid]=1;
         std::vector<int> pending;
         for(int b=0;b<nb;b++) if(!placed[b]) pending.push_back(b);
-        double tard=0.0; std::vector<int> out; int nplaced=0;
+        double tard=0.0, z3=0.0; std::vector<int> out; int nplaced=0;
         int cur=cur0; long guard=0;
         while(!pending.empty()){
             if(maxplace>0 && nplaced>=maxplace) break;
@@ -525,10 +539,12 @@ struct Engine {
             std::vector<char> placedset(nb,0); bool any=false;
             for(int b:ready){
                 int obay,oori,oix,oiy;
-                if(lb_best(b,cur,step,obay,oori,oix,oiy,approx)){
+                if(lb_best(b,cur,step,obay,oori,oix,oiy,approx,prefw)){
                     int ex=cur+(int)shapes[b].pt;
                     add(obay,b,oori,(double)oix,(double)oiy,cur,ex);
                     double dd=shapes[b].due; tard += (ex>dd)?(ex-dd):0.0;
+                    if(w3p>0.0){ const std::vector<double>& pr=shapes[b].prefs;
+                        if(obay<(int)pr.size()){ double mx=pr[0]; for(double v:pr) if(v>mx)mx=v; z3 += (mx-pr[obay]); } }
                     placedset[b]=1; any=true; nplaced++;
                     if(want_full){ out.push_back(b);out.push_back(obay);out.push_back(oori);
                                    out.push_back(oix);out.push_back(oiy);out.push_back(cur);out.push_back(ex);}
@@ -545,7 +561,8 @@ struct Engine {
             if(nextt>=(long)1e18){ if(!pending.empty()){ cur=cur+1; continue; } else break; }
             cur=(int)nextt;
         }
-        return {tard, out};   // caller (wrapper) restores timeline
+        double val = (w3p>0.0) ? (w1p*tard + w3p*z3) : tard;   // objective if Z3-aware, else Z1
+        return {val, out};   // caller (wrapper) restores timeline
     }
 
     // Full-grid feasible-position scan replicating place_custom's inner (bay,orient,ix,iy)
@@ -710,7 +727,14 @@ PYBIND11_MODULE(ogc_fast,m){
         .def("feasible_scan",&Engine::feasible_scan)
         .def("feasible_scan_win",&Engine::feasible_scan_win)
         .def("feasible_mask",&Engine::feasible_mask)
-        .def("greedy_rollout",&Engine::greedy_rollout)
-        .def("greedy_rollout_from",&Engine::greedy_rollout_from)
-        .def("best_cell_lb",&Engine::best_cell_lb);
+        .def("greedy_rollout",&Engine::greedy_rollout,
+             py::arg("prio"),py::arg("cur0"),py::arg("step"),py::arg("want_full"),
+             py::arg("maxplace"),py::arg("approx"),
+             py::arg("w1p")=0.0,py::arg("w3p")=0.0,py::arg("prefw")=0.0)
+        .def("greedy_rollout_from",&Engine::greedy_rollout_from,
+             py::arg("state_flat"),py::arg("prio"),py::arg("cur0"),py::arg("step"),
+             py::arg("want_full"),py::arg("maxplace"),py::arg("approx"),
+             py::arg("w1p")=0.0,py::arg("w3p")=0.0,py::arg("prefw")=0.0)
+        .def("best_cell_lb",&Engine::best_cell_lb)
+        .def("set_bcl_prefw",&Engine::set_bcl_prefw);
 }

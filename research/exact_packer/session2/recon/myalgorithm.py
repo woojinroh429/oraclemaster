@@ -4537,10 +4537,12 @@ def _worker_entry(args):
                 # FIRST so it gets the full construction window; best-of keeps min -> the
                 # tail modes below still run if budget remains and can only improve.
                 # env BEAM=0 disables (A/B); default ON.
-                def _beam_attempt(_cap):
+                def _beam_attempt(_cap, _prefw=0.0):
                     try:
                         _bd = min(_cap, max(1.0, _hyb_deadline - time.time() - 6.0))
-                        _br = _beam_construct(prob_info, _bd)
+                        if _bd < 4.0:
+                            return None
+                        _br = _beam_construct(prob_info, _bd, prefw=_prefw)
                         if not _br or len(_br) != len(prob_info["blocks"]):
                             return None
                         _ops = {}
@@ -4579,11 +4581,23 @@ def _worker_entry(args):
                     _bw1 = prob_info["weights"]["w1"]; _btos = _temporal_os(prob_info)
                 except Exception:
                     _bw1 = 0; _btos = 1.0
-                if (os.environ.get("BEAM", "1") == "1" and _wid == 1
+                # Two beam variants on SEPARATE workers (each full budget, no split):
+                #   worker 1 -> prefw=0    (pure-Z1 beam; wins Z1-dominated instances)
+                #   worker 2 -> prefw=1e5  (Z3-aware beam; trades a little Z1 for a lot of Z3,
+                #                           winning Z3-significant instances the Z1 beam lost,
+                #                           e.g. prob_28 obj 2.13M->1.92M).
+                # Worker 3 keeps the full mode zoo as the best-of safety net.  best-of keeps
+                # min across all workers -> never-worse; each beam gets the full construction
+                # window so neither starves the other (running both on one worker cost prob_30
+                # ~1.3%).
+                if (os.environ.get("BEAM", "1") == "1"
                         and len(prob_info["blocks"]) < 200
                         and _bw1 >= 5000 and _btos < 0.72
                         and _hyb_deadline - time.time() > 24.0):
-                    _keep(_beam_attempt(45.0))
+                    if _wid == 1:
+                        _keep(_beam_attempt(45.0, 0.0))
+                    elif _wid == 2:
+                        _keep(_beam_attempt(45.0, 1e5))
 
 
                 # PREFERENCE-LEAD worker (the 4th hybrid worker, _wid%4==3): leads with a
@@ -4880,7 +4894,7 @@ def _demand_ratio(prob, areas, bay_caps):
 
 
 
-def _beam_construct(prob_info, deadline_s, W=4, K=4, scanstep=1, rollstep=3, order="rank"):
+def _beam_construct(prob_info, deadline_s, W=4, K=4, scanstep=1, rollstep=3, order="rank", prefw=0.0):
     """Tardiness-aware BEAM-LOOKAHEAD constructor.  Event-driven (place pending blocks at
     each event time, leftbottom).  At each event it BRANCHES on the highest-priority ready
     block that has >=2 feasible positions (K diverse positions) and scores each branch by a
@@ -4920,6 +4934,23 @@ def _beam_construct(prob_info, deadline_s, W=4, K=4, scanstep=1, rollstep=3, ord
         else:                     ordval = [(rd[b] + ra[b]) + due[b] * 1e-9 for b in range(n)]
         rankkey = lambda b: ordval[b]
         PRIO = [float(ordval[b]) for b in range(n)]
+        # Z3-AWARENESS: when prefw>0 the rollout returns the projected OBJECTIVE
+        # (w1*Z1 + w3*Z3) instead of pure tardiness, and placement biases toward preferred
+        # bays -- so the beam trades a little Z1 for a lot of Z3 where that wins the objective
+        # (measured prob_28 obj 2.43M -> 1.92M, below the mode-zoo pipeline's 2.09M).  prefw==0
+        # is the pure-Z1 beam (byte-identical to the validated default).
+        _W1P = float(prob_info["weights"]["w1"]); _W3P = float(prob_info["weights"]["w3"])
+        _prefs = [B[b]["bay_preferences"] for b in range(n)]
+        _mxp = [max(_prefs[b]) for b in range(n)]
+        Z3AWARE = prefw > 0.0
+        def obj_of(recs):
+            tard = sum(max(0, r[6] - due[r[0]]) for r in recs.values())
+            z3 = sum(_mxp[r[0]] - _prefs[r[0]][r[1]] for r in recs.values())
+            return _W1P * tard + _W3P * z3
+        try:
+            E.set_bcl_prefw(float(prefw))
+        except Exception:
+            pass
         # Adaptive beam width: on EXTREME density a NARROW beam is both faster AND higher
         # quality (the rollout heuristic is imperfect, so a wide beam over-explores and
         # misranks -- measured prob_27 W2K3 Z1=1546 in 22s vs W4K4 1644 in 56s).  Mid-density
@@ -4970,12 +5001,15 @@ def _beam_construct(prob_info, deadline_s, W=4, K=4, scanstep=1, rollstep=3, ord
             base = sum(max(0, r[6] - due[r[0]]) for r in recs0.values())
             state = []
             for r in recs0.values(): state.extend((r[0], r[1], r[2], int(r[3]), int(r[4]), r[5], r[6]))
-            tard, flat = E.greedy_rollout_from(state, PRIO, int(cur0), int(step), True, 0, False)
+            _w1, _w3, _pw = (_W1P, _W3P, prefw) if Z3AWARE else (0.0, 0.0, 0.0)
+            val, flat = E.greedy_rollout_from(state, PRIO, int(cur0), int(step), True, 0, False, _w1, _w3, _pw)
             recs = dict(recs0)
             for i in range(0, len(flat), 7):
                 b, bay, o, ix, iy, en, ex = flat[i:i + 7]
                 recs[b] = (b, bay, o, ix, iy, en, ex)
-            return recs, base + tard
+            if Z3AWARE:
+                return recs, obj_of(recs)   # rollout already returns objective of new blocks
+            return recs, base + val
 
         t0 = _t.time()
         beam = [({}, set(range(n)), min(rel), 0)]
@@ -4986,7 +5020,8 @@ def _beam_construct(prob_info, deadline_s, W=4, K=4, scanstep=1, rollstep=3, ord
             children = []; all_done = True
             for (recs, pending, cur, tsf) in beam:
                 if not pending:
-                    if tsf < best_tard: best_tard = tsf; best_recs = recs
+                    _ft = obj_of(recs) if Z3AWARE else tsf
+                    if _ft < best_tard: best_tard = _ft; best_recs = recs
                     continue
                 all_done = False
                 reconstruct(recs)
@@ -5039,7 +5074,7 @@ def _beam_construct(prob_info, deadline_s, W=4, K=4, scanstep=1, rollstep=3, ord
             for st in children:
                 recs, pending, cur, tsf = st
                 if not pending:
-                    ft = sum(max(0, r[6] - due[r[0]]) for r in recs.values())
+                    ft = obj_of(recs) if Z3AWARE else sum(max(0, r[6] - due[r[0]]) for r in recs.values())
                     if len(recs) == n and ft < best_tard: best_tard = ft; best_recs = dict(recs)
                 else:
                     _, ft = greedy_from(recs, cur, rollstep)
