@@ -4958,6 +4958,118 @@ def _demand_ratio(prob, areas, bay_caps):
 
 
 
+def _contact_beam(prob_info, deadline_s, B=24, K=4, pos_lam=0.1, prefw=0.0, order="edd", mum=1.0):
+    """CONTACT-MAXIMISING beam (faithful port of the reference's core lever).  Fixed dispatch
+    order; per state each dispatched block takes its cross-bay best CONTACT position
+    (E.best_cell_contact = Phase2 sc = -contact + skyline*pos_lam, Phase3 d_rank).  States
+    ranked by cum_hard - mu*cum_contact + w2*obj2(loads) + w1*hz1 (the reference beam rank with
+    the free-capacity future-tardiness term), pruned to width B; survivors completed by a
+    contact rollout, min exact objective kept.  Tight contact packing routes blocks into their
+    preferred bays -> LOW Z3 at near-minimal Z1 (measured prob_30 B=32: Z1=125 Z3=1558, and with
+    the z3 post-pass obj 1.98M, below the reference's 2.06M).  Returns a {bid: assignment} dict
+    or None.  All hot work (contact scan, rollout, hz1) is in the C++ engine."""
+    try:
+        import time as _t
+        E = _ogc_fast_engine(prob_info)
+        if not hasattr(E, "best_cell_contact"):
+            return None
+        BL = prob_info["blocks"]; n = len(BL); m = len(prob_info["bays"])
+        rel = [int(b["release_time"]) for b in BL]; pt = [int(b["processing_time"]) for b in BL]
+        due = [int(b["due_date"]) for b in BL]
+        prefs = [b["bay_preferences"] for b in BL]; mxp = [max(p) for p in prefs]
+        w = prob_info["weights"]; w1 = float(w["w1"]); w2 = float(w.get("w2", 0)); w3 = float(w["w3"])
+        AR, _bc, _sc = _footprint_areas(prob_info); areas_l = [float(AR[b]) for b in range(n)]
+        wl = [float(BL[b].get("workload", AR[b])) for b in range(n)]
+        barea = [prob_info["bays"][j]["width"] * prob_info["bays"][j]["height"] for j in range(m)]
+        avgba = sum(barea) / m if m else 1.0
+        u = [avgba / barea[j] if barea[j] > 0 else 1.0 for j in range(m)]
+        if order == "edd_big":
+            _mean_a = (sum(AR) / n) if n else 1.0
+            ordv = [(1 if AR[b] >= 2.0 * _mean_a else 0, due[b], AR[b] * 1e-9) for b in range(n)]
+        elif order == "lst":
+            ordv = [(due[b] - pt[b], AR[b] * 1e-9) for b in range(n)]
+        else:  # edd
+            ordv = [(due[b], AR[b] * 1e-9) for b in range(n)]
+        order_ids = sorted(range(n), key=lambda b: ordv[b])
+        mu = 1e-3 * min(w1, w3) * mum
+
+        def reconstruct(recs):
+            E.clear_all()
+            for r in recs.values():
+                E.add(r[1], r[0], r[2], float(r[3]), float(r[4]), r[5], r[6])
+
+        def obj2(loads):
+            vals = [u[j] * loads[j] for j in range(m)]
+            return (max(vals) - min(vals)) if m > 1 else 0.0
+
+        t0 = _t.time()
+        beam = [({}, [0.0] * m, 0.0)]   # (recs, loads, cum_contact)
+        for bi in order_ids:
+            if _t.time() - t0 > deadline_s:
+                return None   # ran out of budget mid-construction -> caller falls back
+            cur = rel[bi]; newbeam = []
+            for (recs, loads, cumC) in beam:
+                reconstruct(recs)
+                rows = E.best_cell_contact(bi, cur, 1, pos_lam, prefw, mu, w1, w3, K)
+                ents = [cur]
+                if rows.shape[0] == 0:
+                    ents = sorted({rel[bi]} | {r[6] for r in recs.values() if r[6] > rel[bi]})
+                placed_any = False
+                for e in ents:
+                    rr = rows if e == cur else E.best_cell_contact(bi, e, 1, pos_lam, prefw, mu, w1, w3, K)
+                    if rr.shape[0] == 0:
+                        continue
+                    for row in rr[:K]:
+                        bay, o, ix, iy, ct = int(row[0]), int(row[1]), int(row[2]), int(row[3]), int(row[4])
+                        ex = e + pt[bi]; r2 = dict(recs); r2[bi] = (bi, bay, o, ix, iy, e, ex)
+                        l2 = list(loads); l2[bay] += wl[bi]
+                        newbeam.append((r2, l2, cumC + ct))
+                    placed_any = True
+                    break
+                if not placed_any:
+                    newbeam.append((dict(recs), list(loads), cumC))
+            scored = []
+            for (recs, loads, cumC) in newbeam:
+                ch = sum(w1 * max(0, r[6] - due[r[0]]) + w3 * (mxp[r[0]] - prefs[r[0]][r[1]])
+                         for r in recs.values())
+                if len(recs) < n:
+                    flat = []
+                    for r in recs.values():
+                        flat.extend((r[0], r[1], r[2], r[3], r[4], r[5], r[6]))
+                    hz = E.hz1_est(flat, areas_l)
+                else:
+                    hz = 0.0
+                rank = ch - mu * cumC + w2 * obj2(loads) + w1 * hz
+                scored.append((rank, recs, loads, cumC))
+            scored.sort(key=lambda s: s[0])
+            beam = [(r, l, c) for _, r, l, c in scored[:B]]
+        # complete surviving states via contact rollout; keep min exact objective
+        best_obj = float("inf"); best_recs = None
+        for (recs, loads, cumC) in beam:
+            reconstruct(recs); st = []
+            for r in recs.values():
+                st.extend((r[0], r[1], r[2], r[3], r[4], r[5], r[6]))
+            _val, flat = E.greedy_contact_from(list(st), order_ids, 1, pos_lam, prefw, mu, w1, w3)
+            rr = {}
+            for i in range(0, len(flat), 7):
+                b, bay, o, ix, iy, en, ex = flat[i:i + 7]; rr[b] = (b, bay, o, ix, iy, en, ex)
+            if len(rr) != n:
+                continue
+            z1 = sum(max(0, rr[b][6] - due[b]) for b in rr)
+            z3 = sum(mxp[b] - prefs[b][rr[b][1]] for b in rr)
+            ob = w1 * z1 + w3 * z3
+            if ob < best_obj:
+                best_obj = ob; best_recs = rr
+        if best_recs is None:
+            return None
+        return {b: {"block_id": b, "bay_id": best_recs[b][1], "x": int(best_recs[b][3]),
+                    "y": int(best_recs[b][4]), "orient_idx": best_recs[b][2],
+                    "entry_time": best_recs[b][5], "exit_time": best_recs[b][6]}
+                for b in best_recs}
+    except Exception:
+        return None
+
+
 def _beam_construct(prob_info, deadline_s, W=4, K=4, scanstep=1, rollstep=3, order="rank", prefw=0.0):
     """Tardiness-aware BEAM-LOOKAHEAD constructor.  Event-driven (place pending blocks at
     each event time, leftbottom).  At each event it BRANCHES on the highest-priority ready
