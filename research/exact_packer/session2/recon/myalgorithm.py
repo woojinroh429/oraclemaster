@@ -4648,7 +4648,7 @@ def _worker_entry(args):
                 # (== reference), B=32 -> 1.978M (below reference); our old pipeline 2.359M.
                 # Short budgets (<~90s remaining, e.g. the 15s path) skip it -> byte-identical.
                 # env OGC_CBEAM=0 disables (A/B).
-                def _contact_attempt(_plam, _order):
+                def _contact_attempt(_plam, _order, _fb=0.0):
                     try:
                         _n = len(prob_info["blocks"])
                         _bd = _hyb_deadline - time.time() - 14.0   # reserve for z3 + ALNS tail
@@ -4656,7 +4656,7 @@ def _worker_entry(args):
                             return None
                         _Bc = int(_bd * 150.0 / (max(1, _n) * 4.9))   # ~4.9s per width-unit @ n=150
                         _Bc = max(8, min(32, _Bc))
-                        _cr = _contact_beam(prob_info, _bd, B=_Bc, K=4, pos_lam=_plam, order=_order)
+                        _cr = _contact_beam(prob_info, _bd, B=_Bc, K=4, pos_lam=_plam, order=_order, fut_beta=_fb)
                         if not _cr or len(_cr) != _n:
                             return None
                         _ops = {}
@@ -4681,14 +4681,31 @@ def _worker_entry(args):
                 # separates the regimes (win <=0.44, lose >=0.68), so gate at 0.58.  Also reserve
                 # worker _wid%4==3 for the pure mode zoo so best-of always retains the old-quality
                 # candidate (belt-and-suspenders: never-worse even inside the band).
+                # MID/LOW-density band (tos < 0.58): contact-max on workers 0/1/2 (routes to
+                # preferred bays -> low Z3), worker 3 = mode-zoo safety net.
+                # HIGH-density band (0.58 <= tos < 0.90): the binding limit is throughput, so use
+                # the reference's DENSE levers -- edd_big order (defer big blocks) + fut_beta
+                # (push to walls, keep the bay centre open for crane descents).  Run on workers
+                # 0/1 only; workers 2/3 stay on the mode zoo (TWO safety workers preserve the
+                # strong throughput candidate so best-of is never-worse if contact loses).
+                # Measured: contact seed + ALNS reaches Z1 ~1567 on prob_27 (mode zoo 1549) even
+                # with the mid config; the dense config raw Z1 is 1707 vs 2029.
                 if (os.environ.get("OGC_CBEAM", "1") == "1"
                         and len(prob_info["blocks"]) <= 200
-                        and _btos < 0.58
-                        and _wid % 4 != 3
                         and _hyb_deadline - time.time() > 90.0):
-                    _cbcfg = {0: (0.1, "edd"), 1: (0.1, "lst"),
-                              2: (0.05, "edd")}.get(_wid % 4, (0.1, "edd"))
-                    _keep(_contact_attempt(_cbcfg[0], _cbcfg[1]))
+                    if _btos < 0.58 and _wid % 4 != 3:
+                        _cbcfg = {0: (0.1, "edd", 0.0), 1: (0.1, "lst", 0.0),
+                                  2: (0.05, "edd", 0.0)}.get(_wid % 4, (0.1, "edd", 0.0))
+                        _keep(_contact_attempt(*_cbcfg))
+                    elif (0.58 <= _btos < 0.90 and _wid % 4 in (0, 1)
+                          and os.environ.get("OGC_CDENSE", "0") == "1"):
+                        # HIGH-density contact (env OGC_CDENSE, default OFF pending @300s
+                        # validation that it beats the mode zoo without regressing via the
+                        # 2-worker safety net).  When off, dense stays byte-identical to the
+                        # validated density-gated design.
+                        _cbcfg = {0: (0.15, "edd_big", 1.5),
+                                  1: (0.10, "edd_big", 1.5)}[_wid % 4]
+                        _keep(_contact_attempt(*_cbcfg))
 
                 if (os.environ.get("BEAM", "1") == "1"
                         and len(prob_info["blocks"]) < 200
