@@ -604,6 +604,54 @@ struct Engine {
         }
         return ct;
     }
+    // ---- PER-LAYER footprint cache + layered contact (more accurate 3D tightness) ----
+    struct FPL { int nl; std::vector<int> cx0,cy0,cw,ch; std::vector<std::vector<char>> g; };
+    std::map<int,FPL> _fplcache;
+    bool _perlayer=false;
+    const FPL& footprintL(int bid,int oi){
+        int key=bid*64+oi; auto it=_fplcache.find(key); if(it!=_fplcache.end()) return it->second;
+        const OrientData& od=shapes[bid].orients[oi]; int nl=(int)od.layers.size();
+        FPL fp; fp.nl=nl; fp.cx0.assign(nl,0);fp.cy0.assign(nl,0);fp.cw.assign(nl,0);fp.ch.assign(nl,0);fp.g.resize(nl);
+        for(int k=0;k<nl;k++){ const LayerData&L=od.layers[k];
+            if(L.cw==0) continue;
+            fp.cx0[k]=L.cx0; fp.cy0[k]=L.cy0; fp.cw[k]=L.cw; fp.ch[k]=L.ch; fp.g[k].assign((size_t)L.cw*L.ch,0);
+            for(int r=0;r<L.ch;r++) for(int c=0;c<L.cw;c++)
+                if(L.bits[(size_t)r*L.wpr+(c>>6)] & (1ULL<<(c&63))) fp.g[k][(size_t)r*L.cw+c]=1;
+        }
+        return _fplcache.emplace(key,std::move(fp)).first->second;
+    }
+    // per-layer occupancy: occL[k] = union of present blocks' layer-k footprints (layer-aligned).
+    void buildOccL(const std::vector<Placed>& btl,int en,int ex,int bayW,int bayH,int maxL,
+                   std::vector<std::vector<char>>& occL){
+        occL.assign(maxL, std::vector<char>((size_t)bayW*bayH,0));
+        for(const Placed& te: btl){
+            if(!(en<te.ex && te.en<ex)) continue;
+            const FPL& fp=footprintL(te.bid,te.orient);
+            int tox=(int)std::floor(te.ox+0.5), toy=(int)std::floor(te.oy+0.5);
+            for(int k=0;k<fp.nl && k<maxL;k++){ if(fp.cw[k]==0) continue;
+                for(int r=0;r<fp.ch[k];r++) for(int c=0;c<fp.cw[k];c++) if(fp.g[k][(size_t)r*fp.cw[k]+c]){
+                    int wx=tox+fp.cx0[k]+c, wy=toy+fp.cy0[k]+r;
+                    if(wx>=0&&wx<bayW&&wy>=0&&wy<bayH) occL[k][(size_t)wy*bayW+wx]=1; }
+            }
+        }
+    }
+    int contact_at_layered(const FPL& fp,int ix,int iy,const std::vector<std::vector<char>>& occL,int bayW,int bayH){
+        static const int DX[4]={1,-1,0,0}, DY[4]={0,0,1,-1};
+        int ct=0;
+        for(int k=0;k<fp.nl && k<(int)occL.size();k++){ if(fp.cw[k]==0) continue;
+            const std::vector<char>& oc=occL[k]; int cw=fp.cw[k],ch=fp.ch[k];
+            for(int r=0;r<ch;r++) for(int c=0;c<cw;c++){
+                if(!fp.g[k][(size_t)r*cw+c]) continue;
+                for(int q=0;q<4;q++){ int nc=c+DX[q], nr=r+DY[q];
+                    if(nc>=0&&nc<cw&&nr>=0&&nr<ch && fp.g[k][(size_t)nr*cw+nc]) continue;
+                    int wx=ix+fp.cx0[k]+nc, wy=iy+fp.cy0[k]+nr;
+                    if(wx<0||wx>=bayW||wy<0||wy>=bayH){ ct++; continue; }
+                    if(oc[(size_t)wy*bayW+wx]) ct++;
+                }
+            }
+        }
+        return ct;
+    }
     // per-bay: feasible positions, scored by CONTACT (desc) with low-top tie-break, top-K
     // spread across columns.  outsel = (orient,ix,iy,contact).  NOT leftbottom.
     void scan_bay_contact(const std::vector<Placed>& btl,int bid,int bay,int en,int ex,int step,int K,
@@ -629,7 +677,9 @@ struct Engine {
                 }
             }
         }
-        std::vector<char> occ; buildOcc(btl,en,ex,bayW,bayH,occ);
+        std::vector<char> occ; std::vector<std::vector<char>> occL;
+        if(_perlayer) buildOccL(btl,en,ex,bayW,bayH,maxL,occL);
+        else buildOcc(btl,en,ex,bayW,bayH,occ);
         // (contact, orient, ix, iy) for each feasible position
         std::vector<std::array<int,4>> all;
         for(int oi=0; oi<norient; oi++){
@@ -646,7 +696,9 @@ struct Engine {
                         if(layer_hits_map(F[k],wpr,bayH,L,ix,iy)) clear=false; }
                     ok = clear ? true : placement_feasible_tl(btl,bay,bid,oi,(double)ix,(double)iy,en,ex);
                 } else ok = placement_feasible_tl(btl,bay,bid,oi,(double)ix,(double)iy,en,ex);
-                if(ok){ int ct=contact_at(fp,ix,iy,occ,bayW,bayH); all.push_back({ct,oi,ix,iy}); }
+                if(ok){ int ct = _perlayer ? contact_at_layered(footprintL(bid,oi),ix,iy,occL,bayW,bayH)
+                                           : contact_at(fp,ix,iy,occ,bayW,bayH);
+                        all.push_back({ct,oi,ix,iy}); }
             }
         }
         int tot=(int)all.size();
@@ -726,8 +778,9 @@ struct Engine {
         double area_total=0; for(int j=0;j<n_bays;j++) area_total+=bw[j]*bh[j];
         double avg_a=0; for(int b=0;b<nb;b++) avg_a+=areas[b]; avg_a = nb? avg_a/nb : 1.0;
         for(int b=0;b<nb;b++){ const auto&pr=shapes[b].prefs; double mx=pr.empty()?0:pr[0]; for(double v:pr)if(v>mx)mx=v; mxp[b]=mx; }
-        // pre-populate the footprint cache SERIALLY so the parallel region only reads it.
-        for(int b=0;b<nb;b++) for(int oi=0;oi<(int)shapes[b].orients.size();oi++) footprint(b,oi);
+        _perlayer = (std::getenv("OGC_PERLAYER")!=nullptr);
+        // pre-populate footprint caches SERIALLY so the parallel region only reads them.
+        for(int b=0;b<nb;b++) for(int oi=0;oi<(int)shapes[b].orients.size();oi++){ footprint(b,oi); if(_perlayer) footprintL(b,oi); }
         WBState init; init.placed.assign(nb,0); init.gt=0; init.gz3=0; init.gcontact=0; init.nplaced=0;
         std::vector<WBState> beam; beam.push_back(std::move(init));
         auto t0=std::chrono::steady_clock::now();
