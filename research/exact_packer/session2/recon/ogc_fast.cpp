@@ -560,10 +560,25 @@ struct Engine {
         }
         return _fpcache.emplace(key,std::move(fp)).first->second;
     }
+    // thread-safe placement_feasible against a passed bay timeline (for parallel wide_beam).
+    bool placement_feasible_tl(const std::vector<Placed>& btl,int bay,int bid,int orient,double x,double y,int en,int ex){
+        const OrientData& od=shapes[bid].orients[orient];
+        double nx0=od.x0+x,ny0=od.y0+y,nx1=od.x1+x,ny1=od.y1+y;
+        if(nx0<-1e-6||ny0<-1e-6||nx1>bw[bay]+1e-6||ny1>bh[bay]+1e-6) return false;
+        for(const Placed& te : btl){
+            if(!(en < te.ex && te.en < ex)) continue;
+            if(!bb_ov(nx0,ny0,nx1,ny1,te.bx0,te.by0,te.bx1,te.by1)) continue;
+            if(te.en <= en && en < te.ex){ if(desc_hit(bid,orient,x,y,te)) return false; }
+            if(te.en < ex && ex <= te.ex){ if(desc_hit(bid,orient,x,y,te)) return false; }
+            if(en <= te.en && te.en < ex){ if(desc_hit_rev(te,bid,orient,x,y)) return false; }
+            if(en < te.ex && te.ex <= ex){ if(desc_hit_rev(te,bid,orient,x,y)) return false; }
+        }
+        return true;
+    }
     // bay occupancy grid (union footprint of blocks present during [en,ex)).
-    void buildOcc(int bay,int en,int ex,int bayW,int bayH,std::vector<char>& occ){
+    void buildOcc(const std::vector<Placed>& btl,int en,int ex,int bayW,int bayH,std::vector<char>& occ){
         occ.assign((size_t)bayW*bayH,0);
-        for(const Placed& te: timeline[bay]){
+        for(const Placed& te: btl){
             if(!(en<te.ex && te.en<ex)) continue;
             const FP& fp=footprint(te.bid,te.orient);
             int tox=(int)std::floor(te.ox+0.5), toy=(int)std::floor(te.oy+0.5);
@@ -591,7 +606,7 @@ struct Engine {
     }
     // per-bay: feasible positions, scored by CONTACT (desc) with low-top tie-break, top-K
     // spread across columns.  outsel = (orient,ix,iy,contact).  NOT leftbottom.
-    void scan_bay_contact(int bid,int bay,int en,int ex,int step,int K,
+    void scan_bay_contact(const std::vector<Placed>& btl,int bid,int bay,int en,int ex,int step,int K,
                           std::vector<std::array<int,4>>& outsel){
         const BlockShape& bs=shapes[bid]; int norient=(int)bs.orients.size();
         double bw_j=bw[bay], bh_j=bh[bay];
@@ -601,7 +616,7 @@ struct Engine {
         bool use_sweep = RASTER && maxL>0 && bayH>0 && bayH<20000;
         if(use_sweep){
             F.assign(maxL, std::vector<uint64_t>((size_t)bayH*wpr,0ULL));
-            for(const Placed& te: timeline[bay]){
+            for(const Placed& te: btl){
                 if(!(en < te.ex && te.en < ex)) continue;
                 bool newdesc=(te.en<=en&&en<te.ex)||(te.en<ex&&ex<=te.ex);
                 bool tedesc =(en<=te.en&&te.en<ex)||(en<te.ex&&te.ex<=ex);
@@ -614,7 +629,7 @@ struct Engine {
                 }
             }
         }
-        std::vector<char> occ; buildOcc(bay,en,ex,bayW,bayH,occ);
+        std::vector<char> occ; buildOcc(btl,en,ex,bayW,bayH,occ);
         // (contact, orient, ix, iy) for each feasible position
         std::vector<std::array<int,4>> all;
         for(int oi=0; oi<norient; oi++){
@@ -629,8 +644,8 @@ struct Engine {
                 if(use_sweep){ bool clear=true;
                     for(int k=0;k<nl&&clear;k++){ const LayerData& L=od.layers[k]; if(L.npts<3)continue;
                         if(layer_hits_map(F[k],wpr,bayH,L,ix,iy)) clear=false; }
-                    ok = clear ? true : placement_feasible(bay,bid,oi,(double)ix,(double)iy,en,ex);
-                } else ok = placement_feasible(bay,bid,oi,(double)ix,(double)iy,en,ex);
+                    ok = clear ? true : placement_feasible_tl(btl,bay,bid,oi,(double)ix,(double)iy,en,ex);
+                } else ok = placement_feasible_tl(btl,bay,bid,oi,(double)ix,(double)iy,en,ex);
                 if(ok){ int ct=contact_at(fp,ix,iy,occ,bayW,bayH); all.push_back({ct,oi,ix,iy}); }
             }
         }
@@ -681,11 +696,20 @@ struct Engine {
         }
         return tardy;
     }
-    void scan_all_bays(int bid,int en,int ex,int step,int K,std::vector<std::array<int,5>>& out){
+    void load_flat_into(const std::vector<int>& flat, std::vector<std::vector<Placed>>& TL){
+        for(auto& t:TL) t.clear();
+        for(size_t i=0;i+6<flat.size();i+=7){
+            int bid=flat[i],bay=flat[i+1],orient=flat[i+2];
+            double ox=(double)flat[i+3],oy=(double)flat[i+4]; int en=flat[i+5],ex=flat[i+6];
+            const OrientData& od=shapes[bid].orients[orient];
+            TL[bay].push_back({en,ex,bid,orient,ox,oy,od.x0+ox,od.y0+oy,od.x1+ox,od.y1+oy,bay});
+        }
+    }
+    void scan_all_bays(const std::vector<std::vector<Placed>>& TL,int bid,int en,int ex,int step,int K,std::vector<std::array<int,5>>& out){
         out.clear();
         for(int bay=0;bay<n_bays;bay++){
             std::vector<std::array<int,4>> sel;
-            scan_bay_contact(bid,bay,en,ex,step,K,sel);
+            scan_bay_contact(TL[bay],bid,bay,en,ex,step,K,sel);
             for(auto& s: sel) out.push_back({bay,s[0],s[1],s[2],s[3]});  // bay,orient,ix,iy,contact
         }
     }
@@ -702,45 +726,55 @@ struct Engine {
         double area_total=0; for(int j=0;j<n_bays;j++) area_total+=bw[j]*bh[j];
         double avg_a=0; for(int b=0;b<nb;b++) avg_a+=areas[b]; avg_a = nb? avg_a/nb : 1.0;
         for(int b=0;b<nb;b++){ const auto&pr=shapes[b].prefs; double mx=pr.empty()?0:pr[0]; for(double v:pr)if(v>mx)mx=v; mxp[b]=mx; }
-        auto saved=timeline;
+        // pre-populate the footprint cache SERIALLY so the parallel region only reads it.
+        for(int b=0;b<nb;b++) for(int oi=0;oi<(int)shapes[b].orients.size();oi++) footprint(b,oi);
         WBState init; init.placed.assign(nb,0); init.gt=0; init.gz3=0; init.gcontact=0; init.nplaced=0;
         std::vector<WBState> beam; beam.push_back(std::move(init));
         auto t0=std::chrono::steady_clock::now();
         auto elapsed=[&](){ return std::chrono::duration<double>(std::chrono::steady_clock::now()-t0).count(); };
-        std::vector<std::array<int,5>> cand;
         for(int level=0; level<(int)order.size(); level++){
             if(elapsed()>time_budget_s) break;
             int bi=order[level]; int r=(int)shapes[bi].rt, pt=(int)shapes[bi].pt; double dd=shapes[bi].due;
             const auto& pr=shapes[bi].prefs;
-            std::vector<WBState> children; children.reserve(beam.size()*K*n_bays);
-            for(auto& st : beam){
-                load_flat(st.flat);
-                // candidate entry times: release, plus distinct future exit times (a block that
-                // can't fit now may fit once something leaves).  Scan ASCENDING, take the
-                // EARLIEST entry that yields feasible positions -> minimal tardiness.
-                std::vector<int> entries; entries.push_back(r);
-                for(int bay=0;bay<n_bays;bay++) for(const Placed& te: timeline[bay]) if(te.ex>r) entries.push_back(te.ex);
-                std::sort(entries.begin(),entries.end()); entries.erase(std::unique(entries.begin(),entries.end()),entries.end());
-                int entry=-1; cand.clear();
-                for(int e : entries){
-                    scan_all_bays(bi,e,e+pt,step,K,cand);
-                    if(!cand.empty()){ entry=e; break; }
-                }
-                if(entry<0) continue;   // truly unplaceable in this state -> drops out
-                int ex=entry+pt;
-                for(auto& cd : cand){
-                    int bay=cd[0],oi=cd[1],ix=cd[2],iy=cd[3],ct=cd[4];
-                    WBState c; c.flat=st.flat; c.placed=st.placed; c.nplaced=st.nplaced+1;
-                    c.flat.push_back(bi); c.flat.push_back(bay); c.flat.push_back(oi);
-                    c.flat.push_back(ix); c.flat.push_back(iy); c.flat.push_back(entry); c.flat.push_back(ex);
-                    c.placed[bi]=1;
-                    c.gt = st.gt + (ex>dd?(ex-dd):0.0);
-                    double pen=(bay<(int)pr.size())?(mxp[bi]-pr[bay]):mxp[bi];
-                    c.gz3 = st.gz3 + pen;
-                    c.gcontact = st.gcontact + ct;
-                    children.push_back(std::move(c));
+            int nbeam=(int)beam.size();
+            // PARALLEL over beam states: each thread keeps its own scratch timeline TL and
+            // writes children into its own slot (no shared mutation -> lock-free).
+            std::vector<std::vector<WBState>> perstate(nbeam);
+            #pragma omp parallel
+            {
+                std::vector<std::vector<Placed>> TL(n_bays);
+                std::vector<std::array<int,5>> lcand;
+                #pragma omp for schedule(dynamic)
+                for(int si=0; si<nbeam; si++){
+                    WBState& st = beam[si];
+                    load_flat_into(st.flat, TL);
+                    std::vector<int> entries; entries.push_back(r);
+                    for(int bay=0;bay<n_bays;bay++) for(const Placed& te: TL[bay]) if(te.ex>r) entries.push_back(te.ex);
+                    std::sort(entries.begin(),entries.end()); entries.erase(std::unique(entries.begin(),entries.end()),entries.end());
+                    int entry=-1; lcand.clear();
+                    for(int e : entries){
+                        scan_all_bays(TL,bi,e,e+pt,step,K,lcand);
+                        if(!lcand.empty()){ entry=e; break; }
+                    }
+                    if(entry<0) continue;
+                    int ex=entry+pt;
+                    auto& out=perstate[si];
+                    for(auto& cd : lcand){
+                        int bay=cd[0],oi=cd[1],ix=cd[2],iy=cd[3],ct=cd[4];
+                        WBState c; c.flat=st.flat; c.placed=st.placed; c.nplaced=st.nplaced+1;
+                        c.flat.push_back(bi); c.flat.push_back(bay); c.flat.push_back(oi);
+                        c.flat.push_back(ix); c.flat.push_back(iy); c.flat.push_back(entry); c.flat.push_back(ex);
+                        c.placed[bi]=1;
+                        c.gt = st.gt + (ex>dd?(ex-dd):0.0);
+                        double pen=(bay<(int)pr.size())?(mxp[bi]-pr[bay]):mxp[bi];
+                        c.gz3 = st.gz3 + pen;
+                        c.gcontact = st.gcontact + ct;
+                        out.push_back(std::move(c));
+                    }
                 }
             }
+            std::vector<WBState> children;
+            for(auto& ps : perstate) for(auto& c : ps) children.push_back(std::move(c));
             if(children.empty()) break;
             std::vector<std::pair<double,int>> keyed; keyed.reserve(children.size());
             for(int i=0;i<(int)children.size();i++){
@@ -757,7 +791,6 @@ struct Engine {
         }
         double best_obj=1e18; std::vector<int> best_flat;
         for(auto& st : beam) if(st.nplaced==nb){ double ob=w1p*st.gt+w3p*st.gz3; if(ob<best_obj){best_obj=ob;best_flat=st.flat;} }
-        timeline=saved;
         return {best_obj,best_flat};
     }
     // Returns projected TARDINESS (Z1) by default; if w3p>0 returns the projected OBJECTIVE
