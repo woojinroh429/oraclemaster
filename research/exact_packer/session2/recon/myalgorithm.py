@@ -4638,6 +4638,49 @@ def _worker_entry(args):
                 # Each beam LEADS its worker then falls through to the mode zoo, so best-of
                 # can only improve (never-worse) and short budgets (<24s, beam gated off) stay
                 # byte-identical to the shipped mode-zoo path.
+                # CONTACT-MAX BEAM (the reference's core lever, faithful port).  Tight contact
+                # packing routes blocks into their preferred bays -> LOW Z3 at near-minimal Z1;
+                # the z3 post-pass then polishes it.  Runs FIRST on each hybrid worker when the
+                # budget is large enough to complete (contact beam ~110-160s at n=150-200) and
+                # n<=200 (beam speed); best-of keeps min so it is never-worse, and where it is
+                # skipped or loses, the beam/mode zoo below still fill best-of.  Diverse
+                # (order,pos_lam) per worker.  Measured standalone prob_30 B=24+z3 -> 2.057M
+                # (== reference), B=32 -> 1.978M (below reference); our old pipeline 2.359M.
+                # Short budgets (<~90s remaining, e.g. the 15s path) skip it -> byte-identical.
+                # env OGC_CBEAM=0 disables (A/B).
+                def _contact_attempt(_plam, _order):
+                    try:
+                        _n = len(prob_info["blocks"])
+                        _bd = _hyb_deadline - time.time() - 14.0   # reserve for z3 + ALNS tail
+                        if _bd < 70.0:
+                            return None
+                        _Bc = int(_bd * 150.0 / (max(1, _n) * 4.9))   # ~4.9s per width-unit @ n=150
+                        _Bc = max(8, min(32, _Bc))
+                        _cr = _contact_beam(prob_info, _bd, B=_Bc, K=4, pos_lam=_plam, order=_order)
+                        if not _cr or len(_cr) != _n:
+                            return None
+                        _ops = {}
+                        for _b, _a in _cr.items():
+                            _ops.setdefault(_a["entry_time"], []).append(
+                                {"type": "ENTRY", "block_id": _b, "bay_id": _a["bay_id"],
+                                 "x": _a["x"], "y": _a["y"], "orient_idx": _a["orient_idx"]})
+                            _ops.setdefault(_a["exit_time"], []).append(
+                                {"type": "EXIT", "block_id": _b, "bay_id": _a["bay_id"]})
+                        _ss = {"operations": {str(_k): sorted(_ops[_k], key=lambda o: 0 if o["type"] == "EXIT" else 1)
+                                              for _k in sorted(_ops)}}
+                        _cc = check_feasibility(prob_info, _ss)
+                        if _cc.get("feasible"):
+                            return _ss, float(_cc["objective"])
+                    except Exception:
+                        return None
+                    return None
+                if (os.environ.get("OGC_CBEAM", "1") == "1"
+                        and len(prob_info["blocks"]) <= 200
+                        and _hyb_deadline - time.time() > 90.0):
+                    _cbcfg = {0: (0.1, "edd"), 1: (0.1, "lst"),
+                              2: (0.05, "edd"), 3: (0.15, "edd_big")}.get(_wid % 4, (0.1, "edd"))
+                    _keep(_contact_attempt(_cbcfg[0], _cbcfg[1]))
+
                 if (os.environ.get("BEAM", "1") == "1"
                         and len(prob_info["blocks"]) < 200
                         and _bw1 >= 5000 and _btos < 0.72
