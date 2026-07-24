@@ -720,7 +720,7 @@ struct Engine {
     // Levers: contact-perimeter candidates, contact reward (-mu*gcontact), free-cap-integral h_z1.
     std::pair<double,std::vector<int>>
     wide_beam(std::vector<int> order, std::vector<double> areas, int B, int K,
-              int step, double w1p, double w3p, double mu, double time_budget_s){
+              int step, double w1p, double w3p, double mu, double time_budget_s, int nent){
         int nb=(int)shapes.size();
         std::vector<double> mxp(nb,0);
         double area_total=0; for(int j=0;j<n_bays;j++) area_total+=bw[j]*bh[j];
@@ -751,41 +751,53 @@ struct Engine {
                     std::vector<int> entries; entries.push_back(r);
                     for(int bay=0;bay<n_bays;bay++) for(const Placed& te: TL[bay]) if(te.ex>r) entries.push_back(te.ex);
                     std::sort(entries.begin(),entries.end()); entries.erase(std::unique(entries.begin(),entries.end()),entries.end());
-                    int entry=-1; lcand.clear();
+                    // MULTI-ENTRY: gather candidates from the earliest `nent` FEASIBLE entry
+                    // times (not just the earliest).  A later entry costs this block tardiness
+                    // but may leave a much tighter bay -> lower FUTURE tardiness (which h_z1
+                    // sees); the beam trades off via the rank.
+                    auto& out=perstate[si];
+                    int nfound=0;
                     for(int e : entries){
                         scan_all_bays(TL,bi,e,e+pt,step,K,lcand);
-                        if(!lcand.empty()){ entry=e; break; }
-                    }
-                    if(entry<0) continue;
-                    int ex=entry+pt;
-                    auto& out=perstate[si];
-                    for(auto& cd : lcand){
-                        int bay=cd[0],oi=cd[1],ix=cd[2],iy=cd[3],ct=cd[4];
-                        WBState c; c.flat=st.flat; c.placed=st.placed; c.nplaced=st.nplaced+1;
-                        c.flat.push_back(bi); c.flat.push_back(bay); c.flat.push_back(oi);
-                        c.flat.push_back(ix); c.flat.push_back(iy); c.flat.push_back(entry); c.flat.push_back(ex);
-                        c.placed[bi]=1;
-                        c.gt = st.gt + (ex>dd?(ex-dd):0.0);
-                        double pen=(bay<(int)pr.size())?(mxp[bi]-pr[bay]):mxp[bi];
-                        c.gz3 = st.gz3 + pen;
-                        c.gcontact = st.gcontact + ct;
-                        out.push_back(std::move(c));
+                        if(lcand.empty()) continue;
+                        int ex=e+pt;
+                        for(auto& cd : lcand){
+                            int bay=cd[0],oi=cd[1],ix=cd[2],iy=cd[3],ct=cd[4];
+                            WBState c; c.flat=st.flat; c.placed=st.placed; c.nplaced=st.nplaced+1;
+                            c.flat.push_back(bi); c.flat.push_back(bay); c.flat.push_back(oi);
+                            c.flat.push_back(ix); c.flat.push_back(iy); c.flat.push_back(e); c.flat.push_back(ex);
+                            c.placed[bi]=1;
+                            c.gt = st.gt + (ex>dd?(ex-dd):0.0);
+                            double pen=(bay<(int)pr.size())?(mxp[bi]-pr[bay]):mxp[bi];
+                            c.gz3 = st.gz3 + pen;
+                            c.gcontact = st.gcontact + ct;
+                            out.push_back(std::move(c));
+                        }
+                        if(++nfound >= nent) break;
                     }
                 }
             }
             std::vector<WBState> children;
             for(auto& ps : perstate) for(auto& c : ps) children.push_back(std::move(c));
             if(children.empty()) break;
-            std::vector<std::pair<double,int>> keyed; keyed.reserve(children.size());
-            for(int i=0;i<(int)children.size();i++){
+            int nch=(int)children.size();
+            std::vector<std::pair<double,int>> keyed(nch);
+            #pragma omp parallel for schedule(dynamic)
+            for(int i=0;i<nch;i++){
                 WBState& c=children[i];
                 double h = (c.nplaced<nb) ? wb_hz1(c.flat,c.placed,areas,area_total,avg_a) : 0.0;
-                double rank = w1p*(c.gt+h) + w3p*c.gz3 - mu*c.gcontact;
-                keyed.push_back({rank, i});
+                keyed[i] = {w1p*(c.gt+h) + w3p*c.gz3 - mu*c.gcontact, i};
             }
             std::sort(keyed.begin(),keyed.end(),[](const std::pair<double,int>&a,const std::pair<double,int>&b){return a.first<b.first;});
-            std::vector<WBState> nb2; int keep=std::min((int)keyed.size(),B);
-            nb2.reserve(keep);
+            // FRONT-LOADED width (env OGC_WBFRONT=1): wide early, narrow to BMIN late.  A
+            // speed/scalability knob (avg width ~B0/2) -- default OFF; fixed width gave better
+            // quality at matched B0 in testing.
+            int keep;
+            if(std::getenv("OGC_WBFRONT")){
+                const int BMIN=4; double prog=(double)(level+1)/(double)order.size();
+                keep=std::min((int)keyed.size(), std::max(BMIN,(int)std::lround(BMIN+(double)(B-BMIN)*(1.0-prog))));
+            } else keep=std::min((int)keyed.size(),B);
+            std::vector<WBState> nb2; nb2.reserve(keep);
             for(int i=0;i<keep;i++) nb2.push_back(std::move(children[keyed[i].second]));
             beam.swap(nb2);
         }
@@ -1015,5 +1027,6 @@ PYBIND11_MODULE(ogc_fast,m){
         .def("set_bcl_prefw",&Engine::set_bcl_prefw)
         .def("wide_beam",&Engine::wide_beam,
              py::arg("order"),py::arg("areas"),py::arg("B"),py::arg("K"),
-             py::arg("step"),py::arg("w1p"),py::arg("w3p"),py::arg("mu"),py::arg("time_budget_s"));
+             py::arg("step"),py::arg("w1p"),py::arg("w3p"),py::arg("mu"),py::arg("time_budget_s"),
+             py::arg("nent")=1);
 }
