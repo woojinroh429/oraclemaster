@@ -885,6 +885,16 @@ struct Engine {
         }
         return tardy;
     }
+    // Exposed wrapper: free-capacity-integral future-tardiness estimate for a PARTIAL solution
+    // (flat = placed blocks) -- the reference beam's h_z1 rank term.  Lets a Python contact
+    // beam add w1*hz1_est(...) so it foresees congestion delay (recovers Z1 the myopic rank loses).
+    double hz1_est(std::vector<int> flat, std::vector<double> areas){
+        int nb=(int)shapes.size(); std::vector<char> placed(nb,0);
+        for(size_t i=0;i+6<flat.size();i+=7) placed[flat[i]]=1;
+        double area_total=0; for(int j=0;j<n_bays;j++) area_total+=bw[j]*bh[j];
+        double avg_a=0; for(int b=0;b<nb;b++) avg_a+=areas[b]; avg_a = nb? avg_a/nb : 1.0;
+        return wb_hz1(flat,placed,areas,area_total,avg_a);
+    }
     // WATERFILL admissible lower bound on final obj2 (load imbalance), ported from the
     // reference _h_obj2: pour remaining workload w_rem into the lower u_i*L_i levels; the
     // reachable min of max_ij|u_i L_i - u_j L_j| is a true LB.
@@ -1496,6 +1506,7 @@ PYBIND11_MODULE(ogc_fast,m){
         .def("greedy_contact_from",&Engine::greedy_contact_from,
              py::arg("state_flat"),py::arg("order"),py::arg("step"),py::arg("pos_lam"),
              py::arg("prefw"),py::arg("mu"),py::arg("w1"),py::arg("w3"))
+        .def("hz1_est",&Engine::hz1_est,py::arg("flat"),py::arg("areas"))
         .def("set_bcl_prefw",&Engine::set_bcl_prefw)
         .def("wide_beam",&Engine::wide_beam,
              py::arg("order"),py::arg("areas"),py::arg("workloads"),py::arg("B"),py::arg("K"),
