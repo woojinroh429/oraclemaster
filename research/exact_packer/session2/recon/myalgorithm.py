@@ -1477,6 +1477,47 @@ def _build_operations(assignments):
     return {"operations": ops}
 
 
+def _z3_improve(prob_info, sol, budget):
+    """Z3 (bay-preference) reassignment post-pass: move blocks to more-preferred bays where
+    feasible without hurting the objective (C++ Engine.z3_reassign).  Diagnostic on the
+    reference submission showed the whole ~300s gap is Z3, not Z1/construction.  Returns an
+    improved operations dict, or None on any failure (caller keeps the original)."""
+    try:
+        if not HAVE_OGC_FAST:
+            return None
+        E = _ogc_fast_engine(prob_info)
+        if not hasattr(E, "z3_reassign"):
+            return None
+        ops = (sol or {}).get("operations", {})
+        n = len(prob_info["blocks"])
+        ent = {}; ext = {}; bay = {}; xx = {}; yy = {}; oo = {}
+        for tstr, row in ops.items():
+            t = int(tstr)
+            for op in row:
+                b = op["block_id"]
+                if op["type"] == "ENTRY":
+                    ent[b] = t; bay[b] = op["bay_id"]; xx[b] = op["x"]; yy[b] = op["y"]; oo[b] = op["orient_idx"]
+                else:
+                    ext[b] = t
+        flat = []
+        for b in range(n):
+            if b not in ent or b not in ext:
+                return None
+            flat += [b, int(bay[b]), int(oo[b]), int(round(xx[b])), int(round(yy[b])), int(ent[b]), int(ext[b])]
+        w = prob_info["weights"]; w1 = float(w["w1"]); w3 = float(w.get("w3", 0))
+        flat2 = list(E.z3_reassign(flat, w1, w3, float(budget)))
+        if len(flat2) != 7 * n:
+            return None
+        assigns = []
+        for i in range(0, len(flat2), 7):
+            b, bb, o, ix, iy, en, ex = flat2[i:i + 7]
+            assigns.append({"block_id": b, "bay_id": bb, "orient_idx": o,
+                            "x": ix, "y": iy, "entry_time": en, "exit_time": ex})
+        return _build_operations(assigns)
+    except Exception:
+        return None
+
+
 # ----------------------------------------------------------------------------
 # ALNS improvement
 # ----------------------------------------------------------------------------
@@ -5646,7 +5687,11 @@ def algorithm(prob_info, timelimit=60):
     n_workers = max(1, min(NUM_PARALLEL_RUNS, usable))
 
     # Budget handed to the worker Pool / fallbacks (measured from _start).
-    _remaining = max(1.0, timelimit - (time.time() - _start))
+    # Reserve a slice for the final Z3 (bay-preference) reassignment pass on long budgets
+    # (the ~300s grader).  At short budgets it stays 0 -> byte-identical to the prior path.
+    _z3_on = (os.environ.get("OGC_Z3", "1") == "1" and timelimit >= 60.0)
+    _z3_res = timelimit * 0.22 if _z3_on else 0.0
+    _remaining = max(1.0, timelimit - (time.time() - _start) - _z3_res)
 
     if n_workers == 1:
         # Single core: gate C++ AND interlock-aware (v4) construction together
@@ -5757,6 +5802,19 @@ def algorithm(prob_info, timelimit=60):
                         continue
 
             if final_sol is not None:
+                # FINAL Z3 (bay-preference) reassignment pass on the pooled best solution.
+                if _z3_on:
+                    _z3b = timelimit - (time.time() - _start) - 1.0
+                    if _z3b > 3.0:
+                        try:
+                            _imp = _z3_improve(prob_info, final_sol, _z3b)
+                            if _imp is not None:
+                                _cko = check_feasibility(prob_info, final_sol)
+                                _cki = check_feasibility(prob_info, _imp)
+                                if _cki.get("feasible") and _cki["objective"] < _cko["objective"] - 1e-6:
+                                    final_sol = _imp
+                        except Exception:
+                            pass
                 return final_sol
     except Exception:
         pass
