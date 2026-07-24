@@ -4537,12 +4537,12 @@ def _worker_entry(args):
                 # FIRST so it gets the full construction window; best-of keeps min -> the
                 # tail modes below still run if budget remains and can only improve.
                 # env BEAM=0 disables (A/B); default ON.
-                def _beam_attempt(_cap, _prefw=0.0):
+                def _beam_attempt(_cap, _prefw=0.0, _order="rank"):
                     try:
                         _bd = min(_cap, max(1.0, _hyb_deadline - time.time() - 6.0))
                         if _bd < 4.0:
                             return None
-                        _br = _beam_construct(prob_info, _bd, prefw=_prefw)
+                        _br = _beam_construct(prob_info, _bd, order=_order, prefw=_prefw)
                         if not _br or len(_br) != len(prob_info["blocks"]):
                             return None
                         _ops = {}
@@ -4581,23 +4581,32 @@ def _worker_entry(args):
                     _bw1 = prob_info["weights"]["w1"]; _btos = _temporal_os(prob_info)
                 except Exception:
                     _bw1 = 0; _btos = 1.0
-                # Two beam variants on SEPARATE workers (each full budget, no split):
-                #   worker 1 -> prefw=0    (pure-Z1 beam; wins Z1-dominated instances)
-                #   worker 2 -> prefw=1e5  (Z3-aware beam; trades a little Z1 for a lot of Z3,
-                #                           winning Z3-significant instances the Z1 beam lost,
-                #                           e.g. prob_28 obj 2.13M->1.92M).
-                # Worker 3 keeps the full mode zoo as the best-of safety net.  best-of keeps
-                # min across all workers -> never-worse; each beam gets the full construction
-                # window so neither starves the other (running both on one worker cost prob_30
-                # ~1.3%).
+                # Three beam variants on SEPARATE workers (each full budget, no split).
+                # DISPATCH-ORDER DIVERSITY: the rollout heuristic is imperfect, so no single
+                # (order, prefw) combo wins every instance -- the friend's diversity lever.
+                # Measured order x prefw grid (prob_23/26/28/30 @120s beam-only):
+                #   rank/0     wins prob_23 (Z1-dominated, no pref)        obj 2.49M
+                #   rank/1e6   wins prob_30 (Z3-aware)                     obj 2.56M
+                #   stdens/1e5 wins prob_28 (Z3-significant) by a MILE     obj 1.48M
+                #              (vs rank/1e5's 1.92M, vs mode-zoo's 2.09M -- -29%)
+                # Split across the three hybrid workers so best-of (min over all) captures
+                # each winner without any one worker splitting its budget:
+                #   worker 1 -> rank/prefw=0     (pure-Z1 beam; Z1-dominated instances)
+                #   worker 2 -> rank/prefw=1e5   (Z3-aware rank beam)
+                #   worker 3 -> stdens/prefw=1e5 (space-time-density order; the prob_28 lever)
+                # Each beam LEADS its worker then falls through to the mode zoo, so best-of
+                # can only improve (never-worse) and short budgets (<24s, beam gated off) stay
+                # byte-identical to the shipped mode-zoo path.
                 if (os.environ.get("BEAM", "1") == "1"
                         and len(prob_info["blocks"]) < 200
                         and _bw1 >= 5000 and _btos < 0.72
                         and _hyb_deadline - time.time() > 24.0):
                     if _wid == 1:
-                        _keep(_beam_attempt(45.0, 0.0))
+                        _keep(_beam_attempt(45.0, 0.0, "rank"))
                     elif _wid == 2:
-                        _keep(_beam_attempt(45.0, 1e5))
+                        _keep(_beam_attempt(45.0, 1e5, "rank"))
+                    elif _wid == 3:
+                        _keep(_beam_attempt(45.0, 1e5, "stdens"))
 
 
                 # PREFERENCE-LEAD worker (the 4th hybrid worker, _wid%4==3): leads with a
