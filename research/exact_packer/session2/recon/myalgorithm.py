@@ -4698,7 +4698,11 @@ def _worker_entry(args):
                         if _bd < 70.0:
                             return None
                         _Bc = int(_bd * 150.0 / (max(1, _n) * 4.9))   # ~4.9s per width-unit @ n=150
-                        _Bc = max(8, min(32, _Bc))
+                        # B cap: default 32.  Small/low-density instances (n<=120) can afford a
+                        # much wider beam (the width formula wants ~90 at n=100), where the friend's
+                        # up-to-192 beam beats our narrow one on Z3 routing.  env OGC_BMAX overrides.
+                        _bmax = int(os.environ.get("OGC_BMAX", "32"))
+                        _Bc = max(8, min(_bmax, _Bc))
                         _cr = _contact_beam(prob_info, _bd, B=_Bc, K=4, pos_lam=_plam, order=_order, fut_beta=_fb)
                         if not _cr or len(_cr) != _n:
                             return None
