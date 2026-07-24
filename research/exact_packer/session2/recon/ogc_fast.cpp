@@ -902,15 +902,49 @@ struct Engine {
         return {best_obj,best_flat};
     }
     // find the first (low-y) feasible position for block bid in bay at [en,ex); false if none.
+    // SWEEP-PRUNED: build the per-new-layer forbidden bay-grid bitmaps F[k] once (same as
+    // feasible_scan) so cells that miss every F[k] are DEFINITELY feasible and skip the
+    // O(present) exact placement_feasible loop that dominates in a dense bay.  Identical
+    // feasibility set as the raw scan, ~orders faster when the bay is congested.
     bool find_pos_in_bay(int bid,int bay,int en,int ex,int& oo,int& oix,int& oiy){
         const BlockShape& bs=shapes[bid]; double bw_j=bw[bay],bh_j=bh[bay];
-        for(int oi=0;oi<(int)bs.orients.size();oi++){
-            const OrientData& od=bs.orients[oi]; double w=od.x1-od.x0,h=od.y1-od.y0;
+        int norient=(int)bs.orients.size();
+        int maxL=0; for(int oi=0;oi<norient;oi++) maxL=std::max(maxL,(int)bs.orients[oi].layers.size());
+        int bayH=(int)std::ceil(bh_j), bayW=(int)std::ceil(bw_j); int wpr=(bayW+64)>>6;
+        std::vector<std::vector<uint64_t>> F;
+        bool use_sweep = RASTER && maxL>0 && bayH>0 && bayH<20000;
+        if(use_sweep){
+            F.assign(maxL, std::vector<uint64_t>((size_t)bayH*wpr,0ULL));
+            for(const Placed& te: timeline[bay]){
+                if(!(en < te.ex && te.en < ex)) continue;
+                bool newdesc=(te.en<=en&&en<te.ex)||(te.en<ex&&ex<=te.ex);
+                bool tedesc =(en<=te.en&&te.en<ex)||(en<te.ex&&te.ex<=ex);
+                if(!newdesc&&!tedesc) continue;
+                const OrientData& eod=shapes[te.bid].orients[te.orient];
+                int ne=(int)eod.layers.size();
+                int tox=(int)std::floor(te.ox+0.5), toy=(int)std::floor(te.oy+0.5);
+                for(int j=0;j<ne;j++){ const LayerData& L=eod.layers[j]; if(L.npts<3)continue;
+                    if(newdesc){ int hi=std::min(j,maxL-1); for(int k=0;k<=hi;k++) or_layer_into_map(F[k],wpr,bayH,L,tox,toy); }
+                    if(tedesc){ for(int k=std::max(j,0);k<maxL;k++) or_layer_into_map(F[k],wpr,bayH,L,tox,toy); }
+                }
+            }
+        }
+        for(int oi=0;oi<norient;oi++){
+            const OrientData& od=bs.orients[oi]; int nl=(int)od.layers.size();
+            double w=od.x1-od.x0,h=od.y1-od.y0;
             if(w>bw_j+1e-9||h>bh_j+1e-9) continue;
             int lox=(int)std::ceil(-od.x0),hix=(int)std::floor(bw_j-od.x1);
             int loy=(int)std::ceil(-od.y0),hiy=(int)std::floor(bh_j-od.y1);
-            for(int iy=loy;iy<=hiy;iy++) for(int ix=lox;ix<=hix;ix++)
-                if(placement_feasible(bay,bid,oi,(double)ix,(double)iy,en,ex)){ oo=oi;oix=ix;oiy=iy; return true; }
+            for(int iy=loy;iy<=hiy;iy++) for(int ix=lox;ix<=hix;ix++){
+                bool ok;
+                if(use_sweep){
+                    bool clear=true;
+                    for(int k=0;k<nl&&clear;k++){ const LayerData& L=od.layers[k]; if(L.npts<3)continue;
+                        if(layer_hits_map(F[k],wpr,bayH,L,ix,iy)) clear=false; }
+                    ok = clear ? true : placement_feasible(bay,bid,oi,(double)ix,(double)iy,en,ex);
+                } else ok = placement_feasible(bay,bid,oi,(double)ix,(double)iy,en,ex);
+                if(ok){ oo=oi;oix=ix;oiy=iy; return true; }
+            }
         }
         return false;
     }
@@ -929,8 +963,17 @@ struct Engine {
         auto prefv=[&](int b,int bay){ return (bay<(int)shapes[b].prefs.size())? shapes[b].prefs[bay] : 0.0; };
         auto t0=std::chrono::steady_clock::now();
         auto elapsed=[&](){ return std::chrono::duration<double>(std::chrono::steady_clock::now()-t0).count(); };
-        bool improved=true;
-        while(improved && elapsed()<time_budget_s){
+        // objective handled here = w1*Z1 + w3*Z3 (Z2 unchanged; pipeline gate guards it).
+        auto evalobj=[&](){ double z1=0,z3=0;
+            for(int b=0;b<nb;b++) if(has[b]){ auto&r=recs[b]; double dd=shapes[b].due;
+                if(r[6]>dd) z1+=r[6]-dd; z3+=mxp[b]-prefv(b,r[1]); }
+            return w1*z1+w3*z3; };
+        auto rebuild=[&](const std::vector<std::array<int,7>>& R){
+            for(auto&t:timeline)t.clear();
+            for(int b=0;b<nb;b++) if(has[b]){ const auto&r=R[b]; add(r[1],b,r[2],(double)r[3],(double)r[4],r[5],r[6]); } };
+        // one hill-climb to local optimum (single-block moves + 2-block bay swaps).
+        auto hillclimb=[&](){ bool improved=true;
+          while(improved && elapsed()<time_budget_s){
             improved=false;
             std::vector<int> ord; for(int b=0;b<nb;b++) if(has[b]) ord.push_back(b);
             std::sort(ord.begin(),ord.end(),[&](int a,int c){ return (mxp[a]-prefv(a,recs[a][1])) > (mxp[c]-prefv(c,recs[c][1])); });
@@ -953,11 +996,16 @@ struct Engine {
                         std::vector<int> es; es.push_back((int)shapes[b].rt);
                         for(const Placed& te: timeline[tb]) if(te.ex>en) es.push_back(te.ex);
                         std::sort(es.begin(),es.end()); es.erase(std::unique(es.begin(),es.end()),es.end());
+                        // scan MANY shifted windows (find_pos is sweep-pruned/fast): the earliest
+                        // feasible entry minimizes added tardiness, but the preferred bay may be
+                        // congested early -- a later feasible window can still beat cur if the Z3
+                        // gain outweighs the extra Z1 (w1*dtardy + w3*dpen < 0).
                         int tried=0;
-                        for(int e2: es){ if(++tried>6) break; int ex2=e2+(int)shapes[b].pt;
+                        for(int e2: es){ if(++tried>64) break; int ex2=e2+(int)shapes[b].pt;
+                            double nt=(ex2>dd)?(ex2-dd):0.0; double d=w1*(nt-cur_tardy)+w3*(npen-cur_pen);
+                            if(d>=bestd) continue;   // even best-case placement here can't beat current best
                             if(find_pos_in_bay(b,tb,e2,ex2,oo,oix,oiy)){
-                                double nt=(ex2>dd)?(ex2-dd):0.0; double d=w1*(nt-cur_tardy)+w3*(npen-cur_pen);
-                                if(d<bestd){ bestd=d; btb=tb;bo=oo;bix=oix;biy=oiy;be=e2;bex=ex2; } break; }
+                                bestd=d; btb=tb;bo=oo;bix=oix;biy=oiy;be=e2;bex=ex2; break; }
                         }
                     }
                 }
@@ -987,7 +1035,99 @@ struct Engine {
                     }
                 }
             }
+          }
+        };
+        // RUIN-RECREATE (LNS): the hill-climb gets stuck when a penalized block wants bay P
+        // but P is full at its window -- freeing P needs several well-placed blocks to move
+        // out together, a lateral step no single move takes.  Ruin removes a batch overlapping
+        // P's window, recreate re-inserts them best-preferred-first at their FIXED [en,ex]
+        // (so Z1 is invariant -- only Z3 moves), letting the penalized block claim P.
+        auto ruin_recreate=[&](uint64_t& rng)->bool{
+            // pick target bay P weighted toward the most unrealized preference gain.
+            std::vector<double> want(n_bays,0.0);
+            for(int b=0;b<nb;b++) if(has[b]){ double cp=mxp[b]-prefv(b,recs[b][1]);
+                if(cp>0){ // which bay would satisfy it? its argmax-pref bay
+                    int bp=recs[b][1]; double bv=prefv(b,bp);
+                    for(int j=0;j<n_bays;j++){ double v=prefv(b,j); if(v>bv){bv=v;bp=j;} }
+                    want[bp]+=cp; } }
+            double tot=0; for(double v:want) tot+=v; if(tot<=0) return false;
+            rng=rng*6364136223846793005ULL+1442695040888963407ULL;
+            double pick=((double)((rng>>33)&0x7FFFFFFF)/(double)0x7FFFFFFF)*tot; int P=0;
+            for(int j=0;j<n_bays;j++){ if(pick<want[j]){P=j;break;} pick-=want[j]; }
+            // choose a pivot penalized block g wanting P; its window seeds the ruin.
+            std::vector<int> wanters;
+            for(int b=0;b<nb;b++) if(has[b]){ int bp=recs[b][1]; double bv=prefv(b,bp);
+                for(int j=0;j<n_bays;j++){ double v=prefv(b,j); if(v>bv){bv=v;bp=j;} }
+                if(bp==P && (mxp[b]-prefv(b,recs[b][1]))>0) wanters.push_back(b); }
+            if(wanters.empty()) return false;
+            rng=rng*6364136223846793005ULL+1442695040888963407ULL;
+            int g=wanters[(rng>>33)%wanters.size()]; int eg=recs[g][5],exg=recs[g][6];
+            // ruin set S = g + blocks currently in P overlapping [eg,exg] + other wanters
+            // overlapping, capped at K.  K varies 6..30 for intensify/diversify balance.
+            rng=rng*6364136223846793005ULL+1442695040888963407ULL;
+            int K=6+(int)((rng>>33)%25); std::vector<int> S; std::vector<char> inS(nb,0);
+            S.push_back(g); inS[g]=1;
+            for(int b=0;b<nb;b++) if(has[b]&&!inS[b]&&recs[b][1]==P){
+                int e=recs[b][5],x=recs[b][6]; if(e<exg&&eg<x){ S.push_back(b); inS[b]=1; if((int)S.size()>=K)break; } }
+            for(int b: wanters){ if((int)S.size()>=K) break; if(inS[b])continue;
+                int e=recs[b][5],x=recs[b][6]; if(e<exg&&eg<x){ S.push_back(b); inS[b]=1; } }
+            if((int)S.size()<2) return false;
+            std::vector<std::array<int,7>> snap; for(int b:S) snap.push_back(recs[b]);
+            for(int b:S) remove(b);
+            // recreate: most-penalized first.  For each block pick the (bay,entry) minimizing
+            // w1*tardy + w3*penalty -- fixed window in every bay, plus entry-SHIFTED windows in
+            // the more-preferred bays (so a block can pay a little Z1 to reach a congested
+            // preferred bay, the Z1<->Z3 trade the fixed-window pass can't make).  Original spot
+            // is always among the candidates, so a block can always be placed back.
+            std::sort(S.begin(),S.end(),[&](int a,int c){ return (mxp[a]-prefv(a,recs[a][1]))>(mxp[c]-prefv(c,recs[c][1])); });
+            bool ok=true;
+            for(int b:S){ int en0=recs[b][5],ex0=recs[b][6]; int obay=recs[b][1];
+                double dd=shapes[b].due;
+                double bestv=1e18; int pb=-1,po=0,pix=0,piy=0,pe=en0,pex=ex0;
+                int oo,oix,oiy;
+                for(int tb=0;tb<n_bays;tb++){
+                    double pen=mxp[b]-prefv(b,tb);
+                    // (a) fixed window
+                    double t0v=(ex0>dd)?(ex0-dd):0.0; double v0=w1*t0v+w3*pen;
+                    if(v0<bestv-1e-9 && find_pos_in_bay(b,tb,en0,ex0,oo,oix,oiy)){
+                        bestv=v0; pb=tb;po=oo;pix=oix;piy=oiy;pe=en0;pex=ex0; }
+                    // (b) entry-shift only into strictly-preferred bays (Z1-for-Z3 trade)
+                    if(prefv(b,tb)>prefv(b,obay)){
+                        std::vector<int> es; es.push_back((int)shapes[b].rt);
+                        for(const Placed& te: timeline[tb]) if(te.ex>(int)shapes[b].rt) es.push_back(te.ex);
+                        std::sort(es.begin(),es.end()); es.erase(std::unique(es.begin(),es.end()),es.end());
+                        int tried=0;
+                        for(int e2: es){ if(++tried>64) break; int ex2=e2+(int)shapes[b].pt;
+                            double nt=(ex2>dd)?(ex2-dd):0.0; double v=w1*nt+w3*pen;
+                            if(v>=bestv-1e-9) continue;
+                            if(find_pos_in_bay(b,tb,e2,ex2,oo,oix,oiy)){
+                                bestv=v; pb=tb;po=oo;pix=oix;piy=oiy;pe=e2;pex=ex2; break; }
+                        }
+                    }
+                }
+                if(pb<0){ ok=false; break; }
+                add(pb,b,po,(double)pix,(double)piy,pe,pex); recs[b]={b,pb,po,pix,piy,pe,pex};
+            }
+            if(!ok){ // restore batch exactly: drop any partial placements, re-add originals
+                for(auto&r:snap) remove(r[0]);   // remove() is a safe no-op if absent
+                for(auto&r:snap){ int b=r[0]; add(r[1],b,r[2],(double)r[3],(double)r[4],r[5],r[6]); recs[b]=r; }
+                return false;
+            }
+            return true;
+        };
+        hillclimb();
+        std::vector<std::array<int,7>> best_recs=recs; double best_obj=evalobj();
+        uint64_t rng=0x9E3779B97F4A7C15ULL; int nofuel=0;
+        while(elapsed()<time_budget_s){
+            bool did=ruin_recreate(rng);
+            if(!did){ if(++nofuel>4*n_bays+8) break; continue; }  // nothing left to ruin
+            nofuel=0;
+            hillclimb();
+            double o=evalobj();
+            if(o<best_obj-1e-9){ best_obj=o; best_recs=recs; }
+            else { recs=best_recs; rebuild(recs); }   // always perturb from the best-so-far
         }
+        recs=best_recs;
         std::vector<int> out; for(int b=0;b<nb;b++) if(has[b]){ auto&r=recs[b]; for(int k=0;k<7;k++) out.push_back(r[k]); }
         return out;
     }
