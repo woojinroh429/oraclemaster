@@ -901,6 +901,96 @@ struct Engine {
         }
         return {best_obj,best_flat};
     }
+    // find the first (low-y) feasible position for block bid in bay at [en,ex); false if none.
+    bool find_pos_in_bay(int bid,int bay,int en,int ex,int& oo,int& oix,int& oiy){
+        const BlockShape& bs=shapes[bid]; double bw_j=bw[bay],bh_j=bh[bay];
+        for(int oi=0;oi<(int)bs.orients.size();oi++){
+            const OrientData& od=bs.orients[oi]; double w=od.x1-od.x0,h=od.y1-od.y0;
+            if(w>bw_j+1e-9||h>bh_j+1e-9) continue;
+            int lox=(int)std::ceil(-od.x0),hix=(int)std::floor(bw_j-od.x1);
+            int loy=(int)std::ceil(-od.y0),hiy=(int)std::floor(bh_j-od.y1);
+            for(int iy=loy;iy<=hiy;iy++) for(int ix=lox;ix<=hix;ix++)
+                if(placement_feasible(bay,bid,oi,(double)ix,(double)iy,en,ex)){ oo=oi;oix=ix;oiy=iy; return true; }
+        }
+        return false;
+    }
+    // Z3 (bay-preference) REASSIGNMENT improvement: move blocks to a more-preferred bay at a
+    // feasible entry (same entry, or entry-shifted) and 2-block bay swaps, accepting iff the
+    // true objective delta w1*d_tardy + w3*d_pen < 0.  Iterates to the time budget (time-
+    // scalable).  Returns the improved flat solution (7 ints per block).
+    std::vector<int> z3_reassign(std::vector<int> flat, double w1, double w3, double time_budget_s){
+        int nb=(int)shapes.size();
+        std::vector<std::array<int,7>> recs(nb); std::vector<char> has(nb,0);
+        for(size_t i=0;i+6<flat.size();i+=7){ int b=flat[i]; recs[b]={b,flat[i+1],flat[i+2],flat[i+3],flat[i+4],flat[i+5],flat[i+6]}; has[b]=1; }
+        for(auto&t:timeline)t.clear();
+        for(int b=0;b<nb;b++) if(has[b]){ auto&r=recs[b]; add(r[1],b,r[2],(double)r[3],(double)r[4],r[5],r[6]); }
+        std::vector<double> mxp(nb);
+        for(int b=0;b<nb;b++){ const auto&pr=shapes[b].prefs; double mx=pr.empty()?0:pr[0]; for(double v:pr)if(v>mx)mx=v; mxp[b]=mx; }
+        auto prefv=[&](int b,int bay){ return (bay<(int)shapes[b].prefs.size())? shapes[b].prefs[bay] : 0.0; };
+        auto t0=std::chrono::steady_clock::now();
+        auto elapsed=[&](){ return std::chrono::duration<double>(std::chrono::steady_clock::now()-t0).count(); };
+        bool improved=true;
+        while(improved && elapsed()<time_budget_s){
+            improved=false;
+            std::vector<int> ord; for(int b=0;b<nb;b++) if(has[b]) ord.push_back(b);
+            std::sort(ord.begin(),ord.end(),[&](int a,int c){ return (mxp[a]-prefv(a,recs[a][1])) > (mxp[c]-prefv(c,recs[c][1])); });
+            // (1) single-block moves to a more-preferred bay
+            for(int b: ord){
+                if(elapsed()>time_budget_s) break;
+                auto& r=recs[b]; int cur_bay=r[1]; double cur_pen=mxp[b]-prefv(b,cur_bay);
+                if(cur_pen<=0) continue;
+                int en=r[5],ex=r[6]; double dd=shapes[b].due, cur_tardy=(ex>dd)?(ex-dd):0.0;
+                remove(b);
+                double bestd=-1e-9; int btb=-1,bo=0,bix=0,biy=0,be=0,bex=0;
+                for(int tb=0;tb<n_bays;tb++){
+                    if(prefv(b,tb)<=prefv(b,cur_bay)) continue;
+                    double npen=mxp[b]-prefv(b,tb); int oo,oix,oiy;
+                    if(find_pos_in_bay(b,tb,en,ex,oo,oix,oiy)){
+                        double d=w3*(npen-cur_pen);
+                        if(d<bestd){ bestd=d; btb=tb;bo=oo;bix=oix;biy=oiy;be=en;bex=ex; }
+                    } else {
+                        // entry-shift: earliest feasible later entry in tb (exit times)
+                        std::vector<int> es; es.push_back((int)shapes[b].rt);
+                        for(const Placed& te: timeline[tb]) if(te.ex>en) es.push_back(te.ex);
+                        std::sort(es.begin(),es.end()); es.erase(std::unique(es.begin(),es.end()),es.end());
+                        int tried=0;
+                        for(int e2: es){ if(++tried>6) break; int ex2=e2+(int)shapes[b].pt;
+                            if(find_pos_in_bay(b,tb,e2,ex2,oo,oix,oiy)){
+                                double nt=(ex2>dd)?(ex2-dd):0.0; double d=w1*(nt-cur_tardy)+w3*(npen-cur_pen);
+                                if(d<bestd){ bestd=d; btb=tb;bo=oo;bix=oix;biy=oiy;be=e2;bex=ex2; } break; }
+                        }
+                    }
+                }
+                if(btb>=0){ add(btb,b,bo,(double)bix,(double)biy,be,bex); recs[b]={b,btb,bo,bix,biy,be,bex}; improved=true; }
+                else { add(cur_bay,b,r[2],(double)r[3],(double)r[4],en,ex); }
+            }
+            // (2) 2-block bay swaps: a in Ba, c in Bb; both improve by swapping bays.
+            for(int ia=0; ia<(int)ord.size(); ia++){
+                if(elapsed()>time_budget_s) break;
+                int a=ord[ia]; auto& ra=recs[a]; int Ba=ra[1]; double apen=mxp[a]-prefv(a,Ba);
+                if(apen<=0) continue;
+                for(int ic=ia+1; ic<(int)ord.size(); ic++){
+                    int c=ord[ic]; auto& rc=recs[c]; int Bc=rc[1]; if(Bc==Ba) continue;
+                    // a wants Bc AND c wants Ba (net pref gain)?
+                    double dpen = (mxp[a]-prefv(a,Bc)) + (mxp[c]-prefv(c,Ba)) - apen - (mxp[c]-prefv(c,Bc));
+                    if(w3*dpen >= -1e-9) continue;   // swap wouldn't help prefs
+                    int ea=ra[5],exa=ra[6], ec=rc[5],exc=rc[6];
+                    remove(a); remove(c);
+                    int ao,aix,aiy,co,cix,ciy;
+                    bool fa=find_pos_in_bay(a,Bc,ea,exa,ao,aix,aiy);
+                    bool fc = fa && find_pos_in_bay(c,Ba,ec,exc,co,cix,ciy);
+                    if(fa && fc){
+                        add(Bc,a,ao,(double)aix,(double)aiy,ea,exa); add(Ba,c,co,(double)cix,(double)ciy,ec,exc);
+                        ra={a,Bc,ao,aix,aiy,ea,exa}; rc={c,Ba,co,cix,ciy,ec,exc}; improved=true; break;
+                    } else {
+                        add(Ba,a,ra[2],(double)ra[3],(double)ra[4],ea,exa); add(Bc,c,rc[2],(double)rc[3],(double)rc[4],ec,exc);
+                    }
+                }
+            }
+        }
+        std::vector<int> out; for(int b=0;b<nb;b++) if(has[b]){ auto&r=recs[b]; for(int k=0;k<7;k++) out.push_back(r[k]); }
+        return out;
+    }
     // Returns projected TARDINESS (Z1) by default; if w3p>0 returns the projected OBJECTIVE
     // w1p*Z1 + w3p*Z3 of the newly-placed blocks (Z3 = sum of bay-preference penalties), and
     // prefw biases lb_best toward preferred bays so the rollout can trade Z1 against Z3.
@@ -1124,5 +1214,7 @@ PYBIND11_MODULE(ogc_fast,m){
         .def("wide_beam",&Engine::wide_beam,
              py::arg("order"),py::arg("areas"),py::arg("workloads"),py::arg("B"),py::arg("K"),
              py::arg("step"),py::arg("w1p"),py::arg("w2p"),py::arg("w3p"),py::arg("mu"),
-             py::arg("time_budget_s"),py::arg("nent")=1,py::arg("cps")=6);
+             py::arg("time_budget_s"),py::arg("nent")=1,py::arg("cps")=6)
+        .def("z3_reassign",&Engine::z3_reassign,
+             py::arg("flat"),py::arg("w1"),py::arg("w3"),py::arg("time_budget_s"));
 }
