@@ -491,6 +491,143 @@ struct Engine {
     double bcl_prefw=0.0;   // preference weight used by best_cell_lb (set via set_bcl_prefw)
     void set_bcl_prefw(double w){ bcl_prefw=w; }
 
+    // FRIEND-STYLE contact-maximising position picker (Phase2 sc + Phase3 d_rank) against the
+    // CURRENT (main) timeline, block bid entering at cur.  Phase2 per (bay,orient): among
+    // feasible cells pick argmin  sc = -contact + (iy+top)*pos_lam + ix*pos_lam*0.01 + prefw*pen
+    // (contact-first, low-skyline, left, biased to preferred bays).  Phase3 cross-bay: rank by
+    // d_rank = w1*tardy + w3*pen - mu*contact.  Returns up to `topk` rows (bay,ori,ix,iy,contact)
+    // sorted by d_rank -- the fast core of the friend's beam candidate stage.
+    py::array_t<int> best_cell_contact(int bid,int cur,int step,double pos_lam,double prefw,
+                                       double mu,double w1,double w3,int topk){
+        const BlockShape& bs=shapes[bid]; int P=(int)bs.pt; int ex=cur+P; double dd=shapes[bid].due;
+        double s_max=0; if(!bs.prefs.empty()){ s_max=bs.prefs[0]; for(double v:bs.prefs) if(v>s_max)s_max=v; }
+        double tardy = ex>dd? (double)(ex-dd):0.0;
+        int norient=(int)bs.orients.size();
+        struct Cand{ double drank; int bay,oi,ix,iy,ct; };
+        std::vector<Cand> cands;
+        int maxLb=0; for(int oi=0;oi<norient;oi++) maxLb=std::max(maxLb,(int)bs.orients[oi].layers.size());
+        for(int bay=0;bay<n_bays;bay++){
+            double bw_j=bw[bay],bh_j=bh[bay];
+            int bayH=(int)std::ceil(bh_j),bayW=(int)std::ceil(bw_j); int wpr=(bayW+64)>>6;
+            std::vector<char> occ; buildOcc(timeline[bay],cur,ex,bayW,bayH,occ);
+            std::vector<std::vector<uint64_t>> F;
+            bool use_sweep=RASTER&&maxLb>0&&bayH>0&&bayH<20000;
+            if(use_sweep){ F.assign(maxLb,std::vector<uint64_t>((size_t)bayH*wpr,0ULL));
+                for(const Placed& te: timeline[bay]){ if(!(cur<te.ex&&te.en<ex))continue;
+                    bool nd=(te.en<=cur&&cur<te.ex)||(te.en<ex&&ex<=te.ex);
+                    bool td=(cur<=te.en&&te.en<ex)||(cur<te.ex&&te.ex<=ex); if(!nd&&!td)continue;
+                    const OrientData& eod=shapes[te.bid].orients[te.orient]; int ne=(int)eod.layers.size();
+                    int tox=(int)std::floor(te.ox+0.5),toy=(int)std::floor(te.oy+0.5);
+                    for(int j=0;j<ne;j++){const LayerData&L=eod.layers[j];if(L.npts<3)continue;
+                        if(nd){int hi=std::min(j,maxLb-1);for(int k=0;k<=hi;k++)or_layer_into_map(F[k],wpr,bayH,L,tox,toy);}
+                        if(td){for(int k=std::max(j,0);k<maxLb;k++)or_layer_into_map(F[k],wpr,bayH,L,tox,toy);}}}}
+            double pen = (bay<(int)bs.prefs.size())? (s_max-bs.prefs[bay]) : s_max;
+            double bestsc=1e300; int boi=-1,bix=0,biy=0,bct=0;
+            for(int oi=0;oi<norient;oi++){ const OrientData& od=bs.orients[oi]; int nl=(int)od.layers.size();
+                double w=od.x1-od.x0,h=od.y1-od.y0; if(w>bw_j+1e-9||h>bh_j+1e-9)continue;
+                const FP& fp=footprint(bid,oi);
+                int lox=(int)std::ceil(-od.x0),hix=(int)std::floor(bw_j-od.x1);
+                int loy=(int)std::ceil(-od.y0),hiy=(int)std::floor(bh_j-od.y1);
+                for(int ix=lox;ix<=hix;ix+=step)for(int iy=loy;iy<=hiy;iy+=step){
+                    bool ok; if(use_sweep){bool clear=true;
+                        for(int k=0;k<nl&&clear;k++){const LayerData&L=od.layers[k];if(L.npts<3)continue;
+                            if(layer_hits_map(F[k],wpr,bayH,L,ix,iy))clear=false;}
+                        ok=clear?true:placement_feasible(bay,bid,oi,(double)ix,(double)iy,cur,ex);
+                    } else ok=placement_feasible(bay,bid,oi,(double)ix,(double)iy,cur,ex);
+                    if(!ok)continue;
+                    int ct=contact_at(fp,ix,iy,occ,bayW,bayH);
+                    double sc = -(double)ct + ((double)iy+od.y1)*pos_lam + (double)ix*pos_lam*0.01 + prefw*pen;
+                    if(sc<bestsc){bestsc=sc;boi=oi;bix=ix;biy=iy;bct=ct;}
+                }
+            }
+            if(boi<0)continue;
+            double drank = w1*tardy + w3*pen - mu*(double)bct;
+            cands.push_back({drank,bay,boi,bix,biy,bct});
+        }
+        std::sort(cands.begin(),cands.end(),[](const Cand&a,const Cand&b){return a.drank<b.drank;});
+        int m=std::min((int)cands.size(),std::max(1,topk));
+        py::array_t<int> arr({m,5}); int* pp=arr.mutable_data();
+        for(int i=0;i<m;i++){ pp[i*5]=cands[i].bay;pp[i*5+1]=cands[i].oi;pp[i*5+2]=cands[i].ix;pp[i*5+3]=cands[i].iy;pp[i*5+4]=cands[i].ct; }
+        return arr;
+    }
+    // Contact-max greedy completion from the CURRENT timeline (keeps existing placements),
+    // placing the unplaced blocks in `order`.  Returns (w1*Z1 + w3*Z3 of NEW blocks, full flat).
+    // Used to RANK contact-beam nodes by a faithful contact rollout (analog of greedy_rollout_from).
+    std::pair<double,std::vector<int>>
+    greedy_contact_from(std::vector<int> state_flat, std::vector<int> order, int step, double pos_lam,
+                        double prefw, double mu, double w1, double w3){
+        int nb=(int)shapes.size();
+        for(auto&t:timeline) t.clear();
+        std::vector<char> placed(nb,0);
+        for(size_t i=0;i+6<state_flat.size();i+=7){ int b=state_flat[i];
+            add(state_flat[i+1],b,state_flat[i+2],(double)state_flat[i+3],(double)state_flat[i+4],state_flat[i+5],state_flat[i+6]);
+            placed[b]=1; }
+        std::vector<int> pending; for(int b: order) if(!placed[b]) pending.push_back(b);
+        double z1=0,z3=0; std::vector<int> out; int cur=INT_MAX;
+        for(int b: pending) cur=std::min(cur,(int)shapes[b].rt);
+        if(pending.empty()) cur=0;
+        long guard=0;
+        while(!pending.empty()){
+            if(++guard>2000000) break;
+            std::vector<int> ready; for(int b:pending) if((int)shapes[b].rt<=cur) ready.push_back(b);
+            bool any=false;
+            for(int b: ready){
+                py::array_t<int> r=best_cell_contact(b,cur,step,pos_lam,prefw,mu,w1,w3,1);
+                if(r.shape(0)<1) continue;
+                const int* d=r.data(); int bay=d[0],oi=d[1],ix=d[2],iy=d[3];
+                int ex=cur+(int)shapes[b].pt; add(bay,b,oi,(double)ix,(double)iy,cur,ex); placed[b]=1;
+                double dd=shapes[b].due; z1 += ex>dd?(double)(ex-dd):0.0;
+                const auto&pr=shapes[b].prefs; double mx=pr.empty()?0:pr[0]; for(double v:pr)if(v>mx)mx=v;
+                z3 += (bay<(int)pr.size())? (mx-pr[bay]) : mx;
+                any=true;
+            }
+            if(any){ std::vector<int> np; for(int b:pending) if(!placed[b]) np.push_back(b); pending.swap(np); }
+            if(pending.empty()) break;
+            long nextt=(long)2e18;
+            for(int b:pending){ long r=(long)shapes[b].rt; if(r>cur&&r<nextt)nextt=r; }
+            for(auto& bay:timeline) for(auto& p:bay){ if(p.ex>cur&&p.ex<nextt)nextt=p.ex; }
+            if(nextt>=(long)1e18){ cur=cur+1; } else cur=(int)nextt;
+        }
+        std::vector<char> has(nb,0); std::vector<std::array<int,7>> rec(nb);
+        for(auto& bay:timeline) for(auto& p:bay){ has[p.bid]=1; rec[p.bid]={p.bid,p.bay,p.orient,(int)std::floor(p.ox+0.5),(int)std::floor(p.oy+0.5),p.en,p.ex}; }
+        for(int b=0;b<nb;b++) if(has[b]){ auto&rr=rec[b]; for(int k=0;k<7;k++) out.push_back(rr[k]); }
+        return {w1*z1+w3*z3, out};
+    }
+    // Greedy event-driven construction using best_cell_contact (friend's contact-max Phase2/3).
+    // Places blocks in dispatch `order`; each ready block goes to its cross-bay best contact cell.
+    // Returns flat [b,bay,ori,ix,iy,en,ex]* (all placed) for measurement / seeding.
+    std::vector<int> greedy_contact(std::vector<int> order, int step, double pos_lam, double prefw,
+                                    double mu, double w1, double w3){
+        int nb=(int)shapes.size();
+        for(auto&t:timeline) t.clear();
+        std::vector<char> placed(nb,0); std::vector<int> pending=order;
+        std::vector<int> out; int cur=INT_MAX;
+        for(int b: order) cur=std::min(cur,(int)shapes[b].rt);
+        long guard=0;
+        while(!pending.empty()){
+            if(++guard>2000000) break;
+            std::vector<int> ready;
+            for(int b: pending) if((int)shapes[b].rt<=cur) ready.push_back(b);
+            bool any=false;
+            for(int b: ready){
+                py::array_t<int> r=best_cell_contact(b,cur,step,pos_lam,prefw,mu,w1,w3,1);
+                if(r.shape(0)<1) continue;
+                const int* d=r.data(); int bay=d[0],oi=d[1],ix=d[2],iy=d[3];
+                int ex=cur+(int)shapes[b].pt;
+                add(bay,b,oi,(double)ix,(double)iy,cur,ex); placed[b]=1;
+                out.push_back(b);out.push_back(bay);out.push_back(oi);out.push_back(ix);out.push_back(iy);out.push_back(cur);out.push_back(ex);
+                any=true;
+            }
+            if(any){ std::vector<int> np; for(int b:pending) if(!placed[b]) np.push_back(b); pending.swap(np); }
+            if(pending.empty()) break;
+            long nextt=(long)2e18;
+            for(int b:pending){ long r=(long)shapes[b].rt; if(r>cur&&r<nextt)nextt=r; }
+            for(auto& bay:timeline) for(auto& p:bay){ if(p.ex>cur&&p.ex<nextt)nextt=p.ex; }
+            if(nextt>=(long)1e18){ cur=cur+1; } else cur=(int)nextt;
+        }
+        return out;
+    }
+
     // Event-driven greedy completion from the CURRENT timeline.  Places every UNPLACED
     // block (leftbottom, earliest feasible event time) in `prio` dispatch order and returns
     // total tardiness of the newly-placed blocks.  The timeline is cloned and restored, so
@@ -1350,6 +1487,15 @@ PYBIND11_MODULE(ogc_fast,m){
              py::arg("want_full"),py::arg("maxplace"),py::arg("approx"),
              py::arg("w1p")=0.0,py::arg("w3p")=0.0,py::arg("prefw")=0.0)
         .def("best_cell_lb",&Engine::best_cell_lb)
+        .def("best_cell_contact",&Engine::best_cell_contact,
+             py::arg("bid"),py::arg("cur"),py::arg("step"),py::arg("pos_lam"),py::arg("prefw"),
+             py::arg("mu"),py::arg("w1"),py::arg("w3"),py::arg("topk"))
+        .def("greedy_contact",&Engine::greedy_contact,
+             py::arg("order"),py::arg("step"),py::arg("pos_lam"),py::arg("prefw"),
+             py::arg("mu"),py::arg("w1"),py::arg("w3"))
+        .def("greedy_contact_from",&Engine::greedy_contact_from,
+             py::arg("state_flat"),py::arg("order"),py::arg("step"),py::arg("pos_lam"),
+             py::arg("prefw"),py::arg("mu"),py::arg("w1"),py::arg("w3"))
         .def("set_bcl_prefw",&Engine::set_bcl_prefw)
         .def("wide_beam",&Engine::wide_beam,
              py::arg("order"),py::arg("areas"),py::arg("workloads"),py::arg("B"),py::arg("K"),
