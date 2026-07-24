@@ -4676,6 +4676,20 @@ def _worker_entry(args):
                     _keep(_attempt(1, "prefaware"))
                     if _best[0] is not None:
                         _pref_sol = _best[0][0]
+                    # Z3-AWARE BEAM (env OGC_Z3BEAM, default on): on preference-dominated
+                    # instances (w3/w1 >= 0.10) a STRONG-prefw (1e6) beam beats the plain
+                    # prefaware constructor -- it keeps the beam's low Z1 while routing blocks
+                    # into preferred bays, and the z3 post-pass then tightens Z3 further.  The
+                    # OLD beam gate excluded this whole regime (w1 >= 5000) because the pure-Z1
+                    # beam wasted budget on Z3-dominated instances; a Z3-aware beam flips that.
+                    # Measured build+z3: prob_32 (w3/w1=0.18) 3.71M -> 3.06M (-17.5%),
+                    # prob_25 -10%.  best-of keeps min -> never-worse; gated to n <= 200 (beam
+                    # completes in ~25s) and > 30s remaining, so short budgets (<= ~15s) skip it
+                    # and stay byte-identical to the shipped path.
+                    if (os.environ.get("OGC_Z3BEAM", "1") == "1"
+                            and len(prob_info["blocks"]) <= 200
+                            and _hyb_deadline - time.time() > 30.0):
+                        _keep(_beam_attempt(50.0, 1e6, "rank"))
                     if _hyb_deadline - time.time() > 6.0:
                         _keep(_attempt(2, _primary_mode))
                     return _best[0]
