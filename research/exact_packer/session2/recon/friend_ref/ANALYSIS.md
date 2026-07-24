@@ -138,7 +138,12 @@ benefit — a tighter feasibility raster finds more legal integer positions.
 | inst | dr | FRIEND @300s | OURS @300s | winner |
 |------|----|--------------|------------|--------|
 | prob_33 | .840 | 8,172,633 (Z1=1159) | **6,392,540** (Z1=810) | **OURS −22%** |
-| ... | | (sweep in progress: prob_38/39/40 P6-class next, then mid/low) | | |
+| prob_38 | .993 | 38,440,927 (Z1=2777) | **34,167,259** (Z1=2359) | **OURS −11%** |
+| ... | | (sweep in progress: prob_39/40 then mid/low) | | |
+
+**Pattern so far: OURS beats the friend on BOTH high (prob_33) and ultra (prob_38) density.**
+Strongly suggests the user's tested "friend beats me on P1-P5" was an OLDER submission, not
+our current contact/mode-zoo engine. Full sweep will confirm across mid/low.
 
 ⚠️ prob_33 (our high-density P5 proxy) — OURS already beats the friend by 22%. Either the
 real hidden P5 instance differs from our train proxies, or the user's tested submission was an

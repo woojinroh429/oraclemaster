@@ -1832,6 +1832,22 @@ def _alns(prob_info, state, bay_unit, deadline, rng, use_gls=False,
     T_init = max(1.0, best_obj * 0.0015)
     reheats_used = 0
     REHEAT_FACTOR = 0.7
+    # Convergence early-stop (env OGC_CONVERGE, default OFF -> shipped path untouched).
+    # The friend's engine has NO convergence stop (it burns the whole budget); this is a
+    # NEW never-worse patience break: if best_obj has not improved for CONVERGE_S wall
+    # seconds AND at least one cooperative big-shake has already fired without recovery,
+    # return the incumbent early.  High-density instances (physical demand_ratio >= 0.75,
+    # Z1-dominated, still converging late) are EXEMPT and always run the full budget.
+    _conv_on = os.environ.get("OGC_CONVERGE", "0") == "1"
+    _conv_patience = float(os.environ.get("CONVERGE_S", "45"))
+    _conv_last_gain = time.time()
+    _conv_shaken = False
+    _conv_exempt = True
+    if _conv_on:
+        try:
+            _conv_exempt = _demand_ratio_phys(prob_info) >= 0.75
+        except Exception:
+            _conv_exempt = True
     while time.time() < deadline:
         iteration += 1
         remove_ids, priority = pick_removal(cur, rng)
@@ -1892,6 +1908,7 @@ def _alns(prob_info, state, bay_unit, deadline, rng, use_gls=False,
                     best_obj = trial_real
                     best_assign = {b: dict(a) for b, a in trial.assign.items()}
                     no_improve = 0
+                    _conv_last_gain = time.time()          # convergence tracker
                     _rw_tier = 13                          # new global best
                 else:
                     no_improve += 1
@@ -1951,7 +1968,15 @@ def _alns(prob_info, state, bay_unit, deadline, rng, use_gls=False,
             except Exception:
                 pass
 
+        # Convergence early-stop check: after a big-shake has already fired and best_obj
+        # has been flat for CONVERGE_S wall seconds, stop (never-worse: best_assign is
+        # returned as-is).  Exempt for high-density (still improving late) and default-off.
+        if (_conv_on and not _conv_exempt and _conv_shaken
+                and time.time() - _conv_last_gain > _conv_patience):
+            break
+
         if no_improve > int(os.environ.get("COOPNI", "400")):
+            _conv_shaken = True
             # COOPERATIVE BIG-SHAKE (env COOPSHAKE): on stall, PULL the shared global best
             # (if better than this worker's) and apply a LARGE ruin-recreate to it -- so all
             # workers' post-convergence budget concentrates on DIVERSIFYING the global best
