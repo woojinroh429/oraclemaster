@@ -621,6 +621,24 @@ def _poly_area_il(pts):
     return abs(a) * 0.5
 
 
+def _demand_ratio_phys(prob_info):
+    """Physical demand ratio = sum(bbox_area * processing) / (total_bay_area * max_due) --
+    the reference's density measure (an instance property, not a train-tuned threshold).
+    Used to adapt the contact beam CONTINUOUSLY in the gate-free path."""
+    try:
+        bl = prob_info["blocks"]; bays = prob_info["bays"]
+        area = float(sum(b["width"] * b["height"] for b in bays)) or 1.0
+        dmax = float(max(b["due_date"] for b in bl)) or 1.0
+        dem = 0.0
+        for b in bl:
+            vs = b["shape"][0]["layers"][0]
+            xs = [v[0] for v in vs]; ys = [v[1] for v in vs]
+            dem += (max(xs) - min(xs)) * (max(ys) - min(ys)) * b["processing_time"]
+        return dem / (area * dmax)
+    except Exception:
+        return 0.5
+
+
 def _temporal_os(prob_info):
     """Temporal oversubscription = sum(footprint x processing) / (bay area x
     horizon).  High -> construction is time-starved (C++ speed wins, e.g. P6).
@@ -4690,7 +4708,22 @@ def _worker_entry(args):
                 # strong throughput candidate so best-of is never-worse if contact loses).
                 # Measured: contact seed + ALNS reaches Z1 ~1567 on prob_27 (mode zoo 1549) even
                 # with the mid config; the dense config raw Z1 is 1707 vs 2029.
-                if (os.environ.get("OGC_CBEAM", "1") == "1"
+                # GATE-FREE path (env OGC_GATEFREE): no train-tuned density thresholds.  The
+                # contact beam runs on workers 0/1 for EVERY instance, its fut_beta adapting
+                # CONTINUOUSLY to the physical demand ratio (0 at low density -> preferred-bay
+                # routing; up to 1.5 at high density -> throughput/wall-push).  Workers 2/3 stay
+                # on the mode zoo.  best-of auto-selects the winner per instance, so there is no
+                # hardcoded "which engine" gate -- only the physical instance property drives
+                # behaviour (the reference's single-engine philosophy).  On large/dense instances
+                # the beam simply times out -> None -> the mode-zoo workers carry (self-gating).
+                if os.environ.get("OGC_GATEFREE", "0") == "1":
+                    if (os.environ.get("OGC_CBEAM", "1") == "1" and _wid % 4 in (0, 1)
+                            and _hyb_deadline - time.time() > 90.0):
+                        _dr = _demand_ratio_phys(prob_info)
+                        _fb = max(0.0, min(1.0, (_dr - 0.75) / 0.25)) * 1.5
+                        _cfg = {0: (0.10, "edd", _fb), 1: (0.12, "edd_big", _fb)}[_wid % 4]
+                        _keep(_contact_attempt(*_cfg))
+                elif (os.environ.get("OGC_CBEAM", "1") == "1"
                         and len(prob_info["blocks"]) <= 200
                         and _hyb_deadline - time.time() > 90.0):
                     if _btos < 0.58 and _wid % 4 != 3:
