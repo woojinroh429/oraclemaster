@@ -6083,18 +6083,19 @@ def algorithm(prob_info, timelimit=60):
             try:
                 _h_areas, _h_bcaps, _ = _footprint_areas(prob_info)
                 _hi_ratio = _demand_ratio(prob_info, _h_areas, _h_bcaps) >= 0.60
-                # BEAM-EXCEPT-ULTRA (user directive): the contact beam lives inside the hybrid
-                # worker path, which was gated at _hi_ratio>=0.60 -- so LOW-density instances
-                # (P1/P2/P3-class, everything fits at release) never reached the beam and ran the
-                # legacy engine unchanged (why P3 was flat).  Activate the hybrid path for EVERY
-                # non-ultra-dense instance so low-density gets the beam too.  Worker 0 stays on the
-                # legacy engine + worker 3 on the safety candidate, so best-of is never-worse; the
-                # ultra-dense event-scheduler (wins P6) is preserved because _demand_ratio>=0.60
-                # already holds there.  env OGC_BROADBEAM=0 reverts to the plain 0.60 gate.
+                # BEAM-EXCEPT-ULTRA (user directive), but MEASURED-refined: the contact beam only
+                # HELPS from the mid band up -- on TRUE low density (phys < OGC_LOBEAM) the legacy
+                # engine ties/beats the beam AND keeps more engine-worker diversity, so extending
+                # the beam there was neutral-to-slightly-worse (prob_22 +0.2%, no gain).  So extend
+                # the hybrid/beam path only over [OGC_LOBEAM, OGC_ULTRA): true low-density stays on
+                # the engine (its strength), ultra-dense stays on the event-scheduler (wins P6), and
+                # the mid/high band gets the beam.  env OGC_BROADBEAM=0 reverts to the plain gate.
                 if os.environ.get("OGC_BROADBEAM", "1") == "1":
-                    _ultra_phys = _demand_ratio_phys(prob_info) >= float(
-                        os.environ.get("OGC_ULTRA", "0.90"))
-                    _hi_ratio = _hi_ratio or (not _ultra_phys)
+                    _phys = _demand_ratio_phys(prob_info)
+                    _lo = float(os.environ.get("OGC_LOBEAM", "0.55"))
+                    _ultra = float(os.environ.get("OGC_ULTRA", "0.90"))
+                    if _lo <= _phys < _ultra:
+                        _hi_ratio = True
             except Exception:
                 _hi_ratio = False
 
