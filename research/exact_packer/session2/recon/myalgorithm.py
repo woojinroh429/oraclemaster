@@ -5144,7 +5144,8 @@ def _demand_ratio(prob, areas, bay_caps):
 
 
 
-def _contact_beam(prob_info, deadline_s, B=24, K=4, pos_lam=0.1, prefw=0.0, order="edd", mum=1.0, fut_beta=0.0, step=1):
+def _contact_beam(prob_info, deadline_s, B=24, K=4, pos_lam=0.1, prefw=0.0, order="edd", mum=1.0,
+                  fut_beta=0.0, step=1, anchor_bays=None, anchor_order=None, stay_w=0.0):
     """CONTACT-MAXIMISING beam (faithful port of the reference's core lever).  Fixed dispatch
     order; per state each dispatched block takes its cross-bay best CONTACT position
     (E.best_cell_contact = Phase2 sc = -contact + skyline*pos_lam, Phase3 d_rank).  States
@@ -5178,6 +5179,22 @@ def _contact_beam(prob_info, deadline_s, B=24, K=4, pos_lam=0.1, prefw=0.0, orde
         else:  # edd
             ordv = [(due[b], AR[b] * 1e-9) for b in range(n)]
         order_ids = sorted(range(n), key=lambda b: ordv[b])
+        # GUIDED RECONSTRUCTION (our take on rung_G): when an incumbent anchor is supplied,
+        # dispatch in the incumbent's own order and bias each block toward its incumbent bay with
+        # a DECAYING weight (strong for early blocks -> preserve the good base structure; weak for
+        # the tail -> let it explore).  This re-derives the incumbent yet can migrate any block
+        # where it strictly helps -- a neighbourhood the small-K LNS can't reach.
+        _anchor = None
+        _anchor_w = None
+        if anchor_bays is not None:
+            if anchor_order is not None:
+                order_ids = list(anchor_order)
+            _anchor = [int(anchor_bays[b]) if b < len(anchor_bays) and anchor_bays[b] is not None else -1
+                       for b in range(n)]
+            _anchor_w = [0.0] * n
+            if stay_w > 0.0:
+                for _pos, _b in enumerate(order_ids):
+                    _anchor_w[_b] = stay_w * max(0.15, 1.0 - _pos / max(1, n))
         mu = 1e-3 * min(w1, w3) * mum
         # FAST PATH: the C++ contact_beam (OpenMP over beam states) is byte-identical to the
         # Python loop below but much faster (measured 3.5x with OpenMP; still faster serial as it
@@ -5186,10 +5203,16 @@ def _contact_beam(prob_info, deadline_s, B=24, K=4, pos_lam=0.1, prefw=0.0, orde
         # Python loop, which would double-spend the budget).  Absent (old engine) -> Python beam.
         if hasattr(E, "contact_beam"):
             try:
-                _ob, _flat = E.contact_beam(order_ids, areas_l, wl, int(B), int(K), int(step),
-                                            float(pos_lam), float(prefw), float(mu),
-                                            float(w1), float(w2), float(w3), float(fut_beta),
-                                            float(_meanp), float(deadline_s))
+                if _anchor is not None:
+                    _ob, _flat = E.contact_beam(order_ids, areas_l, wl, int(B), int(K), int(step),
+                                                float(pos_lam), float(prefw), float(mu),
+                                                float(w1), float(w2), float(w3), float(fut_beta),
+                                                float(_meanp), float(deadline_s), _anchor, _anchor_w)
+                else:
+                    _ob, _flat = E.contact_beam(order_ids, areas_l, wl, int(B), int(K), int(step),
+                                                float(pos_lam), float(prefw), float(mu),
+                                                float(w1), float(w2), float(w3), float(fut_beta),
+                                                float(_meanp), float(deadline_s))
                 if _flat and len(_flat) == 7 * n:
                     return {int(_flat[i]): {"block_id": int(_flat[i]), "bay_id": int(_flat[i + 1]),
                                             "orient_idx": int(_flat[i + 2]), "x": int(_flat[i + 3]),

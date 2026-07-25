@@ -657,6 +657,14 @@ struct Engine {
     // Phase2 contact-max position (with fut_beta wall-push) + Phase3 cross-bay d_rank, but scans
     // against a passed TL instead of this->timeline so beam states expand concurrently.  Appends
     // up to topk (bay,oi,ix,iy,ct) sorted by d_rank into `out`.
+    // GUIDED-RECONSTRUCTION anchor (OUR take on the reference's rung_G, different mechanism):
+    // cb_anchor[bid] = the bay this block sat in in the incumbent (-1 = free).  A per-block
+    // DECAYING stay-weight (cb_anchor_w[bid]) is added to the cross-bay rank for any OTHER bay,
+    // so the beam re-derives the incumbent's structure but can still migrate blocks where that
+    // strictly lowers the objective -- a large neighbourhood the K~20 LNS can't reach.  Set
+    // before contact_beam's OpenMP region, read-only inside -> thread-safe.  Empty = no anchoring.
+    std::vector<int> cb_anchor;
+    std::vector<double> cb_anchor_w;
     void best_cell_contact_tl(const std::vector<std::vector<Placed>>& TL,int bid,int cur,int step,
                               double pos_lam,double prefw,double mu,double w1,double w3,
                               double fut_beta,double mean_proc,int topk,std::vector<std::array<int,5>>& out){
@@ -714,6 +722,9 @@ struct Engine {
             }
             if(boi<0)continue;
             double drank = w1*tardy + w3*pen - mu*(double)bct;
+            // guided-reconstruction anchor: bias toward the incumbent bay for this block
+            if(!cb_anchor.empty() && bid<(int)cb_anchor.size() && bid<(int)cb_anchor_w.size()
+               && cb_anchor[bid]>=0 && bay!=cb_anchor[bid]) drank += cb_anchor_w[bid];
             cands.push_back({drank,bay,boi,bix,biy,bct});
         }
         std::sort(cands.begin(),cands.end(),[](const Cand&a,const Cand&b){return a.drank<b.drank;});
@@ -729,7 +740,9 @@ struct Engine {
     std::pair<double,std::vector<int>>
     contact_beam(std::vector<int> order, std::vector<double> areas, std::vector<double> workloads,
                  int B, int K, int step, double pos_lam, double prefw, double mu,
-                 double w1, double w2, double w3, double fut_beta, double mean_proc, double time_budget_s){
+                 double w1, double w2, double w3, double fut_beta, double mean_proc, double time_budget_s,
+                 std::vector<int> anchor=std::vector<int>(), std::vector<double> anchor_w=std::vector<double>()){
+        cb_anchor=std::move(anchor); cb_anchor_w=std::move(anchor_w);
         int nb=(int)shapes.size();
         for(int b=0;b<nb;b++) for(int oi=0;oi<(int)shapes[b].orients.size();oi++) footprint(b,oi);
         double area_total=0; for(int j=0;j<n_bays;j++) area_total+=bw[j]*bh[j];
@@ -1700,7 +1713,8 @@ PYBIND11_MODULE(ogc_fast,m){
              py::arg("order"),py::arg("areas"),py::arg("workloads"),py::arg("B"),py::arg("K"),
              py::arg("step"),py::arg("pos_lam"),py::arg("prefw"),py::arg("mu"),
              py::arg("w1"),py::arg("w2"),py::arg("w3"),py::arg("fut_beta"),
-             py::arg("mean_proc"),py::arg("time_budget_s"))
+             py::arg("mean_proc"),py::arg("time_budget_s"),
+             py::arg("anchor")=std::vector<int>(),py::arg("anchor_w")=std::vector<double>())
         .def("set_bcl_prefw",&Engine::set_bcl_prefw)
         .def("wide_beam",&Engine::wide_beam,
              py::arg("order"),py::arg("areas"),py::arg("workloads"),py::arg("B"),py::arg("K"),
