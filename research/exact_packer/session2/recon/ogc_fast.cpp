@@ -497,6 +497,14 @@ struct Engine {
     // (contact-first, low-skyline, left, biased to preferred bays).  Phase3 cross-bay: rank by
     // d_rank = w1*tardy + w3*pen - mu*contact.  Returns up to `topk` rows (bay,ori,ix,iy,contact)
     // sorted by d_rank -- the fast core of the friend's beam candidate stage.
+    // OUR position scorer (env OGC_OURSCORE=1), distinct from the reference's raw -contact:
+    //  (1) contact-DENSITY = contact / block-bbox-half-perimeter -> rewards how WELL-NESTED a
+    //      block is for ITS OWN size, removing the reference's bias toward big blocks with long
+    //      edges (a small block snug in a nook scores like a big block along a wall);
+    //  (2) a stronger low-skyline weight -- the crane descends from the TOP, so keeping packs
+    //      low preserves vertical descent clearance for later blocks (our crane-lever insight).
+    // Magic-static: read once, thread-safe (used inside the OpenMP beam).
+    static bool use_ourscore(){ static const int v=[](){const char*e=getenv("OGC_OURSCORE");return(e&&e[0]=='1')?1:0;}(); return v; }
     py::array_t<int> best_cell_contact(int bid,int cur,int step,double pos_lam,double prefw,
                                        double mu,double w1,double w3,int topk,
                                        double fut_beta=0.0,double mean_proc=1.0){
@@ -537,7 +545,14 @@ struct Engine {
                     } else ok=placement_feasible(bay,bid,oi,(double)ix,(double)iy,cur,ex);
                     if(!ok)continue;
                     int ct=contact_at(fp,ix,iy,occ,bayW,bayH);
-                    double sc = -(double)ct + ((double)iy+od.y1)*pos_lam + (double)ix*pos_lam*0.01 + prefw*pen;
+                    double sc;
+                    if(use_ourscore()){
+                        double bbp=std::max(1.0,(od.x1-od.x0)+(od.y1-od.y0));
+                        double cdens=(double)ct/bbp;
+                        sc = -cdens*12.0 + ((double)iy+od.y1)*pos_lam*1.4 + (double)ix*pos_lam*0.02 + prefw*pen;
+                    } else {
+                        sc = -(double)ct + ((double)iy+od.y1)*pos_lam + (double)ix*pos_lam*0.01 + prefw*pen;
+                    }
                     if(fut_beta>0.0){
                         // FUTURE-VALUE (reference fut_beta): push blocks toward walls so the bay
                         // CENTRE stays open for later crane descents -- the lever that keeps Z1
@@ -682,7 +697,14 @@ struct Engine {
                     } else ok=placement_feasible_tl(TL[bay],bay,bid,oi,(double)ix,(double)iy,cur,ex);
                     if(!ok)continue;
                     int ct=contact_at(fp,ix,iy,occ,bayW,bayH);
-                    double sc = -(double)ct + ((double)iy+od.y1)*pos_lam + (double)ix*pos_lam*0.01 + prefw*pen;
+                    double sc;
+                    if(use_ourscore()){
+                        double bbp=std::max(1.0,(od.x1-od.x0)+(od.y1-od.y0));
+                        double cdens=(double)ct/bbp;
+                        sc = -cdens*12.0 + ((double)iy+od.y1)*pos_lam*1.4 + (double)ix*pos_lam*0.02 + prefw*pen;
+                    } else {
+                        sc = -(double)ct + ((double)iy+od.y1)*pos_lam + (double)ix*pos_lam*0.01 + prefw*pen;
+                    }
                     if(fut_beta>0.0){ double dl=(double)ix+od.x0,dr=bw_j-((double)ix+od.x1);
                         double db=(double)iy+od.y0,dt=bh_j-((double)iy+od.y1);
                         double dwall=std::min(std::min(dl,dr),std::min(db,dt));

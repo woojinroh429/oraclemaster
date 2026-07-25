@@ -4770,7 +4770,22 @@ def _worker_entry(args):
                     # allocation measurably loses the mid-density wins; the friend likewise gates
                     # its TRI behaviour on demand_ratio 0.84).
                     _dr = _demand_ratio_phys(prob_info)
-                    if _dr < 0.80 and _wid % 4 != 3:
+                    _ultra_t = float(os.environ.get("OGC_ULTRA", "0.90"))
+                    if os.environ.get("OGC_BROADBEAM", "1") == "1":
+                        # BEAM-EXCEPT-ULTRA (user directive): the beam runs on EVERY non-ultra
+                        # instance -- low, mid, and high density alike -- on workers 0/1/2, with
+                        # worker 3 held as the mode-zoo safety candidate so best-of is never-worse.
+                        # fut_beta ramps with density: 0 below dr 0.70 (pure preferred-bay routing
+                        # -> low Z3, the low-density lever P3-class was missing), up to 1.5 near the
+                        # ultra threshold (wall-push, keep the bay centre open for crane descents).
+                        # Ultra-dense (dr >= OGC_ULTRA) is excluded -> mode-zoo/event-scheduler
+                        # (which wins P6).  The wider n<=120 beam cap (see _contact_attempt) applies.
+                        if _dr < _ultra_t and _wid % 4 != 3:
+                            _fb = max(0.0, min(1.5, (_dr - 0.70) / 0.20 * 1.5))
+                            _ord = {0: "edd", 1: "lst", 2: "edd"}.get(_wid % 4, "edd")
+                            _plam = 0.05 if _wid % 4 == 2 else 0.1
+                            _keep(_contact_attempt(_plam, _ord, _fb))
+                    elif _dr < 0.80 and _wid % 4 != 3:
                         _cbcfg = {0: (0.1, "edd", 0.0), 1: (0.1, "lst", 0.0),
                                   2: (0.05, "edd", 0.0)}.get(_wid % 4, (0.1, "edd", 0.0))
                         _keep(_contact_attempt(*_cbcfg))
@@ -6020,6 +6035,18 @@ def algorithm(prob_info, timelimit=60):
             try:
                 _h_areas, _h_bcaps, _ = _footprint_areas(prob_info)
                 _hi_ratio = _demand_ratio(prob_info, _h_areas, _h_bcaps) >= 0.60
+                # BEAM-EXCEPT-ULTRA (user directive): the contact beam lives inside the hybrid
+                # worker path, which was gated at _hi_ratio>=0.60 -- so LOW-density instances
+                # (P1/P2/P3-class, everything fits at release) never reached the beam and ran the
+                # legacy engine unchanged (why P3 was flat).  Activate the hybrid path for EVERY
+                # non-ultra-dense instance so low-density gets the beam too.  Worker 0 stays on the
+                # legacy engine + worker 3 on the safety candidate, so best-of is never-worse; the
+                # ultra-dense event-scheduler (wins P6) is preserved because _demand_ratio>=0.60
+                # already holds there.  env OGC_BROADBEAM=0 reverts to the plain 0.60 gate.
+                if os.environ.get("OGC_BROADBEAM", "1") == "1":
+                    _ultra_phys = _demand_ratio_phys(prob_info) >= float(
+                        os.environ.get("OGC_ULTRA", "0.90"))
+                    _hi_ratio = _hi_ratio or (not _ultra_phys)
             except Exception:
                 _hi_ratio = False
 
