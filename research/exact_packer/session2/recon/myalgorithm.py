@@ -4706,10 +4706,28 @@ def _worker_entry(args):
                         # ~237s (no time cost).  Larger instances keep the 32 cap: the tight ones
                         # already scale below 32 via the formula, and a wide beam there is untested
                         # (timeout risk), so this is byte-identical for n>120.  env OGC_BMAX overrides.
-                        _bmax_default = 96 if _n <= 120 else 32
+                        # SPEED: step-2 for low/mid density (slack -> a coarser grid still finds
+                        # good contact positions, but scans ~4x fewer cells), which lets a WIDER
+                        # beam fit on bigger instances (n=130-200) where step-1 B was capped at 32
+                        # by the timeout.  step-1 kept on higher density where fine feasibility is
+                        # load-bearing.  env OGC_BEAMSTEP forces the step (0 = auto).
+                        _drp = _demand_ratio_phys(prob_info)
+                        # Default "1" = step-1 everywhere (byte-identical to the validated path);
+                        # "auto" enables the density-adaptive step-2 (under A/B).  Flip the default
+                        # to "auto" only once the mid-density A/B confirms step-2+wider beam wins.
+                        _bs_env = os.environ.get("OGC_BEAMSTEP", "1")
+                        if _bs_env == "auto":
+                            _bstep = 2 if (_drp < 0.72 and _n >= 130) else 1
+                        else:
+                            _bstep = max(1, int(_bs_env))
+                        # B cap.  n<=120 low-density affords a much wider beam (formula wants ~90 at
+                        # n=100; 32->96 gave prob_21 -14.7%, prob_24 -6.4%, complete in ~237s).  With
+                        # step-2 (~4x cheaper scan) bigger instances can also widen -> cap 64.
+                        _bmax_default = 96 if _n <= 120 else (64 if _bstep >= 2 else 32)
                         _bmax = int(os.environ.get("OGC_BMAX", str(_bmax_default)))
+                        _Bc = _Bc * 2 if _bstep >= 2 else _Bc   # step-2 halves cost/width-unit
                         _Bc = max(8, min(_bmax, _Bc))
-                        _cr = _contact_beam(prob_info, _bd, B=_Bc, K=4, pos_lam=_plam, order=_order, fut_beta=_fb)
+                        _cr = _contact_beam(prob_info, _bd, B=_Bc, K=4, pos_lam=_plam, order=_order, fut_beta=_fb, step=_bstep)
                         if not _cr or len(_cr) != _n:
                             return None
                         _ops = {}
