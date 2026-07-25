@@ -6012,7 +6012,18 @@ def algorithm(prob_info, timelimit=60):
             os.setpriority(os.PRIO_PROCESS, 0, _ni)
     except Exception:
         pass
-    NUM_PARALLEL_RUNS = int(os.environ.get("WORKERS", "4"))
+    # WORKERS now SCALES WITH THE GRADER'S CORE COUNT (was hardcoded 4).  Each worker is
+    # single-threaded (native pools capped to 1), so N workers on N cores = N00% with no throttle,
+    # and more workers = more diverse best-of seeds (strictly never-worse).  If the grader machine
+    # has >4 cores we now use them (up to 8) instead of leaving them idle -- a competitor lost P4 by
+    # using only 2 workers when more were available; this makes us robust to that.  No-op on a
+    # 4-core box (stays 4).  env WORKERS overrides.  Capped at 8 so the 4 base role/config lanes
+    # (each then re-seeded) stay sensible.
+    try:
+        _ucores = len(os.sched_getaffinity(0))
+    except (AttributeError, OSError):
+        _ucores = os.cpu_count() or 4
+    NUM_PARALLEL_RUNS = int(os.environ.get("WORKERS", str(max(4, min(8, _ucores)))))
 
     # Defensive: _SIL_CACHE / _NFP_CACHE / _FP_VERTS_CACHE are keyed by
     # (block_id, orient) -- NOT by instance -- so if a grader reuses ONE process
