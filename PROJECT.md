@@ -2351,3 +2351,25 @@ unpaired 비교** 아티팩트. prob_38 bimodal은 **머신속도 아티팩트**
   이 병목을 공략 → 수학적으로 옳은 레버. 포화=크레인-강제 하한 근처(window exact 39→39, 5x시간 -0.9%).
 - 3구간 근거: packing-bound(중밀도,3DTCS승)/assignment-bound(저밀도,Z3floor=0)/crane-saturated(초고밀도).
 스크립트: z1_lb.py(하한), crane_cert.py(포화증명서).
+
+---
+## 채점예산=60s 재확인 + P4 beam-first (커밋 4265422)
+- **중대 측정오류 발견**: 이전 P4 커밋(4bfc7c6, prob_37 4.61M->3.94M "-14.5%")은 180~214s
+  예산에서 측정된 것. 실제 채점은 **60s** (algorithm(prob_info, timelimit=60), PROJECT.md 전반
+  "60s 채점"). 60s에서는 pref-lead 워커가 prefaware lead(~20-30s)를 먼저 돌려 contact beam의
+  예산가드(40s)가 트립 -> **beam이 아예 안 켜짐**. 실측 prob_37 @60s = **4.74M**(Z3~4200),
+  즉 이전 P4 커밋은 실채점 예산에서 **무효(inert)**.
+- **수정(beam-first)**: pref-lead P4밴드(w3/w1>=0.10, n>=230, dr<0.90) + 단예산(timelimit<=90)일 때
+  contact beam을 prefaware보다 **먼저** 실행(t~1s). 전용 `_lowbd` 플래그로 이 호출만 가드 40->25로
+  낮춤(공유 mode-zoo 호출은 40 유지 -- 거기 낮추면 다른 후보 예산 뺏겨 prob_36 +0.10%).
+  실측(격리 60s, py3.12): prob_37 **4,735,704 -> 4,226,559 (-10.8%, Z3 4200->2614)**.
+  never-worse 검증: prob_37 @180s 4,103,922==4,103,922(게이트off, byte-identical),
+  prob_36/39 @60s byte-identical. 영향 인스턴스는 유일 pref-lead n>=230 = prob_37 뿐
+  (prob_32/34는 n=200 제외).
+- **과적합 회피**: beam-first B는 예산공식(floor 8)로 robust. B폭 스윕은 비단조
+  (B10=4.17M,B11=4.34M,B12=3.97M,B13=4.32M,B16=timeout->4.74M) -- B=12가 최저지만
+  ALNS-basin 로터리(컨테이너 타이밍 의존, 이웃 B 훨씬 나쁨) -> 매직넘버 미채택, 공식 B=8 유지.
+- **초고밀도(P5/P6)**: 60s에서 compute-bound(60s->180s -52%, 기존 측정). beam은 ultra에서 구조적
+  열세(전 config 20-30% 열세, mu/wait-for-exit/THRUBEAM 전부 dead-end 재확인). 워커수 레버는
+  4코어 컨테이너(=guard 4)에서 검증불가(오버서브는 고코어 그래더에서만 발현). 남은 레버는
+  C++ decode 가속(고위험) -- 야간 자율에선 미착수.
