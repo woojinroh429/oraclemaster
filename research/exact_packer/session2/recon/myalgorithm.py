@@ -4698,10 +4698,16 @@ def _worker_entry(args):
                         if _bd < 70.0:
                             return None
                         _Bc = int(_bd * 150.0 / (max(1, _n) * 4.9))   # ~4.9s per width-unit @ n=150
-                        # B cap: default 32.  Small/low-density instances (n<=120) can afford a
-                        # much wider beam (the width formula wants ~90 at n=100), where the friend's
-                        # up-to-192 beam beats our narrow one on Z3 routing.  env OGC_BMAX overrides.
-                        _bmax = int(os.environ.get("OGC_BMAX", "32"))
+                        # B cap.  Small/low-density instances (n<=120) can afford a MUCH wider
+                        # beam (the width formula wants ~90 at n=100), which is where the friend's
+                        # up-to-192 beam beat our narrow one on Z3 routing.  Measured @300s: raising
+                        # the cap 32->96 on n=100 gave prob_21 611,817 -> 521,912 (-14.7%, ties the
+                        # reference 519,005) and prob_24 223,378 -> 209,165 (-6.4%), both COMPLETE in
+                        # ~237s (no time cost).  Larger instances keep the 32 cap: the tight ones
+                        # already scale below 32 via the formula, and a wide beam there is untested
+                        # (timeout risk), so this is byte-identical for n>120.  env OGC_BMAX overrides.
+                        _bmax_default = 96 if _n <= 120 else 32
+                        _bmax = int(os.environ.get("OGC_BMAX", str(_bmax_default)))
                         _Bc = max(8, min(_bmax, _Bc))
                         _cr = _contact_beam(prob_info, _bd, B=_Bc, K=4, pos_lam=_plam, order=_order, fut_beta=_fb)
                         if not _cr or len(_cr) != _n:

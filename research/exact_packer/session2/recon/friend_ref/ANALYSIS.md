@@ -215,3 +215,18 @@ Add to our improvement loop / worker coordinator: track `best_cost` over time; a
 `no_gain_seconds` / `passes_since_improvement` patience counter. When patience exceeded AND
 the instance is NOT high-density (needs full budget), return early. Keep the monotone best-of
 so early return is always safe. Only-stop-when-truly-converged; high-density always runs full.
+
+## ✅ WIDE-BEAM RESULT (validated @300s, serial==openmp, committed)
+Root-caused the 3 losses to Z3-routing under a too-narrow beam: our `best_cell_contact`
+ALREADY uses the friend's true-delta ranking (`w1·tardy + w3·pen − mu·contact`), but the beam
+width was capped at B=32 while the width formula wants ~90 at n=100 (friend runs up to 192).
+Raising the cap 32→96 for small instances (n≤120), measured serial == openmp (identical):
+| inst | friend | old B32 | **new B96** | vs friend |
+|------|--------|---------|-------------|-----------|
+| prob_21 | 519,005 | 611,817 | **521,912** | TIE (+0.6%) — was +18% |
+| prob_24 | 169,898 | 223,378 | **209,165** | +23% (was +31%) |
+| prob_32 | 2,641,271 | **2,336,940** | 2,336,940 | **WIN −11.5%** (head-to-head's 3.71M was a stale build) |
+- prob_32 was NEVER a real loss — the current code beats the friend there; my head-to-head used
+  a stale pre-restart number. Corrected standing vs friend: **11 win/tie, 1 loss (prob_24)**.
+- Committed gated to n≤120 (byte-identical for n>120; both small runs COMPLETE in ~237s, no
+  time cost). OGC_BMAX overrides. Remaining gap = prob_24 (low-density Z3 routing, +23%).
