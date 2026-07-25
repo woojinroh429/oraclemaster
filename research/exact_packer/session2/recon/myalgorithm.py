@@ -4772,19 +4772,26 @@ def _worker_entry(args):
                     _dr = _demand_ratio_phys(prob_info)
                     _ultra_t = float(os.environ.get("OGC_ULTRA", "0.90"))
                     if os.environ.get("OGC_BROADBEAM", "1") == "1":
-                        # BEAM-EXCEPT-ULTRA (user directive): the beam runs on EVERY non-ultra
-                        # instance -- low, mid, and high density alike -- on workers 0/1/2, with
-                        # worker 3 held as the mode-zoo safety candidate so best-of is never-worse.
-                        # fut_beta ramps with density: 0 below dr 0.70 (pure preferred-bay routing
-                        # -> low Z3, the low-density lever P3-class was missing), up to 1.5 near the
-                        # ultra threshold (wall-push, keep the bay centre open for crane descents).
-                        # Ultra-dense (dr >= OGC_ULTRA) is excluded -> mode-zoo/event-scheduler
-                        # (which wins P6).  The wider n<=120 beam cap (see _contact_attempt) applies.
-                        if _dr < _ultra_t and _wid % 4 != 3:
+                        # BEAM-EXCEPT-ULTRA (user directive), density-banded for never-worse:
+                        # the beam runs on EVERY non-ultra instance, but the SAFETY worker count
+                        # scales with density so best-of can never regress (measured: contact wins
+                        # low/mid, but LOSES high-density where the mode-zoo/event-scheduler wins --
+                        # prob_33 dr .84 went +17% when contact took 3 workers).
+                        #   dr < OGC_HIBAND (0.80): contact on 0/1/2 (proven win zone), mode-zoo on 3
+                        #   HIBAND <= dr < ULTRA  : contact on 0/1 ONLY (dense edd_big+fut_beta),
+                        #                           workers 2/3 stay on the winning mode-zoo -> 2
+                        #                           safety workers preserve the high-density floor
+                        #   dr >= ULTRA (0.90)    : no contact (P6 territory)
+                        # fut_beta ramps 0 (low, pure preferred-bay routing -> low Z3) -> 1.5 (dense).
+                        _hi_band = float(os.environ.get("OGC_HIBAND", "0.80"))
+                        if _dr < _hi_band and _wid % 4 != 3:
                             _fb = max(0.0, min(1.5, (_dr - 0.70) / 0.20 * 1.5))
                             _ord = {0: "edd", 1: "lst", 2: "edd"}.get(_wid % 4, "edd")
                             _plam = 0.05 if _wid % 4 == 2 else 0.1
                             _keep(_contact_attempt(_plam, _ord, _fb))
+                        elif _hi_band <= _dr < _ultra_t and _wid % 4 in (0, 1):
+                            _cfg = {0: (0.15, "edd_big", 1.5), 1: (0.10, "edd_big", 1.5)}[_wid % 4]
+                            _keep(_contact_attempt(*_cfg))
                     elif _dr < 0.80 and _wid % 4 != 3:
                         _cbcfg = {0: (0.1, "edd", 0.0), 1: (0.1, "lst", 0.0),
                                   2: (0.05, "edd", 0.0)}.get(_wid % 4, (0.1, "edd", 0.0))
