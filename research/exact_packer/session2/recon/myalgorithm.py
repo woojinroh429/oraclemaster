@@ -4804,11 +4804,15 @@ def _worker_entry(args):
                         _hi_band = float(os.environ.get("OGC_HIBAND", "0.80"))
                         if _dr < _hi_band and _wid % 4 != 3:
                             _fb = max(0.0, min(1.5, (_dr - 0.70) / 0.20 * 1.5))
-                            _ord = {0: "edd", 1: "lst", 2: "edd"}.get(_wid % 4, "edd")
+                            # worker 0 leads with edd_tri2 (selective defer-big, the congested-rush
+                            # order -- measured -13 to -34% beam Z1 on high/mid density); workers 1/2
+                            # keep lst/edd for diversity.  best-of + mode-zoo(w3) -> never-worse.
+                            _ord = {0: "edd_tri2", 1: "lst", 2: "edd"}.get(_wid % 4, "edd")
                             _plam = 0.05 if _wid % 4 == 2 else 0.1
                             _keep(_contact_attempt(_plam, _ord, _fb))
                         elif _hi_band <= _dr < _ultra_t and _wid % 4 in (0, 1):
-                            _cfg = {0: (0.15, "edd_big", 1.5), 1: (0.10, "edd_big", 1.5)}[_wid % 4]
+                            # HIGH band: edd_tri2 dense config on 0/1, mode-zoo on 2/3 (never-worse)
+                            _cfg = {0: (0.15, "edd_tri2", 1.5), 1: (0.10, "edd_tri2", 1.5)}[_wid % 4]
                             _keep(_contact_attempt(*_cfg))
                     elif _dr < 0.80 and _wid % 4 != 3:
                         _cbcfg = {0: (0.1, "edd", 0.0), 1: (0.1, "lst", 0.0),
