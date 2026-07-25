@@ -828,10 +828,20 @@ struct Engine {
             if(children.empty()) return {1e18,{}};
             int nch=(int)children.size();
             std::vector<std::pair<double,int>> keyed(nch);
+            // THROUGHPUT-OBJECTIVE beam mode (OGC_THRUBEAM=1, high-density): rank states almost
+            // purely by tardiness + an AMPLIFIED future-tardiness lookahead (OGC_THRUHZ x hz), and
+            // DROP the Z3 bay-preference term (noise when Z1 dominates the objective).  Contact stays
+            // a deep tie-break.  The idea (user): change the beam's OBJECTIVE so its search is steered
+            // toward on-time throughput on congested instances instead of tight/preferred packing.
+            static const int THRUBEAM=[](){const char*e=getenv("OGC_THRUBEAM");return(e&&e[0]=='1')?1:0;}();
+            static const double THRUHZ=[](){const char*e=getenv("OGC_THRUHZ");return e?atof(e):3.0;}();
             #pragma omp parallel for schedule(dynamic)
             for(int i=0;i<nch;i++){ CBState& c=children[i];
                 double hz = (c.nplaced<nb)? wb_hz1(c.flat,c.placed,areas,area_total,avg_a):0.0;
-                keyed[i]={ w1*c.gt + w3*c.gz3 - mu*c.gcontact + w2*obj2f(c.loads) + w1*hz, i };
+                if(THRUBEAM)
+                    keyed[i]={ w1*(c.gt + THRUHZ*hz) + w2*obj2f(c.loads) - mu*c.gcontact, i };
+                else
+                    keyed[i]={ w1*c.gt + w3*c.gz3 - mu*c.gcontact + w2*obj2f(c.loads) + w1*hz, i };
             }
             std::sort(keyed.begin(),keyed.end(),[](const std::pair<double,int>&a,const std::pair<double,int>&b){return a.first<b.first;});
             int keep=std::min(nch,B);
