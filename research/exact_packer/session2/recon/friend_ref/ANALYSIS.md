@@ -230,3 +230,28 @@ Raising the cap 32→96 for small instances (n≤120), measured serial == openmp
   a stale pre-restart number. Corrected standing vs friend: **11 win/tie, 1 loss (prob_24)**.
 - Committed gated to n≤120 (byte-identical for n>120; both small runs COMPLETE in ~237s, no
   time cost). OGC_BMAX overrides. Remaining gap = prob_24 (low-density Z3 routing, +23%).
+
+## BEAM PROFILE (static) + SPEED/SCORE LEVER HUNT
+### contact_beam cost structure (per level = per dispatched block, B states)
+1. **best_cell_contact_tl grid scan — PRIMARY bottleneck.** Per state: for every bay × orient,
+   scans every integer (ix,iy) in the bay (step=1), each doing a raster feasibility check +
+   contact_at. ~O(bay_cells × orients) per state; HD_FINDINGS measured ~9M cell-iters/decode.
+   Cost is set by BAY SIZE, not density → low-density scans cost the same as dense ones.
+2. **load_flat_into rebuilds the full timeline TL from scratch every level for every state**
+   (ogc_fast.cpp:759) — O(B × nplaced) redundant rebuilds; TL changes by only 1 block/level.
+3. wb_hz1 per child (ranking), full state-vector copies per child (flat grows to 7n).
+
+### SPEED levers (make broad-beam affordable on larger n / wider B)
+- **[top] density-adaptive step**: step=2 for low-density (slack → plenty of feasible cells, a
+  coarse grid still finds good contact); ~4× fewer cell-iters → wider beam or n>120 in budget.
+  HD_FINDINGS says step=2 loses Z1 only on DENSE; low-density has the slack to absorb it. TEST.
+- extreme-point candidate scan (corners of placed blocks + walls) instead of full grid — 9-12×
+  faster; worse on dense, likely fine on low-density. TEST for the low-density beam only.
+- incremental TL (avoid full rebuild each level) — modest.
+
+### SCORE levers (net-positive, generalization-first per the directive)
+- wider beam on n≤200 (once step=2 makes it affordable) — more search = better.
+- multi-seed best-of beam (diverse dispatch orders per worker) — task #57.
+- **port the friend's rung_G guided reconstruction** (rebuild incumbent as one beam path with a
+  soft bay anchor + incumbent pruning) — their key refinement lever we lack; targets P4/P5.
+- fut_beta ramp tuning; ourscore (contact-density) tuning; stronger z3 polish after the beam.
