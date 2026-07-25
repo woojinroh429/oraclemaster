@@ -839,7 +839,9 @@ struct Engine {
             for(int i=0;i<nch;i++){ CBState& c=children[i];
                 double hz = (c.nplaced<nb)? wb_hz1(c.flat,c.placed,areas,area_total,avg_a):0.0;
                 if(THRUBEAM)
-                    keyed[i]={ w1*(c.gt + THRUHZ*hz) + w2*obj2f(c.loads) - mu*c.gcontact, i };
+                    // KEEP Z3 (dropping it blew up Z3 for a tiny Z1 gain -> net worse); only AMPLIFY
+                    // the future-tardiness lookahead so the search still steers away from congestion.
+                    keyed[i]={ w1*(c.gt + THRUHZ*hz) + w3*c.gz3 - mu*c.gcontact + w2*obj2f(c.loads), i };
                 else
                     keyed[i]={ w1*c.gt + w3*c.gz3 - mu*c.gcontact + w2*obj2f(c.loads) + w1*hz, i };
             }
