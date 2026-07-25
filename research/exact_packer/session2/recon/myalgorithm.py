@@ -4695,7 +4695,14 @@ def _worker_entry(args):
                     try:
                         _n = len(prob_info["blocks"])
                         _bd = _hyb_deadline - time.time() - 14.0   # reserve for z3 + ALNS tail
-                        if _bd < 70.0:
+                        # min budget to attempt the beam.  The 250-block P4 band runs step-2 (a
+                        # ~4x cheaper scan that completes in ~32s standalone), so it does NOT need
+                        # the 70s the step-1 beam requires -- gate it at 40s instead so the beam
+                        # actually FIRES in the pipeline (where mode-zoo eats budget first) rather
+                        # than always tripping the 70s guard and never contributing on P4.
+                        _drp0 = _demand_ratio_phys(prob_info)
+                        _min_bd = 40.0 if (_n >= 230 and _drp0 < 0.90) else 70.0
+                        if _bd < _min_bd:
                             return None
                         _Bc = int(_bd * 150.0 / (max(1, _n) * 4.9))   # ~4.9s per width-unit @ n=150
                         # B cap.  Small/low-density instances (n<=120) can afford a MUCH wider
@@ -4717,9 +4724,20 @@ def _worker_entry(args):
                         # to "auto" only once the mid-density A/B confirms step-2+wider beam wins.
                         _bs_env = os.environ.get("OGC_BEAMSTEP", "1")
                         if _bs_env == "auto":
-                            _bstep = 2 if (_drp < 0.72 and _n >= 130) else 1
-                        else:
+                            _bstep = 2 if ((_drp < 0.72 and _n >= 130)
+                                           or (_n >= 200 and _drp < 0.90)) else 1
+                        elif _bs_env != "1":
                             _bstep = max(1, int(_bs_env))
+                        else:
+                            # DEFAULT: step-2 (4x fewer cell scans) on the LARGE high-density band
+                            # (n>=230, dr<0.90 = the P4-class 250-block instances) where the step-1
+                            # B=32 beam TIMES OUT and never enters best-of -- so it currently
+                            # contributes nothing there.  step-2 lets the beam COMPLETE (measured
+                            # standalone: prob_37 4.35M in ~32s, below the 4.61M pipeline), adding a
+                            # completing candidate -> best-of never-worse.  Everything else keeps
+                            # step-1 (byte-identical to the validated path).  Ultra (dr>=0.90) keeps
+                            # step-1: fine feasibility is load-bearing on P5/P6.
+                            _bstep = 2 if (_n >= 230 and _drp < 0.90) else 1
                         # B cap.  n<=120 low-density affords a much wider beam (formula wants ~90 at
                         # n=100; 32->96 gave prob_21 -14.7%, prob_24 -6.4%, complete in ~237s).  With
                         # step-2 (~4x cheaper scan) bigger instances can also widen -> cap 64.
@@ -4866,6 +4884,16 @@ def _worker_entry(args):
                     _keep(_attempt(1, "prefaware"))
                     if _best[0] is not None:
                         _pref_sol = _best[0][0]
+                    # P4-class large-n (n>=230): the strong-prefw Z3 beam below is gated n<=200
+                    # (it times out at 250 blocks), so this worker had NO beam candidate there --
+                    # only the prefaware constructor.  Run the STEP-2 contact beam instead: step-2's
+                    # ~4x cheaper cell scan lets the contact beam COMPLETE at 250 blocks (standalone
+                    # prob_37 4.35M in ~32s, below the 4.61M prefaware-only pipeline).  _bstep is set
+                    # to 2 for this band by the beam-step gate; best-of keeps min -> never-worse.
+                    if (len(prob_info["blocks"]) >= 230
+                            and _demand_ratio_phys(prob_info) < 0.90
+                            and _hyb_deadline - time.time() > 45.0):
+                        _keep(_contact_attempt(0.15, "edd_tri2", 1.5))
                     # Z3-AWARE BEAM (env OGC_Z3BEAM, default on): on preference-dominated
                     # instances (w3/w1 >= 0.10) a STRONG-prefw (1e6) beam beats the plain
                     # prefaware constructor -- it keeps the beam's low Z1 while routing blocks

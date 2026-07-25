@@ -779,6 +779,10 @@ struct Engine {
         std::vector<double> u(n_bays); for(int j=0;j<n_bays;j++) u[j]=(bw[j]*bh[j]>1e-9)?avg_ba/(bw[j]*bh[j]):1.0;
         std::vector<double> mxp(nb,0); for(int b=0;b<nb;b++){const auto&pr=shapes[b].prefs;double mx=pr.empty()?0:pr[0];for(double v:pr)if(v>mx)mx=v;mxp[b]=mx;}
         int nord=(int)order.size();
+        // WAIT-FOR-EXIT beam knobs (env): CBWAIT = max wait horizon (0=off, byte-identical);
+        // CBMAXENT = cap on distinct entry times tried per state (bounds cost at 250 blocks).
+        static const int CBWAIT=[](){const char*e=getenv("OGC_CBWAIT");return e?atoi(e):0;}();
+        static const int CBMAXENT=[](){const char*e=getenv("OGC_CBMAXENT");return e?std::max(1,atoi(e)):4;}();
         auto obj2f=[&](const std::vector<double>& loads){ double mn=1e18,mx=-1e18; for(int j=0;j<n_bays;j++){double v=u[j]*loads[j]; if(v<mn)mn=v; if(v>mx)mx=v;} return n_bays>1?(mx-mn):0.0; };
         CBState init; init.placed.assign(nb,0); init.loads.assign(n_bays,0.0); init.gt=0;init.gz3=0;init.gcontact=0;init.nplaced=0;
         std::vector<CBState> beam; beam.push_back(std::move(init));
@@ -798,23 +802,55 @@ struct Engine {
                 for(int si=0;si<nbeam;si++){
                     CBState& st=beam[si];
                     load_flat_into(st.flat, TL);
-                    int cur=r; cc.clear();
-                    best_cell_contact_tl(TL,bi,cur,step,pos_lam,prefw,mu,w1,w3,fut_beta,mean_proc,K,cc);
-                    if(cc.empty()){
+                    auto& outv=perstate[si];
+                    // WAIT-FOR-EXIT beam (OGC_CBWAIT>0): generate candidates both at the release
+                    // time `r` AND at a bounded set of near-future bay exits, each carrying its OWN
+                    // entry/exit (and thus tardiness).  A block that would spill to a non-preferred
+                    // bay if forced in NOW can instead be a candidate that WAITS a little for its
+                    // preferred bay to free -- the beam ranks the (higher-tardy, lower-Z3) wait
+                    // candidate against the (lower-tardy, higher-Z3) now candidate by the true
+                    // objective, so it searches the Z1<->Z3 frontier.  CBWAIT=max wait horizon;
+                    // default 0 => original behaviour (byte-identical).  Bounded #entries keeps it
+                    // affordable at 250 blocks (esp. paired with step-2).
+                    std::vector<std::pair<int,int>> allc_ct;    // (entry, exit)
+                    std::vector<std::array<int,5>> allc;        // bay,oi,ix,iy,ct  (parallel to allc_ct)
+                    if(CBWAIT>0){
+                        std::vector<int> ents; ents.push_back(r);
+                        for(int bay=0;bay<n_bays;bay++) for(const Placed& te:TL[bay])
+                            if(te.ex>r && te.ex<=r+CBWAIT) ents.push_back(te.ex);
+                        std::sort(ents.begin(),ents.end()); ents.erase(std::unique(ents.begin(),ents.end()),ents.end());
+                        if((int)ents.size()>CBMAXENT) ents.resize(CBMAXENT);
+                        for(int et:ents){ cc.clear();
+                            best_cell_contact_tl(TL,bi,et,step,pos_lam,prefw,mu,w1,w3,fut_beta,mean_proc,K,cc);
+                            for(auto&cd:cc){ allc.push_back(cd); allc_ct.push_back({et,et+pt}); } }
+                    } else {
+                        int cur=r; cc.clear();
+                        best_cell_contact_tl(TL,bi,cur,step,pos_lam,prefw,mu,w1,w3,fut_beta,mean_proc,K,cc);
+                        if(cc.empty()){
+                            std::vector<int> ents; ents.push_back(r);
+                            for(int bay=0;bay<n_bays;bay++) for(const Placed& te:TL[bay]) if(te.ex>r) ents.push_back(te.ex);
+                            std::sort(ents.begin(),ents.end()); ents.erase(std::unique(ents.begin(),ents.end()),ents.end());
+                            for(int e:ents){ if(e==r)continue; cc.clear();
+                                best_cell_contact_tl(TL,bi,e,step,pos_lam,prefw,mu,w1,w3,fut_beta,mean_proc,K,cc);
+                                if(!cc.empty()){cur=e;break;} }
+                        }
+                        for(auto&cd:cc){ allc.push_back(cd); allc_ct.push_back({cur,cur+pt}); }
+                    }
+                    // fallback when even the wait set found nothing: scan all exits (original path)
+                    if(allc.empty() && CBWAIT>0){
                         std::vector<int> ents; ents.push_back(r);
                         for(int bay=0;bay<n_bays;bay++) for(const Placed& te:TL[bay]) if(te.ex>r) ents.push_back(te.ex);
                         std::sort(ents.begin(),ents.end()); ents.erase(std::unique(ents.begin(),ents.end()),ents.end());
-                        for(int e:ents){ if(e==r)continue; cc.clear();
+                        for(int e:ents){ cc.clear();
                             best_cell_contact_tl(TL,bi,e,step,pos_lam,prefw,mu,w1,w3,fut_beta,mean_proc,K,cc);
-                            if(!cc.empty()){cur=e;break;} }
+                            if(!cc.empty()){ for(auto&cd:cc){ allc.push_back(cd); allc_ct.push_back({e,e+pt}); } break; } }
                     }
-                    auto& outv=perstate[si];
-                    if(cc.empty()){ outv.push_back(st); continue; }
-                    int exx=cur+pt;
-                    for(auto& cd: cc){
+                    if(allc.empty()){ outv.push_back(st); continue; }
+                    for(size_t ci=0;ci<allc.size();ci++){
+                        auto& cd=allc[ci]; int en=allc_ct[ci].first, exx=allc_ct[ci].second;
                         int bay=cd[0],oi=cd[1],ix=cd[2],iy=cd[3],ct=cd[4];
                         CBState c; c.flat=st.flat; c.placed=st.placed; c.loads=st.loads; c.nplaced=st.nplaced+1;
-                        c.flat.push_back(bi);c.flat.push_back(bay);c.flat.push_back(oi);c.flat.push_back(ix);c.flat.push_back(iy);c.flat.push_back(cur);c.flat.push_back(exx);
+                        c.flat.push_back(bi);c.flat.push_back(bay);c.flat.push_back(oi);c.flat.push_back(ix);c.flat.push_back(iy);c.flat.push_back(en);c.flat.push_back(exx);
                         c.placed[bi]=1; c.loads[bay]+=wl;
                         c.gt = st.gt + (exx>dd?(double)(exx-dd):0.0);
                         double pen=(bay<(int)pr.size())?(mxp[bi]-pr[bay]):mxp[bi];
