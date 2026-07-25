@@ -3,3 +3,5 @@ submit_build/
 __pycache__/
 _*.log
 *.log
+engt/
+data
