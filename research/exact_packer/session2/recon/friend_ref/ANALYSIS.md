@@ -287,3 +287,28 @@ word-parallel erosion + per-bay batch placement. Maps onto OUR two profiled bott
 (load_flat_into rebuild every step + cell-by-cell scan). Porting the CACHED GRID (avoid rebuild)
 is the highest-value speed idea; word-parallel is ~2x on our thin bays (per prior micro-bench).
 Detailed arg mapping + high-density mechanism: 2 RE subagents in progress.
+
+## P5 ROOT CAUSE (both RE subagents, definitive)
+The friend's high-density edge is NOT tighter packing (we already exact-verify every integer pos)
+and NOT a huge beam (their dense beam B~40). It is a STACK, in impact order:
+1. **edd_tri2 defer-big dispatch** (beamsolver.py:431-438): push a block to the back ONLY if
+   area>=2*mean AND release>0.2*max_release. +1 tardy on a deferred big frees room for 3-5 small
+   on-time blocks in the rush; early-released bigs stay as free anchors (blanket edd_big loses
+   those -> "+300 tardy on prob_38 = the whole residual"). WE LACK THIS. ← porting now.
+2. **Throughput-first ranking**: d_rank = w1*tardy + w2*dobj2 + w3*pref - mu*contact, mu=1e-3*min(w1,w3).
+   We HAVE this in drank/state-rank, BUT our Phase-2 pre-selects ONE position per bay by CONTACT,
+   which can discard the tardiness-optimal placement. Consider tardiness-first position pick when
+   tardy dominates. Add admissible-obj2 + suffix-Z3 incumbent PRUNING to afford a wider beam.
+3. **wait-for-exit (n_entry_opts=2)**: emit a later entry candidate when the earliest spot is poor.
+4. **rung_G + tardy_cluster/disagree LNS** refinement ladder.
+Plus: friend genuinely uses ~500s on dense (their B and ladder scale with budget); at 300s they are
+~40% narrower + no rung_G + no deep k=20 LNS. Our engine converges ~160s -> we have slack to spend.
+
+## SPEED (both agents): incremental grid cache is THE lever
+The .so keys a Grid by (bay-content-hash, entry, exit/flags) -- NOT Morton -- and builds it by
+OR-stamping ONE pre-baked descent-shadow mask (masks_ge[k]=union of layers>=k, masks_le[k]) per
+placed block, cached + reused across orientations and sibling beam states. Adding a block is
+O(footprint), not a rebuild. This eliminates OUR profiled bottleneck (load_flat_into rebuilds the
+timeline every level for every state). Crane j>=k clearance is baked into masks_ge/le at register
+time -> hot loop is a plain per-layer 2D AND. Port target for a wider beam in budget. Word-parallel
+(select_words, K<=2) + dense early-exit (select_dense, K>=3/congested) is ~2x on our thin bays.

@@ -5174,6 +5174,16 @@ def _contact_beam(prob_info, deadline_s, B=24, K=4, pos_lam=0.1, prefw=0.0, orde
         if order == "edd_big":
             _mean_a = (sum(AR) / n) if n else 1.0
             ordv = [(1 if AR[b] >= 2.0 * _mean_a else 0, due[b], AR[b] * 1e-9) for b in range(n)]
+        elif order == "edd_tri2":
+            # SELECTIVE defer-big for the congested regime (our impl of the reference's edd_tri2):
+            # push a block to the BACK only if it is BIG (area >= 2*mean) AND LATE-released
+            # (release > 0.2*max_release).  In an overloaded rush a deferred big trades +1 tardy for
+            # room to land 3-5 small blocks on-time; but early-released bigs stay up front as free
+            # anchors (blanket edd_big sacrifices those too and loses the residual).  Targets P5.
+            _mean_a = (sum(AR) / n) if n else 1.0
+            _thr = 2.0 * _mean_a
+            _r0 = (max(rel) * 0.2) if rel else 0
+            ordv = [(1 if (AR[b] >= _thr and rel[b] > _r0) else 0, due[b], -AR[b]) for b in range(n)]
         elif order == "lst":
             ordv = [(due[b] - pt[b], AR[b] * 1e-9) for b in range(n)]
         else:  # edd
