@@ -678,18 +678,46 @@ struct Engine {
         for(int bay=0;bay<n_bays;bay++){
             double bw_j=bw[bay],bh_j=bh[bay];
             int bayH=(int)std::ceil(bh_j),bayW=(int)std::ceil(bw_j); int wpr=(bayW+64)>>6;
-            std::vector<char> occ; buildOcc(TL[bay],cur,ex,bayW,bayH,occ);
+            std::vector<char> occ;
             std::vector<std::vector<uint64_t>> F;
             bool use_sweep=RASTER&&maxLb>0&&bayH>0&&bayH<20000;
-            if(use_sweep){ F.assign(maxLb,std::vector<uint64_t>((size_t)bayH*wpr,0ULL));
+            // OR-STAMP GRID CACHE (our port of the reference's incremental Grid): the (occ,F) pair
+            // for (bay,cur,ex,maxLb, overlapping-placed-content) is memoised thread-locally, so the
+            // many sibling beam states that share a bay's contents skip the O(placed x footprint)
+            // layer stamping -- only the O(placed) content hash is paid.  A wrong hit could only mark
+            // an infeasible cell "clear" -> committed placement then fails check_feasibility -> best-of
+            // rejects it (never a wrong accepted answer).  env OGC_FCACHE=1; default off => identical.
+            static thread_local std::unordered_map<uint64_t,
+                std::pair<std::vector<char>,std::vector<std::vector<uint64_t>>>> fcache;
+            static const int FCACHE=[](){const char*e=getenv("OGC_FCACHE");return(e&&e[0]=='1')?1:0;}();
+            uint64_t fk=0; bool fhit=false;
+            if(FCACHE){
+                fk=1469598103934665603ULL;
+                auto mix=[&](uint64_t v){ fk^=v; fk*=1099511628211ULL; };
+                mix((uint64_t)bay); mix((uint64_t)cur*2654435761u+(uint64_t)ex); mix((uint64_t)maxLb);
                 for(const Placed& te: TL[bay]){ if(!(cur<te.ex&&te.en<ex))continue;
                     bool ndd=(te.en<=cur&&cur<te.ex)||(te.en<ex&&ex<=te.ex);
                     bool td=(cur<=te.en&&te.en<ex)||(cur<te.ex&&te.ex<=ex); if(!ndd&&!td)continue;
-                    const OrientData& eod=shapes[te.bid].orients[te.orient]; int ne=(int)eod.layers.size();
-                    int tox=(int)std::floor(te.ox+0.5),toy=(int)std::floor(te.oy+0.5);
-                    for(int j=0;j<ne;j++){const LayerData&L=eod.layers[j];if(L.npts<3)continue;
-                        if(ndd){int hi=std::min(j,maxLb-1);for(int k=0;k<=hi;k++)or_layer_into_map(F[k],wpr,bayH,L,tox,toy);}
-                        if(td){for(int k=std::max(j,0);k<maxLb;k++)or_layer_into_map(F[k],wpr,bayH,L,tox,toy);}}}}
+                    mix((uint64_t)te.bid*131+(uint64_t)te.orient);
+                    mix((uint64_t)((long)std::floor(te.ox+0.5))*8191+(long)std::floor(te.oy+0.5));
+                    mix((uint64_t)te.en*65537u+(uint64_t)te.ex); }
+                auto it=fcache.find(fk);
+                if(it!=fcache.end()){ occ=it->second.first; F=it->second.second; fhit=true; }
+            }
+            if(!fhit){
+                buildOcc(TL[bay],cur,ex,bayW,bayH,occ);
+                if(use_sweep){ F.assign(maxLb,std::vector<uint64_t>((size_t)bayH*wpr,0ULL));
+                    for(const Placed& te: TL[bay]){ if(!(cur<te.ex&&te.en<ex))continue;
+                        bool ndd=(te.en<=cur&&cur<te.ex)||(te.en<ex&&ex<=te.ex);
+                        bool td=(cur<=te.en&&te.en<ex)||(cur<te.ex&&te.ex<=ex); if(!ndd&&!td)continue;
+                        const OrientData& eod=shapes[te.bid].orients[te.orient]; int ne=(int)eod.layers.size();
+                        int tox=(int)std::floor(te.ox+0.5),toy=(int)std::floor(te.oy+0.5);
+                        for(int j=0;j<ne;j++){const LayerData&L=eod.layers[j];if(L.npts<3)continue;
+                            if(ndd){int hi=std::min(j,maxLb-1);for(int k=0;k<=hi;k++)or_layer_into_map(F[k],wpr,bayH,L,tox,toy);}
+                            if(td){for(int k=std::max(j,0);k<maxLb;k++)or_layer_into_map(F[k],wpr,bayH,L,tox,toy);}}}}
+                if(FCACHE){ if(fcache.size()>8000) fcache.clear();
+                    fcache.emplace(fk,std::make_pair(occ,F)); }
+            }
             double pen = (bay<(int)bs.prefs.size())? (s_max-bs.prefs[bay]) : s_max;
             double bestsc=1e300; int boi=-1,bix=0,biy=0,bct=0;
             for(int oi=0;oi<norient;oi++){ const OrientData& od=bs.orients[oi]; int nl=(int)od.layers.size();
