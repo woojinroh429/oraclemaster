@@ -4691,7 +4691,7 @@ def _worker_entry(args):
                 # (== reference), B=32 -> 1.978M (below reference); our old pipeline 2.359M.
                 # Short budgets (<~90s remaining, e.g. the 15s path) skip it -> byte-identical.
                 # env OGC_CBEAM=0 disables (A/B).
-                def _contact_attempt(_plam, _order, _fb=0.0):
+                def _contact_attempt(_plam, _order, _fb=0.0, _lowbd=False):
                     try:
                         _n = len(prob_info["blocks"])
                         _bd = _hyb_deadline - time.time() - 14.0   # reserve for z3 + ALNS tail
@@ -4701,7 +4701,23 @@ def _worker_entry(args):
                         # actually FIRES in the pipeline (where mode-zoo eats budget first) rather
                         # than always tripping the 70s guard and never contributing on P4.
                         _drp0 = _demand_ratio_phys(prob_info)
-                        _min_bd = 40.0 if (_n >= 230 and _drp0 < 0.90) else 70.0
+                        _p4band0 = (_n >= 230 and _drp0 < 0.90)
+                        # SHORT-BUDGET beam-first guard: at the real 60s grader budget the
+                        # after-prefaware beam can never fire (the 40s guard needs the whole
+                        # window), so on the P4 band we run the beam FIRST and it starts with
+                        # only ~29s -- lower the guard to 25 for short budgets so it fires and
+                        # its 4.35M seed enters best-of (measured prob_37 @60s 4.74M->4.23M,
+                        # -10.8%).  Long budgets keep 40 (the committed after-prefaware ordering
+                        # wins there -- beam-first eats the ALNS tail: prob_37 @180s 3.94M->4.10M).
+                        # _lowbd (beam-first path only): 25 (not 40) at short budgets -- at
+                        # 60s the worker reaches beam-first at t~11s so _bd~=29; 25 lets the
+                        # ~16s B=8 step-2 beam fire with margin.  Scoped to _lowbd so the
+                        # shared mode-zoo callers keep the 40 guard (lowering it there let a
+                        # beam steal budget from a better candidate: prob_36 +0.10%).
+                        if _p4band0:
+                            _min_bd = 25.0 if (_lowbd and timelimit <= 90.0) else 40.0
+                        else:
+                            _min_bd = 70.0
                         if _bd < _min_bd:
                             return None
                         _Bc = int(_bd * 150.0 / (max(1, _n) * 4.9))   # ~4.9s per width-unit @ n=150
@@ -4881,6 +4897,22 @@ def _worker_entry(args):
                 _pref_lead = (_w_g.get("w1", 1) > 0 and
                               _w_g.get("w3", 0) >= 0.10 * _w_g.get("w1", 1))
                 if (_wid % 4 == 2) and _pref_lead:
+                    # BEAM-FIRST at short (grader 60s) budgets: the prefaware lead below eats
+                    # ~20-30s, leaving <40s so the contact beam's budget guard trips and it
+                    # never fires -- the beam's 4.35M seed (standalone B=16 step-2, ~31s) never
+                    # enters best-of and the 60s number stalls at ~4.74M (prefaware+ALNS only).
+                    # Running the beam FIRST (from t~1s, with the lowered short-budget guard)
+                    # lets it complete and seed best-of before prefaware: prob_37 @60s
+                    # 4.74M->4.23M (-10.8%, Z3 4200->2614).  Gated to timelimit<=90 so long
+                    # budgets keep the committed after-prefaware ordering (which leaves ALNS
+                    # time and wins there); only affects the pref-lead P4 band (prob_37-class).
+                    _cbfirst = (timelimit <= 90.0
+                                and os.environ.get("OGC_CBFIRST", "1") == "1")
+                    if (_cbfirst
+                            and len(prob_info["blocks"]) >= 230
+                            and _demand_ratio_phys(prob_info) < 0.90
+                            and _hyb_deadline - time.time() > 28.0):
+                        _keep(_contact_attempt(0.15, "edd_tri2", 1.5, _lowbd=True))
                     _keep(_attempt(1, "prefaware"))
                     if _best[0] is not None:
                         _pref_sol = _best[0][0]
