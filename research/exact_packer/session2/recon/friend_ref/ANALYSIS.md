@@ -255,3 +255,16 @@ Raising the cap 32→96 for small instances (n≤120), measured serial == openmp
 - **port the friend's rung_G guided reconstruction** (rebuild incumbent as one beam path with a
   soft bay anchor + incumbent pruning) — their key refinement lever we lack; targets P4/P5.
 - fut_beta ramp tuning; ourscore (contact-density) tuning; stronger z3 polish after the beam.
+
+## LEVER SCORECARD (this session, honest)
+| lever | result | disposition |
+|-------|--------|-------------|
+| **B96 wide beam (n<=120)** | prob_21 -15%, prob_25 -3%, prob_24 -6% | SHIPPED (real win) |
+| broadbeam (beam except ultra) | low-density neutral (P3-class engine at floor); high-band fixed never-worse | default-on, safe, no score gain |
+| ourscore (contact-density) | mixed: prob_22 -8%, prob_24 +45% | default OFF |
+| step-2 beam speed | LOSES: prob_28 +86%, prob_30 +55%, prob_31 +38%, prob_32 +34% | default step-1 (off) |
+| guided beam / rung_G (decaying-anchor) | anchor works (prob_28 -36% vs plain) but guided construct < refined incumbent | infra committed, NOT wired |
+
+KEY LIMITATION: train proxies say we already win 11/12 vs friend, so P4/P5 (the real grader
+losses) can't be measured locally. Local lever-hunting largely exhausted; ship B96, read which
+P's move, target from there.
