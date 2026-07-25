@@ -268,3 +268,22 @@ Raising the cap 32→96 for small instances (n≤120), measured serial == openmp
 KEY LIMITATION: train proxies say we already win 11/12 vs friend, so P4/P5 (the real grader
 losses) can't be measured locally. Local lever-hunting largely exhausted; ship B96, read which
 P's move, target from there.
+
+## ogc_core.so BINARY PROBE (P5 reverse-engineering, round 2)
+Demangled real C++ signatures + instruction analysis:
+- **build_grid(int,int,long,long,int,long, const long*×6, bool, bool, bool)** — Grid built ONCE
+  with 3 bool flags (almost certainly TIGHT / exact-verify / morton). Cached in a hashtable keyed
+  by std::array<long,3> (Morton/(bay,cell) key) -> reused across beam steps (no per-step rebuild).
+- **bay_pass(int×4, long, array<long>×7, long,int×4,long,int×6, double×5)** — places ALL blocks of
+  a bay in ONE C++ call (our engine loops per-block in Python-ish granularity).
+- **select_words(uint64[],uint64[], ...)** vs **select_dense(uint8[],uint8[], ...)** — word-parallel
+  (packed 64-bit) position search + a byte-level dense variant. 214 popcnt/pand/pxor/tzcnt insns
+  confirm bit-parallel 2D erosion (64 x-positions per AND).
+- **score_bay(double[],long[]×4,double[], int×3, ..., d i d i d×6 l d×3, i i d l d l d)** — the scorer
+  with ~15 weight/param scalars (contact, skyline, pref, future-value, ...).
+
+SPEED RECIPE (why they run a wide beam at 500s): cached Morton Grid (build once, reuse) +
+word-parallel erosion + per-bay batch placement. Maps onto OUR two profiled bottlenecks
+(load_flat_into rebuild every step + cell-by-cell scan). Porting the CACHED GRID (avoid rebuild)
+is the highest-value speed idea; word-parallel is ~2x on our thin bays (per prior micro-bench).
+Detailed arg mapping + high-density mechanism: 2 RE subagents in progress.
