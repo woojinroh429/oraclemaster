@@ -6071,7 +6071,19 @@ def algorithm(prob_info, timelimit=60):
     # Reserve a slice for the final Z3 (bay-preference) reassignment pass on long budgets
     # (the ~300s grader).  At short budgets it stays 0 -> byte-identical to the prior path.
     _z3_on = (os.environ.get("OGC_Z3", "1") == "1" and timelimit >= 60.0)
-    _z3_res = timelimit * 0.22 if _z3_on else 0.0
+    # HINT-BEAM (user idea): on HIGH-density (mode-zoo's territory) reserve extra budget for an
+    # anchored beam post-pass that RE-DERIVES the pooled best (mode-zoo) as a beam path anchored to
+    # its bay structure, migrating only blocks that strictly improve -- measured to BEAT mode-zoo
+    # there (prob_33 -0.7%, prob_31 -1.9%: mode-zoo's Z1 is good but its Z3 routing is loose).  Only
+    # engaged for n<=200 dense instances; low/mid keep the standard reserve (their beam already wins
+    # as a worker).  best-of -> never-worse.
+    try:
+        _hint_on = (os.environ.get("OGC_HINTBEAM", "1") == "1" and HAVE_OGC_FAST
+                    and timelimit >= 120.0 and len(prob_info["blocks"]) <= 200
+                    and _demand_ratio_phys(prob_info) >= 0.72)
+    except Exception:
+        _hint_on = False
+    _z3_res = timelimit * (0.34 if (_z3_on and _hint_on) else (0.22 if _z3_on else 0.0))
     _remaining = max(1.0, timelimit - (time.time() - _start) - _z3_res)
 
     if n_workers == 1:
@@ -6196,6 +6208,46 @@ def algorithm(prob_info, timelimit=60):
                         continue
 
             if final_sol is not None:
+                # HINT-BEAM post-pass (user idea): give the beam a HINT about the pooled best
+                # (mode-zoo on high-density) -- re-derive it as a beam path anchored to its bay
+                # structure with a LIGHT stay-weight, so the beam keeps mode-zoo's good structure but
+                # migrates blocks that strictly lower the objective.  Beats the mode-zoo it seeds
+                # from on high-density (Z3 tightening).  best-of below -> never-worse.
+                if _hint_on:
+                    _hbud = timelimit - (time.time() - _start) - 2.0
+                    if _hbud > 50.0:
+                        try:
+                            _hn = len(prob_info["blocks"])
+                            _hw3 = float(prob_info["weights"]["w3"])
+                            _hbay = [-1] * _hn; _hent = [0] * _hn
+                            for _ht, _hops0 in final_sol["operations"].items():
+                                for _ho in _hops0:
+                                    if _ho["type"] == "ENTRY":
+                                        _hbay[_ho["block_id"]] = _ho["bay_id"]
+                                        _hent[_ho["block_id"]] = int(_ht)
+                            _hord = sorted(range(_hn), key=lambda b: (_hent[b], b))
+                            _hg = _contact_beam(prob_info, min(_hbud - 3.0, 100.0), B=32, K=4,
+                                                pos_lam=0.15, order="edd_tri2", fut_beta=1.5,
+                                                anchor_bays=_hbay, anchor_order=_hord,
+                                                stay_w=2.0 * _hw3)
+                            if _hg and len(_hg) == _hn:
+                                _ho2 = {}
+                                for _hb, _ha in _hg.items():
+                                    _ho2.setdefault(_ha["entry_time"], []).append(
+                                        {"type": "ENTRY", "block_id": _hb, "bay_id": _ha["bay_id"],
+                                         "x": _ha["x"], "y": _ha["y"], "orient_idx": _ha["orient_idx"]})
+                                    _ho2.setdefault(_ha["exit_time"], []).append(
+                                        {"type": "EXIT", "block_id": _hb, "bay_id": _ha["bay_id"]})
+                                _hsol = {"operations": {str(_k): sorted(
+                                    _ho2[_k], key=lambda o: 0 if o["type"] == "EXIT" else 1)
+                                    for _k in sorted(_ho2)}}
+                                _hci = check_feasibility(prob_info, _hsol)
+                                _hco = check_feasibility(prob_info, final_sol)
+                                if (_hci.get("feasible")
+                                        and _hci["objective"] < _hco["objective"] - 1e-6):
+                                    final_sol = _hsol
+                        except Exception:
+                            pass
                 # FINAL Z3 (bay-preference) reassignment pass on the pooled best solution.
                 if _z3_on:
                     _z3b = timelimit - (time.time() - _start) - 1.0
