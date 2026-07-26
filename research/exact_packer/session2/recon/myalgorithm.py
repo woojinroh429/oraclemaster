@@ -4851,14 +4851,17 @@ def _worker_entry(args):
                         #   dr >= ULTRA (0.90)    : no contact (P6 territory)
                         # fut_beta ramps 0 (low, pure preferred-bay routing -> low Z3) -> 1.5 (dense).
                         _hi_band = float(os.environ.get("OGC_HIBAND", "0.80"))
-                        # BEAM-CORE (env OGC_BEAM1, default off pending A/B): the contact beam is
-                        # OpenMP-parallel; running it on 3 workers (0/1/2) means 3 beams contend
-                        # for the cores (3x oversubscription) so at 300s on n=200 it TIMES OUT and
-                        # falls back to the mode-zoo (prob_32 2.34M->3.72M).  Running it on worker 1
-                        # ONLY lets that one beam get ~all cores -> it completes and wins, while
-                        # workers 0/2 join 3 on the (single-threaded) mode zoo -> MORE diversity
-                        # there too.  best-of over all 4 -> never-worse.
-                        _beam1 = os.environ.get("OGC_BEAM1", "0") == "1"
+                        # BEAM-CORE (env OGC_BEAM1, default ON): the contact beam is OpenMP-
+                        # parallel; running it on 3 workers (0/1/2) means 3 beams contend for the
+                        # cores (3x oversubscription) so at 300s on n>=200 it TIMES OUT and falls
+                        # back to the mode-zoo (regressed prob_32 300s: 2.34M->3.72M).  Running it
+                        # on worker 1 ONLY lets that one beam get ~all the cores -> it COMPLETES
+                        # and wins, while workers 0/2 join 3 on the (single-threaded) mode zoo ->
+                        # MORE diversity there too.  best-of over all 4 -> never-worse.
+                        # Validated paired @300s: prob_23 2.28M->1.57M (-31%), prob_32 3.72M->3.08M
+                        # (-17%), prob_31 -1.5%; prob_28/30/35/37 IDENTICAL (0 regressions).
+                        # env OGC_BEAM1=0 restores the 3-worker beam (the old oversubscribed path).
+                        _beam1 = os.environ.get("OGC_BEAM1", "1") == "1"
                         _lomid_ok = (_wid % 4 == 1) if _beam1 else (_wid % 4 != 3)
                         if _dr < _hi_band and _lomid_ok:
                             _fb = max(0.0, min(1.5, (_dr - 0.70) / 0.20 * 1.5))
