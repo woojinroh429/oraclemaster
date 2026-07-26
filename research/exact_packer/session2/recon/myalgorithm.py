@@ -4716,6 +4716,11 @@ def _worker_entry(args):
                         # beam steal budget from a better candidate: prob_36 +0.10%).
                         if _p4band0:
                             _min_bd = 25.0 if (_lowbd and timelimit <= 90.0) else 40.0
+                        elif (timelimit <= 90.0 and _drp0 < 0.58 and _n <= 200):
+                            # LOW-DENSITY short budget: the mode-zoo lst beam (step-2, set below)
+                            # completes in ~25-32s and beats the friend, but the 70 guard blocked
+                            # it at 60s -> fell back to the mode-zoo (prob_21 960,888). Lower to 22.
+                            _min_bd = 22.0
                         else:
                             _min_bd = 70.0
                         if _bd < _min_bd:
@@ -4753,7 +4758,8 @@ def _worker_entry(args):
                             # completing candidate -> best-of never-worse.  Everything else keeps
                             # step-1 (byte-identical to the validated path).  Ultra (dr>=0.90) keeps
                             # step-1: fine feasibility is load-bearing on P5/P6.
-                            _bstep = 2 if (_n >= 230 and _drp < 0.90) else 1
+                            _bstep = 2 if ((_n >= 230 and _drp < 0.90)
+                                           or (timelimit <= 90.0 and _drp < 0.58 and _n <= 200)) else 1
                         # B cap.  n<=120 low-density affords a much wider beam (formula wants ~90 at
                         # n=100; 32->96 gave prob_21 -14.7%, prob_24 -6.4%, complete in ~237s).  With
                         # step-2 (~4x cheaper scan) bigger instances can also widen -> cap 64.
@@ -4812,7 +4818,16 @@ def _worker_entry(args):
                         _keep(_contact_attempt(*_cfg))
                 elif (os.environ.get("OGC_CBEAM", "1") == "1"
                         and len(prob_info["blocks"]) <= 200
-                        and _hyb_deadline - time.time() > 90.0):
+                        and _hyb_deadline - time.time() > (30.0
+                            if (timelimit <= 90.0 and _demand_ratio_phys(prob_info) < 0.58)
+                            else 90.0)):
+                    # LOW-DENSITY SHORT-BUDGET beam (grader 60s): the 90s gate meant the
+                    # contact beam never fired at 60s -> low-density fell back to the mode-zoo
+                    # (prob_21 960,888 vs friend 580,901).  The lst-order beam routes Z3/Z1
+                    # far better but the step-1 scan needs ~90-107s; step-2 (set above for
+                    # dr<0.58 short-budget) completes in ~32s and beats the friend (prob_21
+                    # 544,246 standalone).  Gated to dr<0.58 -- step-2 loses on mid-density
+                    # (prob_28 +86%), so mid/high keep the 90s gate (byte-identical at 60s).
                     # PHYSICAL density gate (demand_ratio, the reference's own measure) instead
                     # of the train-tuned temporal_os: contact wins at dr <= 0.69, loses at
                     # dr >= 0.93 (a wide, robust margin), so gate at 0.80.  This drives the
