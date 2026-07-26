@@ -4851,7 +4851,16 @@ def _worker_entry(args):
                         #   dr >= ULTRA (0.90)    : no contact (P6 territory)
                         # fut_beta ramps 0 (low, pure preferred-bay routing -> low Z3) -> 1.5 (dense).
                         _hi_band = float(os.environ.get("OGC_HIBAND", "0.80"))
-                        if _dr < _hi_band and _wid % 4 != 3:
+                        # BEAM-CORE (env OGC_BEAM1, default off pending A/B): the contact beam is
+                        # OpenMP-parallel; running it on 3 workers (0/1/2) means 3 beams contend
+                        # for the cores (3x oversubscription) so at 300s on n=200 it TIMES OUT and
+                        # falls back to the mode-zoo (prob_32 2.34M->3.72M).  Running it on worker 1
+                        # ONLY lets that one beam get ~all cores -> it completes and wins, while
+                        # workers 0/2 join 3 on the (single-threaded) mode zoo -> MORE diversity
+                        # there too.  best-of over all 4 -> never-worse.
+                        _beam1 = os.environ.get("OGC_BEAM1", "0") == "1"
+                        _lomid_ok = (_wid % 4 == 1) if _beam1 else (_wid % 4 != 3)
+                        if _dr < _hi_band and _lomid_ok:
                             _fb = max(0.0, min(1.5, (_dr - 0.70) / 0.20 * 1.5))
                             # worker 0 leads with edd_tri2 (selective defer-big, the congested-rush
                             # order -- measured -13 to -34% beam Z1 on high/mid density); workers 1/2
