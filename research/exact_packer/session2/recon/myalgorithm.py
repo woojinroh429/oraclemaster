@@ -5774,6 +5774,10 @@ def _smallright_construct(prob_info, deadline_s, small_thresh=0.60, step=1, mode
         _tcwin = max(1e-6, float(os.environ.get("OGC_TCWIN", "0")) or (sum(pt) / max(1, n)))
     except Exception:
         _tcwin = max(1e-6, sum(pt) / max(1, n))
+    try:
+        _SEALC = float(os.environ.get("OGC_SEALC", "0.5"))
+    except Exception:
+        _SEALC = 0.5
     _mxp=[max(B[b]["bay_preferences"]) for b in range(n)]   # per-block top preference
     # core-periphery 'parker' set: long-stay (pt top 40%) + big (not small) + slack
     # (>= median) blocks are driven to the outer corner (max wx+wy) so they do not
@@ -5792,6 +5796,13 @@ def _smallright_construct(prob_info, deadline_s, small_thresh=0.60, step=1, mode
         # instances (P5/P6) where flat_bl completion drives the score.
         return _orient_bbox(B[b], oi)
     present_by_bay={j:[] for j in range(m)}   # ((x0,y0,x1,y1), exit)
+    # SEAL: parallel store carrying each resident's LAYER COUNT.  The crane rule is
+    # `new layer k conflicts with a resident's layers j>=k`, so what a placement really
+    # costs the future is the vertical profile it raises over its footprint: a tall block
+    # dropped on virgin flat ground seals that ground for every later block that would
+    # have needed a low layer there.  present_by_bay only keeps (rect, exit), so the
+    # profile is tracked here.  Entries are filtered by exit>cur at read time.
+    _seal_by_bay={j:[] for j in range(m)}   # ((x0,y0,x1,y1), exit, nlayers)
     BAND=0.6
     def _band_occ_base(j,cur,bh):
         # Occupancy intervals of blocks whose bbox dips into the bottom band --
@@ -5919,7 +5930,36 @@ def _smallright_construct(prob_info, deadline_s, small_thresh=0.60, step=1, mode
                     for iy in _fc_by_ix[ix]:
                         if True:
                             wx=ix+x0; wy=iy+y0
-                            if mode=="tcoh":
+                            if mode=="seal":
+                                # PROFILE MATCHING.  Cost = how much vertical profile this
+                                # placement raises that its neighbourhood does not already
+                                # carry: touching a resident of similar layer count seals
+                                # nothing new (the step is already there), while dropping a
+                                # 4-layer block beside 1-layer ones walls off the low space
+                                # that later blocks need to descend into.  Walls are free.
+                                _myl=len(B[b]["shape"][oi]["layers"])
+                                _mm2=0.0; _tt2=0.0
+                                _q0x,_q0y,_q1x,_q1y = wx, wy, wx+w, wy+h
+                                if _q0x<=1e-9: _tt2+=h
+                                if _q1x>=bw_j-1e-9: _tt2+=h
+                                if _q0y<=1e-9: _tt2+=w
+                                if _q1y>=bh_j-1e-9: _tt2+=w
+                                for (_sb,_sex,_snl) in _seal_by_bay[j]:
+                                    if _sex<=cur: continue
+                                    _sx0,_sy0,_sx1,_sy1=_sb
+                                    _uy=min(_q1y,_sy1)-max(_q0y,_sy0)
+                                    _ux=min(_q1x,_sx1)-max(_q0x,_sx0)
+                                    _sl=0.0
+                                    if _uy>1e-9 and (abs(_sx0-_q1x)<=1e-6 or abs(_q0x-_sx1)<=1e-6):
+                                        _sl+=_uy
+                                    if _ux>1e-9 and (abs(_sy0-_q1y)<=1e-6 or abs(_q0y-_sy1)<=1e-6):
+                                        _sl+=_ux
+                                    if _sl<=0.0: continue
+                                    _tt2+=_sl
+                                    _mm2+=_sl*abs(float(_myl)-float(_snl))
+                                _den=max(1e-9,_tt2)
+                                sc=(_mm2/_den - _SEALC*(_tt2/max(1.0,w+h)), wy, wx, j)
+                            elif mode=="tcoh":
                                 # TEMPORAL-COHERENCE placement.  Every other mode here is a
                                 # LEXICOGRAPHIC positional rule (bottom-left / corner / free-span)
                                 # that never looks at WHEN a neighbour leaves.  Measured on
@@ -6120,6 +6160,8 @@ def _smallright_construct(prob_info, deadline_s, small_thresh=0.60, step=1, mode
             if res:
                 x0,y0,x1,y1=bbox(b,oi)
                 present_by_bay[j].append(((ix+x0,iy+y0,ix+x1,iy+y1),ex))
+                _seal_by_bay[j].append(((ix+x0,iy+y0,ix+x1,iy+y1),ex,
+                                        len(B[b]["shape"][oi]["layers"])))
                 recs[b]={"block_id":b,"bay_id":j,"x":ix,"y":iy,"orient_idx":oi,"entry_time":cur,"exit_time":ex}
                 placed=True
             if not placed and not _os_nofb:
@@ -6131,6 +6173,8 @@ def _smallright_construct(prob_info, deadline_s, small_thresh=0.60, step=1, mode
                         E.add(int(bay),b,int(oi),float(x),float(y),int(en),int(ex2))
                         x0,y0,x1,y1=bbox(b,int(oi))
                         present_by_bay[int(bay)].append(((x+x0,y+y0,x+x1,y+y1),int(ex2)))
+                        _seal_by_bay[int(bay)].append(((x+x0,y+y0,x+x1,y+y1),int(ex2),
+                                                       len(B[b]["shape"][int(oi)]["layers"])))
                         recs[b]={"block_id":b,"bay_id":int(bay),"x":int(x),"y":int(y),"orient_idx":int(oi),"entry_time":int(en),"exit_time":int(ex2)}
                         placed=True
                     except Exception: pass
