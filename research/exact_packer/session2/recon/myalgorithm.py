@@ -5775,9 +5775,13 @@ def _smallright_construct(prob_info, deadline_s, small_thresh=0.60, step=1, mode
     except Exception:
         _tcwin = max(1e-6, sum(pt) / max(1, n))
     try:
-        _SEALC = float(os.environ.get("OGC_SEALC", "0.5"))
+        _SEALC = float(os.environ.get("OGC_SEALC", "1.5"))
     except Exception:
-        _SEALC = 0.5
+        _SEALC = 1.5
+    try:
+        _SEALP = float(os.environ.get("OGC_SEALP", "0.5"))
+    except Exception:
+        _SEALP = 0.5
     _mxp=[max(B[b]["bay_preferences"]) for b in range(n)]   # per-block top preference
     # core-periphery 'parker' set: long-stay (pt top 40%) + big (not small) + slack
     # (>= median) blocks are driven to the outer corner (max wx+wy) so they do not
@@ -5958,7 +5962,13 @@ def _smallright_construct(prob_info, deadline_s, small_thresh=0.60, step=1, mode
                                     _tt2+=_sl
                                     _mm2+=_sl*abs(float(_myl)-float(_snl))
                                 _den=max(1e-9,_tt2)
-                                sc=(_mm2/_den - _SEALC*(_tt2/max(1.0,w+h)), wy, wx, j)
+                                # PREFERENCE term: seal packs well (Z1) but routed badly
+                                # (prob_39 Z3 11,273 vs bigleft 9,529) because the score
+                                # carried no Z3 signal, while the lexicographic modes fold
+                                # bay preference into the tail of their sort tuple.
+                                _pen2 = float(_mxp[b] - B[b]["bay_preferences"][j])
+                                sc=(_mm2/_den - _SEALC*(_tt2/max(1.0,w+h)) + _SEALP*_pen2,
+                                    wy, wx, j)
                             elif mode=="tcoh":
                                 # TEMPORAL-COHERENCE placement.  Every other mode here is a
                                 # LEXICOGRAPHIC positional rule (bottom-left / corner / free-span)
