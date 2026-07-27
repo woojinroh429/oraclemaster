@@ -5792,16 +5792,22 @@ def _smallright_construct(prob_info, deadline_s, small_thresh=0.60, step=1, mode
     # -0.48M) and why sweeping the old constant changed nothing: at 0.25-2.0 the term
     # simply dominated, making the score lexicographic rather than a real trade.
     # OGC_SEALPR multiplies the true ratio; 1.0 = pure objective units, ~20 = old behaviour.
-    try:
-        _SEALPR = float(os.environ.get("OGC_SEALPR", "1.0"))
-    except Exception:
-        _SEALPR = 1.0
-    _wgt = prob_info.get("weights", {})
-    _w1r = float(_wgt.get("w1", 1.0)) or 1.0
-    _w3r = float(_wgt.get("w3", 0.0))
-    _SEALP = _SEALPR * (_w3r / max(1e-9, _w1r))
+    # Measured: the ratio-scaled weight does NOT beat the flat one.  Sweeping
+    # SEALPR over 1/3/10 (weight = R*w3/w1), against the best named mode:
+    #   R=1  -> -0.7% / +17.4% / +3.1% / +10.8% / +3.8%  (avg +6.9%)
+    #   R=10 -> -2.3% /  +2.7% / +4.0% /  +8.4% / +6.1%  (avg +3.8%, == flat 0.5)
+    # R=10 reproduces flat 0.5 exactly on prob_38/27/33/40 because 10*0.0225 already
+    # saturates, and the pure objective rate (R=1, ~0.02) is worse on 3 of 5 -- so the
+    # term is not merely paying for Z3, it is the bay-assignment signal, and starving it
+    # wrecks the assignment (prob_39 +14.3%).  Flat 0.5 stays the default; OGC_SEALPR
+    # opts into ratio scaling, which was better only on prob_27 and prob_40.
+    _SEALP = 0.5
+    if os.environ.get("OGC_SEALPR"):
+        _wgt = prob_info.get("weights", {})
+        _w1r = float(_wgt.get("w1", 1.0)) or 1.0
+        _SEALP = float(os.environ["OGC_SEALPR"]) * (float(_wgt.get("w3", 0.0)) / max(1e-9, _w1r))
     if os.environ.get("OGC_SEALP"):
-        _SEALP = float(os.environ["OGC_SEALP"])   # explicit override for A/B
+        _SEALP = float(os.environ["OGC_SEALP"])
     # SEALM sign: +1 penalises profile MISMATCH (nest same with same); -1 REWARDS it.
     # KMAX is 2 here and 222/250 blocks carry 2 layers, and 9% of co-present same-bay
     # pairs already overlap footprints -- a block's upper layer overhangs a neighbour's
