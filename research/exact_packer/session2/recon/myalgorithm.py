@@ -5056,13 +5056,27 @@ def _worker_entry(args):
                 # (prob_40 dr .933 +11%, prob_33 dr .840 +20%), hence two narrow gates
                 # rather than one wide one.  best-of keeps min, so a loss inside either
                 # band is discarded.
+                # Measured construction frontier (best pref tail vs best of bigleft/
+                # coreperi, 240s cap, harness/run.py front).  The preference tails do not
+                # win a narrow slice -- they win the WHOLE band below dr~.80, and lose
+                # above it:
+                #   dr .567 p35 -44.6%   .597 p31  -4.3%   .621 p26  -9.8%
+                #   dr .722 p37 -23.2%   .790 p39  -5.0%
+                #   dr .840 p33 +2.6%    .933 p40  +3.5%   (baseline wins)
+                # so the gate is [OGC_PREFBKT_LO, OGC_PREFBKT_HI) = [.55, .85), matching
+                # the hybrid worker's own lower gate (OGC_LOBEAM) -- below .55 this code
+                # never runs at all.  The tails are PREPENDED, not appended: on 250-block
+                # instances construction eats the whole window and an appended tail is
+                # simply never reached, which is why the earlier .72-.85 gate showed
+                # nothing at the pipeline level.  best-of keeps min, so where they lose
+                # (p33) the only cost is budget.
                 try:
                     _drv = _demand_ratio_phys(prob_info)
                     if _drv >= float(os.environ.get("OGC_PREFMID", "0.95")):
                         _tails = _tails + ["prefmid"]
-                    elif (float(os.environ.get("OGC_PREFBKT_LO", "0.72"))
+                    elif (float(os.environ.get("OGC_PREFBKT_LO", "0.55"))
                           <= _drv < float(os.environ.get("OGC_PREFBKT_HI", "0.85"))):
-                        _tails = _tails + ["prefbkt"]
+                        _tails = ["prefbkt", "prefbkt5"] + _tails
                 except Exception:
                     pass
                 # tcp (temporal-corridor) best-of variant: wins low-mid density construction
@@ -5726,7 +5740,16 @@ _SWEEP = {
     # prefaware (preference absolute); intended for the high/ultra band where the
     # Z3-share gate keeps prefaware switched off.
     "prefmid":    ("mid", "flat",    0, "xy", True,  True,  None),
+    # bucketed preference: only a preference gap of >= k units outranks position, so
+    # the packing survives while the large-stake blocks still get their bay.  The
+    # bucket width IS the aggressiveness dial and no single k wins everywhere
+    # (measured construction, best pref tail vs best of bigleft/coreperi):
+    #   prob_35 dr .567  k2 -44.6%   prob_31 dr .597  k2  -4.3%
+    #   prob_26 dr .621  k2  -9.8%   prob_37 dr .722  k2 -23.2%
+    #   prob_39 dr .790  k5  -5.0%  (k2 only -2.7%)
+    # so both widths are carried as separate best-of tails; min() keeps the winner.
     "prefbkt":    ("bkt", "flat",    0, "xy", True,  True,  None),
+    "prefbkt5":   ("bkt5","flat",    0, "xy", True,  True,  None),
     "preflate":   ("late","flat",    0, "xy", True,  True,  None),
 }
 _SWEEP_SUB = {
@@ -5734,7 +5757,7 @@ _SWEEP_SUB = {
 }
 
 
-_PREFBKT = max(1, int(os.environ.get("OGC_PREFBKT", "5")))
+_PREFBKT = max(1, int(os.environ.get("OGC_PREFBKT", "2")))
 
 
 def _sweep_key(cfg, h, wx, wy, j, pre=None):
@@ -5745,8 +5768,8 @@ def _sweep_key(cfg, h, wx, wy, j, pre=None):
     else:              tail = ()
     if _p == "mid":
         head = head + (pre,)
-    elif _p == "bkt":
-        head = head + (int(pre // _PREFBKT),)
+    elif _p[:3] == "bkt":
+        head = head + (int(pre // (int(_p[3:]) if len(_p) > 3 else _PREFBKT)),)
     if _p == "late":
         k = head + (tail[0], pre) + tail[1:] + ((j,) if _jt else ())
     else:
