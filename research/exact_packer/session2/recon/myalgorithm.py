@@ -3920,6 +3920,7 @@ def _solve_once_impl(prob_info, timelimit=60, seed=12345,
                         if _obj < shared["final_cost"]:
                             shared["final_cost"] = _obj
                             shared["final_solution"] = _sol
+                            _dbgwin(shared, worker_id, "eng_early", _obj)
                 except Exception:
                     pass
             return _sol
@@ -4398,6 +4399,7 @@ def _solve_once_impl(prob_info, timelimit=60, seed=12345,
                 if final_obj < shared["final_cost"]:
                     shared["final_cost"] = final_obj
                     shared["final_solution"] = final_sol
+                    _dbgwin(shared, worker_id, "eng_final", final_obj)
         except Exception:
             pass
 
@@ -4456,6 +4458,21 @@ _WORKER_SEEDS = [12345, 67890, 24681, 13579,
                  11111, 22222, 33333, 44444]
 
 
+
+def _dbgwin(shared, wid, tag, obj):
+    """OGCWIN=1: record which worker/stage last lowered the cross-worker best, so the
+    final answer can be attributed.  Without this a construction-mode change that
+    improves one worker by 45% is indistinguishable from no change at all when a
+    DIFFERENT worker owns the instance -- which is exactly what prob_35 turned out to
+    be.  No-op unless the env is set."""
+    if os.environ.get("OGCWIN", "0") != "1":
+        return
+    try:
+        shared["dbg_win"] = list(shared.get("dbg_win", [])) + [(int(wid or 0), tag, float(obj))]
+    except Exception:
+        pass
+
+
 def _worker_entry(args):
     # RUNTIME thread cap (effective even if numpy/BLAS already imported by the grader).
     # Each forked worker limits its native (BLAS/OpenMP) pools to 1 thread so the 4
@@ -4511,6 +4528,7 @@ def _worker_entry(args):
                                 if _o < shared["final_cost"]:
                                     shared["final_cost"] = _o
                                     shared["final_solution"] = _sol
+                                    _dbgwin(shared, worker_id, "blfull", _o)
                         except Exception:
                             pass
                     return _sol
@@ -5257,6 +5275,7 @@ def _worker_entry(args):
                         if _best_obj < shared["final_cost"]:
                             shared["final_cost"] = _best_obj
                             shared["final_solution"] = _best_sol
+                            _dbgwin(shared, worker_id, "hybrid", _best_obj)
                 except Exception:
                     pass
             return _best_sol
@@ -5866,6 +5885,19 @@ def _smallright_construct(prob_info, deadline_s, small_thresh=0.60, step=1, mode
         _kk=''.join(c for c in order[3:] if c.isdigit()); _K=int(_kk) if _kk else 3
         _vic=set(sorted(range(n), key=lambda b:-(ar[b]*pt[b]))[:_K])
         key=lambda b:(1 if b in _vic else 0, rd[b]+ra[b], due[b])
+    elif order=="tri2":
+        # SELECTIVE defer-big (the friend's edd_tri2, which our beam already has at the
+        # `order == "edd_tri2"` branch but this constructor did not).  Tardiness costs per
+        # BLOCK while space costs area x time, so in an overloaded rush deferring one big
+        # block buys room for 3-5 small ones to land on time -- a Z1-for-Z1 trade, not the
+        # Z1-for-Z3 trade `prio` tried and lost.  Selective is the whole point: a big block
+        # released into a still-EMPTY yard is a free anchor (entry == release, zero tardy),
+        # so only bigs released after the yard fills are deferred.  Blanket defer-big
+        # (`edd_big`) sacrifices the anchors too and gives the gain straight back.
+        _mean_a=(sum(ar)/n) if n else 1.0
+        _thr=float(os.environ.get("OGC_TRIMULT","2.0"))*_mean_a
+        _r0=(max(rel)*float(os.environ.get("OGC_TRIREL","0.2"))) if n else 0
+        key=lambda b:(1 if (ar[b]>=_thr and rel[b]>_r0) else 0, due[b], -ar[b])
     elif isinstance(order,str) and order.startswith("prio"):
         # PREFERENCE-STAKE dispatch.  Every existing order ranks by urgency and size; none
         # asks how much a block STANDS TO LOSE on preference.  A block whose preference is
@@ -6532,6 +6564,8 @@ def algorithm(prob_info, timelimit=60):
 
             final_sol = shared.get("final_solution", None)
             final_cost = shared.get("final_cost", float("inf"))
+            if os.environ.get("OGCWIN", "0") == "1":
+                globals()["_LAST_DBGWIN"] = list(shared.get("dbg_win", []))
 
             if final_sol is None:
                 for sol in returned:
