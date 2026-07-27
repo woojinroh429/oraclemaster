@@ -5751,6 +5751,16 @@ _SWEEP = {
     "prefbkt":    ("bkt", "flat",    0, "xy", True,  True,  None),
     "prefbkt5":   ("bkt5","flat",    0, "xy", True,  True,  None),
     "preflate":   ("late","flat",    0, "xy", True,  True,  None),
+    # TRUE-OBJECTIVE bay choice.  At a fixed entry time `cur` every candidate
+    # (bay, orient, x, y) produced by one place_custom call has the SAME exit time,
+    # so w1*dZ1 is constant across them and cannot discriminate -- the only parts of
+    # the objective a placement can move are w3*pref (bay) and w2*obj2 (bay load
+    # imbalance).  prefbkt sees the first and is blind to the second, yet the
+    # measured prefbkt win runs THROUGH obj2 (p39 Z2 3655->1224).  So score the bay
+    # by both, in objective units, expressed in preference units (divide by w3) so
+    # the same bucket width k applies:  pre = pref_pen + (w2/w3)*u_j*(load_j+wl_b).
+    # With w2==0 or a flat load this is byte-identical to prefbkt.
+    "trueobj":    ("obj2","flat",    0, "xy", True,  True,  None),
 }
 _SWEEP_SUB = {
     "parker":     (None,  "corner", -1, "",   True,  True,  None),
@@ -5768,8 +5778,10 @@ def _sweep_key(cfg, h, wx, wy, j, pre=None):
     else:              tail = ()
     if _p == "mid":
         head = head + (pre,)
-    elif _p[:3] == "bkt":
+    elif _p is not None and _p[:3] == "bkt":
         head = head + (int(pre // (int(_p[3:]) if len(_p) > 3 else _PREFBKT)),)
+    elif _p is not None and _p[:3] == "obj":
+        head = head + (int(pre // _PREFBKT),)
     if _p == "late":
         k = head + (tail[0], pre) + tail[1:] + ((j,) if _jt else ())
     else:
@@ -5909,6 +5921,18 @@ def _smallright_construct(prob_info, deadline_s, small_thresh=0.60, step=1, mode
     # which is what we want rather than a silent fallback to some default rule.
     _swcfg = _SWEEP[mode]
     _mxp=[max(B[b]["bay_preferences"]) for b in range(n)]   # per-block top preference
+    # running bay-load state for the "trueobj" score (obj2 = floor of the RANGE of
+    # u_j*load_j over bays, so the marginal cost of putting b in j is how far j would
+    # then stand above the currently least-loaded bay).  Maintained only here; every
+    # other mode ignores it and pays nothing.
+    _bar=[bays[j]["width"]*bays[j]["height"] for j in range(m)]
+    _uav=(sum(_bar)/m) if m else 1.0
+    _uu=[_uav/a if a else 0.0 for a in _bar]
+    _bload=[0.0]*m
+    _wl=[float(B[b].get("workload",0.0)) for b in range(n)]
+    _W=prob_info.get("weights",{})
+    _w3f=float(_W.get("w3",1.0) or 0.0)
+    _lam=(float(_W.get("w2",1.0))/_w3f) if _w3f>1e-12 else 0.0
     # core-periphery 'parker' set: long-stay (pt top 40%) + big (not small) + slack
     # (>= median) blocks are driven to the outer corner (max wx+wy) so they do not
     # split the centre for long, preserving a contiguous free span along the time axis.
@@ -5986,6 +6010,21 @@ def _smallright_construct(prob_info, deadline_s, small_thresh=0.60, step=1, mode
         # visited in (ix,iy)-ascending order so scoring ties break exactly as the full
         # scan -> identical placement, far fewer feasibility calls.
         ex=cur+pt[b]; best=None; best_sc=None
+        # trueobj: per-bay obj2 marginal, in preference units, computed once per call
+        _objt=None
+        if _swcfg[0] is not None and _swcfg[0][:3]=="obj" and m:
+            # EXACT d(obj2): obj2 is the RANGE of u_j*load_j, so adding b's workload to
+            # the currently-heaviest bay widens it while adding to the lightest NARROWS
+            # it.  A level term (distance above the min) would instead be dominated by
+            # the accumulated total -- ~200-950 objective units against a mean
+            # preference gap of ~65-80 -- and would drown the Z3 signal entirely.
+            _lv=[_uu[_j2]*_bload[_j2] for _j2 in range(m)]
+            _rng=max(_lv)-min(_lv)
+            _objt=[]
+            for _j2 in range(m):
+                _nl=[_lv[_k] for _k in range(m)]
+                _nl[_j2]+=_uu[_j2]*_wl[b]
+                _objt.append(_lam*((max(_nl)-min(_nl))-_rng))
         _tc = [] if topm else None
         # Feasibility comes from ONE C++ scan per bay -- feasible_scan (windowless first
         # scan) or feasible_scan_win (SWEEP-pruned windowed rescan) -- grouped by
@@ -6058,6 +6097,8 @@ def _smallright_construct(prob_info, deadline_s, small_thresh=0.60, step=1, mode
                             if _cf[6]=="parker" and parker[b]: _cf=_SWEEP_SUB["parker"]
                             _pv=(None if _cf[0] is None
                                  else _mxp[b]-B[b]["bay_preferences"][j])
+                            if _objt is not None and _pv is not None:
+                                _pv=_pv+_objt[j]
                             if _cf[5] and is_small:
                                 if occ_base is None:
                                     occ_base,_bt=_band_occ_base(j,cur,bh_j); _band_top_j=_bt
@@ -6156,6 +6197,7 @@ def _smallright_construct(prob_info, deadline_s, small_thresh=0.60, step=1, mode
                 x0,y0,x1,y1=bbox(b,oi)
                 present_by_bay[j].append(((ix+x0,iy+y0,ix+x1,iy+y1),ex))
                 recs[b]={"block_id":b,"bay_id":j,"x":ix,"y":iy,"orient_idx":oi,"entry_time":cur,"exit_time":ex}
+                _bload[j]+=_wl[b]
                 placed=True
             if not placed and not _os_nofb:
                 try: r=E.find_best_placement(b,bay_list,[cur])
@@ -6167,6 +6209,7 @@ def _smallright_construct(prob_info, deadline_s, small_thresh=0.60, step=1, mode
                         x0,y0,x1,y1=bbox(b,int(oi))
                         present_by_bay[int(bay)].append(((x+x0,y+y0,x+x1,y+y1),int(ex2)))
                         recs[b]={"block_id":b,"bay_id":int(bay),"x":int(x),"y":int(y),"orient_idx":int(oi),"entry_time":int(en),"exit_time":int(ex2)}
+                        _bload[int(bay)]+=_wl[b]
                         placed=True
                     except Exception: pass
             if placed:

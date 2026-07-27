@@ -41,7 +41,72 @@ spreads blocks across bays, so Z2 collapses (prob_38 1506->796, prob_27 514->313
 the reduced crowding takes Z1 down as well. Preference-aware placement is a
 load-balancing device.
 
-## Phase 1 — the Z1/Z3 needle above the gate
+## Phase 1 — RESULT: the preference tails own the whole mid band, not a slice
+
+Swept the construction frontier (`harness/run.py front`, 240s cap, nine modes) across
+every density point available. Best preference tail vs the best of `bigleft`/`coreperi`:
+
+| instance | n | dr | w3/w1 | baseline | best pref tail | |
+|---|---|---|---|---|---|---|
+| prob_29 | 150 | .415 | .0113 | 2,015,058 | `preflate` 1,172,874 | **-41.8%** |
+| prob_36 | 250 | .541 | .0195 | 251,355 | `prefaware` 164,352 | **-34.6%** |
+| prob_35 | 200 | .567 | .0113 | 1,765,883 | `prefbkt` k2 978,273 | **-44.6%** |
+| prob_31 | 200 | .597 | .0200 | 7,621,517 | `prefbkt` k2 7,295,684 | **-4.3%** |
+| prob_26 | 150 | .621 | .0113 | 8,754,437 | `prefbkt` k2 7,893,060 | **-9.8%** |
+| prob_37 | 250 | .722 | .1800 | 6,812,264 | `prefbkt` k2 5,234,510 | **-23.2%** |
+| prob_39 | 250 | .790 | .0113 | 7,977,140 | `prefbkt` k5 7,581,364 | **-5.0%** |
+| prob_33 | 200 | .840 | .0225 | 6,509,360 | `prefbkt` k8 6,677,490 | +2.6% |
+| prob_40 | 250 | .933 | .0195 | 1,738,953 | `preflate` 1,799,209 | +3.5% |
+
+The sign flips at dr ~ .80, cleanly. `prefbkt` k2 dominates `preflate`/`prefaware` on
+every instance the hybrid worker actually runs on, so only the two `prefbkt` widths are
+carried. Three changes shipped from this (commit "prefbkt: widen band"):
+
+* band `[.72,.85)` -> `[.55,.85)`, matching the hybrid worker's own `OGC_LOBEAM` gate --
+  below .55 this construction never runs at all
+* tails **prepended**, not appended. On the 250-block class construction consumes the
+  whole window and an appended tail is simply never reached, which is why the earlier
+  narrow gate showed nothing at the pipeline level.
+* no single bucket width wins (p35/p31/p26/p37 want k=2, p39 wants k=5), so both run as
+  best-of tails; `OGC_PREFBKT` default 5 -> 2
+
+Scale check on how much room is left: prob_35's **construction alone** at k=2 lands
+978,273, and the full 300s pipeline from the old baseline reaches 904,355. One
+construction is within 8% of everything the pipeline does in five minutes.
+
+## Phase 1b — REFUTED: greedy `d(obj2)` is not a construction signal
+
+The friend ranks candidates by the true objective delta
+`w1*tardy + w2*d(obj2) + w3*pref - mu*contact`. At a fixed entry time every candidate
+out of one `place_custom` call shares an exit time, so `w1*d(Z1)` is constant and cannot
+discriminate; the discriminating part is exactly `w2*d(obj2) + w3*pref`. `prefbkt` sees
+the second term and is blind to the first, and the `prefbkt` win demonstrably runs
+*through* obj2 (p39 Z2 3655 -> 1224) -- so adding the missing term looked free.
+
+Built it as mode `trueobj`: `pre = pref_pen + (w2/w3)*d(obj2)`, same bucket width, with
+`d(obj2)` the exact change in the range of `u_j*load_j`. Measured, step=1, vs `prefbkt`:
+
+| instance | `prefbkt` | `trueobj` | Z2 (bkt -> obj) |
+|---|---|---|---|
+| prob_26 | 7,893,060 | 8,764,133 | 1,060 -> **3,138** |
+| prob_35 | 978,273 | 1,464,289 | 3,541 -> 3,323 |
+
+It loses, and on prob_26 it makes **Z2 itself nearly 3x worse** while explicitly
+minimising `d(obj2)` at every step. obj2 is the range of the *final* loads -- an endpoint
+statistic, not a path statistic -- so greedily flattening the running range just sends
+each block to whichever bay is momentarily lightest, scattering the layout and destroying
+the packing coherence, while the final range is set by the totals regardless. The friend
+gets away with the term because it sits inside a beam ranked on cumulative exact objective
+with an admissible waterfill bound, never a greedy commit.
+
+A first attempt used a *level* term (distance above the least-loaded bay) instead of the
+delta; that is worse still and for a second reason -- its magnitude (~200-950 objective
+units) is 3-14x the mean preference gap (~65-80), so it drowns Z3 entirely.
+
+`trueobj` stays in `_SWEEP` as the record but is wired into no tail list. Shipped modes
+verified byte-identical after the change (prob_26 bigleft/coreperi/prefbkt all exact).
+
+## Phase 1c — the Z1/Z3 needle above the gate
 
 `prefmid` is one fixed point on the frontier: `(h, pref, wx, wy, j)`. The frontier
 between `bigleft` (preference ignored) and `prefaware` (preference absolute) has not
