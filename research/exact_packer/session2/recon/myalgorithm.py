@@ -2603,6 +2603,21 @@ def _sa_reassign(prob_info, assign, bay_unit, deadline, rng, swap=False):
             span = hi - r
             for k in range(1, 6):
                 cs.add(r + (span * k) // 6)
+        # TARDY-ADMISSION (low-density Z3 lever).  The whole low-density path is built
+        # around Z1=0 (this bound, the on-time seater, the CP-SAT area relaxation), so it
+        # can NEVER trade a little tardiness for a much better bay assignment.  Measured on
+        # prob_24: the reference accepts Z1=1 (+13,333) and in exchange gets Z3 502 vs our
+        # 669 and Z2 343 vs our 1693 (-50,100 -6,750) => net -43,517 (165,648 vs 209,165).
+        # Being late on ONE block frees a slot in an over-preferred bay that keeps MANY
+        # later blocks in their preferred bay, so the trade is global, not per-block.
+        # Safe by construction: SA accepts on the TRUE objective, so a tardy entry is taken
+        # only when it actually pays.  env OGC_TARDYOK=0 restores the on-time-only bound.
+        try:
+            _tk = int(os.environ.get("OGC_TARDYOK", "0"))
+        except Exception:
+            _tk = 0
+        for _dt in range(1, _tk + 1):
+            cs.add(hi + _dt)
         return sorted(e for e in cs if e >= 0)
     try:
         cur = {b: dict(a) for b, a in assign.items()}
