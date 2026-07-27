@@ -4561,6 +4561,11 @@ def _worker_entry(args):
                     _primary_mode = "leftbottom"
                 else:
                     _primary_mode = "flatbl"
+                # RESTORED from v71: a dedicated coreperi-PRIMARY worker (full budget,
+                # not starved as a tail).  v71 won prob_33 -14.4% with this; recon dropped
+                # it (coreperi_flag was hardcoded False).  best-of-final => never-worse.
+                if coreperi_flag:
+                    _primary_mode = "coreperi"
                 # flat_bl step trade-off (measured on P6 proxies):
                 #   step=1 packs BEST (prob_38 Z1=2433, prob_40 Z1=2528) but is slow
                 #           to COMPLETE (prob_38 ~108s, prob_40 ~172s for 250 blocks);
@@ -6276,7 +6281,14 @@ def algorithm(prob_info, timelimit=60):
                 return HAVE_CPP and i < n_workers - 1
             def _absorb_for(i):
                 return i < n_workers - 1
+            def _coreperi_for(i):
+                # RESTORED v71 coreperi-primary worker (W0), high-density only.
+                # env OGC_COREPERI (default 0 while validating; flip to 1 to ship).
+                return (os.environ.get("OGC_COREPERI", "0") == "1"
+                        and _hi_ratio and i == 0 and n_workers >= 4)
             def _engine_for(i):
+                if _coreperi_for(i):
+                    return False   # give W0 fully to coreperi (not engine)
                 return (HAVE_OGC_FAST and HAVE_CPP) and ((i < n_workers - 3) or (i == n_workers - 2))
             def _eng_area_for(i):
                 return (HAVE_OGC_FAST and HAVE_CPP) and (i == n_workers - 2)
@@ -6312,7 +6324,7 @@ def algorithm(prob_info, timelimit=60):
             args = [(prob_info, _remaining, _WORKER_SEEDS[i % len(_WORKER_SEEDS)],
                      shared, lock, i, cwd, _use_cpp_for(i), False,
                      _use_cpp_for(i), _absorb_for(i), _engine_for(i), _eng_area_for(i),
-                     _hybrid_for(i), False, False, _bl_full_for(i))
+                     _hybrid_for(i), _coreperi_for(i), False, _bl_full_for(i))
                     for i in range(n_workers)]
 
             with multiprocessing.Pool(processes=n_workers) as pool:
