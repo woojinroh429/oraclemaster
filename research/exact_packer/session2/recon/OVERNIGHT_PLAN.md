@@ -106,6 +106,67 @@ units) is 3-14x the mean preference gap (~65-80), so it drowns Z3 entirely.
 `trueobj` stays in `_SWEEP` as the record but is wired into no tail list. Shipped modes
 verified byte-identical after the change (prob_26 bigleft/coreperi/prefbkt all exact).
 
+## Phase 1d — WHY the construction win did not reach the pipeline (the real finding)
+
+The widened band was A/B'd at 300s and came back **byte-identical on both instances**:
+
+| instance | dr | OFF | ON |
+|---|---|---|---|
+| prob_35 | .567 | 904,355 | 904,355 |
+| prob_37 | .722 | 3,941,154 | 3,941,154 |
+
+A 44.6% and a 23.2% construction improvement, and the pipeline did not move by one unit.
+That is not noise, it is a structural fact, and finding out why took an attribution
+probe (`OGCWIN=1`, added in this session: stamps which worker/stage last lowered the
+cross-worker best, plus a per-tail trace). Without it a change that improves one worker
+by 45% is indistinguishable from a change that does nothing.
+
+**prob_35 (n=200, dr .567)** — the mode zoo is not even in the race:
+
+```
+W3 blfull     1,765,883      <- raw bigleft construction
+W0 eng_final    907,600      <- the engine worker owns the instance
+final           904,355      <- hint-beam post-pass, -0.36%
+```
+
+The hybrid workers (W1, W2 -- every `_SWEEP` mode lives there) never lowered the shared
+best at all. Best prefbkt construction is 978,273, still above the engine's 907,600, so
+improving the zoo here cannot matter however good it gets.
+
+**prob_37 (n=250, dr .722)** — the zoo does win, and the tails all ran:
+
+```
+TAIL w1 prefbkt    s2=5,499,123  s1=5,234,510   <- prefbkt WINS W1's construction best-of
+TAIL w1 prefbkt5   s2=5,678,597  s1=5,575,736
+TAIL w1 diagonal   s2=7,492,373  s1=7,331,012
+TAIL w1 leftbottom s2=7,729,569  s1=6,995,762
+TAIL w1 bigleft    s2=7,473,356  s1=6,812,264
+TAIL w1 coreperi   s2=7,869,471  s1=7,164,209
+W3 blfull     6,812,264
+W0 eng_final  6,313,129
+W2 hybrid     4,158,580        <- W2 takes the instance
+final         3,941,154
+```
+
+So prefbkt beat bigleft by 23% *inside W1*, W1 polished it, and W1 still lost to W2 by
+20%. **Construction objective does not predict polished objective across basins.** W2 won
+because it leads with `prefaware` and surfaces it as `_pref_sol`, which gets its own
+dedicated polish slice instead of having to win the raw-construction best-of first.
+
+That mechanism already existed -- and it is gated on `w3/w1 >= 0.10`, which is true for
+prob_37 and **no other instance in the set**. Everywhere else the preference basin was
+built, entered the raw best-of, lost it on Z2, and was never polished on its own. Fixed:
+the best preference tail is now routed into `_pref_sol` when nothing else claims it.
+
+Two rules to carry forward:
+
+* **Construction quality only converts where the polish cannot move Z1** -- the ultra
+  band, which is exactly where `prefmid` did convert (-2.32% / -1.56%). In the mid band
+  the polish takes 7M -> 4.16M and owns the answer.
+* **A candidate must be judged after polish, not before.** This is the same trap the
+  `lane` experiment fell into (construction -0.5% -> pipeline +0.31%); best-of on a
+  construction proxy discards the basin that would have won.
+
 ## Phase 1c — the Z1/Z3 needle above the gate
 
 `prefmid` is one fixed point on the frontier: `(h, pref, wx, wy, j)`. The frontier

@@ -4656,10 +4656,21 @@ def _worker_entry(args):
                     if _res is not None and (_best[0] is None or _res[1] < _best[0][1]):
                         _best[0] = _res
                 def _tail(_mode):
+                    # returns the better of the two attempts so the caller can route a
+                    # preference tail to the SEPARATE polish slice (see _pref_sol below)
+                    _r2 = _r1 = None
                     if _hyb_deadline - time.time() > 6.0:
-                        _keep(_attempt(2, _mode))
+                        _r2 = _attempt(2, _mode); _keep(_r2)
                         if _hyb_deadline - time.time() > 6.0:
-                            _keep(_attempt(1, _mode))
+                            _r1 = _attempt(1, _mode); _keep(_r1)
+                    if os.environ.get("OGCWIN", "0") == "1":
+                        print("TAIL w%s %-10s s2=%s s1=%s left=%.0fs"
+                              % (_wid, _mode, int(_r2[1]) if _r2 else None,
+                                 int(_r1[1]) if _r1 else None, _hyb_deadline - time.time()),
+                              file=__import__("sys").stderr, flush=True)
+                    if _r1 is not None and (_r2 is None or _r1[1] < _r2[1]):
+                        return _r1
+                    return _r2
 
                 # BEAM-LOOKAHEAD construction (worker 0 only; the other hybrid workers keep
                 # the proven mode zoo as the best-of safety net so beam can never regress an
@@ -5144,8 +5155,26 @@ def _worker_entry(args):
                     if _pr is not None:
                         _pref_sol = _pr[0]
                         _keep(_pr)
+                # The preference tails need the SEPARATE polish slice, not just a seat in
+                # the raw-construction best-of.  Measured on prob_37 (300s, OGCWIN trace):
+                # prefbkt won W1's construction best-of outright (5,234,510 vs bigleft
+                # 6,812,264, -23%) and W1 still lost the instance -- W2 took it at 4,158,580
+                # by polishing ITS preference candidate on a dedicated budget.  Construction
+                # objective simply does not predict polished objective across basins, which
+                # is why _pref_sol exists at all.  But _pref_sol was only ever set by the
+                # prefaware lead, gated on w3/w1 >= 0.10 -- true for prob_37 and NO other
+                # instance -- so everywhere else the preference basin was built, entered the
+                # raw best-of, lost it on Z2, and was never polished.  Route the best
+                # preference tail into the same slice when nothing else claimed it.
+                _ptail = [None]
                 for _tm in _tails:
-                    _tail(_tm)
+                    _tr = _tail(_tm)
+                    if (_tr is not None and _tm[:4] == "pref"
+                            and (_ptail[0] is None or _tr[1] < _ptail[0][1])):
+                        _ptail[0] = _tr
+                if (_pref_sol is None and _ptail[0] is not None
+                        and (_best[0] is None or _ptail[0][0] is not _best[0][0])):
+                    _pref_sol = _ptail[0][0]
                 # ORDER-DIVERSITY tails: retry the primary mode with alternate dispatch
                 # orders (different block placement priority -> a different packing basin).
                 # v74 order diversity, dropped in recon (only "rank" remained).  Gated on
