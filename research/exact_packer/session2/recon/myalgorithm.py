@@ -5032,22 +5032,6 @@ def _worker_entry(args):
                 #   coreperi   -- long-stay big blocks -> periphery; gate-free best-of tail,
                 #                 kept where it wins (a hidden P5 at any ratio), ignored else.
                 _tails = ["diagonal", "leftbottom", "bigleft", "coreperi"]
-                # seal: single principled score (layer-profile grouping + contact +
-                # preference) instead of a hand-authored positional rule.  Construction-only
-                # measurements: beats the best named mode on prob_38 (33,732,353 vs bigleft
-                # 34,512,341) and trails by 2.7-8.4% elsewhere, so it enters as one more
-                # best-of tail -- min() keeps it only where it wins.  env OGC_SEALON=1.
-                if os.environ.get("OGC_SEALON", "0") == "1":
-                    _tails = _tails + ["seal"]
-                # lane: shelf/level packing.  Bays are long thin strips (up to 10.5:1 with
-                # 1-3 block rows), so the classic strip-packing answer applies -- open
-                # shelves at the y of existing block tops and prefer landing ON a shelf.
-                # This is what the zoo's (h, wy, wx) key was doing implicitly; lane makes
-                # it explicit and picks its priority order from w3/w1 rather than a name.
-                # Construction-only: beats the best named mode on prob_38 (-0.5%), within
-                # 0.2-0.8% on prob_27/40.  best-of keeps min -> never-worse.  env OGC_LANEON=1.
-                if os.environ.get("OGC_LANEON", "0") == "1":
-                    _tails = _tails + ["lane"]
                 # tcp (temporal-corridor) best-of variant: wins low-mid density construction
                 # (p9 -15%, p24/P5 -3.5%) and stays crane-FEASIBLE where compaction fails
                 # (p35).  best-of keeps min -> never-worse; env-gated for A/B (default off).
@@ -5828,73 +5812,9 @@ def _smallright_construct(prob_info, deadline_s, small_thresh=0.60, step=1, mode
         _dynkey = "mdda"
     else:
         _DYN = ""
-    # tcoh params: _TCA = extra weight on exit-time-aligned contact (0 => plain contact),
-    # _tcwin = exit-gap (in time units) over which alignment decays to 0.
-    try:
-        _TCA = float(os.environ.get("OGC_TCA", "2.0"))
-    except Exception:
-        _TCA = 2.0
-    try:
-        _tcwin = max(1e-6, float(os.environ.get("OGC_TCWIN", "0")) or (sum(pt) / max(1, n)))
-    except Exception:
-        _tcwin = max(1e-6, sum(pt) / max(1, n))
-    try:
-        _SEALC = float(os.environ.get("OGC_SEALC", "1.5"))
-    except Exception:
-        _SEALC = 1.5
-    # Preference weight in OBJECTIVE units.  A preference unit really costs w3 and a
-    # tardiness unit w1, so the exchange rate is w3/w1 -- about 0.022-0.030 on these
-    # instances, while the fixed 0.5 used before overweighted preference ~20x.  That is
-    # why seal traded Z1 away for Z3 (prob_27 gave up 106 Z1 = +1.41M to save 1194 Z3 =
-    # -0.48M) and why sweeping the old constant changed nothing: at 0.25-2.0 the term
-    # simply dominated, making the score lexicographic rather than a real trade.
-    # OGC_SEALPR multiplies the true ratio; 1.0 = pure objective units, ~20 = old behaviour.
-    # Measured: the ratio-scaled weight does NOT beat the flat one.  Sweeping
-    # SEALPR over 1/3/10 (weight = R*w3/w1), against the best named mode:
-    #   R=1  -> -0.7% / +17.4% / +3.1% / +10.8% / +3.8%  (avg +6.9%)
-    #   R=10 -> -2.3% /  +2.7% / +4.0% /  +8.4% / +6.1%  (avg +3.8%, == flat 0.5)
-    # R=10 reproduces flat 0.5 exactly on prob_38/27/33/40 because 10*0.0225 already
-    # saturates, and the pure objective rate (R=1, ~0.02) is worse on 3 of 5 -- so the
-    # term is not merely paying for Z3, it is the bay-assignment signal, and starving it
-    # wrecks the assignment (prob_39 +14.3%).  Flat 0.5 stays the default; OGC_SEALPR
-    # opts into ratio scaling, which was better only on prob_27 and prob_40.
-    _SEALP = 0.5
-    if os.environ.get("OGC_SEALPR"):
-        _wgt = prob_info.get("weights", {})
-        _w1r = float(_wgt.get("w1", 1.0)) or 1.0
-        _SEALP = float(os.environ["OGC_SEALPR"]) * (float(_wgt.get("w3", 0.0)) / max(1e-9, _w1r))
-    if os.environ.get("OGC_SEALP"):
-        _SEALP = float(os.environ["OGC_SEALP"])
-    # SEALM sign: +1 penalises profile MISMATCH (nest same with same); -1 REWARDS it.
-    # KMAX is 2 here and 222/250 blocks carry 2 layers, and 9% of co-present same-bay
-    # pairs already overlap footprints -- a block's upper layer overhangs a neighbour's
-    # layer-0-only step, which is what saves floor area. Penalising mismatch discourages
-    # exactly that interlock, so the sign is an empirical question, not a given.
-    try:
-        _SEALM = float(os.environ.get("OGC_SEALM", "1.0"))
-    except Exception:
-        _SEALM = 1.0
-    try:
-        _SEALQ = float(os.environ.get("OGC_SEALQ", "0.0"))
-    except Exception:
-        _SEALQ = 0.0
-    _press_cache = {}
-    try:
-        _LANETH = float(os.environ.get("OGC_LANETH", "0.021"))
-    except Exception:
-        _LANETH = 0.021
-    _lw = prob_info.get("weights", {})
-    _lane_pref = (float(_lw.get("w3", 0.0)) / max(1e-9, float(_lw.get("w1", 1.0)) or 1.0)) >= _LANETH
-    # OGC_LANET: lifetime-directed sweep.  0 = off (byte-identical to the committed lane),
-    # 1 = reversal as the last tiebreak, 2 = reversal promoted ahead of `low`.
-    try:
-        _LANET = int(os.environ.get("OGC_LANET", "0"))
-    except Exception:
-        _LANET = 0
-    _LANEH = (os.environ.get("OGC_LANEH", "1") == "1")
-    # unified placement score (see _SWEEP).  OGC_SWEEP=0 falls back to the named
-    # branches; both paths must produce identical solutions.
-    _swcfg = _SWEEP.get(mode) if os.environ.get("OGC_SWEEP", "0") == "1" else None
+    # the placement score for this construction (see _SWEEP); unknown mode -> KeyError,
+    # which is what we want rather than a silent fallback to some default rule.
+    _swcfg = _SWEEP[mode]
     _mxp=[max(B[b]["bay_preferences"]) for b in range(n)]   # per-block top preference
     # core-periphery 'parker' set: long-stay (pt top 40%) + big (not small) + slack
     # (>= median) blocks are driven to the outer corner (max wx+wy) so they do not
@@ -5913,13 +5833,6 @@ def _smallright_construct(prob_info, deadline_s, small_thresh=0.60, step=1, mode
         # instances (P5/P6) where flat_bl completion drives the score.
         return _orient_bbox(B[b], oi)
     present_by_bay={j:[] for j in range(m)}   # ((x0,y0,x1,y1), exit)
-    # SEAL: parallel store carrying each resident's LAYER COUNT.  The crane rule is
-    # `new layer k conflicts with a resident's layers j>=k`, so what a placement really
-    # costs the future is the vertical profile it raises over its footprint: a tall block
-    # dropped on virgin flat ground seals that ground for every later block that would
-    # have needed a low layer there.  present_by_bay only keeps (rect, exit), so the
-    # profile is tracked here.  Entries are filtered by exit>cur at read time.
-    _seal_by_bay={j:[] for j in range(m)}   # ((x0,y0,x1,y1), exit, nlayers)
     BAND=0.6
     def _band_occ_base(j,cur,bh):
         # Occupancy intervals of blocks whose bbox dips into the bottom band --
@@ -5998,27 +5911,6 @@ def _smallright_construct(prob_info, deadline_s, small_thresh=0.60, step=1, mode
                 _fs_by_jo.setdefault((int(r[0]),int(r[1])),[]).append((int(r[2]),int(r[3])))
         for j in (bay_list if ext_bay is None else [ext_bay[b]]):
             bw_j=bays[j]["width"]; bh_j=bays[j]["height"]
-            if mode=="lane":
-                # Per-bay state, hoisted out of the cell loop (it cannot change while we
-                # scan cells): the shelf y-levels, and the exit times that define them.
-                _shj=[0.0]; _exj=[]
-                for (_lb,_lex) in present_by_bay[j]:
-                    if _lex>cur:
-                        _shj.append(_lb[3]); _exj.append(_lex)
-                # LIFETIME-DIRECTED SWEEP.  A bay is a strip reused over time, so a block
-                # placed mid-sweep splits the contiguous free span for its WHOLE residency
-                # -- a long-lived block is a semi-permanent divider, a short-lived one is
-                # not.  So the sweep should be ordered by residency, not by a fixed side:
-                # blocks that outlive the current occupants pack from the far wall, the
-                # rest from the near wall, leaving the churn on one side and the long span
-                # unbroken.  This is what coreperi encodes with its hand-written triple
-                # (ra<0.60 and pt>=pt60 and slack>=median -> -(wx+wy)); here the same
-                # decision is ONE bit read off the live state -- my exit time vs the median
-                # exit time of the blocks I will actually share the bay with.
-                _lane_long=False
-                if _LANET and _exj:
-                    _exj.sort()
-                    _lane_long = (ex > _exj[len(_exj)//2])
             occ_base=None
             _win_by_oi=None
             if windows is not None:
@@ -6068,231 +5960,18 @@ def _smallright_construct(prob_info, deadline_s, small_thresh=0.60, step=1, mode
                     for iy in _fc_by_ix[ix]:
                         if True:
                             wx=ix+x0; wy=iy+y0
-                            if _swcfg is not None:
-                                # unified score -- see _SWEEP above.  Reproduces every
-                                # named branch exactly; OGC_SWEEP=0 keeps the old ones.
-                                _cf=_swcfg
-                                if _cf[6]=="parker" and parker[b]: _cf=_SWEEP_SUB["parker"]
-                                _pv=(None if _cf[0] is None
-                                     else _mxp[b]-B[b]["bay_preferences"][j])
-                                if _cf[5] and is_small:
-                                    if occ_base is None:
-                                        occ_base,_bt=_band_occ_base(j,cur,bh_j); _band_top_j=_bt
-                                    fs=_free_span_with(occ_base,bw_j,wx,w,wy,_band_top_j)
-                                    sc=(-fs, wy, wx) if _pv is None else (_pv, -fs, wy, wx)
-                                else:
-                                    sc=_sweep_key(_cf, h, wx, wy, j, _pv)
-                            elif mode=="lane":
-                                # SHELF / LEVEL PACKING.  Measured geometry: bays are long thin
-                                # strips (prob_27 168x16 = 10.5:1, prob_33 156x20, prob_39 111x17)
-                                # while blocks are ~11x10, so only 1-3 fit across the height and
-                                # ~10 along the length -- this is strip packing, where the standard
-                                # family is shelf/level (NFDH/FFDH/BFDH), not free 2D nesting.
-                                # A shelf is the floor or the top edge of a resident; a block that
-                                # straddles two shelves wastes the space above AND below it, which
-                                # is exactly how seal lost Z1 on all five instances while winning
-                                # Z2/Z3 -- its contact score optimised local neighbours and broke
-                                # the row structure.  Lexicographic like the named modes, because
-                                # the positional discipline is what protects Z1.
-                                _dmin=min(abs(wy-_v) for _v in _shj)
-                                _onsh=0 if _dmin<=1e-6 else 1
-                                # distance to the wall this block packs against (see
-                                # _lane_long above); identical to wx when the sweep is
-                                # not reversed, so OGC_LANET=0 is byte-identical.
-                                _kx=(bw_j-(wx+w)) if _lane_long else wx
-                                # Priority, all lexicographic -- no weights to tune.  h first
-                                # because bay height is only 16-27 while blocks are ~10, so the
-                                # orientation decides how many rows fit; then shelf alignment; then
-                                # bay preference (seal beat every named mode on Z2/Z3 by weighting
-                                # this, while lane alone leaves Z3 high); then low, then left.
-                                # The PRIORITY ORDER is set by the instance, not by hand: a
-                                # preference unit costs w3 and a tardiness unit w1, so preference
-                                # outranks position only when w3/w1 is high enough to pay for the
-                                # packing it costs.  Measured (vs the best named mode), preference
-                                # first vs position first:
-                                #   prob_27 .0300  +0.2% / +2.8%     prob_38 .0225  -0.5% / +0.8%
-                                #   prob_33 .0225 +10.4% / +24.8%    prob_40 .0195  +6.7% / +0.8%
-                                #   prob_39 .0113 +18.8% / +3.8%
-                                # so the split sits between .0195 and .0225 -- one ratio decides it,
-                                # replacing the named-mode choice.
-                                if _lane_pref:
-                                    _lpen=float(_mxp[b]-B[b]["bay_preferences"][j])
-                                    if _LANET==2: sc=(h, _onsh, _lpen, _kx, wy, j)
-                                    else:         sc=(h, _onsh, _lpen, wy, _kx, j)
-                                elif _LANEH:
-                                    # LANET=2 promotes the lifetime-directed sweep ahead of
-                                    # `low`: bays are 168x16-ish, so wy takes only 2-3 useful
-                                    # values and leaving _kx as the last tiebreak confines the
-                                    # reversal to within-row order.  Which of the two is right
-                                    # is exactly what the A/B has to answer.
-                                    if _LANET==2: sc=(h, _onsh, _kx, wy, j)
-                                    else:         sc=(h, _onsh, wy, _kx, j)
-                                else:
-                                    sc=(_onsh, h, wy, _kx, j)
-                            elif mode=="seal":
-                                # PROFILE MATCHING.  Cost = how much vertical profile this
-                                # placement raises that its neighbourhood does not already
-                                # carry: touching a resident of similar layer count seals
-                                # nothing new (the step is already there), while dropping a
-                                # 4-layer block beside 1-layer ones walls off the low space
-                                # that later blocks need to descend into.  Walls are free.
-                                _myl=len(B[b]["shape"][oi]["layers"])
-                                _mm2=0.0; _tt2=0.0
-                                _q0x,_q0y,_q1x,_q1y = wx, wy, wx+w, wy+h
-                                if _q0x<=1e-9: _tt2+=h
-                                if _q1x>=bw_j-1e-9: _tt2+=h
-                                if _q0y<=1e-9: _tt2+=w
-                                if _q1y>=bh_j-1e-9: _tt2+=w
-                                for (_sb,_sex,_snl) in _seal_by_bay[j]:
-                                    if _sex<=cur: continue
-                                    _sx0,_sy0,_sx1,_sy1=_sb
-                                    _uy=min(_q1y,_sy1)-max(_q0y,_sy0)
-                                    _ux=min(_q1x,_sx1)-max(_q0x,_sx0)
-                                    _sl=0.0
-                                    if _uy>1e-9 and (abs(_sx0-_q1x)<=1e-6 or abs(_q0x-_sx1)<=1e-6):
-                                        _sl+=_uy
-                                    if _ux>1e-9 and (abs(_sy0-_q1y)<=1e-6 or abs(_q0y-_sy1)<=1e-6):
-                                        _sl+=_ux
-                                    if _sl<=0.0: continue
-                                    _tt2+=_sl
-                                    _mm2+=_SEALM*_sl*abs(float(_myl)-float(_snl))
-                                # CONGESTION / shadow price.  The other terms weigh a
-                                # placement the same whether the bay is empty or jammed, but
-                                # the real cost of taking space in a full bay is someone
-                                # else's tardiness (w1), while space in an empty bay is free.
-                                # press = occupied fraction of this bay right now, read off
-                                # the state -- so the preference/packing trade shifts with the
-                                # situation instead of sitting at a fixed weight.
-                                _pk=(j,cur)
-                                _press=_press_cache.get(_pk)
-                                if _press is None:
-                                    _oa=0.0
-                                    for (_pb2,_pex2,_pnl2) in _seal_by_bay[j]:
-                                        if _pex2<=cur: continue
-                                        _oa+=(_pb2[2]-_pb2[0])*(_pb2[3]-_pb2[1])
-                                    _press=_oa/max(1e-9,bw_j*bh_j)
-                                    _press_cache[_pk]=_press
-                                _den=max(1e-9,_tt2)
-                                # PREFERENCE term: seal packs well (Z1) but routed badly
-                                # (prob_39 Z3 11,273 vs bigleft 9,529) because the score
-                                # carried no Z3 signal, while the lexicographic modes fold
-                                # bay preference into the tail of their sort tuple.
-                                _pen2 = float(_mxp[b] - B[b]["bay_preferences"][j])
-                                sc=(_mm2/_den - _SEALC*(_tt2/max(1.0,w+h))
-                                    + _SEALP*_pen2 + _SEALQ*_press, wy, wx, j)
-                            elif mode=="tcoh":
-                                # TEMPORAL-COHERENCE placement.  Every other mode here is a
-                                # LEXICOGRAPHIC positional rule (bottom-left / corner / free-span)
-                                # that never looks at WHEN a neighbour leaves.  Measured on
-                                # prob_38: the bays run at 100-102% peak and the blocks that block
-                                # a late block are themselves late, so re-ordering who is late is
-                                # zero-sum -- Z1 only falls if the packing yields MORE reusable
-                                # space.  Sitting next to a neighbour that frees WITH us opens one
-                                # large contiguous hole; sitting next to a long-stayer leaves an
-                                # isolated pocket.  So score contact, weighted by exit alignment.
-                                _tt=0.0; _ta=0.0
-                                _r0x,_r0y,_r1x,_r1y = wx, wy, wx+w, wy+h
-                                # bay walls: never obstruct future reuse -> fully aligned contact
-                                if _r0x<=1e-9: _tt+=h; _ta+=h
-                                if _r1x>=bw_j-1e-9: _tt+=h; _ta+=h
-                                if _r0y<=1e-9: _tt+=w; _ta+=w
-                                if _r1y>=bh_j-1e-9: _tt+=w; _ta+=w
-                                for (_ob,_oex) in present_by_bay[j]:
-                                    _ox0,_oy0,_ox1,_oy1=_ob
-                                    _vy=min(_r1y,_oy1)-max(_r0y,_oy0)   # vertical edge overlap
-                                    _vx=min(_r1x,_ox1)-max(_r0x,_ox0)   # horizontal edge overlap
-                                    _tl=0.0
-                                    if _vy>1e-9 and (abs(_ox0-_r1x)<=1e-6 or abs(_r0x-_ox1)<=1e-6):
-                                        _tl+=_vy
-                                    if _vx>1e-9 and (abs(_oy0-_r1y)<=1e-6 or abs(_r0y-_oy1)<=1e-6):
-                                        _tl+=_vx
-                                    if _tl<=0.0: continue
-                                    _tt+=_tl
-                                    _dte=abs(float(_oex)-float(ex))
-                                    _ta+=_tl*max(0.0, 1.0-_dte/_tcwin)   # decay with exit gap
-                                sc=(-(_ta*_TCA + _tt), wy, wx, j)
-                            elif mode in ("bigbottom","cornerBL","cornerBR","cornerTL","cornerTR"):
-                                # Research direction family (flatness h primary, then a
-                                # directional secondary key).  Small blocks keep free-span.
-                                # Gate-free best-of variants (run via the adaptive corner
-                                # best-of); best-of keeps min -> never-worse.
-                                if not is_small:
-                                    _dr=(bw_j-(wx+w)); _dt=(bh_j-(wy+h))
-                                    if mode=="bigbottom":   sc=(h, wy, wx, j)
-                                    elif mode=="cornerBL":  sc=(h, wx+wy, wx, j)
-                                    elif mode=="cornerBR":  sc=(h, _dr+wy, wx, j)
-                                    elif mode=="cornerTL":  sc=(h, wx+_dt, wx, j)
-                                    else:                   sc=(h, _dr+_dt, wx, j)  # cornerTR
-                                else:
-                                    if occ_base is None:
-                                        occ_base,_bt=_band_occ_base(j,cur,bh_j); _band_top_j=_bt
-                                    fs=_free_span_with(occ_base,bw_j,wx,w,wy,_band_top_j)
-                                    sc=(-fs, wy, wx)
-                            elif mode=="diagonal":
-                                # Diagonal Fill (Kwon & Lee 2015): fill toward the bay
-                                # corner along the diagonal (minimise wx+wy) instead of
-                                # pure bottom-left.  Packs some P6 instances tighter ->
-                                # less tardiness (prob_37 619->566, prob_40 2936->2670,
-                                # ~9%).  Loses on others (prob_38/39) so this is a best-of
-                                # variant, never the sole rule -> no regression.
-                                sc=(wx+wy, h, wy, wx, j)
-                            elif mode=="leftbottom":
-                                # LEFT-BOTTOM (horizontal-first): fill left-to-right
-                                # THEN bottom.  In wide-short bays a large contiguous
-                                # free span is left on the RIGHT for big (tardiness-
-                                # driver) blocks.  Best-of guarded (can be crane-
-                                # infeasible on non-wide bays) so it never regresses.
-                                sc=(h, wx, wy, j)
-                            elif not is_small:
-                                # flat_bl: prefer the FLATTEST orientation (min bbox
-                                # height h) so vertical room is left for other blocks
-                                # in wide-short bays, then bottom-left.
-                                if mode=="coreperi":
-                                    # CORE-PERIPHERY: 'parker' blocks (long-stay big +
-                                    # slack) go to the outer corner (max wx+wy) so they
-                                    # do not split the centre for long; the rest keep
-                                    # bigleft (bottom-left).  Preserves a contiguous
-                                    # free span along the time axis -> wins some P5/P4/P6
-                                    # (prob_33 obj -14.4%).  best-of tail, never-worse.
-                                    if parker[b]:
-                                        sc=(-(wx+wy), h, j)
-                                    else:
-                                        sc=(h, wx, wy, j)
-                                elif mode=="bigleft":
-                                    # BIG-LEFT: large blocks (the tardiness drivers)
-                                    # fill LEFT-first (horizontal) so they cluster to
-                                    # one side, leaving a large contiguous free span
-                                    # on the right for later big blocks -> shorter
-                                    # wait queue -> less tardiness.  Small blocks keep
-                                    # the free-span (gap-filling) rule below.  Measured
-                                    # vs plain flat_bl (large-block bottom-left):
-                                    # prob_27 1698->1564, prob_37 511->487,
-                                    # prob_38 2433->2357, prob_40 2528->2416 (3-8% Z1).
-                                    # Beats mode=leftbottom (which forces ALL blocks
-                                    # left, prob_38 2414) because small blocks still
-                                    # gap-fill.  Bay-shape-independent (verified: even
-                                    # square-ish bays favour left for big blocks).
-                                    sc=(h, wx, wy, j)
-                                elif mode=="prefaware":
-                                    # PREFERENCE-AWARE: place each block in its most-
-                                    # preferred feasible bay FIRST (minimise Z3 bay-pref
-                                    # penalty), then bigleft within.  Mid-density objective
-                                    # is ~50% Z3 (measured) and every packing mode ignores
-                                    # it, so this is the missing Z3 lever.  best-of keeps
-                                    # min -> Z1-dominated instances keep bigleft, so
-                                    # never-worse.
-                                    sc=(_mxp[b]-B[b]["bay_preferences"][j], h, wx, wy)
-                                else:
-                                    sc=(h, wy, wx, j)
-                            else:
+                            # THE placement score -- see _SWEEP above.
+                            _cf=_swcfg
+                            if _cf[6]=="parker" and parker[b]: _cf=_SWEEP_SUB["parker"]
+                            _pv=(None if _cf[0] is None
+                                 else _mxp[b]-B[b]["bay_preferences"][j])
+                            if _cf[5] and is_small:
                                 if occ_base is None:
-                                    occ_base, _bt = _band_occ_base(j,cur,bh_j)
-                                    _band_top_j=_bt
-                                fs=_free_span_with(occ_base, bw_j, wx, w, wy, _band_top_j)
-                                if mode=="prefaware":
-                                    sc=(_mxp[b]-B[b]["bay_preferences"][j], -fs, wy, wx)
-                                else:
-                                    sc=(-fs, wy, wx)
+                                    occ_base,_bt=_band_occ_base(j,cur,bh_j); _band_top_j=_bt
+                                fs=_free_span_with(occ_base,bw_j,wx,w,wy,_band_top_j)
+                                sc=(-fs, wy, wx) if _pv is None else (_pv, -fs, wy, wx)
+                            else:
+                                sc=_sweep_key(_cf, h, wx, wy, j, _pv)
                             if _tc is not None: _tc.append((sc,(j,oi,ix,iy)))
                             elif best_sc is None or sc<best_sc: best_sc=sc; best=(j,oi,ix,iy)
         if _tc is not None:
@@ -6381,8 +6060,6 @@ def _smallright_construct(prob_info, deadline_s, small_thresh=0.60, step=1, mode
             if res:
                 x0,y0,x1,y1=bbox(b,oi)
                 present_by_bay[j].append(((ix+x0,iy+y0,ix+x1,iy+y1),ex))
-                _seal_by_bay[j].append(((ix+x0,iy+y0,ix+x1,iy+y1),ex,
-                                        len(B[b]["shape"][oi]["layers"])))
                 recs[b]={"block_id":b,"bay_id":j,"x":ix,"y":iy,"orient_idx":oi,"entry_time":cur,"exit_time":ex}
                 placed=True
             if not placed and not _os_nofb:
@@ -6394,8 +6071,6 @@ def _smallright_construct(prob_info, deadline_s, small_thresh=0.60, step=1, mode
                         E.add(int(bay),b,int(oi),float(x),float(y),int(en),int(ex2))
                         x0,y0,x1,y1=bbox(b,int(oi))
                         present_by_bay[int(bay)].append(((x+x0,y+y0,x+x1,y+y1),int(ex2)))
-                        _seal_by_bay[int(bay)].append(((x+x0,y+y0,x+x1,y+y1),int(ex2),
-                                                       len(B[b]["shape"][int(oi)]["layers"])))
                         recs[b]={"block_id":b,"bay_id":int(bay),"x":int(x),"y":int(y),"orient_idx":int(oi),"entry_time":int(en),"exit_time":int(ex2)}
                         placed=True
                     except Exception: pass
