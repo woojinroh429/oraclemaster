@@ -5043,10 +5043,26 @@ def _worker_entry(args):
                 # (prob_38 2359->2321).  Below the band it loses badly (prob_33 dr .840
                 # +20.5%, prob_40 dr .933 +11.1%), hence the gate; best-of keeps min so
                 # even inside the band a loss is discarded.
+                # Two preference tails, each gated to the band where it measured a win.
+                # Both trade Z3 for a little Z1, at different aggressiveness:
+                #   prefmid  (h, pref, wx, wy, j)     dr >= .95    prob_38 -2.69%,
+                #                                                  prob_27 -0.35%
+                #   prefbkt  (h, pen//k, wx, wy, j)   .72<=dr<.85  prob_39 (dr .790)
+                #            only a LARGE preference gap outranks   7,977,140 -> 7,581,364
+                #            position, so the packing survives      (-4.96%) at k=5
+                # The win comes from being SELECTIVE, not from pushing preference harder:
+                # k=2 gave -2.66%, k=3 -2.98%, k=5 -4.96%, while prefaware (maximally
+                # aggressive) loses at +3.7%.  prefmid loses badly below its own band
+                # (prob_40 dr .933 +11%, prob_33 dr .840 +20%), hence two narrow gates
+                # rather than one wide one.  best-of keeps min, so a loss inside either
+                # band is discarded.
                 try:
-                    if _demand_ratio_phys(prob_info) >= float(
-                            os.environ.get("OGC_PREFMID", "0.95")):
+                    _drv = _demand_ratio_phys(prob_info)
+                    if _drv >= float(os.environ.get("OGC_PREFMID", "0.95")):
                         _tails = _tails + ["prefmid"]
+                    elif (float(os.environ.get("OGC_PREFBKT_LO", "0.72"))
+                          <= _drv < float(os.environ.get("OGC_PREFBKT_HI", "0.85"))):
+                        _tails = _tails + ["prefbkt"]
                 except Exception:
                     pass
                 # tcp (temporal-corridor) best-of variant: wins low-mid density construction
@@ -5718,7 +5734,7 @@ _SWEEP_SUB = {
 }
 
 
-_PREFBKT = max(1, int(os.environ.get("OGC_PREFBKT", "3")))
+_PREFBKT = max(1, int(os.environ.get("OGC_PREFBKT", "5")))
 
 
 def _sweep_key(cfg, h, wx, wy, j, pre=None):
