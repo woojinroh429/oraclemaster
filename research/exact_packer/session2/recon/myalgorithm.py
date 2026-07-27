@@ -5736,6 +5736,34 @@ def _smallright_construct(prob_info, deadline_s, small_thresh=0.60, step=1, mode
         key=lambda b:(1 if b in _vic else 0, rd[b]+ra[b], due[b])
     else:  # "rank" (default): "urgent AND big" first (due-rank + area-rank), then due.
         key=lambda b:(rd[b]+ra[b], due[b])
+    # Dynamic dispatch rules (see the hook in the event loop below).  env OGC_DISPATCH:
+    #   "mdd" -- Modified Due Date: rank by max(due, t+pt); a block whose slack is gone
+    #            starts competing on its true finish time instead of its nominal due date.
+    #   "atc" -- Apparent Tardiness Cost: (1/pt)*exp(-max(0,due-pt-t)/(K*mean_pt)); urgency
+    #            grows exponentially as slack burns off.  OGC_ATCK sets K (default 2.0).
+    # Both re-evaluate at every event time; the static keys above cannot (no t term).
+    _DYN = os.environ.get("OGC_DISPATCH", "")
+    _dynkey = None
+    if _DYN == "mdd":
+        _dynkey = lambda b, t: (max(due[b], t + pt[b]), due[b], b)
+    elif _DYN == "atc":
+        try:
+            _ATCK = float(os.environ.get("OGC_ATCK", "2.0"))
+        except Exception:
+            _ATCK = 2.0
+        _pbar = (sum(pt) / n) if n else 1.0
+        _kk2 = max(1e-9, _ATCK * _pbar)
+        _dynkey = lambda b, t: (-(1.0 / max(1e-9, pt[b]))
+                                * math.exp(-max(0.0, due[b] - pt[b] - t) / _kk2), due[b], b)
+    elif _DYN == "mdda":
+        # MDD + AREA: the static key is (due_rank + area_rank).  MDD/ATC replace it wholesale
+        # and drop the AREA term -- measured catastrophic (prob_39 Z1 490 -> 695/747), because
+        # big blocks need contiguous space and dispatching them late strands them.  So keep the
+        # area term and make ONLY the due term dynamic: rank by max(due, t+pt) among the blocks
+        # actually pending now, then add the same area rank.
+        _dynkey = "mdda"
+    else:
+        _DYN = ""
     _mxp=[max(B[b]["bay_preferences"]) for b in range(n)]   # per-block top preference
     # core-periphery 'parker' set: long-stay (pt top 40%) + big (not small) + slack
     # (>= median) blocks are driven to the outer corner (max wx+wy) so they do not
@@ -6007,7 +6035,25 @@ def _smallright_construct(prob_info, deadline_s, small_thresh=0.60, step=1, mode
             else:
                 present_by_bay[j]=[(bb,ex) for (bb,ex) in present_by_bay[j] if ex>cur]
         pl=[]
-        _pend_sorted = sorted(pend,key=key)
+        # DYNAMIC DISPATCH (Z1 lever).  The named keys above are STATIC -- they rank a block
+        # the same at its release as one tick before its due date, because `cur` never enters.
+        # Measured: the pipeline's ALNS reduces Z1 by ZERO (prob_38/39/33 final Z1 == the best
+        # construction's Z1), yet Z1 is 84-92% of the objective on this band, and swapping the
+        # construction POLICY moves Z1 by 6-25% -- so Z1 is won or lost here, at dispatch time.
+        # MDD/ATC are the classic total-tardiness dispatch rules and re-rank at every event
+        # time.  Placement policy (parker/small_thresh/corner) still uses the static ranks, so
+        # only the dispatch priority changes.  Default "" keeps the named key byte-identical.
+        if _DYN == "mdda":
+            _dd = sorted(pend, key=lambda b: (max(due[b], cur + pt[b]), due[b], b))
+            _ddr = {}
+            _dn = max(1, len(_dd) - 1)
+            for _p2, _b2 in enumerate(_dd):
+                _ddr[_b2] = _p2 / _dn
+            _pend_sorted = sorted(pend, key=lambda b: (_ddr[b] + ra[b], due[b], b))
+        elif _DYN:
+            _pend_sorted = sorted(pend, key=lambda b: _dynkey(b, cur))
+        else:
+            _pend_sorted = sorted(pend, key=key)
         for b in _pend_sorted:
             ex=cur+pt[b]; placed=False
             if _fr_on:
