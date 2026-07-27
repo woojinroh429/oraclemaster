@@ -5689,6 +5689,10 @@ _SWEEP = {
     # split the centre for their whole residency; everything else is bigleft.
     "coreperi":   (None,  "flat",    0, "xy", True,  True,  "parker"),
     "prefaware":  ("pref","flat",    0, "xy", False, True,  None),
+    # graded preference: h -> pref -> position.  Between bigleft (no preference) and
+    # prefaware (preference absolute); intended for the high/ultra band where the
+    # Z3-share gate keeps prefaware switched off.
+    "prefmid":    ("mid", "flat",    0, "xy", True,  True,  None),
 }
 _SWEEP_SUB = {
     "parker":     (None,  "corner", -1, "",   True,  True,  None),
@@ -5701,8 +5705,10 @@ def _sweep_key(cfg, h, wx, wy, j, pre=None):
     if _tie == "yx":   tail = (wy, wx)
     elif _tie == "xy": tail = (wx, wy)
     else:              tail = ()
+    if _p == "mid":
+        head = head + (pre,)
     k = head + tail + ((j,) if _jt else ())
-    return k if _p is None else (pre,) + k
+    return k if _p != "pref" else (pre,) + k
 
 
 def _smallright_construct(prob_info, deadline_s, small_thresh=0.60, step=1, mode="flatbl", ext_bay=None, order="rank"):
@@ -5969,7 +5975,9 @@ def _smallright_construct(prob_info, deadline_s, small_thresh=0.60, step=1, mode
                                 if occ_base is None:
                                     occ_base,_bt=_band_occ_base(j,cur,bh_j); _band_top_j=_bt
                                 fs=_free_span_with(occ_base,bw_j,wx,w,wy,_band_top_j)
-                                sc=(-fs, wy, wx) if _pv is None else (_pv, -fs, wy, wx)
+                                if _pv is None:      sc=(-fs, wy, wx)
+                                elif _cf[0] == "mid": sc=(-fs, _pv, wy, wx)
+                                else:                 sc=(_pv, -fs, wy, wx)
                             else:
                                 sc=_sweep_key(_cf, h, wx, wy, j, _pv)
                             if _tc is not None: _tc.append((sc,(j,oi,ix,iy)))
