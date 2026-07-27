@@ -66,17 +66,41 @@ Confirmed empirically before that was understood: Gurobi on prob_24 (n=100, 4950
 pairs, ~35k binaries) took 77s just to build, never accepted the partial warm start,
 and after 300s sat at an incumbent of 2.9e7 against our 3.07e5 with a 100% gap.
 
-**Correction to an earlier reading:** this bbox overlap was previously described as
-"stacking". That is not established. Blocks are polygons, and two bounding boxes can
-overlap while the polygons interlock in the plane (L-shapes nesting), which is
-probably the dominant case rather than vertical stacking. The sufficient condition
-`bbox non-overlap => feasible` still holds -- it is read straight off the code -- but
-restricting to it discards interlocking, not merely stacking.
+### Would a finer geometric encoding fix it?  No -- measured
 
-Modelling polygon non-overlap directly would remove the restriction, but non-convex
-pairwise separation needs a disjunction per separating axis per pair, which does not
-fit 4950 pairs. Gurobi's place here is the bay-window subproblem, which `cranepack`
-already covers.
+bbox is a crude proxy.  The footprint (union of a block's layers) is the real planar
+extent, and footprint non-overlap is *also* a sufficient condition for feasibility --
+`desc_hit` compares layer polygons, so disjoint unions cannot touch.  So bbox-overlapping
+pairs split in two: pure bbox artefacts (shapes interlocking in the plane), which a
+rectangle-decomposition model would recover, and genuine footprint overlap, which no
+planar model can express.  `engt/_fpov.py`:
+
+| instance | co-present | bbox-ov | of those, footprint-ov | recoverable by decomposition |
+|---|---|---|---|---|
+| prob_24 | 925 | 166 (17.9%) | **107 (11.6% of all)** | 59 (35.5% of bbox-ov) |
+| prob_5 | 671 | 88 (13.1%) | **59 (8.8%)** | 29 (33.0%) |
+| prob_33 | 2703 | 356 (13.2%) | **182 (6.7%)** | 174 (48.9%) |
+
+Only 33-49% of the bbox overlaps are artefacts.  The majority is genuine planar
+overlap, legal only because the crane rule permits it (new block's layer k conflicts
+only with a resident's layers j >= k).  So decomposing each block into rectangles --
+which costs ~9x the binaries per pair, 4 -> 36 -- still leaves 6.7-11.6% of co-present
+pairs unrepresentable, our solutions still infeasible, and warm start still impossible.
+
+**This settles the correction above.**  The overlap was earlier described as
+"stacking", then flagged as unverified and possibly mostly interlocking.  Measured: it
+is majority genuine overlap in the plane, resolved by the layer ordering.
+
+Expressing it properly means modelling the crane rule itself -- for every pair, every
+orientation combination, every layer pair with j >= k, a separating-axis disjunction.
+Against 4950 pairs that is out of reach.
+
+**Conclusion: the full-instance MIP route is closed, and not because Gurobi is weak.**
+Gurobi has no geometry at all -- it takes variables and constraints, so the geometry
+encoding is the modeller's job.  The obstacle is that this problem's feasible region
+is defined by a *3-D ordering* constraint, and every planar projection of it discards
+7-12% of the placements our own solutions use.  Gurobi's place here is the bay-window
+subproblem, which `cranepack` already covers.
 
 ## 4. The placement-mode "zoo" was one table
 
@@ -180,8 +204,11 @@ went with them.
 
 The binding constraint is packing **shape**, and no model that omits it can predict
 Z1 -- that is the single common cause behind items 5, 6 and 7. Item 3 was the one
-untried route and it is now closed too: our own solutions are infeasible for a
-bbox-non-overlap model, so it cannot even represent the incumbent. A uniform
+untried route and it is now closed too, at both resolutions: our own solutions are
+infeasible for a bbox-non-overlap model (13-18% of co-present pairs), and refining
+bbox to a rectangle decomposition recovers only a third to a half of that, leaving
+6.7-11.6% still unrepresentable.  The residue is genuine planar overlap that only the
+crane's layer ordering makes legal, so no planar model reaches it. A uniform
 row/shelf knapsack version fails separately -- prob_24 per-block minimum heights run
 3-15 against bays 20-24 tall, so a uniform row height yields one row per bay and
 throws away ~40% of the vertical space.
