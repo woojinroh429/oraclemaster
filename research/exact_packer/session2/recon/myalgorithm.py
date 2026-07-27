@@ -5714,7 +5714,15 @@ def _smallright_construct(prob_info, deadline_s, small_thresh=0.60, step=1, mode
     # restored; recon had only "rank").  All are pure dispatch orders -> feasibility
     # unchanged, best-of keeps min -> never-worse.
     _du_max=max(due) if due else 1
-    if order=="stdens":
+    if isinstance(order,(list,tuple)):
+        # EXPLICIT dispatch order (block ids, first = dispatched first).  Lets an outer
+        # search drive THIS constructor instead of only the named orders: a single
+        # _smallright build costs ~6s and lands within 1.8% of the whole 300s pipeline
+        # (prob_33 coreperi 6,509,360 vs pipeline 6,392,540), so ~50 re-orderings fit in
+        # one budget -- the strong-constructor host the order search actually needs.
+        _pos={int(b):i for i,b in enumerate(order)}
+        key=lambda b:(_pos.get(b,n+b),)
+    elif order=="stdens":
         # space-time density: place by area*processing (occupy space-time first).
         key=lambda b:(ar[b]*pt[b], due[b])
     elif order=="stdens_u":
