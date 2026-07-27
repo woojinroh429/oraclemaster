@@ -5039,6 +5039,15 @@ def _worker_entry(args):
                 # best-of tail -- min() keeps it only where it wins.  env OGC_SEALON=1.
                 if os.environ.get("OGC_SEALON", "0") == "1":
                     _tails = _tails + ["seal"]
+                # lane: shelf/level packing.  Bays are long thin strips (up to 10.5:1 with
+                # 1-3 block rows), so the classic strip-packing answer applies -- open
+                # shelves at the y of existing block tops and prefer landing ON a shelf.
+                # This is what the zoo's (h, wy, wx) key was doing implicitly; lane makes
+                # it explicit and picks its priority order from w3/w1 rather than a name.
+                # Construction-only: beats the best named mode on prob_38 (-0.5%), within
+                # 0.2-0.8% on prob_27/40.  best-of keeps min -> never-worse.  env OGC_LANEON=1.
+                if os.environ.get("OGC_LANEON", "0") == "1":
+                    _tails = _tails + ["lane"]
                 # tcp (temporal-corridor) best-of variant: wins low-mid density construction
                 # (p9 -15%, p24/P5 -3.5%) and stays crane-FEASIBLE where compaction fails
                 # (p35).  best-of keeps min -> never-worse; env-gated for A/B (default off).
