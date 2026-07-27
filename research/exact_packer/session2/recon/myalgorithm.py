@@ -5798,6 +5798,11 @@ def _smallright_construct(prob_info, deadline_s, small_thresh=0.60, step=1, mode
         _SEALM = float(os.environ.get("OGC_SEALM", "1.0"))
     except Exception:
         _SEALM = 1.0
+    try:
+        _SEALQ = float(os.environ.get("OGC_SEALQ", "0.0"))
+    except Exception:
+        _SEALQ = 0.0
+    _press_cache = {}
     _mxp=[max(B[b]["bay_preferences"]) for b in range(n)]   # per-block top preference
     # core-periphery 'parker' set: long-stay (pt top 40%) + big (not small) + slack
     # (>= median) blocks are driven to the outer corner (max wx+wy) so they do not
@@ -5977,14 +5982,30 @@ def _smallright_construct(prob_info, deadline_s, small_thresh=0.60, step=1, mode
                                     if _sl<=0.0: continue
                                     _tt2+=_sl
                                     _mm2+=_SEALM*_sl*abs(float(_myl)-float(_snl))
+                                # CONGESTION / shadow price.  The other terms weigh a
+                                # placement the same whether the bay is empty or jammed, but
+                                # the real cost of taking space in a full bay is someone
+                                # else's tardiness (w1), while space in an empty bay is free.
+                                # press = occupied fraction of this bay right now, read off
+                                # the state -- so the preference/packing trade shifts with the
+                                # situation instead of sitting at a fixed weight.
+                                _pk=(j,cur)
+                                _press=_press_cache.get(_pk)
+                                if _press is None:
+                                    _oa=0.0
+                                    for (_pb2,_pex2,_pnl2) in _seal_by_bay[j]:
+                                        if _pex2<=cur: continue
+                                        _oa+=(_pb2[2]-_pb2[0])*(_pb2[3]-_pb2[1])
+                                    _press=_oa/max(1e-9,bw_j*bh_j)
+                                    _press_cache[_pk]=_press
                                 _den=max(1e-9,_tt2)
                                 # PREFERENCE term: seal packs well (Z1) but routed badly
                                 # (prob_39 Z3 11,273 vs bigleft 9,529) because the score
                                 # carried no Z3 signal, while the lexicographic modes fold
                                 # bay preference into the tail of their sort tuple.
                                 _pen2 = float(_mxp[b] - B[b]["bay_preferences"][j])
-                                sc=(_mm2/_den - _SEALC*(_tt2/max(1.0,w+h)) + _SEALP*_pen2,
-                                    wy, wx, j)
+                                sc=(_mm2/_den - _SEALC*(_tt2/max(1.0,w+h))
+                                    + _SEALP*_pen2 + _SEALQ*_press, wy, wx, j)
                             elif mode=="tcoh":
                                 # TEMPORAL-COHERENCE placement.  Every other mode here is a
                                 # LEXICOGRAPHIC positional rule (bottom-left / corner / free-span)
