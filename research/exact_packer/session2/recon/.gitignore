@@ -1,7 +1,7 @@
-submit_build/
-*.so
-__pycache__/
-_*.log
-*.log
 engt/
+v71ship/
+*.log
+_*.py
+submit_build/
 data
+.artifacts/
