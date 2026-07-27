@@ -3,6 +3,25 @@
 Written to a tracked file so it survives a container reset (`engt/` is gitignored).
 Status is updated in place as each phase finishes.
 
+## Overnight result, in one table
+
+| change | status | measured |
+|---|---|---|
+| `prefmid` on `dr >= .95` | shipped | prob_38 **-2.32%**, prob_27 **-1.56%** |
+| `prefbkt` k2+k5 on `dr [.72,.85)` | shipped, now pipeline-validated | prob_39 **-2.30%**, prob_37/33 identical |
+| band widened to `[.55,.85)` | **reverted** | 3 identical, prob_31 +0.18% |
+| `trueobj` (greedy `d(obj2)`) | refuted, kept as record | worse on both, Z2 3x worse on prob_26 |
+| iterated hint-beam | refuted | fails at n=250 |
+| iterated `_z3_improve` | refuted | converged, 0 gain |
+| `tri2` dispatch order | built, unwired | -- |
+| `OGCWIN` attribution + tracked `harness/` | tooling | -- |
+
+The two shipped gates together move three instances by ~2%, and the band gate is now
+validated on **every instance it can reach** (the band contains exactly prob_33/37/39).
+That is well short of the 10-20% asked for, and the reason is documented rather than
+guessed: the construction frontier offers 4-45%, and outside the top of the band the
+polish absorbs all of it. See Phase 1d.
+
 ## Where the day ended
 
 Confirmed and committed:
@@ -191,6 +210,32 @@ and that both bucket widths ride it.
 Net honest position on this line: **-2.30% on one instance, never-worse on five.** The
 construction frontier promised 4-45% and the pipeline delivered 2.3% on one instance.
 The gap between those two numbers is the finding, not the failure.
+
+## Phase 1f — coverage: the band contains exactly three instances
+
+`0.72 <= demand_ratio_phys < 0.85` over prob_1..40 selects **prob_33 (.840), prob_37
+(.722), prob_39 (.790)** and nothing else. All three were A/B'd at 300s tonight, so the
+shipped change is validated on every instance it can reach -- not sampled, complete.
+Everything outside the band is byte-identical by construction (the gate is the only
+entry point), which is why a full 40-instance sweep would add no information here.
+
+## Phase 1g — REFUTED: the post-passes have no headroom left
+
+The attribution trace on prob_37 showed the pooled worker best at 4,158,580 and the
+returned answer at 3,941,154, a -5.2% step after the worker pool closes -- by far the
+largest single-step gain measured anywhere in the pipeline. Two post-passes run there
+(the hint-beam, then `_z3_improve`) and neither is iterated, so both were tested:
+
+* **hint-beam fed its own output back**: FAILS outright on prob_37 (250 blocks, 101s,
+  returns an incomplete assignment). It completes inside the pipeline only because it
+  anchors on the pooled best; re-anchored on its own output it does not finish in budget.
+* **`_z3_improve` re-run at 15s**: returns the identical objective on the first extra
+  pass. Converged, zero headroom.
+
+So the -5.2% is not repeatable by re-running either pass, and the pipeline's endpoint is
+a genuine fixed point of both tools. Note this also means the -5.2% is not yet
+attributed -- the `OGCWIN` stamps cover the four cross-worker write sites, so a stage
+between the last stamp and the return is unaccounted for. Worth finding, not chased.
 
 ## Phase 1c — the Z1/Z3 needle above the gate
 
