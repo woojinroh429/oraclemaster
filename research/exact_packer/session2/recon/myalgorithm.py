@@ -5837,6 +5837,13 @@ def _smallright_construct(prob_info, deadline_s, small_thresh=0.60, step=1, mode
         _LANETH = 0.021
     _lw = prob_info.get("weights", {})
     _lane_pref = (float(_lw.get("w3", 0.0)) / max(1e-9, float(_lw.get("w1", 1.0)) or 1.0)) >= _LANETH
+    # OGC_LANET: lifetime-directed sweep.  0 = off (byte-identical to the committed lane),
+    # 1 = reversal as the last tiebreak, 2 = reversal promoted ahead of `low`.
+    try:
+        _LANET = int(os.environ.get("OGC_LANET", "0"))
+    except Exception:
+        _LANET = 0
+    _LANEH = (os.environ.get("OGC_LANEH", "1") == "1")
     _mxp=[max(B[b]["bay_preferences"]) for b in range(n)]   # per-block top preference
     # core-periphery 'parker' set: long-stay (pt top 40%) + big (not small) + slack
     # (>= median) blocks are driven to the outer corner (max wx+wy) so they do not
@@ -5940,6 +5947,27 @@ def _smallright_construct(prob_info, deadline_s, small_thresh=0.60, step=1, mode
                 _fs_by_jo.setdefault((int(r[0]),int(r[1])),[]).append((int(r[2]),int(r[3])))
         for j in (bay_list if ext_bay is None else [ext_bay[b]]):
             bw_j=bays[j]["width"]; bh_j=bays[j]["height"]
+            if mode=="lane":
+                # Per-bay state, hoisted out of the cell loop (it cannot change while we
+                # scan cells): the shelf y-levels, and the exit times that define them.
+                _shj=[0.0]; _exj=[]
+                for (_lb,_lex) in present_by_bay[j]:
+                    if _lex>cur:
+                        _shj.append(_lb[3]); _exj.append(_lex)
+                # LIFETIME-DIRECTED SWEEP.  A bay is a strip reused over time, so a block
+                # placed mid-sweep splits the contiguous free span for its WHOLE residency
+                # -- a long-lived block is a semi-permanent divider, a short-lived one is
+                # not.  So the sweep should be ordered by residency, not by a fixed side:
+                # blocks that outlive the current occupants pack from the far wall, the
+                # rest from the near wall, leaving the churn on one side and the long span
+                # unbroken.  This is what coreperi encodes with its hand-written triple
+                # (ra<0.60 and pt>=pt60 and slack>=median -> -(wx+wy)); here the same
+                # decision is ONE bit read off the live state -- my exit time vs the median
+                # exit time of the blocks I will actually share the bay with.
+                _lane_long=False
+                if _LANET and _exj:
+                    _exj.sort()
+                    _lane_long = (ex > _exj[len(_exj)//2])
             occ_base=None
             _win_by_oi=None
             if windows is not None:
@@ -6001,11 +6029,12 @@ def _smallright_construct(prob_info, deadline_s, small_thresh=0.60, step=1, mode
                                 # Z2/Z3 -- its contact score optimised local neighbours and broke
                                 # the row structure.  Lexicographic like the named modes, because
                                 # the positional discipline is what protects Z1.
-                                _sh=[0.0]
-                                for (_lb,_lex) in present_by_bay[j]:
-                                    if _lex>cur: _sh.append(_lb[3])
-                                _dmin=min(abs(wy-_v) for _v in _sh)
+                                _dmin=min(abs(wy-_v) for _v in _shj)
                                 _onsh=0 if _dmin<=1e-6 else 1
+                                # distance to the wall this block packs against (see
+                                # _lane_long above); identical to wx when the sweep is
+                                # not reversed, so OGC_LANET=0 is byte-identical.
+                                _kx=(bw_j-(wx+w)) if _lane_long else wx
                                 # Priority, all lexicographic -- no weights to tune.  h first
                                 # because bay height is only 16-27 while blocks are ~10, so the
                                 # orientation decides how many rows fit; then shelf alignment; then
@@ -6023,11 +6052,18 @@ def _smallright_construct(prob_info, deadline_s, small_thresh=0.60, step=1, mode
                                 # replacing the named-mode choice.
                                 if _lane_pref:
                                     _lpen=float(_mxp[b]-B[b]["bay_preferences"][j])
-                                    sc=(h, _onsh, _lpen, wy, wx, j)
-                                elif os.environ.get("OGC_LANEH","1")=="1":
-                                    sc=(h, _onsh, wy, wx, j)
+                                    if _LANET==2: sc=(h, _onsh, _lpen, _kx, wy, j)
+                                    else:         sc=(h, _onsh, _lpen, wy, _kx, j)
+                                elif _LANEH:
+                                    # LANET=2 promotes the lifetime-directed sweep ahead of
+                                    # `low`: bays are 168x16-ish, so wy takes only 2-3 useful
+                                    # values and leaving _kx as the last tiebreak confines the
+                                    # reversal to within-row order.  Which of the two is right
+                                    # is exactly what the A/B has to answer.
+                                    if _LANET==2: sc=(h, _onsh, _kx, wy, j)
+                                    else:         sc=(h, _onsh, wy, _kx, j)
                                 else:
-                                    sc=(_onsh, h, wy, wx, j)
+                                    sc=(_onsh, h, wy, _kx, j)
                             elif mode=="seal":
                                 # PROFILE MATCHING.  Cost = how much vertical profile this
                                 # placement raises that its neighbourhood does not already
