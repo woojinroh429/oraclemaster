@@ -5822,6 +5822,12 @@ def _smallright_construct(prob_info, deadline_s, small_thresh=0.60, step=1, mode
     except Exception:
         _SEALQ = 0.0
     _press_cache = {}
+    try:
+        _LANETH = float(os.environ.get("OGC_LANETH", "0.021"))
+    except Exception:
+        _LANETH = 0.021
+    _lw = prob_info.get("weights", {})
+    _lane_pref = (float(_lw.get("w3", 0.0)) / max(1e-9, float(_lw.get("w1", 1.0)) or 1.0)) >= _LANETH
     _mxp=[max(B[b]["bay_preferences"]) for b in range(n)]   # per-block top preference
     # core-periphery 'parker' set: long-stay (pt top 40%) + big (not small) + slack
     # (>= median) blocks are driven to the outer corner (max wx+wy) so they do not
@@ -5974,7 +5980,46 @@ def _smallright_construct(prob_info, deadline_s, small_thresh=0.60, step=1, mode
                     for iy in _fc_by_ix[ix]:
                         if True:
                             wx=ix+x0; wy=iy+y0
-                            if mode=="seal":
+                            if mode=="lane":
+                                # SHELF / LEVEL PACKING.  Measured geometry: bays are long thin
+                                # strips (prob_27 168x16 = 10.5:1, prob_33 156x20, prob_39 111x17)
+                                # while blocks are ~11x10, so only 1-3 fit across the height and
+                                # ~10 along the length -- this is strip packing, where the standard
+                                # family is shelf/level (NFDH/FFDH/BFDH), not free 2D nesting.
+                                # A shelf is the floor or the top edge of a resident; a block that
+                                # straddles two shelves wastes the space above AND below it, which
+                                # is exactly how seal lost Z1 on all five instances while winning
+                                # Z2/Z3 -- its contact score optimised local neighbours and broke
+                                # the row structure.  Lexicographic like the named modes, because
+                                # the positional discipline is what protects Z1.
+                                _sh=[0.0]
+                                for (_lb,_lex) in present_by_bay[j]:
+                                    if _lex>cur: _sh.append(_lb[3])
+                                _dmin=min(abs(wy-_v) for _v in _sh)
+                                _onsh=0 if _dmin<=1e-6 else 1
+                                # Priority, all lexicographic -- no weights to tune.  h first
+                                # because bay height is only 16-27 while blocks are ~10, so the
+                                # orientation decides how many rows fit; then shelf alignment; then
+                                # bay preference (seal beat every named mode on Z2/Z3 by weighting
+                                # this, while lane alone leaves Z3 high); then low, then left.
+                                # The PRIORITY ORDER is set by the instance, not by hand: a
+                                # preference unit costs w3 and a tardiness unit w1, so preference
+                                # outranks position only when w3/w1 is high enough to pay for the
+                                # packing it costs.  Measured (vs the best named mode), preference
+                                # first vs position first:
+                                #   prob_27 .0300  +0.2% / +2.8%     prob_38 .0225  -0.5% / +0.8%
+                                #   prob_33 .0225 +10.4% / +24.8%    prob_40 .0195  +6.7% / +0.8%
+                                #   prob_39 .0113 +18.8% / +3.8%
+                                # so the split sits between .0195 and .0225 -- one ratio decides it,
+                                # replacing the named-mode choice.
+                                if _lane_pref:
+                                    _lpen=float(_mxp[b]-B[b]["bay_preferences"][j])
+                                    sc=(h, _onsh, _lpen, wy, wx, j)
+                                elif os.environ.get("OGC_LANEH","1")=="1":
+                                    sc=(h, _onsh, wy, wx, j)
+                                else:
+                                    sc=(_onsh, h, wy, wx, j)
+                            elif mode=="seal":
                                 # PROFILE MATCHING.  Cost = how much vertical profile this
                                 # placement raises that its neighbourhood does not already
                                 # carry: touching a resident of similar layer count seals
