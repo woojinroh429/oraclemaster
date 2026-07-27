@@ -5764,6 +5764,16 @@ def _smallright_construct(prob_info, deadline_s, small_thresh=0.60, step=1, mode
         _dynkey = "mdda"
     else:
         _DYN = ""
+    # tcoh params: _TCA = extra weight on exit-time-aligned contact (0 => plain contact),
+    # _tcwin = exit-gap (in time units) over which alignment decays to 0.
+    try:
+        _TCA = float(os.environ.get("OGC_TCA", "2.0"))
+    except Exception:
+        _TCA = 2.0
+    try:
+        _tcwin = max(1e-6, float(os.environ.get("OGC_TCWIN", "0")) or (sum(pt) / max(1, n)))
+    except Exception:
+        _tcwin = max(1e-6, sum(pt) / max(1, n))
     _mxp=[max(B[b]["bay_preferences"]) for b in range(n)]   # per-block top preference
     # core-periphery 'parker' set: long-stay (pt top 40%) + big (not small) + slack
     # (>= median) blocks are driven to the outer corner (max wx+wy) so they do not
@@ -5909,7 +5919,38 @@ def _smallright_construct(prob_info, deadline_s, small_thresh=0.60, step=1, mode
                     for iy in _fc_by_ix[ix]:
                         if True:
                             wx=ix+x0; wy=iy+y0
-                            if mode in ("bigbottom","cornerBL","cornerBR","cornerTL","cornerTR"):
+                            if mode=="tcoh":
+                                # TEMPORAL-COHERENCE placement.  Every other mode here is a
+                                # LEXICOGRAPHIC positional rule (bottom-left / corner / free-span)
+                                # that never looks at WHEN a neighbour leaves.  Measured on
+                                # prob_38: the bays run at 100-102% peak and the blocks that block
+                                # a late block are themselves late, so re-ordering who is late is
+                                # zero-sum -- Z1 only falls if the packing yields MORE reusable
+                                # space.  Sitting next to a neighbour that frees WITH us opens one
+                                # large contiguous hole; sitting next to a long-stayer leaves an
+                                # isolated pocket.  So score contact, weighted by exit alignment.
+                                _tt=0.0; _ta=0.0
+                                _r0x,_r0y,_r1x,_r1y = wx, wy, wx+w, wy+h
+                                # bay walls: never obstruct future reuse -> fully aligned contact
+                                if _r0x<=1e-9: _tt+=h; _ta+=h
+                                if _r1x>=bw_j-1e-9: _tt+=h; _ta+=h
+                                if _r0y<=1e-9: _tt+=w; _ta+=w
+                                if _r1y>=bh_j-1e-9: _tt+=w; _ta+=w
+                                for (_ob,_oex) in present_by_bay[j]:
+                                    _ox0,_oy0,_ox1,_oy1=_ob
+                                    _vy=min(_r1y,_oy1)-max(_r0y,_oy0)   # vertical edge overlap
+                                    _vx=min(_r1x,_ox1)-max(_r0x,_ox0)   # horizontal edge overlap
+                                    _tl=0.0
+                                    if _vy>1e-9 and (abs(_ox0-_r1x)<=1e-6 or abs(_r0x-_ox1)<=1e-6):
+                                        _tl+=_vy
+                                    if _vx>1e-9 and (abs(_oy0-_r1y)<=1e-6 or abs(_r0y-_oy1)<=1e-6):
+                                        _tl+=_vx
+                                    if _tl<=0.0: continue
+                                    _tt+=_tl
+                                    _dte=abs(float(_oex)-float(ex))
+                                    _ta+=_tl*max(0.0, 1.0-_dte/_tcwin)   # decay with exit gap
+                                sc=(-(_ta*_TCA + _tt), wy, wx, j)
+                            elif mode in ("bigbottom","cornerBL","cornerBR","cornerTL","cornerTR"):
                                 # Research direction family (flatness h primary, then a
                                 # directional secondary key).  Small blocks keep free-span.
                                 # Gate-free best-of variants (run via the adaptive corner
