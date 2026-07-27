@@ -5785,10 +5785,23 @@ def _smallright_construct(prob_info, deadline_s, small_thresh=0.60, step=1, mode
         _SEALC = float(os.environ.get("OGC_SEALC", "1.5"))
     except Exception:
         _SEALC = 1.5
+    # Preference weight in OBJECTIVE units.  A preference unit really costs w3 and a
+    # tardiness unit w1, so the exchange rate is w3/w1 -- about 0.022-0.030 on these
+    # instances, while the fixed 0.5 used before overweighted preference ~20x.  That is
+    # why seal traded Z1 away for Z3 (prob_27 gave up 106 Z1 = +1.41M to save 1194 Z3 =
+    # -0.48M) and why sweeping the old constant changed nothing: at 0.25-2.0 the term
+    # simply dominated, making the score lexicographic rather than a real trade.
+    # OGC_SEALPR multiplies the true ratio; 1.0 = pure objective units, ~20 = old behaviour.
     try:
-        _SEALP = float(os.environ.get("OGC_SEALP", "0.5"))
+        _SEALPR = float(os.environ.get("OGC_SEALPR", "1.0"))
     except Exception:
-        _SEALP = 0.5
+        _SEALPR = 1.0
+    _wgt = prob_info.get("weights", {})
+    _w1r = float(_wgt.get("w1", 1.0)) or 1.0
+    _w3r = float(_wgt.get("w3", 0.0))
+    _SEALP = _SEALPR * (_w3r / max(1e-9, _w1r))
+    if os.environ.get("OGC_SEALP"):
+        _SEALP = float(os.environ["OGC_SEALP"])   # explicit override for A/B
     # SEALM sign: +1 penalises profile MISMATCH (nest same with same); -1 REWARDS it.
     # KMAX is 2 here and 222/250 blocks carry 2 layers, and 9% of co-present same-bay
     # pairs already overlap footprints -- a block's upper layer overhangs a neighbour's
