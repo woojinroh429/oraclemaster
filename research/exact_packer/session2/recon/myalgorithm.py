@@ -5673,6 +5673,54 @@ def _beam_construct(prob_info, deadline_s, W=4, K=4, scanstep=1, rollstep=3, ord
         return None
 
 
+# ONE placement score.  The named "modes" below are not five heuristics; `mode`
+# never affects anything in _smallright_construct except this one tuple (verified:
+# every other use of `mode` in the function is a branch of this same selection).
+# Written out, the five runtime modes collapse to four fields:
+#
+#   pre   prepend the bay-preference penalty  (Z3 lever)
+#   prec  "flat"   -> (h, ...)            flatness leads, then a directional sweep
+#         "corner" -> (s*(wx+wy), h, ...) L1 corner leads, flatness second
+#   s     +1 near corner / -1 far corner   (only read when prec == "corner")
+#   tie   "xy" | "yx" | ""                 which axis leads the sweep
+#   jt    append the bay index as the last tiebreak
+#   sx    small blocks take the free-span gap-fill rule instead of this key
+#   sub   a subset of blocks that switches to a different config entirely
+#
+# So the "zoo" is five points of a 3x2x2 space, not five ideas.  `h` first is
+# shared by all of them and is an ORIENTATION rule (bays are ~168x16 while blocks
+# are ~11x10, so 1-3 rows fit and one unit of h can cost a whole row).  What
+# actually differs is the sweep direction -- and the direction is what keeps the
+# free region contiguous, which is the ONLY channel through which position can
+# reach the objective (x,y appear nowhere in w1*Z1 + w2*Z2 + w3*Z3).  We cannot
+# know the right direction a priori, so the portfolio enumerates it.
+#
+#             pre      prec       s   tie   jt     sx     sub
+_SWEEP = {
+    "flatbl":     (None,  "flat",    0, "yx", True,  True,  None),
+    "bigleft":    (None,  "flat",    0, "xy", True,  True,  None),
+    "leftbottom": (None,  "flat",    0, "xy", True,  False, None),
+    "diagonal":   (None,  "corner",  1, "yx", True,  False, None),
+    # long-stay big blocks with slack sweep from the FAR corner so they do not
+    # split the centre for their whole residency; everything else is bigleft.
+    "coreperi":   (None,  "flat",    0, "xy", True,  True,  "parker"),
+    "prefaware":  ("pref","flat",    0, "xy", False, True,  None),
+}
+_SWEEP_SUB = {
+    "parker":     (None,  "corner", -1, "",   True,  True,  None),
+}
+
+
+def _sweep_key(cfg, h, wx, wy, j, pre=None):
+    _p, _prec, _s, _tie, _jt, _sx, _sub = cfg
+    head = (_s * (wx + wy), h) if _prec == "corner" else (h,)
+    if _tie == "yx":   tail = (wy, wx)
+    elif _tie == "xy": tail = (wx, wy)
+    else:              tail = ()
+    k = head + tail + ((j,) if _jt else ())
+    return k if _p is None else (pre,) + k
+
+
 def _smallright_construct(prob_info, deadline_s, small_thresh=0.60, step=1, mode="flatbl", ext_bay=None, order="rank"):
     """Position-policy constructor for space-contended P6.  Small blocks (area_rank
     >= small_thresh) are tucked into positions that PRESERVE the largest contiguous
@@ -5844,6 +5892,9 @@ def _smallright_construct(prob_info, deadline_s, small_thresh=0.60, step=1, mode
     except Exception:
         _LANET = 0
     _LANEH = (os.environ.get("OGC_LANEH", "1") == "1")
+    # unified placement score (see _SWEEP).  OGC_SWEEP=0 falls back to the named
+    # branches; both paths must produce identical solutions.
+    _swcfg = _SWEEP.get(mode) if os.environ.get("OGC_SWEEP", "0") == "1" else None
     _mxp=[max(B[b]["bay_preferences"]) for b in range(n)]   # per-block top preference
     # core-periphery 'parker' set: long-stay (pt top 40%) + big (not small) + slack
     # (>= median) blocks are driven to the outer corner (max wx+wy) so they do not
@@ -6017,7 +6068,21 @@ def _smallright_construct(prob_info, deadline_s, small_thresh=0.60, step=1, mode
                     for iy in _fc_by_ix[ix]:
                         if True:
                             wx=ix+x0; wy=iy+y0
-                            if mode=="lane":
+                            if _swcfg is not None:
+                                # unified score -- see _SWEEP above.  Reproduces every
+                                # named branch exactly; OGC_SWEEP=0 keeps the old ones.
+                                _cf=_swcfg
+                                if _cf[6]=="parker" and parker[b]: _cf=_SWEEP_SUB["parker"]
+                                _pv=(None if _cf[0] is None
+                                     else _mxp[b]-B[b]["bay_preferences"][j])
+                                if _cf[5] and is_small:
+                                    if occ_base is None:
+                                        occ_base,_bt=_band_occ_base(j,cur,bh_j); _band_top_j=_bt
+                                    fs=_free_span_with(occ_base,bw_j,wx,w,wy,_band_top_j)
+                                    sc=(-fs, wy, wx) if _pv is None else (_pv, -fs, wy, wx)
+                                else:
+                                    sc=_sweep_key(_cf, h, wx, wy, j, _pv)
+                            elif mode=="lane":
                                 # SHELF / LEVEL PACKING.  Measured geometry: bays are long thin
                                 # strips (prob_27 168x16 = 10.5:1, prob_33 156x20, prob_39 111x17)
                                 # while blocks are ~11x10, so only 1-3 fit across the height and
