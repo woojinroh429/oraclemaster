@@ -5032,6 +5032,13 @@ def _worker_entry(args):
                 #   coreperi   -- long-stay big blocks -> periphery; gate-free best-of tail,
                 #                 kept where it wins (a hidden P5 at any ratio), ignored else.
                 _tails = ["diagonal", "leftbottom", "bigleft", "coreperi"]
+                # seal: single principled score (layer-profile grouping + contact +
+                # preference) instead of a hand-authored positional rule.  Construction-only
+                # measurements: beats the best named mode on prob_38 (33,732,353 vs bigleft
+                # 34,512,341) and trails by 2.7-8.4% elsewhere, so it enters as one more
+                # best-of tail -- min() keeps it only where it wins.  env OGC_SEALON=1.
+                if os.environ.get("OGC_SEALON", "0") == "1":
+                    _tails = _tails + ["seal"]
                 # tcp (temporal-corridor) best-of variant: wins low-mid density construction
                 # (p9 -15%, p24/P5 -3.5%) and stays crane-FEASIBLE where compaction fails
                 # (p35).  best-of keeps min -> never-worse; env-gated for A/B (default off).
@@ -5782,6 +5789,15 @@ def _smallright_construct(prob_info, deadline_s, small_thresh=0.60, step=1, mode
         _SEALP = float(os.environ.get("OGC_SEALP", "0.5"))
     except Exception:
         _SEALP = 0.5
+    # SEALM sign: +1 penalises profile MISMATCH (nest same with same); -1 REWARDS it.
+    # KMAX is 2 here and 222/250 blocks carry 2 layers, and 9% of co-present same-bay
+    # pairs already overlap footprints -- a block's upper layer overhangs a neighbour's
+    # layer-0-only step, which is what saves floor area. Penalising mismatch discourages
+    # exactly that interlock, so the sign is an empirical question, not a given.
+    try:
+        _SEALM = float(os.environ.get("OGC_SEALM", "1.0"))
+    except Exception:
+        _SEALM = 1.0
     _mxp=[max(B[b]["bay_preferences"]) for b in range(n)]   # per-block top preference
     # core-periphery 'parker' set: long-stay (pt top 40%) + big (not small) + slack
     # (>= median) blocks are driven to the outer corner (max wx+wy) so they do not
@@ -5960,7 +5976,7 @@ def _smallright_construct(prob_info, deadline_s, small_thresh=0.60, step=1, mode
                                         _sl+=_ux
                                     if _sl<=0.0: continue
                                     _tt2+=_sl
-                                    _mm2+=_sl*abs(float(_myl)-float(_snl))
+                                    _mm2+=_SEALM*_sl*abs(float(_myl)-float(_snl))
                                 _den=max(1e-9,_tt2)
                                 # PREFERENCE term: seal packs well (Z1) but routed badly
                                 # (prob_39 Z3 11,273 vs bigleft 9,529) because the score
