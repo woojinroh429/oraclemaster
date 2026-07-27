@@ -5710,10 +5710,15 @@ _SWEEP = {
     # prefaware (preference absolute); intended for the high/ultra band where the
     # Z3-share gate keeps prefaware switched off.
     "prefmid":    ("mid", "flat",    0, "xy", True,  True,  None),
+    "prefbkt":    ("bkt", "flat",    0, "xy", True,  True,  None),
+    "preflate":   ("late","flat",    0, "xy", True,  True,  None),
 }
 _SWEEP_SUB = {
     "parker":     (None,  "corner", -1, "",   True,  True,  None),
 }
+
+
+_PREFBKT = max(1, int(os.environ.get("OGC_PREFBKT", "3")))
 
 
 def _sweep_key(cfg, h, wx, wy, j, pre=None):
@@ -5724,7 +5729,12 @@ def _sweep_key(cfg, h, wx, wy, j, pre=None):
     else:              tail = ()
     if _p == "mid":
         head = head + (pre,)
-    k = head + tail + ((j,) if _jt else ())
+    elif _p == "bkt":
+        head = head + (int(pre // _PREFBKT),)
+    if _p == "late":
+        k = head + (tail[0], pre) + tail[1:] + ((j,) if _jt else ())
+    else:
+        k = head + tail + ((j,) if _jt else ())
     return k if _p != "pref" else (pre,) + k
 
 
