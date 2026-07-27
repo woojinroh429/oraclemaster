@@ -2953,7 +2953,19 @@ def _exact_reassign(prob_info, bay_unit, deadline, mip_cap=6.0, mode="seed"):
         # thus LEARNS each bay's true packing limit.  Converges to a realisable
         # (Z1=0) assignment when one exists (measured prob_6 68k->60k), else the
         # caller's best-of keeps the SA result (never-worse).
-        capf = [1.0] * m
+        # OVER-SUBSCRIBE START (low-density Z1-vs-Z3 trade).  capf only ever TIGHTENS below,
+        # so the Benders loop is engineered to converge to a Z1=0 assignment.  But the true
+        # optimum can need Z1>0: measured prob_24, the reference pays Z1=1 (+13,333) and gets
+        # Z3=502 vs our 669 / Z2=343 vs our 1693 (-56,850) => 165,648 vs our 209,165.  A local
+        # search cannot cross that barrier (one move costs w1=13,333 >> SA temperature ~6,000),
+        # but STARTING the master over-subscribed makes the assignment optimum itself sit in
+        # the Z1>0 region; the realisation then produces the tardiness and best-of keeps the
+        # result only if the TRUE objective improves -> never-worse.  cap0=1.0 = old behaviour.
+        try:
+            _cap0 = float(os.environ.get("OGC_EXCAP0", "1.0"))
+        except Exception:
+            _cap0 = 1.0
+        capf = [_cap0] * m
         best = None; best_obj = float("inf"); best_ext = None
         seed = None; seed_z3 = float("inf"); seed_z1 = float("inf")  # lowest-Z3 realisation for SA repair
         _spill_on = os.environ.get("SPILL", "1") == "1"
