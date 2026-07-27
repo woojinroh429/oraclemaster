@@ -167,6 +167,31 @@ Two rules to carry forward:
   `lane` experiment fell into (construction -0.5% -> pipeline +0.31%); best-of on a
   construction proxy discards the basin that would have won.
 
+## Phase 1e — the band, settled by paired pipeline A/B at 300s
+
+OFF arm = `OGC_PREFBKT_LO=9` (no preference tail at all), ON = `prefbkt` k2 + k5
+prepended. Same process, same budget, arms run back to back.
+
+| instance | dr | OFF | ON | |
+|---|---|---|---|---|
+| prob_35 | .567 | 904,355 | 904,355 | identical |
+| prob_31 | .597 | 4,579,446 | 4,587,645 | **+0.18%** |
+| prob_26 | .621 | 7,633,871 | 7,633,871 | identical |
+| prob_37 | .722 | 3,941,154 | 3,941,154 | identical |
+| prob_39 | .790 | 7,758,932 | **7,580,722** | **-2.30%** |
+| prob_33 | .840 | 6,392,540 | 6,392,540 | identical |
+
+One instance converts, and on that one the mechanism is exactly the predicted one:
+Z2 3403 -> 1101, Z3 8081 -> 6421, Z1 +6. Everything below .72 gives back nothing and
+costs a little budget, so the gate is back at the measured **[.72, .85)** -- which is
+where it started the night. What is new is that the band is now pipeline-validated
+rather than construction-validated (the shipped k=5 gate had never been A/B'd at all),
+and that both bucket widths ride it.
+
+Net honest position on this line: **-2.30% on one instance, never-worse on five.** The
+construction frontier promised 4-45% and the pipeline delivered 2.3% on one instance.
+The gap between those two numbers is the finding, not the failure.
+
 ## Phase 1c — the Z1/Z3 needle above the gate
 
 `prefmid` is one fixed point on the frontier: `(h, pref, wx, wy, j)`. The frontier

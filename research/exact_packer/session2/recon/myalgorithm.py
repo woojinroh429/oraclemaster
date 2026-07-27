@@ -5085,25 +5085,29 @@ def _worker_entry(args):
                 # (prob_40 dr .933 +11%, prob_33 dr .840 +20%), hence two narrow gates
                 # rather than one wide one.  best-of keeps min, so a loss inside either
                 # band is discarded.
-                # Measured construction frontier (best pref tail vs best of bigleft/
-                # coreperi, 240s cap, harness/run.py front).  The preference tails do not
-                # win a narrow slice -- they win the WHOLE band below dr~.80, and lose
-                # above it:
-                #   dr .567 p35 -44.6%   .597 p31  -4.3%   .621 p26  -9.8%
-                #   dr .722 p37 -23.2%   .790 p39  -5.0%
-                #   dr .840 p33 +2.6%    .933 p40  +3.5%   (baseline wins)
-                # so the gate is [OGC_PREFBKT_LO, OGC_PREFBKT_HI) = [.55, .85), matching
-                # the hybrid worker's own lower gate (OGC_LOBEAM) -- below .55 this code
-                # never runs at all.  The tails are PREPENDED, not appended: on 250-block
-                # instances construction eats the whole window and an appended tail is
-                # simply never reached, which is why the earlier .72-.85 gate showed
-                # nothing at the pipeline level.  best-of keeps min, so where they lose
-                # (p33) the only cost is budget.
+                # Band set by the PIPELINE A/B at 300s, not by the construction frontier.
+                # The frontier says the preference tails win the whole band below dr~.80
+                # (p35 -44.6%, p37 -23.2%, p26 -9.8%, p31 -4.3%, p39 -5.0%), so the gate
+                # was widened to [.55,.85) -- and the paired pipeline A/B says almost none
+                # of that converts:
+                #   dr .567 p35    0      .597 p31 +0.18%   .621 p26    0
+                #   dr .722 p37    0      .790 p39 -2.30%   .840 p33    0
+                # Only the top of the band moves, and there the mechanism is visible and
+                # exactly the expected one (p39 Z2 3403->1101, Z3 8081->6421, Z1 +6).
+                # Below .72 the win is real in construction and dies in the polish -- the
+                # OGCWIN attribution shows why (see OVERNIGHT_PLAN.md Phase 1d): on p35 the
+                # hybrid workers never lower the shared best at all, and on p37 prefbkt wins
+                # its worker's construction best-of by 23% and the worker still loses the
+                # instance.  So the gate goes back to the measured [.72,.85).
+                # The tails are PREPENDED: on 250-block instances construction eats the whole
+                # window and an appended tail is never reached.  Both bucket widths run
+                # because no single k wins everywhere (p39 wants k=5, the rest k=2);
+                # best-of keeps min, so where they lose (p33) the only cost is budget.
                 try:
                     _drv = _demand_ratio_phys(prob_info)
                     if _drv >= float(os.environ.get("OGC_PREFMID", "0.95")):
                         _tails = _tails + ["prefmid"]
-                    elif (float(os.environ.get("OGC_PREFBKT_LO", "0.55"))
+                    elif (float(os.environ.get("OGC_PREFBKT_LO", "0.72"))
                           <= _drv < float(os.environ.get("OGC_PREFBKT_HI", "0.85"))):
                         _tails = ["prefbkt", "prefbkt5"] + _tails
                 except Exception:
