@@ -5032,6 +5032,23 @@ def _worker_entry(args):
                 #   coreperi   -- long-stay big blocks -> periphery; gate-free best-of tail,
                 #                 kept where it wins (a hidden P5 at any ratio), ignored else.
                 _tails = ["diagonal", "leftbottom", "bigleft", "coreperi"]
+                # prefmid on the ULTRA band.  prefaware is gated to a Z3 share of 0.40
+                # and prob_38's share is 7.9%, so above dr~0.90 no mode routes a block to
+                # its preferred bay at all.  Measured construction, vs the band's own
+                # winner:  prob_38 (dr .993) 34,512,341 -> 33,583,135 (-2.69%),
+                #          prob_27 (dr 1.041) 23,400,112 -> 23,319,296 (-0.35%).
+                # The win is not the intended Z1<->Z3 trade -- routing to preferred bays
+                # spreads blocks across bays, so Z2 collapses (prob_38 1097->271,
+                # prob_27 2450->44) and the reduced crowding takes Z1 down too
+                # (prob_38 2359->2321).  Below the band it loses badly (prob_33 dr .840
+                # +20.5%, prob_40 dr .933 +11.1%), hence the gate; best-of keeps min so
+                # even inside the band a loss is discarded.
+                try:
+                    if _demand_ratio_phys(prob_info) >= float(
+                            os.environ.get("OGC_PREFMID", "0.95")):
+                        _tails = _tails + ["prefmid"]
+                except Exception:
+                    pass
                 # tcp (temporal-corridor) best-of variant: wins low-mid density construction
                 # (p9 -15%, p24/P5 -3.5%) and stays crane-FEASIBLE where compaction fails
                 # (p35).  best-of keeps min -> never-worse; env-gated for A/B (default off).
