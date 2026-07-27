@@ -5805,6 +5805,27 @@ def _smallright_construct(prob_info, deadline_s, small_thresh=0.60, step=1, mode
         _kk=''.join(c for c in order[3:] if c.isdigit()); _K=int(_kk) if _kk else 3
         _vic=set(sorted(range(n), key=lambda b:-(ar[b]*pt[b]))[:_K])
         key=lambda b:(1 if b in _vic else 0, rd[b]+ra[b], due[b])
+    elif isinstance(order,str) and order.startswith("prio"):
+        # PREFERENCE-STAKE dispatch.  Every existing order ranks by urgency and size; none
+        # asks how much a block STANDS TO LOSE on preference.  A block whose preference is
+        # flat across bays is indifferent to where it lands; one with a wide spread pays
+        # w3 * spread if it is dispatched late and its preferred bay is already full.  So
+        # rank by stake -- w3 * (max pref - mean of the rest), normalised -- blended into
+        # the native (due-rank + area-rank) key.  High-stake blocks move earlier, while
+        # they can still reach the bay they care about; the ones with nothing at stake
+        # drift back and absorb the packing pressure.
+        #   beta = suffix/10 (prio5 -> 0.5).  beta=0 is exactly "rank".
+        _bb=''.join(c for c in order[4:] if c.isdigit())
+        _beta=(int(_bb)/10.0) if _bb else 0.5
+        _w3o=float(prob_info.get("weights",{}).get("w3",0.0))
+        _stake=[0.0]*n
+        for b in range(n):
+            _pv=B[b]["bay_preferences"]
+            if len(_pv)>1:
+                _mx=max(_pv); _rest=(sum(_pv)-_mx)/(len(_pv)-1)
+                _stake[b]=max(0.0,(_mx-_rest))*_w3o
+        _smax=max(_stake) or 1.0
+        key=lambda b:(rd[b]+ra[b]-_beta*(_stake[b]/_smax), due[b])
     else:  # "rank" (default): "urgent AND big" first (due-rank + area-rank), then due.
         key=lambda b:(rd[b]+ra[b], due[b])
     # Dynamic dispatch rules (see the hook in the event loop below).  env OGC_DISPATCH:
