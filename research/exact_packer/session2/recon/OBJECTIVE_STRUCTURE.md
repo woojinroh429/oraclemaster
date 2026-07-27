@@ -216,3 +216,51 @@ throws away ~40% of the vertical space.
 What is left standing: the packer itself is the only accurate model of Z1 we have.
 Any future search should treat it as the evaluator (item 7 showed the round-trip is
 exact) rather than trying to replace it with a relaxation.
+
+## 10. The Z1-only framing was my mistake -- multi-term trades do move the objective
+
+Sections 5-7 above report four methods and 689 exact re-optimisations that moved Z1 by
+zero, and I concluded the incumbent was effectively optimal.  **That conclusion was
+wrong.**  Every one of those runs chose its neighbourhood by tardiness, so it could
+only ever trade within Z1.  The objective is w1*Z1 + w2*Z2 + w3*Z3, and the lever is
+trading BETWEEN the terms.
+
+Evidence that it was reachable all along: the `lane` construction on prob_38 paid Z1
+2359->2436 (+1,026,641) to buy Z3 9011->5948 (-918,900) and lost by only 0.31%.  A
+nearly flat frontier, i.e. a better point on it plausibly wins.
+
+`engt/_setpack2.py` keeps the same exact set-packing repair (oracle-built candidates,
+oracle-checked conflict graph, all three terms scored exactly) and changes only the
+block-selection rule, rotating: tardiest / worst preference penalty / mixed / one bay's
+slice / random.  Equal-objective solutions are accepted so the search drifts sideways
+instead of re-solving one neighbourhood forever.
+
+K=25, 200s per instance, seeded from a 60s pipeline run:
+
+| instance | w3/w1 | n | bays | seed | best | delta |
+|---|---|---|---|---|---|---|
+| prob_22 | .0300 | 100 | 2 | 783,112 | **731,677** | **-6.57%** |
+| prob_24 | .0225 | 100 | 3 | 320,012 | **312,907** | **-2.22%** |
+| prob_27 | .0300 | 150 | 2 | 22,779,813 | = | 0.00% |
+| prob_28 | .0225 | 150 | 3 | 1,457,151 | = | 0.00% |
+| prob_30 | .0150 | 150 | 2 | 2,402,644 | = | 0.00% |
+
+Selector totals across all five: **tardy 0/71**, z3 2/73, mix 2/73, bayslice 1/73,
+random 0/71.  Every improvement came from a selector that did not exist during the 689
+failed rounds.
+
+The moves are term trades, exactly as the flat-frontier reading predicts:
+
+    prob_22  [z3]        Z2 3704->3884 (worse), Z3 1930->1860 (better)  -3.51%
+             [mix]       Z2 3884->4159 (worse), Z3 1860->1798 (better)  -3.17%
+    prob_24  [bayslice]  Z2  716-> 635 (better), Z3 877->864 (better)   -1.35%
+             [mix]       Z2  635-> 306 (better), Z3 864->868 (worse)    -0.14%
+
+These are not noise.  The operator is strictly improving: it starts from a fixed seed,
+always includes each freed block's incumbent placement as a candidate (so the MIP can
+reproduce the incumbent), and accepts only solutions that `check_feasibility` confirms
+are both feasible and lower.
+
+Open: the three no-change instances are all n=150 and got 43-80 rounds against 50-123
+for n=100, with K fixed at 25 (17% of blocks freed vs 25%).  "No headroom" and "not
+enough search" are not yet distinguished.
