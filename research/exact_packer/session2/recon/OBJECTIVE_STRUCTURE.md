@@ -49,8 +49,34 @@ placement feasible**, and a model that forbids bbox overlap among co-present blo
 needs no polygons, no layers, and no crane constraint at all.
 
 This is a *restriction*: it gives up placements where bboxes overlap but the crane
-still gets through. Measured on prob_38 (`engt/_stack.py`): 9.04% of co-present
-same-bay pairs have overlapping footprints.
+still gets through. Measured across the density range, on our own pipeline solutions:
+
+| instance | co-present same-bay pairs | bbox-overlapping | share |
+|---|---|---|---|
+| prob_5 (low) | 671 | 88 | 13.1% |
+| prob_24 (low) | 925 | 166 | **18.0%** |
+| prob_33 (high) | 2703 | 356 | 13.2% |
+
+**This kills the full-instance bbox MIP**, and not for the reason expected. Our own
+solutions violate bbox non-overlap on 13-18% of co-present pairs, so they are
+*infeasible* for that model -- there is no warm start, and the restricted optimum is
+probably worse than what we already produce. The model cannot express what we do.
+
+Confirmed empirically before that was understood: Gurobi on prob_24 (n=100, 4950
+pairs, ~35k binaries) took 77s just to build, never accepted the partial warm start,
+and after 300s sat at an incumbent of 2.9e7 against our 3.07e5 with a 100% gap.
+
+**Correction to an earlier reading:** this bbox overlap was previously described as
+"stacking". That is not established. Blocks are polygons, and two bounding boxes can
+overlap while the polygons interlock in the plane (L-shapes nesting), which is
+probably the dominant case rather than vertical stacking. The sufficient condition
+`bbox non-overlap => feasible` still holds -- it is read straight off the code -- but
+restricting to it discards interlocking, not merely stacking.
+
+Modelling polygon non-overlap directly would remove the restriction, but non-convex
+pairwise separation needs a disjunction per separating axis per pair, which does not
+fit 4950 pairs. Gurobi's place here is the bay-window subproblem, which `cranepack`
+already covers.
 
 ## 4. The placement-mode "zoo" was one table
 
@@ -153,9 +179,13 @@ went with them.
 ## Where this leaves things
 
 The binding constraint is packing **shape**, and no model that omits it can predict
-Z1 -- that is the single common cause behind items 5, 6 and 7. The one untried route
-is the direction in item 3: forbid bbox overlap directly in a MIP (Gurobi is licensed
-and working here), which removes the crane from the model entirely. A uniform
-row/shelf knapsack version does *not* work on these instances -- prob_24's per-block
-minimum heights run 3-15 against bays 20-24 tall, so a uniform row height yields one
-row per bay and throws away ~40% of the vertical space.
+Z1 -- that is the single common cause behind items 5, 6 and 7. Item 3 was the one
+untried route and it is now closed too: our own solutions are infeasible for a
+bbox-non-overlap model, so it cannot even represent the incumbent. A uniform
+row/shelf knapsack version fails separately -- prob_24 per-block minimum heights run
+3-15 against bays 20-24 tall, so a uniform row height yields one row per bay and
+throws away ~40% of the vertical space.
+
+What is left standing: the packer itself is the only accurate model of Z1 we have.
+Any future search should treat it as the evaluator (item 7 showed the round-trip is
+exact) rather than trying to replace it with a relaxation.
