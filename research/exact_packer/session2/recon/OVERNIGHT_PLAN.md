@@ -13,8 +13,17 @@ Confirmed and committed:
 | `prefmid` on `dr >= 0.95` | **prob_38 -2.32%, prob_27 -1.56%** at 300s |
 | `prioN` order | none (never selected; measured worse, kept as a record) |
 
-Gate verified: prob_40 (dr .933, outside the band) is byte-identical ON vs OFF
-(1,732,271 both).
+Gate verified on the full A/B, 300s, all four arms:
+
+| instance | dr | OFF | ON | |
+|---|---|---|---|---|
+| prob_38 | .993 | 34,167,259 | **33,375,985** | **-2.32%** |
+| prob_27 | 1.041 | 22,829,843 | **22,474,515** | **-1.56%** |
+| prob_40 | .933 | 1,732,271 | 1,732,271 | identical (outside band) |
+| prob_33 | .840 | 6,392,540 | 6,392,540 | identical (outside band) |
+
+Both instances outside the band come back byte-identical, so the gate does what it
+claims and the change cannot regress anything below dr .95.
 
 The one measured win came from *where*, not *when*:
 
