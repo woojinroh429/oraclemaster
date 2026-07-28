@@ -789,7 +789,31 @@ struct Engine {
                         #pragma omp atomic
                         cb_n_cell += 1.0;
                     }
-                    if(use_sweep){bool clear=true;
+                    // TEST ORDER: hard-reject FIRST.  H rejects ~82% of cells and costs ONE
+                    // layer-0 bitmap probe, while the F sweep costs up to nl probes and only
+                    // clears ~15%.  Asking the cheap, high-yield question first lets the large
+                    // majority of cells exit after a single probe.  Pure reordering -- the
+                    // three outcomes and their conditions are unchanged.
+                    bool hardhit=false;
+                    if(use_sweep && HARDREJ && !H.empty() && nl>0){
+                        const LayerData&L0=od.layers[0];
+                        if(L0.npts>=3) hardhit=layer_hits_map(H[0],wpr,bayH,L0,ix,iy,true);
+                    }
+                    if(hardhit){
+                        ok=false;
+                        if(CBPROF_on()){
+                            #pragma omp atomic
+                            cb_n_hard += 1.0;
+                        }
+                        if(HARDAUDIT_on()){
+                            bool truth=placement_feasible_tl(TL[bay],bay,bid,oi,(double)ix,(double)iy,cur,ex);
+                            if(truth){
+                                #pragma omp atomic
+                                cb_n_badrej += 1.0;
+                            }
+                        }
+                    }
+                    else if(use_sweep){bool clear=true;
                         for(int k=0;k<nl&&clear;k++){const LayerData&L=od.layers[k];if(L.npts<3)continue;
                             if(CBPROF_on()){
                                 #pragma omp atomic
@@ -797,7 +821,7 @@ struct Engine {
                             }
                             if(layer_hits_map(F[k],wpr,bayH,L,ix,iy))clear=false;}
                         if(clear) ok=true;
-                        else if(HARDREJ && !H.empty() && ({
+                        else if(false && ({
                                 bool hard=false;
                                 if(nl>0){ const LayerData&L0=od.layers[0];
                                     if(L0.npts>=3) hard=layer_hits_map(H[0],wpr,bayH,L0,ix,iy,true); }
