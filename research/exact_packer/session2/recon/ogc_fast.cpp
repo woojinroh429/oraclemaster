@@ -849,6 +849,22 @@ struct Engine {
                 Bcur=std::max(1,std::min(Bmax,fit));
             }
             const int B=Bcur;                                    // width used by THIS level
+            // ADAPTIVE K (idea 8).  Width and candidates-per-state both spend the same
+            // budget, and which one pays better is instance-dependent -- so let the same
+            // measured-cost controller decide.  When the width controller has already hit
+            // its ceiling there is spare budget, and the only way to spend it is to look at
+            // MORE candidates per state.  env OGC_ADAPTK=0 pins K.
+            static const bool ADAPTK=[](){const char*e=getenv("OGC_ADAPTK");return !(e&&e[0]=='0');}();
+            int Kuse=K;
+            if(ADAPTK && ADAPTB && level>0 && work>0.0){
+                double per=elapsed()/work, left2=time_budget_s*0.90-elapsed();
+                int rem2=nord-level;
+                if(per>1e-12 && rem2>0){
+                    double afford=left2/(per*(double)rem2);      // states we could still expand
+                    if(afford > Bcur*1.5) Kuse=std::min(K*3, (int)(K*afford/std::max(1,Bcur)));
+                }
+                if(Kuse<1) Kuse=1;
+            }
             int bi=order[level]; int r=(int)shapes[bi].rt, pt=(int)shapes[bi].pt; double dd=shapes[bi].due;
             double wl=workloads[bi]; const auto& pr=shapes[bi].prefs;
             int nbeam=(int)beam.size();
@@ -881,17 +897,17 @@ struct Engine {
                         std::sort(ents.begin(),ents.end()); ents.erase(std::unique(ents.begin(),ents.end()),ents.end());
                         if((int)ents.size()>CBMAXENT) ents.resize(CBMAXENT);
                         for(int et:ents){ cc.clear();
-                            best_cell_contact_tl(TL,bi,et,step,pos_lam,prefw,mu,w1,w3,fut_beta,mean_proc,K,cc,w2,&st.loads);
+                            best_cell_contact_tl(TL,bi,et,step,pos_lam,prefw,mu,w1,w3,fut_beta,mean_proc,Kuse,cc,w2,&st.loads);
                             for(auto&cd:cc){ allc.push_back(cd); allc_ct.push_back({et,et+pt}); } }
                     } else {
                         int cur=r; cc.clear();
-                        best_cell_contact_tl(TL,bi,cur,step,pos_lam,prefw,mu,w1,w3,fut_beta,mean_proc,K,cc,w2,&st.loads);
+                        best_cell_contact_tl(TL,bi,cur,step,pos_lam,prefw,mu,w1,w3,fut_beta,mean_proc,Kuse,cc,w2,&st.loads);
                         if(cc.empty()){
                             std::vector<int> ents; ents.push_back(r);
                             for(int bay=0;bay<n_bays;bay++) for(const Placed& te:TL[bay]) if(te.ex>r) ents.push_back(te.ex);
                             std::sort(ents.begin(),ents.end()); ents.erase(std::unique(ents.begin(),ents.end()),ents.end());
                             for(int e:ents){ if(e==r)continue; cc.clear();
-                                best_cell_contact_tl(TL,bi,e,step,pos_lam,prefw,mu,w1,w3,fut_beta,mean_proc,K,cc,w2,&st.loads);
+                                best_cell_contact_tl(TL,bi,e,step,pos_lam,prefw,mu,w1,w3,fut_beta,mean_proc,Kuse,cc,w2,&st.loads);
                                 if(!cc.empty()){cur=e;break;} }
                         }
                         for(auto&cd:cc){ allc.push_back(cd); allc_ct.push_back({cur,cur+pt}); }
@@ -902,7 +918,7 @@ struct Engine {
                         for(int bay=0;bay<n_bays;bay++) for(const Placed& te:TL[bay]) if(te.ex>r) ents.push_back(te.ex);
                         std::sort(ents.begin(),ents.end()); ents.erase(std::unique(ents.begin(),ents.end()),ents.end());
                         for(int e:ents){ cc.clear();
-                            best_cell_contact_tl(TL,bi,e,step,pos_lam,prefw,mu,w1,w3,fut_beta,mean_proc,K,cc,w2,&st.loads);
+                            best_cell_contact_tl(TL,bi,e,step,pos_lam,prefw,mu,w1,w3,fut_beta,mean_proc,Kuse,cc,w2,&st.loads);
                             if(!cc.empty()){ for(auto&cd:cc){ allc.push_back(cd); allc_ct.push_back({e,e+pt}); } break; } }
                     }
                     if(allc.empty()){ outv.push_back(st); continue; }
@@ -944,6 +960,32 @@ struct Engine {
                     keyed[i]={ w1*c.gt + w3*c.gz3 - mu*c.gcontact + w2*obj2f(c.loads) + w1*hz, i };
             }
             std::sort(keyed.begin(),keyed.end(),[](const std::pair<double,int>&a,const std::pair<double,int>&b){return a.first<b.first;});
+            // CANONICAL DEDUP: two states that placed the SAME blocks in the same bays at the
+            // same times are the same layout however they were reached, yet they occupy two
+            // beam slots.  Hash the placement set order-INDEPENDENTLY (XOR of per-block field
+            // hashes, so permutations collide) and keep only the best-ranked representative.
+            // Frees width for genuinely different structures.  env OGC_DEDUP=0 disables.
+            // MEASURED INERT: identical to the last digit on prob_30/39/22/26/35.  Our beam
+            // uses a FIXED dispatch order, so every state at level k has placed the same block
+            // SET and differs only in placements -- two states can only collide if they made
+            // identical choices, which candidate generation already prevents.  The reference
+            // needs this because its orders vary.  Left in (it is free) but expect nothing.
+            static const bool DEDUP=[](){const char*e=getenv("OGC_DEDUP");return !(e&&e[0]=='0');}();
+            if(DEDUP){
+                std::unordered_set<uint64_t> seen; seen.reserve((size_t)nch*2);
+                int wk=0;
+                for(int i=0;i<nch;i++){
+                    const std::vector<int>& f=children[keyed[i].second].flat;
+                    uint64_t h=0;
+                    for(size_t q=0;q+6<f.size();q+=7){
+                        uint64_t e=1469598103934665603ULL;
+                        for(int z=0;z<7;z++){ e^=(uint64_t)(uint32_t)f[q+z]; e*=1099511628211ULL; }
+                        h^=e;                      // XOR -> block order does not matter
+                    }
+                    if(seen.insert(h).second) keyed[wk++]=keyed[i];
+                }
+                if(wk>0){ keyed.resize(wk); nch=wk; }
+            }
             // ADMISSIBLE PRUNING: a child whose lower bound already meets the best COMPLETE
             // solution seen cannot lead to a better one, so dropping it frees a beam slot for
             // a branch that still can -- the same width then searches strictly more.

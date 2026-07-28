@@ -709,22 +709,94 @@ def _anchor_of(prob_info, sol):
     return bay, sorted(range(n), key=lambda b: (ent[b], b))
 
 
-def _rung(prob_info, sol, budget, cfg, stay, share=1.0):
-    """RUNG: re-run the SAME beam, anchored on the incumbent with a stay weight.
-
-    This is the reference's rung_G and the infrastructure for it (anchor_bays / anchor_order
-    / stay_w) has been sitting in _contact_beam unused.  It is what turns one beam into a
-    search: the beam re-derives the incumbent's structure, so it starts from a good packing
-    instead of a blank bay, and migrates only the blocks where migrating strictly lowers the
-    objective.  A high stay weight explores near the incumbent, a low one roams.  Each rung
-    is judged on the FULL objective, so a rung that loses is simply discarded."""
+def _anchor_of(prob_info, sol):
+    """(bay per block, dispatch order) of a solution -- the anchor a rung re-derives from."""
     n = len(prob_info["blocks"])
-    ab, ao = _anchor_of(prob_info, sol)
+    bay = [-1] * n; ent = [0] * n
+    for t, ops in sol["operations"].items():
+        for op in ops:
+            if op["type"] == "ENTRY":
+                bay[op["block_id"]] = op["bay_id"]; ent[op["block_id"]] = int(t)
+    return bay, sorted(range(n), key=lambda b: (ent[b], b))
+
+
+def _cross(prob_info, a, b, rng, mut):
+    """CROSSOVER + MUTATION on anchors -- the beam is the decoder.
+
+    Two good solutions agree about most blocks and disagree about a minority; the
+    disagreements ARE the undecided decisions.  A child anchor inherits each block's bay
+    from one parent at random (uniform, so both structures actually mix rather than one
+    dominating), then MUTATION frees a fraction of blocks entirely (anchor -1 = the beam
+    may put them anywhere).  Freeing is the important half: without it every child is a
+    recombination of bays the parents already used and the population converges."""
+    n = len(prob_info["blocks"])
+    ba, oa = _anchor_of(prob_info, a)
+    bb, _ = _anchor_of(prob_info, b)
+    out = []
+    for i in range(n):
+        v = ba[i] if (bb[i] < 0 or rng.random() < 0.5) else bb[i]
+        out.append(-1 if rng.random() < mut else v)
+    return out, oa
+
+
+def _relink(prob_info, a, b):
+    """Deterministic blend, kept as the low-variance special case of _cross."""
+    n = len(prob_info["blocks"])
+    ba, oa = _anchor_of(prob_info, a)
+    bb, _ = _anchor_of(prob_info, b)
+    pref = [blk["bay_preferences"] for blk in prob_info["blocks"]]
+    out = [ba[i] if (ba[i] == bb[i] or bb[i] < 0)
+           else (ba[i] if pref[i][ba[i]] >= pref[i][bb[i]] else bb[i]) for i in range(n)]
+    return out, oa
+
+
+class _Bandit:
+    """Pick a knob value by what has actually worked ON THIS INSTANCE.
+
+    Used for the crane-contact weight: contact decides whether blocks nest tightly or
+    spread, and how much that is worth is an instance property, not a constant -- some
+    instances want tight packing (contact high), others want the descent paths kept open
+    (contact low).  Rather than gate on density, try each value, score it by the objective
+    it actually produced, and concentrate on the winner.  Optimism-under-uncertainty:
+    untried arms are picked first, then the best mean wins with a small exploration share."""
+
+    def __init__(self, arms, rng):
+        self.arms = list(arms); self.rng = rng
+        self.n = [0] * len(arms); self.tot = [0.0] * len(arms)
+
+    def pick(self):
+        for i, c in enumerate(self.n):
+            if c == 0:
+                return i
+        if self.rng.random() < 0.20:
+            return self.rng.randrange(len(self.arms))
+        return min(range(len(self.arms)), key=lambda i: self.tot[i] / max(1, self.n[i]))
+
+    def tell(self, i, score):
+        self.n[i] += 1; self.tot[i] += score
+
+    def report(self):
+        return ["%s:%d/%s" % (self.arms[i], self.n[i],
+                              ("%.3g" % (self.tot[i] / self.n[i])) if self.n[i] else "-")
+                for i in range(len(self.arms))]
+
+
+def _rung(prob_info, sol, budget, cfg, stay, share=1.0, anchor=None, mum=1.0):
+    """RUNG: re-run the SAME beam, anchored on a parent (or a bred anchor) with a stay
+    weight.  This is the reference's rung_G, whose infrastructure (anchor_bays /
+    anchor_order / stay_w) had been sitting in _contact_beam unused.  It is what turns one
+    beam into a search: the beam re-derives the anchor's structure, so it starts from a good
+    packing instead of a blank bay, and migrates only where migrating lowers the objective.
+    High stay weight explores near the parent, low roams.  Judged on the FULL objective, so
+    a rung that loses is simply discarded."""
+    n = len(prob_info["blocks"])
+    ab, ao = anchor if anchor is not None else _anchor_of(prob_info, sol)
     B = _beam_width(n, budget, cfg["Bmul"], share)
     try:
         r = _contact_beam(prob_info, budget, B=B, K=cfg["K"], pos_lam=cfg["pos_lam"],
                           order=cfg["order"], fut_beta=cfg["fut_beta"], prefw=cfg["prefw"],
-                          w3mul=cfg["w3mul"], anchor_bays=ab, anchor_order=ao, stay_w=stay)
+                          w3mul=cfg["w3mul"], anchor_bays=ab, anchor_order=ao, stay_w=stay,
+                          mum=mum)
     except Exception:
         return None
     return _recs_to_ops(r, n) if r else None
@@ -787,6 +859,7 @@ def _worker(args):
     #    The old pipeline lowered Z1 here with a 479-line ALNS; a rung does it with the
     #    machinery already in the beam.
     w3v = float(prob_info.get("weights", {}).get("w3", 1.0))
+    runner = (float("inf"), None)      # second-best, the other parent for relinking
     rung = 0
     while best[1] is not None:
         left = budget - (time.time() - t0)
@@ -794,13 +867,19 @@ def _worker(args):
             break
         cfg = axes[rung % len(axes)]
         stay = w3v * (4.0 ** (1 - (rung % 3)))      # 4x, 1x, 0.25x -- tight, then roaming
-        s = _rung(prob_info, best[1], min(left - 2.0, max(8.0, budget * 0.30)), cfg, stay, share)
+        anc = None
+        if runner[1] is not None and rung % 4 == 3:      # every 4th rung, relink instead
+            anc = _relink(prob_info, best[1], runner[1])
+        s = _rung(prob_info, best[1], min(left - 2.0, max(8.0, budget * 0.30)),
+                  cfg, stay, share, anc)
         rung += 1
         if s is None:
             continue
         o, _ = _total(prob_info, s)
         if o < best[0]:
-            best = (o, s)
+            runner = best; best = (o, s)             # demote the old best to second parent
+        elif o < runner[0]:
+            runner = (o, s)
 
     # 4. Z3 pass on whatever survived.
     left = budget - (time.time() - t0)
