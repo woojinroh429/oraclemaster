@@ -357,3 +357,48 @@ Checked in the same pass, since a tolerance pointing the wrong way is what cause
     footprint and `bmp_overlap` can over-report but never miss.  Sound direction.  Its
     integer-offset assumption holds: `find_best_placement` rounds every candidate with
     `std::round` before use.
+
+## Where the beam's time actually goes (measured, not guessed)
+
+Two ideas for widening the beam were refuted before this profile, both by measurement:
+
+**Objective-key dedup -- refuted.**  x, y and orientation appear nowhere in the objective, so
+states agreeing on (block, bay, entry) score identically forever and deduping them looked
+like free width.  The duplicate rate is exactly 0%: capping at one representative per key
+left every state standing (prob_38 11478/11478, prob_20 16153/16153, prob_30 6884/6884,
+prob_29 12846/12846).  Collisions are structurally impossible -- the dispatch order is
+fixed, so distinct parents hand distinct keys to their children by induction, and
+best_cell_contact returns at most one position per (bay, entry).
+
+The finding worth keeping is its inverse: the beam does not waste width on geometric
+variants, **it never explores geometry at all**.  Every (bay, entry) choice carries exactly
+one contact-greedy position, so a state whose packing turns out badly has no sibling with
+the same assignment and a different layout.
+
+**Interval-indexed timeline -- refuted.**  Only 10.6% of prob_17's blocks and 26.8% of
+prob_20's share time with an average block, so the linear timeline walk looked like 90%
+waste.  Keeping every timeline sorted by entry time makes the conflicting blocks a
+contiguous run (te.en < ex above, and te.ex <= te.en + max_pt puts te.en > en - max_pt
+below), and the beam output was byte-identical -- the window is exact.  It was also not
+faster: prob_20 55.0 -> 56.8s, prob_38 25.8 -> 26.4s, prob_29 8.4 -> 8.3s.  The interval
+test is two integer comparisons; rejecting 90% of blocks that cheaply already costs
+nothing, and the binary searches give back what they save.  Reverted.
+
+**The profile (OGC_CBPROF=1, B=16 K=6):**
+
+  prob_20  n=300  wall 56.2s  scan 55.6s  cells 202M    hard-reject 46.8%  exact 8.97% (17.7s)
+  prob_38  n=250  wall 26.9s  scan  8.9s  cells 1060M   hard-reject 98.3%  exact 0.48% ( 4.5s)
+
+They are bottlenecked in different places.
+
+*prob_20 is the scan, and the scan is candidate volume.*  202M cells examined; the bitmap
+prefilter is working (exact is down to 9%), but a bay of 40500 cells is swept in full for
+every orientation, every state, every level.  The lever is not a faster cell test, it is
+fewer cells: this beam ranks by CONTACT, so a position touching nothing can never win, yet
+we compute hundreds of millions of them.  Restricting candidates to contact-generating
+positions -- corner combinations against placed blocks, plus the walls -- is O(placed)
+instead of O(bay area) and is nearly lossless *for this scorer specifically*.
+
+*prob_38 is not the scan.*  8.9s of scanning inside a 26.9s call leaves 18s unaccounted for,
+and rebuild measures 0.0, so it is in the rollout or the per-state bookkeeping.  Needs its
+own instrumentation before anything is changed.
