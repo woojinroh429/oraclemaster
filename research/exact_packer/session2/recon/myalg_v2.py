@@ -889,44 +889,11 @@ def _balance(prob_info, sol, budget):
     return _build_operations(recs)
 
 
-def _assign(prob_info, sol, budget):
-    """GLOBAL bay assignment over FIXED entry times -- the beam's structural blind spot.
-
-    obj2 is the RANGE of u_j*load_j over the FINAL loads.  A sequential beam chooses a bay
-    for each block knowing only the prefix, so it cannot see the quantity it is being
-    scored on; that is why greedy d(obj2) was refuted earlier (the trueobj experiment made
-    Z2 three times WORSE while minimising d(obj2) at every step), and why single-block
-    repair cannot undo a large imbalance afterwards.  The decision has to be made for all
-    blocks at once.
-
-    Times are held exactly as the beam left them, so Z1 cannot move and the model is a
-    pure assignment: minimise w2*range(u_j*load_j) + w3*preference, subject to co-present
-    blocks fitting a bay.  The area row is a RELAXATION and is deliberately loose (real
-    solutions can violate a bbox bound -- polygons nest), so the result is only a proposal:
-    it is realised by the engine, blocks that will not fit stay where they were, and the
-    whole thing is kept only if the TRUE objective improves.  Runs on every instance; on
-    high density it finds nothing and is discarded."""
-    if not HAVE_ORTOOLS:
-        return None
-    try:
-        from ortools.sat.python import cp_model
-    except Exception:
-        return None
+def _assign_once(prob_info, ent, ext, bay, capf, tl):
+    """One CP-SAT bay assignment over FIXED entry times."""
+    from ortools.sat.python import cp_model
     B = prob_info["blocks"]; n = len(B); m = len(prob_info["bays"])
     w = prob_info["weights"]; w2 = float(w.get("w2", 0)); w3 = float(w.get("w3", 0))
-    if m < 2:
-        return None
-    ent = {}; ext = {}; bay = {}; ori = {}; px = {}; py = {}
-    for t, ops in sol["operations"].items():
-        for op in ops:
-            b = op["block_id"]
-            if op["type"] == "ENTRY":
-                ent[b] = int(t); bay[b] = op["bay_id"]; ori[b] = op["orient_idx"]
-                px[b] = op["x"]; py[b] = op["y"]
-            else:
-                ext[b] = int(t)
-    if len(ent) != n:
-        return None
     pref = [B[b]["bay_preferences"] for b in range(n)]
     mxp = [max(pref[b]) for b in range(n)]
     area = []
@@ -937,55 +904,122 @@ def _assign(prob_info, sol, budget):
             if best is None or a < best:
                 best = a
         area.append(int(round(best)))
-    cap = [prob_info["bays"][j]["width"] * prob_info["bays"][j]["height"] for j in range(m)]
+    cap = [prob_info["bays"][k]["width"] * prob_info["bays"][k]["height"] for k in range(m)]
     SC = 1000; avg = sum(cap) / m
-    U = [int(round(SC * avg / cap[j])) for j in range(m)]
+    U = [int(round(SC * avg / cap[k])) for k in range(m)]
     mdl = cp_model.CpModel()
-    x = [[mdl.NewBoolVar("x%d_%d" % (b, j)) for j in range(m)] for b in range(n)]
+    x = [[mdl.NewBoolVar("x%d_%d" % (b, k)) for k in range(m)] for b in range(n)]
     for b in range(n):
         mdl.Add(sum(x[b]) == 1)
-    ld = [mdl.NewIntVar(0, 10 ** 7, "l%d" % j) for j in range(m)]
-    for j in range(m):
-        mdl.Add(ld[j] == sum(x[b][j] * int(B[b]["workload"]) for b in range(n)))
+    ld = [mdl.NewIntVar(0, 10 ** 7, "l%d" % k) for k in range(m)]
+    for k in range(m):
+        mdl.Add(ld[k] == sum(x[b][k] * int(B[b]["workload"]) for b in range(n)))
     Mv = mdl.NewIntVar(0, 10 ** 12, "M")
-    for j in range(m):
-        for k in range(m):
-            if j != k:
-                mdl.Add(Mv >= U[j] * ld[j] - U[k] * ld[k])
-    for j in range(m):
+    for k in range(m):
+        for k2 in range(m):
+            if k != k2:
+                mdl.Add(Mv >= U[k] * ld[k] - U[k2] * ld[k2])
+    for k in range(m):
         for t in sorted(set(ent.values())):
             pres = [b for b in range(n) if ent[b] <= t < ext[b]]
             if pres:
-                mdl.Add(sum(x[b][j] * area[b] for b in pres) <= cap[j])
-    mdl.Minimize(w2 * Mv + w3 * SC * sum(x[b][j] * (mxp[b] - pref[b][j])
-                                         for b in range(n) for j in range(m)))
-    for b in range(n):                      # warm start: the beam's own answer
-        for j in range(m):
-            mdl.AddHint(x[b][j], 1 if bay[b] == j else 0)
+                mdl.Add(sum(x[b][k] * area[b] for b in pres) <= int(cap[k] * capf[k]))
+    mdl.Minimize(w2 * Mv + w3 * SC * sum(x[b][k] * (mxp[b] - pref[b][k])
+                                         for b in range(n) for k in range(m)))
+    for b in range(n):
+        for k in range(m):
+            mdl.AddHint(x[b][k], 1 if bay[b] == k else 0)
     slv = cp_model.CpSolver()
-    slv.parameters.max_time_in_seconds = max(1.0, min(budget * 0.6, 20.0))
+    slv.parameters.max_time_in_seconds = max(0.5, tl)
     slv.parameters.num_search_workers = 1
     st = slv.Solve(mdl)
     if st not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
         return None
-    want = [next(j for j in range(m) if slv.Value(x[b][j]) == 1) for b in range(n)]
+    return [next(k for k in range(m) if slv.Value(x[b][k]) == 1) for b in range(n)]
+
+
+def _realise(prob_info, want, ent, ext):
+    """Pack a wanted assignment at unchanged times.  A block that will not fit its wanted
+    bay SPILLS to its best alternative instead of failing the plan, and the spill count is
+    the Benders signal: a bay that could not take what the model gave it is over-subscribed
+    in reality, whatever the area row said."""
+    B = prob_info["blocks"]; n = len(B); m = len(prob_info["bays"])
+    pref = [B[b]["bay_preferences"] for b in range(n)]
     E = _ogc_fast_engine(prob_info); E.clear_all()
-    out = {}
-    for b in sorted(range(n), key=lambda b: ent[b]):
-        tgt = [want[b]] + [j for j in range(m) if j != want[b]]
-        r = E.feasible_scan(b, tgt, ent[b], ext[b], 1)
+    out = {}; spill = 0; hot = [0] * m
+    for b in sorted(range(n), key=lambda q: (ent[q], -B[q]["processing_time"])):
+        order = [want[b]] + sorted((k for k in range(m) if k != want[b]),
+                                   key=lambda k: -pref[b][k])
+        r = E.feasible_scan(b, order, ent[b], ext[b], 1)
         if not len(r):
-            return None                     # cannot realise -> abandon, caller keeps its own
+            return None, -1, hot
         pick = None
         for q in r:
             if int(q[0]) == want[b]:
                 pick = q; break
         if pick is None:
-            pick = r[0]
+            pick = max(r, key=lambda q: pref[b][int(q[0])])
+            spill += 1; hot[want[b]] += 1
         E.add(int(pick[0]), b, int(pick[1]), float(pick[2]), float(pick[3]), ent[b], ext[b])
         out[b] = {"block_id": b, "bay_id": int(pick[0]), "x": int(pick[2]), "y": int(pick[3]),
                   "orient_idx": int(pick[1]), "entry_time": ent[b], "exit_time": ext[b]}
-    return _build_operations([out[b] for b in range(n)])
+    return _build_operations([out[b] for b in range(n)]), spill, hot
+
+
+def _assign(prob_info, sol, budget):
+    """ASSIGNMENT SEARCH -- the half of the space the beam structurally cannot see.
+
+    The objective only ever reads (bay, entry time): x, y and orientation appear nowhere in
+    w1*Z1 + w2*Z2 + w3*Z3, so packing is a feasibility certificate and nothing more.  The
+    beam searches ENTRY TIMES well, being sequential in time, and bays badly, because obj2
+    is the RANGE of the FINAL loads and no prefix of a sequential search can see it --
+    greedy d(obj2) was refuted outright (trueobj made Z2 three times WORSE while minimising
+    it at every step).  This searches the other half: every block's bay at once, with times
+    pinned exactly as they are, so Z1 cannot move.
+
+    Benders feedback: the capacity row is bounding-box area, a relaxation and a loose one
+    (polygons nest, so real solutions can violate it).  When the realisation has to spill,
+    the bay it spilled FROM is provably over-subscribed in reality, so tighten that bay and
+    re-solve.  Kept only if the TRUE objective improves.  This is not a low-density mode --
+    it runs everywhere; where times are the binding decision it simply finds nothing."""
+    if not HAVE_ORTOOLS:
+        return None
+    B = prob_info["blocks"]; n = len(B); m = len(prob_info["bays"])
+    if m < 2:
+        return None
+    ent = {}; ext = {}; bay = {}
+    for t, ops in sol["operations"].items():
+        for op in ops:
+            b = op["block_id"]
+            if op["type"] == "ENTRY":
+                ent[b] = int(t); bay[b] = op["bay_id"]
+            else:
+                ext[b] = int(t)
+    if len(ent) != n:
+        return None
+    t0 = time.time(); capf = [1.0] * m
+    best = None; best_o = float("inf")
+    for _rnd in range(6):
+        left = budget - (time.time() - t0)
+        if left < 2.0:
+            break
+        try:
+            want = _assign_once(prob_info, ent, ext, bay, capf, min(left * 0.5, 10.0))
+        except Exception:
+            break
+        if want is None:
+            break
+        s, spill, hot = _realise(prob_info, want, ent, ext)
+        if s is not None:
+            o, _ = _total(prob_info, s)
+            if o < best_o:
+                best_o = o; best = s
+        if spill <= 0:
+            break                       # the plan realised exactly -> the model was right
+        for k in range(m):              # tighten exactly the bays that could not deliver
+            if hot[k] > 0:
+                capf[k] *= 0.90
+    return best
 
 
 def _worker(args):
@@ -1039,36 +1073,79 @@ def _worker(args):
         if o < best[0]:
             best = (o, s)
 
-    # 3. RUNGS: spend everything that is left re-running the beam anchored on the current
-    #    best.  This is the whole refinement stage -- no ALNS, no SA, no second algorithm,
-    #    just the same search restarted from a good structure with a decaying stay weight.
-    #    The old pipeline lowered Z1 here with a 479-line ALNS; a rung does it with the
-    #    machinery already in the beam.
+    # 3. ADAPTIVE SEARCH SPLIT -- the whole point, and why there is no density gate.
+    #
+    #    The objective reads only (bay, entry time); x, y and orientation appear nowhere in
+    #    w1*Z1 + w2*Z2 + w3*Z3.  Two searches cover those two halves:
+    #      TIME -- a beam rung, sequential in time and good at it
+    #      BAY  -- the CP-SAT assignment, which decides every bay at once and is the only
+    #              thing able to see obj2, the RANGE of the FINAL loads
+    #    Which half binds is an instance property, not something to classify on: where Z1
+    #    is 0 the times are free and the objective IS an assignment problem; where the yard
+    #    is congested the times are everything.  So do not gate -- run both, MEASURE the
+    #    objective improvement each produces per second, and give the next slice to
+    #    whichever is actually paying.  On low density the beam stops improving and the
+    #    budget drains into the assignment search by itself; on congested instances the
+    #    reverse.  The old pipeline needed a hand-drawn density threshold for this; here it
+    #    falls out of the measurement -- the same discipline that fixed the beam width,
+    #    where a predicted constant was 4x wrong and a measured one cannot be.
+    rng = random.Random(1234 + wid)
+    pool = [best] if best[1] is not None else []
+    band = _Bandit([0.25, 1.0, 4.0], rng)          # crane-contact weight, same idea
     w3v = float(prob_info.get("weights", {}).get("w3", 1.0))
-    runner = (float("inf"), None)      # second-best, the other parent for relinking
-    rung = 0
-    while best[1] is not None:
+    gen = 0
+    gain = {"time": 0.0, "bay": 0.0}               # objective improvement produced
+    spent = {"time": 1e-6, "bay": 1e-6}            # seconds spent producing it
+    tried = {"time": 0, "bay": 0}
+    while pool:
         left = budget - (time.time() - t0)
         if left < 10.0:
             break
-        cfg = axes[rung % len(axes)]
-        stay = w3v * (4.0 ** (1 - (rung % 3)))      # 4x, 1x, 0.25x -- tight, then roaming
-        anc = None
-        if runner[1] is not None and rung % 4 == 3:      # every 4th rung, relink instead
-            anc = _relink(prob_info, best[1], runner[1])
-        s = _rung(prob_info, best[1], min(left - 2.0, max(8.0, budget * 0.30)),
-                  cfg, stay, share, anc)
-        rung += 1
+        if tried["bay"] == 0 and HAVE_ORTOOLS:
+            half = "bay"
+        elif tried["time"] == 0:
+            half = "time"
+        elif rng.random() < 0.15:
+            half = "bay" if (HAVE_ORTOOLS and rng.random() < 0.5) else "time"
+        else:
+            half = max(gain, key=lambda h: gain[h] / spent[h])
+        before = pool[0][0]
+        slice_s = min(left - 2.0, max(8.0, budget * 0.22))
+        st0 = time.time(); ai = None
+        if half == "bay":
+            s = _assign(prob_info, pool[0][1], slice_s)
+        else:
+            cfg = axes[gen % len(axes)]
+            ai = band.pick()
+            stay = w3v * (4.0 ** (1 - (gen % 3)))
+            if len(pool) >= 2 and gen % 3 != 0:
+                pa, pb = rng.sample(pool, 2)
+                anc = (_relink(prob_info, pa[1], pb[1]) if gen % 6 == 1
+                       else _cross(prob_info, pa[1], pb[1], rng, 0.10 + 0.20 * rng.random()))
+                seed = pa[1]
+            else:
+                seed = pool[0][1]; anc = None
+            s = _rung(prob_info, seed, slice_s, cfg, stay, share, anc, band.arms[ai])
+            gen += 1
+        el = max(1e-6, time.time() - st0)
+        tried[half] += 1; spent[half] += el
         if s is None:
+            if ai is not None:
+                band.tell(ai, pool[0][0] * 1.05)
             continue
         o, _ = _total(prob_info, s)
-        if o < best[0]:
-            runner = best; best = (o, s)             # demote the old best to second parent
-        elif o < runner[0]:
-            runner = (o, s)
+        if ai is not None:
+            band.tell(ai, o)
+        if o < float("inf") and all(abs(o - q[0]) > 1e-9 for q in pool):
+            pool.append((o, s)); pool.sort(key=lambda q: q[0])
+            del pool[6:]
+        if pool[0][0] < before - 1e-9:
+            gain[half] += (before - pool[0][0])
+        if pool and pool[0][0] < best[0]:
+            best = pool[0]
 
-    # 4. POLISH: load balance, then Z3.  Both judged on the full objective.
-    for _pol in (_assign, _balance, _z3_improve):
+    # 4. Final polish -- both cheap, both judged on the full objective.
+    for _pol in (_balance, _z3_improve):
         left = budget - (time.time() - t0)
         if best[1] is None or left <= 2.0:
             break
@@ -1080,16 +1157,7 @@ def _worker(args):
                     best = (o, imp)
         except Exception:
             pass
-    left = budget - (time.time() - t0)
-    if False:
-        try:
-            imp = _z3_improve(prob_info, best[1], left - 1.0)
-            if imp is not None:
-                o, _ = _total(prob_info, imp)
-                if o < best[0]:
-                    best = (o, imp)
-        except Exception:
-            pass
+
     return best[1]
 
 
