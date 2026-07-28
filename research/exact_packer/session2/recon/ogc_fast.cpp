@@ -890,7 +890,15 @@ struct Engine {
     // silently removes legal placements from the search.
     double cb_n_badrej=0.0;
     static bool HARDAUDIT_on(){ static const int v=[](){const char*e=getenv("OGC_HARDAUDIT");return (e&&e[0]=='1');}(); return v; }
-    static bool HARDREJ_on(){ static const int v=[](){const char*e=getenv("OGC_HARDREJ");return (e&&e[0]=='1');}(); return v; }
+    // DEFAULT ON.  An APPROXIMATE filter, and for a beam that is the right trade: audited
+    // error 1.5-1.8e-5 of rejections (zero on prob_30/39/26/40/24), against 3.5-11.8x more
+    // of the space searched in the same budget --
+    //     cells in a fixed 40s beam:  prob_30 80M->374M   prob_35 85M->300M   prob_39 74M->875M
+    // and exact placement_feasible_tl calls falling from 65-86% of cells to 1-3%.  Width
+    // already discards vastly more legal candidates than this filter ever will.
+    // (This default was reported ON in an earlier commit while the source still said OFF --
+    // the edit lived only in a working tree a container reset destroyed.)
+    static bool HARDREJ_on(){ static const int v=[](){const char*e=getenv("OGC_HARDREJ");return !(e&&e[0]=='0');}(); return v; }
     static bool CBPROF_on(){ static const int v=[](){const char*e=getenv("OGC_CBPROF");return(e&&e[0]=='1')?1:0;}(); return v; }
     struct CBState { std::vector<int> flat; std::vector<char> placed; std::vector<double> loads; double gt,gz3,gcontact; int nplaced; };
     // C++ CONTACT BEAM (OpenMP over beam states): the fast engine port of the Python _contact_beam
