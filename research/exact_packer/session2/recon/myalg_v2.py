@@ -1170,111 +1170,85 @@ def _worker(args):
     except Exception:
         pass
 
-    # 2. BEAM on this worker's axes, widest budget first.
-    axes = [_AXES[(wid + i) % len(_AXES)] for i in range(len(_AXES))]
-    for cfg in axes:
-        left = budget - (time.time() - t0)
-        if left < 8.0:
-            break
-        # The FIRST axis gets the lion's share: on 150-250 block instances a beam that is
-        # cut short returns nothing at all, so a wide first attempt beats several starved
-        # ones.  Whatever it leaves is split across the rest for diversity on the small
-        # instances, where every axis completes easily.
-        slot = (0.60 if cfg is axes[0] else 0.25) * budget
-        try:
-            s = _beam_once(prob_info, max(8.0, min(left - 2.0, slot)), cfg, share)
-        except Exception:
-            s = None
-        if s is None:
-            continue
-        o, _ = _total(prob_info, s)
-        if o < best[0]:
-            best = (o, s)
-
-    # 3. ADAPTIVE SEARCH SPLIT -- the whole point, and why there is no density gate.
+    # 2. ONE MEASURED-PAYOFF LOOP over every operator there is.
     #
-    #    The objective reads only (bay, entry time); x, y and orientation appear nowhere in
-    #    w1*Z1 + w2*Z2 + w3*Z3.  Two searches cover those two halves:
-    #      TIME -- an anchored beam regrow, sequential in time and good at it
-    #      BAY  -- the CP-SAT assignment, which decides every bay at once and is the only
-    #              thing able to see obj2, the RANGE of the FINAL loads
-    #    Which half binds is an instance property, not something to classify on: where Z1
-    #    is 0 the times are free and the objective IS an assignment problem; where the yard
-    #    is congested the times are everything.  So do not gate -- run both, MEASURE the
-    #    objective improvement each produces per second, and give the next slice to
-    #    whichever is actually paying.  On low density the beam stops improving and the
-    #    budget drains into the assignment search by itself; on congested instances the
-    #    reverse.  The old pipeline needed a hand-drawn density threshold for this; here it
-    #    falls out of the measurement -- the same discipline that fixed the beam width,
-    #    where a predicted constant was 4x wrong and a measured one cannot be.
+    #    The objective reads only (bay, entry time) -- x, y and orientation appear nowhere in
+    #    w1*Z1 + w2*Z2 + w3*Z3 -- and which part binds is an instance property, not something
+    #    to classify on.  Where Z1 is 0 the times are free and the whole thing is an
+    #    assignment problem; where the yard is saturated the times are everything, and the
+    #    objective share we measured runs from 0% to 96% Z1 with nothing in between.
+    #
+    #    So nothing here is scheduled by a fixed share and nothing runs because of what kind
+    #    of instance this is.  Every operator gets one short probe to establish a rate, and
+    #    after that the budget goes to whichever is actually paying, in objective units per
+    #    second, with a little exploration so a slow starter can recover.  A hand-drawn
+    #    density threshold would have to guess this; a measured rate cannot be wrong about it.
     rng = random.Random(1234 + wid)
+    axes = [_AXES[(wid + i) % len(_AXES)] for i in range(len(_AXES))]
     pool = [best] if best[1] is not None else []
     band = _Bandit([0.25, 1.0, 4.0], rng)          # crane-contact weight, same idea
     w3v = float(prob_info.get("weights", {}).get("w3", 1.0))
-    gen = 0
-    gain = {"time": 0.0, "bay": 0.0}               # objective improvement produced
-    spent = {"time": 1e-6, "bay": 1e-6}            # seconds spent producing it
-    tried = {"time": 0, "bay": 0}
-    while pool:
+    gen = [0]
+
+    def _fresh(t):
+        gen[0] += 1
+        return _beam_once(prob_info, t, axes[gen[0] % len(axes)], share)
+
+    def _grow(t):
+        gen[0] += 1; g = gen[0]; ai = band.pick()
+        stay = w3v * (4.0 ** (1 - (g % 3)))
+        if len(pool) >= 2 and g % 3 != 0:
+            pa, pb = rng.sample(pool, 2)
+            anc = (_relink(prob_info, pa[1], pb[1]) if g % 6 == 1
+                   else _cross(prob_info, pa[1], pb[1], rng, 0.10 + 0.20 * rng.random()))
+            seed = pa[1]
+        else:
+            seed = pool[0][1]; anc = None
+        s = _regrow(prob_info, seed, t, axes[g % len(axes)], stay, share, anc, band.arms[ai])
+        band.tell(ai, _total(prob_info, s)[0] if s is not None else pool[0][0] * 1.05)
+        return s
+
+    ops = [("beam", _fresh, False),
+           ("grow", _grow, True),
+           ("bal",  lambda t: _balance(prob_info, pool[0][1], t), True),
+           ("pref", lambda t: _z3_improve(prob_info, pool[0][1], t), True)]
+    if HAVE_ORTOOLS:
+        ops.append(("bay", lambda t: _assign(prob_info, pool[0][1], t), True))
+    gain = [0.0] * len(ops); spent = [1e-6] * len(ops); tried = [0] * len(ops)
+
+    while True:
         left = budget - (time.time() - t0)
-        if left < 10.0:
+        if left < 8.0:
             break
-        if tried["bay"] == 0 and HAVE_ORTOOLS:
-            half = "bay"
-        elif tried["time"] == 0:
-            half = "time"
+        elig = [i for i in range(len(ops)) if pool or not ops[i][2]]
+        if not elig:
+            break
+        unt = [i for i in elig if tried[i] == 0]
+        if unt:
+            k = unt[0]
         elif rng.random() < 0.15:
-            half = "bay" if (HAVE_ORTOOLS and rng.random() < 0.5) else "time"
+            k = rng.choice(elig)
         else:
-            half = max(gain, key=lambda h: gain[h] / spent[h])
-        before = pool[0][0]
-        slice_s = min(left - 2.0, max(8.0, budget * 0.22))
-        st0 = time.time(); ai = None
-        if half == "bay":
-            s = _assign(prob_info, pool[0][1], slice_s)
-        else:
-            cfg = axes[gen % len(axes)]
-            ai = band.pick()
-            stay = w3v * (4.0 ** (1 - (gen % 3)))
-            if len(pool) >= 2 and gen % 3 != 0:
-                pa, pb = rng.sample(pool, 2)
-                anc = (_relink(prob_info, pa[1], pb[1]) if gen % 6 == 1
-                       else _cross(prob_info, pa[1], pb[1], rng, 0.10 + 0.20 * rng.random()))
-                seed = pa[1]
-            else:
-                seed = pool[0][1]; anc = None
-            s = _regrow(prob_info, seed, slice_s, cfg, stay, share, anc, band.arms[ai])
-            gen += 1
-        el = max(1e-6, time.time() - st0)
-        tried[half] += 1; spent[half] += el
+            k = max(elig, key=lambda i: gain[i] / spent[i])
+        # a first probe is short so every operator gets a rate early; once rated, a payer
+        # gets a full slice
+        slot = budget * (0.15 if tried[k] == 0 else 0.22)
+        before = pool[0][0] if pool else float("inf")
+        st = time.time()
+        try:
+            s = ops[k][1](max(8.0, min(left - 2.0, slot)))
+        except Exception:
+            s = None
+        tried[k] += 1; spent[k] += max(1e-6, time.time() - st)
         if s is None:
-            if ai is not None:
-                band.tell(ai, pool[0][0] * 1.05)
             continue
         o, _ = _total(prob_info, s)
-        if ai is not None:
-            band.tell(ai, o)
         if o < float("inf") and all(abs(o - q[0]) > 1e-9 for q in pool):
-            pool.append((o, s)); pool.sort(key=lambda q: q[0])
-            del pool[6:]
-        if pool[0][0] < before - 1e-9:
-            gain[half] += (before - pool[0][0])
+            pool.append((o, s)); pool.sort(key=lambda q: q[0]); del pool[6:]
+        if pool and pool[0][0] < before - 1e-9:
+            gain[k] += before - pool[0][0]
         if pool and pool[0][0] < best[0]:
             best = pool[0]
-
-    # 4. Final polish -- both cheap, both judged on the full objective.
-    for _pol in (_balance, _z3_improve):
-        left = budget - (time.time() - t0)
-        if best[1] is None or left <= 2.0:
-            break
-        try:
-            imp = _pol(prob_info, best[1], left - 1.0)
-            if imp is not None:
-                o, _ = _total(prob_info, imp)
-                if o < best[0]:
-                    best = (o, imp)
-        except Exception:
-            pass
 
     return best[1]
 
