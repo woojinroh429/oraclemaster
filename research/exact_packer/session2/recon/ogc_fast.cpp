@@ -522,6 +522,7 @@ struct Engine {
             std::vector<char> occ; buildOcc(timeline[bay],cur,ex,bayW,bayH,occ);
             std::vector<std::vector<uint64_t>> F;
             bool use_sweep=RASTER&&maxLb>0&&bayH>0&&bayH<20000;
+            const bool HARDREJ=HARDREJ_on();
             if(use_sweep){ F.assign(maxLb,std::vector<uint64_t>((size_t)bayH*wpr,0ULL));
                 for(const Placed& te: timeline[bay]){ if(!(cur<te.ex&&te.en<ex))continue;
                     bool nd=(te.en<=cur&&cur<te.ex)||(te.en<ex&&ex<=te.ex);
@@ -712,7 +713,9 @@ struct Engine {
             int bayH=(int)std::ceil(bh_j),bayW=(int)std::ceil(bw_j); int wpr=(bayW+64)>>6;
             std::vector<char> occ;
             std::vector<std::vector<uint64_t>> F;
+            std::vector<std::vector<uint64_t>> H;   // hard-reject twin of F (see below)
             bool use_sweep=RASTER&&maxLb>0&&bayH>0&&bayH<20000;
+            const bool HARDREJ=HARDREJ_on();
             // OR-STAMP GRID CACHE (our port of the reference's incremental Grid): the (occ,F) pair
             // for (bay,cur,ex,maxLb, overlapping-placed-content) is memoised thread-locally, so the
             // many sibling beam states that share a bay's contents skip the O(placed x footprint)
@@ -738,6 +741,21 @@ struct Engine {
             }
             if(!fhit){
                 buildOcc(TL[bay],cur,ex,bayW,bayH,occ);
+                // HARD-REJECT MAP.  F carries occupancy PLUS crane descent shadows, so a hit
+                // on it proves nothing -- the placement may still be legal and the exact test
+                // has to run.  Measured, that is 65-86% of all cells and 65-83% of the whole
+                // beam runtime: the filter can only ever say YES.
+                // H is the same union restricted to the residents' OWN layer k, i.e. plain
+                // geometric overlap at that layer.  Two solids in the same cell of the same
+                // layer is a physical collision, so a hit on H proves INFEASIBLE and the cell
+                // can be dropped without the exact test.  H subset F, so the two together
+                // sandwich the answer: miss F -> accept, hit H -> reject, between -> exact.
+                if(use_sweep){ H.assign(maxLb,std::vector<uint64_t>((size_t)bayH*wpr,0ULL));
+                    for(const Placed& te: TL[bay]){ if(!(cur<te.ex&&te.en<ex))continue;
+                        const OrientData& eod=shapes[te.bid].orients[te.orient]; int ne=(int)eod.layers.size();
+                        int tox=(int)std::floor(te.ox+0.5),toy=(int)std::floor(te.oy+0.5);
+                        for(int j=0;j<ne && j<maxLb;j++){const LayerData&L=eod.layers[j];if(L.npts<3)continue;
+                            or_layer_into_map(H[j],wpr,bayH,L,tox,toy);}}}
                 if(use_sweep){ F.assign(maxLb,std::vector<uint64_t>((size_t)bayH*wpr,0ULL));
                     for(const Placed& te: TL[bay]){ if(!(cur<te.ex&&te.en<ex))continue;
                         bool ndd=(te.en<=cur&&cur<te.ex)||(te.en<ex&&ex<=te.ex);
@@ -758,10 +776,42 @@ struct Engine {
                 int lox=(int)std::ceil(-od.x0),hix=(int)std::floor(bw_j-od.x1);
                 int loy=(int)std::ceil(-od.y0),hiy=(int)std::floor(bh_j-od.y1);
                 for(int ix=lox;ix<=hix;ix+=step)for(int iy=loy;iy<=hiy;iy+=step){
-                    bool ok; if(use_sweep){bool clear=true;
+                    bool ok;
+                    if(CBPROF_on()){
+                        #pragma omp atomic
+                        cb_n_cell += 1.0;
+                    }
+                    if(use_sweep){bool clear=true;
                         for(int k=0;k<nl&&clear;k++){const LayerData&L=od.layers[k];if(L.npts<3)continue;
+                            if(CBPROF_on()){
+                                #pragma omp atomic
+                                cb_n_bitmap += 1.0;
+                            }
                             if(layer_hits_map(F[k],wpr,bayH,L,ix,iy))clear=false;}
-                        ok=clear?true:placement_feasible_tl(TL[bay],bay,bid,oi,(double)ix,(double)iy,cur,ex);
+                        if(clear) ok=true;
+                        else if(HARDREJ && !H.empty() && ({
+                                bool hard=false;
+                                for(int k=0;k<nl&&!hard;k++){const LayerData&L=od.layers[k];
+                                    if(L.npts<3)continue;
+                                    if(layer_hits_map(H[k],wpr,bayH,L,ix,iy,true)) hard=true;}
+                                hard; })) {
+                            ok=false;                      // proven overlap -- no exact test
+                            if(CBPROF_on()){
+                                #pragma omp atomic
+                                cb_n_hard += 1.0;
+                            }
+                        }
+                        else {
+                            if(CBPROF_on()){
+                                auto _e0=std::chrono::steady_clock::now();
+                                ok=placement_feasible_tl(TL[bay],bay,bid,oi,(double)ix,(double)iy,cur,ex);
+                                double _de=std::chrono::duration<double>(std::chrono::steady_clock::now()-_e0).count();
+                                #pragma omp atomic
+                                cb_n_exact += 1.0;
+                                #pragma omp atomic
+                                cb_t_exact += _de;
+                            } else ok=placement_feasible_tl(TL[bay],bay,bid,oi,(double)ix,(double)iy,cur,ex);
+                        }
                     } else ok=placement_feasible_tl(TL[bay],bay,bid,oi,(double)ix,(double)iy,cur,ex);
                     if(!ok)continue;
                     int ct=contact_at(fp,ix,iy,occ,bayW,bayH);
@@ -793,6 +843,10 @@ struct Engine {
         for(int i=0;i<m;i++) out.push_back({cands[i].bay,cands[i].oi,cands[i].ix,cands[i].iy,cands[i].ct});
     }
     double cb_t_rebuild=0.0, cb_t_scan=0.0;
+    double cb_n_cell=0.0, cb_n_bitmap=0.0, cb_n_exact=0.0, cb_t_exact=0.0, cb_n_hard=0.0;
+    // DEFAULT OFF until the soundness audit below passes: a hard reject that is wrong
+    // silently removes legal placements from the search.
+    static bool HARDREJ_on(){ static const int v=[](){const char*e=getenv("OGC_HARDREJ");return (e&&e[0]=='1');}(); return v; }
     static bool CBPROF_on(){ static const int v=[](){const char*e=getenv("OGC_CBPROF");return(e&&e[0]=='1')?1:0;}(); return v; }
     struct CBState { std::vector<int> flat; std::vector<char> placed; std::vector<double> loads; double gt,gz3,gcontact; int nplaced; };
     // C++ CONTACT BEAM (OpenMP over beam states): the fast engine port of the Python _contact_beam
@@ -819,6 +873,7 @@ struct Engine {
         static const int CBWAIT=[](){const char*e=getenv("OGC_CBWAIT");return e?atoi(e):0;}();
         static const int CBMAXENT=[](){const char*e=getenv("OGC_CBMAXENT");return e?std::max(1,atoi(e)):4;}();
         const bool CBPROF=CBPROF_on(); cb_t_rebuild=0.0; cb_t_scan=0.0;
+        cb_n_cell=cb_n_bitmap=cb_n_exact=cb_t_exact=cb_n_hard=0.0;
         auto obj2f=[&](const std::vector<double>& loads){ double mn=1e18,mx=-1e18; for(int j=0;j<n_bays;j++){double v=u[j]*loads[j]; if(v<mn)mn=v; if(v>mx)mx=v;} return n_bays>1?(mx-mn):0.0; };
         double inc_obj=1e18;      // best COMPLETE objective seen -- the pruning threshold
         static const bool ADMP_LIVE=[](){const char*e=getenv("OGC_ADMP");return (e&&e[0]=='1');}();
@@ -1982,6 +2037,11 @@ PYBIND11_MODULE(ogc_fast,m){
              py::arg("prefw"),py::arg("mu"),py::arg("w1"),py::arg("w3"),
              py::arg("fut_beta")=0.0,py::arg("mean_proc")=1.0)
         .def("hz1_est",&Engine::hz1_est,py::arg("flat"),py::arg("areas"))
+        .def_readonly("cb_n_hard",&Engine::cb_n_hard)
+        .def_readonly("cb_n_cell",&Engine::cb_n_cell)
+        .def_readonly("cb_n_bitmap",&Engine::cb_n_bitmap)
+        .def_readonly("cb_n_exact",&Engine::cb_n_exact)
+        .def_readonly("cb_t_exact",&Engine::cb_t_exact)
         .def_readonly("cb_t_rebuild",&Engine::cb_t_rebuild)
         .def_readonly("cb_t_scan",&Engine::cb_t_scan)
         .def("contact_beam",&Engine::contact_beam,
