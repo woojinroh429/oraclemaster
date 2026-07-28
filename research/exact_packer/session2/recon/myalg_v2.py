@@ -889,6 +889,105 @@ def _balance(prob_info, sol, budget):
     return _build_operations(recs)
 
 
+def _assign(prob_info, sol, budget):
+    """GLOBAL bay assignment over FIXED entry times -- the beam's structural blind spot.
+
+    obj2 is the RANGE of u_j*load_j over the FINAL loads.  A sequential beam chooses a bay
+    for each block knowing only the prefix, so it cannot see the quantity it is being
+    scored on; that is why greedy d(obj2) was refuted earlier (the trueobj experiment made
+    Z2 three times WORSE while minimising d(obj2) at every step), and why single-block
+    repair cannot undo a large imbalance afterwards.  The decision has to be made for all
+    blocks at once.
+
+    Times are held exactly as the beam left them, so Z1 cannot move and the model is a
+    pure assignment: minimise w2*range(u_j*load_j) + w3*preference, subject to co-present
+    blocks fitting a bay.  The area row is a RELAXATION and is deliberately loose (real
+    solutions can violate a bbox bound -- polygons nest), so the result is only a proposal:
+    it is realised by the engine, blocks that will not fit stay where they were, and the
+    whole thing is kept only if the TRUE objective improves.  Runs on every instance; on
+    high density it finds nothing and is discarded."""
+    if not HAVE_ORTOOLS:
+        return None
+    try:
+        from ortools.sat.python import cp_model
+    except Exception:
+        return None
+    B = prob_info["blocks"]; n = len(B); m = len(prob_info["bays"])
+    w = prob_info["weights"]; w2 = float(w.get("w2", 0)); w3 = float(w.get("w3", 0))
+    if m < 2:
+        return None
+    ent = {}; ext = {}; bay = {}; ori = {}; px = {}; py = {}
+    for t, ops in sol["operations"].items():
+        for op in ops:
+            b = op["block_id"]
+            if op["type"] == "ENTRY":
+                ent[b] = int(t); bay[b] = op["bay_id"]; ori[b] = op["orient_idx"]
+                px[b] = op["x"]; py[b] = op["y"]
+            else:
+                ext[b] = int(t)
+    if len(ent) != n:
+        return None
+    pref = [B[b]["bay_preferences"] for b in range(n)]
+    mxp = [max(pref[b]) for b in range(n)]
+    area = []
+    for b in range(n):
+        best = None
+        for oi in range(len(B[b]["shape"])):
+            q = _orient_bbox(B[b], oi); a = (q[2] - q[0]) * (q[3] - q[1])
+            if best is None or a < best:
+                best = a
+        area.append(int(round(best)))
+    cap = [prob_info["bays"][j]["width"] * prob_info["bays"][j]["height"] for j in range(m)]
+    SC = 1000; avg = sum(cap) / m
+    U = [int(round(SC * avg / cap[j])) for j in range(m)]
+    mdl = cp_model.CpModel()
+    x = [[mdl.NewBoolVar("x%d_%d" % (b, j)) for j in range(m)] for b in range(n)]
+    for b in range(n):
+        mdl.Add(sum(x[b]) == 1)
+    ld = [mdl.NewIntVar(0, 10 ** 7, "l%d" % j) for j in range(m)]
+    for j in range(m):
+        mdl.Add(ld[j] == sum(x[b][j] * int(B[b]["workload"]) for b in range(n)))
+    Mv = mdl.NewIntVar(0, 10 ** 12, "M")
+    for j in range(m):
+        for k in range(m):
+            if j != k:
+                mdl.Add(Mv >= U[j] * ld[j] - U[k] * ld[k])
+    for j in range(m):
+        for t in sorted(set(ent.values())):
+            pres = [b for b in range(n) if ent[b] <= t < ext[b]]
+            if pres:
+                mdl.Add(sum(x[b][j] * area[b] for b in pres) <= cap[j])
+    mdl.Minimize(w2 * Mv + w3 * SC * sum(x[b][j] * (mxp[b] - pref[b][j])
+                                         for b in range(n) for j in range(m)))
+    for b in range(n):                      # warm start: the beam's own answer
+        for j in range(m):
+            mdl.AddHint(x[b][j], 1 if bay[b] == j else 0)
+    slv = cp_model.CpSolver()
+    slv.parameters.max_time_in_seconds = max(1.0, min(budget * 0.6, 20.0))
+    slv.parameters.num_search_workers = 1
+    st = slv.Solve(mdl)
+    if st not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
+        return None
+    want = [next(j for j in range(m) if slv.Value(x[b][j]) == 1) for b in range(n)]
+    E = _ogc_fast_engine(prob_info); E.clear_all()
+    out = {}
+    for b in sorted(range(n), key=lambda b: ent[b]):
+        tgt = [want[b]] + [j for j in range(m) if j != want[b]]
+        r = E.feasible_scan(b, tgt, ent[b], ext[b], 1)
+        if not len(r):
+            return None                     # cannot realise -> abandon, caller keeps its own
+        pick = None
+        for q in r:
+            if int(q[0]) == want[b]:
+                pick = q; break
+        if pick is None:
+            pick = r[0]
+        E.add(int(pick[0]), b, int(pick[1]), float(pick[2]), float(pick[3]), ent[b], ext[b])
+        out[b] = {"block_id": b, "bay_id": int(pick[0]), "x": int(pick[2]), "y": int(pick[3]),
+                  "orient_idx": int(pick[1]), "entry_time": ent[b], "exit_time": ext[b]}
+    return _build_operations([out[b] for b in range(n)])
+
+
 def _worker(args):
     prob_info, budget, wid, cwd, share = args
     try:
@@ -969,7 +1068,7 @@ def _worker(args):
             runner = (o, s)
 
     # 4. POLISH: load balance, then Z3.  Both judged on the full objective.
-    for _pol in (_balance, _z3_improve):
+    for _pol in (_assign, _balance, _z3_improve):
         left = budget - (time.time() - t0)
         if best[1] is None or left <= 2.0:
             break
