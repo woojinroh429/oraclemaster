@@ -1371,10 +1371,11 @@ def _worker(args):
     if HAVE_ORTOOLS:
         ops.append(("bay", lambda t: _assign(prob_info, pool[0][1], t), True))
     gain = [0.0] * len(ops); spent = [1e-6] * len(ops); tried = [0] * len(ops)
+    slot = [budget * float(os.environ.get("SLOTCAP", "0.30"))] * len(ops)   # learned below
 
     while True:
         left = budget - (time.time() - t0)
-        if left < 8.0:
+        if left < 2.0:
             break
         elig = [i for i in range(len(ops)) if pool or not ops[i][2]]
         if not elig:
@@ -1386,16 +1387,24 @@ def _worker(args):
             k = rng.choice(elig)
         else:
             k = max(elig, key=lambda i: gain[i] / spent[i])
-        # a first probe is short so every operator gets a rate early; once rated, a payer
-        # gets a full slice
-        slot = budget * (0.15 if tried[k] == 0 else 0.22)
+        # EACH OPERATOR LEARNS ITS OWN SLICE.  A single shared slice starves the loop: with
+        # five or six operators and 22% of the budget apiece, a 60s run is almost all probing,
+        # and the breeding never reaches a second generation -- measured, one crossover and one
+        # regrow in a whole worker.  But the operators are not the same size.  The polish
+        # passes finish in well under a second and were being handed the same slice as a beam
+        # that genuinely needs ten.  So hand out a generous slice the first time and then track
+        # what each one actually used, giving it a little headroom over that.
         before = pool[0][0] if pool else float("inf")
         st = time.time()
         try:
-            s = ops[k][1](max(8.0, min(left - 2.0, slot)))
+            s = ops[k][1](max(1.0, min(left - 1.0, slot[k])))
         except Exception:
             s = None
-        tried[k] += 1; spent[k] += max(1e-6, time.time() - st)
+        el = max(1e-6, time.time() - st)
+        tried[k] += 1; spent[k] += el
+        _cap = budget * float(os.environ.get("SLOTCAP", "0.30"))
+        slot[k] = min(_cap, max(1.0, 1.3 * el)) if tried[k] == 1 else \
+                  min(_cap, max(1.0, 0.6 * slot[k] + 0.4 * 1.3 * el))
         if s is None:
             continue
         o, _ = _total(prob_info, s)
