@@ -725,7 +725,27 @@ struct Engine {
             double v2=(j==bay)? uj*(loads[j]+wl) : v;
             if(v2<mn2)mn2=v2; if(v2>mx2)mx2=v2;
         }
-        return (mx2-mn2)-(mx-mn);
+        if(!BALTRAJ_on()) return (mx2-mn2)-(mx-mn);
+        // TRAJECTORY FORM.  obj2 is the range of the FINAL loads, an endpoint statistic, and
+        // greedily shrinking the range of the PARTIAL loads is a different objective that has
+        // already been measured to backfire (prob_26's Z2 came out 3x worse).  The endpoint is
+        // computable in advance, though: perfect balance means u_j*load_j equal across bays,
+        // so load_j is proportional to 1/u_j, and once `placed` workload is out the balanced
+        // common value is A = placed / sum_k(1/u_k).  Charge a candidate for how far ABOVE
+        // that running value it would push its own bay -- a deviation from a known trajectory
+        // rather than a greedy step on a range.  Nothing below the line is charged, so the
+        // term cannot reward starving a bay.
+        double placed=0.0; for(int j=0;j<n_bays;j++) placed+=loads[j];
+        double sinv=0.0;
+        for(int j=0;j<n_bays;j++){
+            double uj=(bw[j]*bh[j]>1e-9)? avg_ba/(bw[j]*bh[j]) : 1.0;
+            sinv += 1.0/std::max(1e-9,uj);
+        }
+        double A=(placed+wl)/std::max(1e-9,sinv);
+        double ub=(bw[bay]*bh[bay]>1e-9)? avg_ba/(bw[bay]*bh[bay]) : 1.0;
+        double before=std::max(0.0, ub*loads[bay]-A);
+        double after =std::max(0.0, ub*(loads[bay]+wl)-A);
+        return after-before;
     }
 
     void best_cell_contact_tl(const std::vector<std::vector<Placed>>& TL,int bid,int cur,int step,
@@ -742,7 +762,7 @@ struct Engine {
         for(int bay=0;bay<n_bays;bay++){
             double bw_j=bw[bay],bh_j=bh[bay];
             int bayH=(int)std::ceil(bh_j),bayW=(int)std::ceil(bw_j); int wpr=(bayW+64)>>6;
-            std::vector<char> occ;
+            std::vector<char> occ; std::vector<std::vector<char>> occLh;
             std::vector<std::vector<uint64_t>> F;
             std::vector<std::vector<uint64_t>> H;   // hard-reject twin of F (see below)
             bool use_sweep=RASTER&&maxLb>0&&bayH>0&&bayH<20000;
@@ -772,6 +792,7 @@ struct Engine {
             }
             if(!fhit){
                 buildOcc(TL[bay],cur,ex,bayW,bayH,occ);
+                if(LAYCT_on()) buildOccL(TL[bay],cur,ex,bayW,bayH,maxLb,occLh);
                 // HARD-REJECT MAP.  F carries occupancy PLUS crane descent shadows, so a hit
                 // on it proves nothing -- the placement may still be legal and the exact test
                 // has to run.  Measured, that is 65-86% of all cells and 65-83% of the whole
@@ -888,7 +909,15 @@ struct Engine {
                         }
                     } else ok=placement_feasible_tl(TL[bay],bay,bid,oi,(double)ix,(double)iy,cur,ex);
                     if(!ok)return;
-                    int ct=contact_at(fp,ix,iy,occ,bayW,bayH);
+                    // LAYER-AWARE CONTACT.  footprint() flattens every layer into one mask, so a
+                    // one-layer and a two-layer neighbour look identical -- but the crane descends
+                    // vertically, and a block standing beside a shorter one has its upper layers
+                    // against open air, obstructing later descents without buying any tightness.
+                    // Counting contact per layer charges exactly that: the upper layer earns
+                    // nothing unless the neighbour is equally tall.  env OGC_LAYCT=0 pins the
+                    // flattened count.
+                    int ct = LAYCT_on() ? contact_at_layered(footprintL(bid,oi),ix,iy,occLh,bayW,bayH)
+                                        : contact_at(fp,ix,iy,occ,bayW,bayH);
                     double sc;
                     if(use_ourscore()){
                         double bbp=std::max(1.0,(od.x1-od.x0)+(od.y1-od.y0));
@@ -990,6 +1019,10 @@ struct Engine {
     // (This default was reported ON in an earlier commit while the source still said OFF --
     // the edit lived only in a working tree a container reset destroyed.)
     static bool HARDREJ_on(){ static const int v=[](){const char*e=getenv("OGC_HARDREJ");return !(e&&e[0]=='0');}(); return v; }
+    // BALTRAJ -- charge deviation from the balanced-load trajectory instead of the greedy
+    // change in the partial range.  OGC_BALTRAJ=0 restores the range form.
+    static bool LAYCT_on(){ static const int v=[](){const char*e=getenv("OGC_LAYCT");return(e&&e[0]=='1')?1:0;}(); return v; }
+    static bool BALTRAJ_on(){ static const int v=[](){const char*e=getenv("OGC_BALTRAJ");return(e&&e[0]=='0')?0:1;}(); return v; }
     static bool ARAUDIT_on(){ static const int v=[](){const char*e=getenv("OGC_ARAUDIT");return(e&&e[0]=='1')?1:0;}(); return v; }
     // ARPRE -- area precheck for the retry path.  DEFAULT OFF: it is NOT the necessary
     // condition it was meant to be.  Auditing it (OGC_ARAUDIT=1: skip, then run the scan
@@ -1776,7 +1809,10 @@ struct Engine {
         for(int i=nord-1;i>=0;i--) suffix_w[i]=suffix_w[i+1]+workloads[order[i]];
         double mu_pos = 1e-3*std::min(w1p,w3p), wait_w = mu_pos*20.0;
         _perlayer = (std::getenv("OGC_PERLAYER")!=nullptr);
-        for(int b=0;b<nb;b++) for(int oi=0;oi<(int)shapes[b].orients.size();oi++){ footprint(b,oi); if(_perlayer) footprintL(b,oi); }
+        // footprintL must be materialised BEFORE the parallel region: the beam calls it from
+        // inside an OpenMP loop and the cache it writes to is not thread-safe.
+        for(int b=0;b<nb;b++) for(int oi=0;oi<(int)shapes[b].orients.size();oi++){
+            footprint(b,oi); if(_perlayer || LAYCT_on()) footprintL(b,oi); }
         WBState init; init.placed.assign(nb,0); init.loads.assign(n_bays,0.0); init.gt=0; init.gz3=0; init.gcontact=0; init.nplaced=0;
         std::vector<WBState> beam; beam.push_back(std::move(init));
         auto t0=std::chrono::steady_clock::now();
