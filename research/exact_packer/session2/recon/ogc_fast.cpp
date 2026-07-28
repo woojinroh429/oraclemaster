@@ -1136,6 +1136,26 @@ struct Engine {
                 }
                 if(wk>0){ keyed.resize(wk); nch=wk; }
             }
+            // OBJECTIVE-KEY DEDUP -- TRIED AND REFUTED, kept as a note because the idea is
+            // a natural one.  x, y and orientation appear nowhere in the objective (w1*Z1 sees
+            // entry times, w2*Z2 and w3*Z3 see bay assignment), so states agreeing on
+            // (block, bay, entry) score identically forever and holding both looked like two
+            // beam slots spent on one point of the objective space.
+            //
+            // MEASURED: the duplicate rate is exactly 0%.  Hashing only (block, bay, entry) and
+            // capping at ONE representative per key left every state standing --
+            //   prob_38 11478/11478, prob_20 16153/16153, prob_30 6884/6884, prob_29 12846/12846.
+            // The dispatch order is fixed, so every state at a level has placed the same block
+            // SET; distinct parents therefore hand distinct keys to their children by induction,
+            // and best_cell_contact returns at most one position per (bay, entry), so a single
+            // parent never produces two candidates that agree on the key either.  Collisions are
+            // structurally impossible, not merely rare.
+            //
+            // The useful reading is the opposite of the premise: the beam does not waste width on
+            // geometric variants, it never explores geometry at all.  Each (bay, entry) choice
+            // carries exactly one contact-greedy position, so a state whose packing turns out
+            // badly has no sibling with the same assignment and a different layout to fall back
+            // on.
             // ADMISSIBLE PRUNING: a child whose lower bound already meets the best COMPLETE
             // solution seen cannot lead to a better one, so dropping it frees a beam slot for
             // a branch that still can -- the same width then searches strictly more.
