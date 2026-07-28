@@ -249,6 +249,69 @@ been swept.
   by 11% in construction, so the boundary matters.
 * Re-check that best-of min() really protects the losing instances inside any wider band.
 
+## Phase 4 — the exchange rate: the preference prize cannot be collected
+
+Ejection-and-insert was the one operator that moved anything, so it got the budget it asked
+for. prob_29, 90s, windowed rescan (3.6-5.0x faster than the full scan, same answer 461
+times in 462), incremental undo, systematic sweep then annealing:
+
+| K | attempts | scans | accepted | result |
+|---|---|---|---|---|
+| 3 | 47,790 | 57,287 | **2** | -3.67% |
+| 6 | 32,461 | 39,697 | **2** | -3.67% |
+
+Identical to the last digit. Larger victim sets, a slack-shift reseat, tens of thousands of
+annealed attempts -- all of it finds the same two moves.
+
+The reason is arithmetic. Relocating one block to its preferred bay is worth `w3*gap/w1`
+tardiness units; freeing a slot in the popular bay costs `median resident pt - free slack`:
+
+| instance | prize (tardiness units) | cost | |
+|---|---|---|---|
+| prob_22 | 2.1 | 7.2 | **3.4x underwater** |
+| prob_29 | 1.0 | 8.3 | **8.5x** |
+| prob_24 | 0.9 | 11.0 | **12.3x** |
+| prob_21 | 0.8 | 16.0 | **20.9x** |
+| prob_30 | 1.0 | 8.4 | **8.5x** |
+
+`w1` dwarfs `w3`, so the entire preference prize per block is 1-2 tardiness units while the
+disturbance needed to collect it costs 7-16. **The Phase 2 bound of -22% to -56% was
+computed by permuting bay seats without charging for the disturbance; once charged it is
+gone.** Two accepted moves out of 47,790 attempts is the correct answer, not a search
+failure, and this closes the preference-reallocation line.
+
+### A routing rule proposed on this basis, and refuted by its own validation
+
+`r = w3 * mean(preference gap) / w1` looked like a gate-free way to decide where preference
+work pays. It does not predict anything:
+
+| instance | r | Z1 share | preference work at the pipeline level |
+|---|---|---|---|
+| prob_39 | **0.69** (lowest) | 87.2% | **won -2.30%** |
+| prob_38 | 1.36 | 91.1% | won -2.32% |
+| prob_27 | 2.13 | 90.0% | won -1.56% |
+| prob_37 | **9.96** (highest) | 29.9% | **0%** |
+
+The lowest r wins and the highest gets nothing, because the winning mechanism was never a
+Z1-for-Z3 trade: `prefbkt` on prob_39 moved Z2 3403 -> 1101 while Z1 went **up** by 6.
+Preference routing wins as a LOAD-BALANCING device, so a Z1/Z3 exchange rate cannot predict
+it. The rate is valid only for what it was derived for -- post-hoc reallocation of an
+existing solution.
+
+### What the same measurement says about where the objective actually is
+
+| prob_38 | prob_27 | prob_39 | prob_33 | prob_26 | prob_25 | prob_23 | prob_35 |
+|---|---|---|---|---|---|---|---|
+| 91.1% | 90.0% | 87.2% | 87.7% | 87.4% | 78.8% | 78.7% | 73.4% |
+
+Z1 share of the objective. **On 8 of 13 instances measured the objective is 73-91%
+tardiness**, and prob_22/prob_29 (Z1 = 0) have nothing left to win at all. The night was
+spent on a term worth 9-12% of the objective on most of the set.
+
+Tardiness is entirely congestion (rigorous bound `sum max(0, rel+pt-due)` = 0 everywhere),
+and congestion has never been attacked causally: we only ever look at which block is LATE,
+never at which block MADE it late. A late block is the victim, not the cause.
+
 ## Phase 3 — LBBD everywhere: made it run, and it still cannot work (definitive)
 
 The shipped LBBD is `_exact_reassign` (master = bay assignment in CP-SAT, subproblem =
