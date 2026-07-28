@@ -1054,21 +1054,37 @@ struct Engine {
         cb_n_cell=cb_n_bitmap=cb_n_exact=cb_t_exact=cb_n_hard=cb_n_badrej=0.0;
         cb_t_retry=cb_t_roll=cb_n_retry=0.0; cb_n_arskip=cb_n_arbad=0.0;
         auto obj2f=[&](const std::vector<double>& loads){ double mn=1e18,mx=-1e18; for(int j=0;j<n_bays;j++){double v=u[j]*loads[j]; if(v<mn)mn=v; if(v>mx)mx=v;} return n_bays>1?(mx-mn):0.0; };
-        // RANKING SPREAD.  obj2f is the exact objective and stays exact where the objective is
-        // computed -- but as a SEARCH signal the range is nearly blind: it sees only the
-        // heaviest and lightest bay, so on prob_20's five bays three of them can drift apart
-        // without moving it at all.  For ranking, use twice the RMS deviation from the
-        // balanced value instead.  It equals the range exactly when there are two bays, so
-        // w2 keeps its meaning, and it generalises to more by charging every bay's deviation
-        // rather than only the extremes.  env OGC_SPREAD=0 falls back to the range.
-        static const bool SPREAD=[](){const char*e=getenv("OGC_SPREAD");return !(e&&e[0]=='0');}();
+        // RANKING ON THE PROJECTED FINAL LOADS.
+        //
+        // obj2f is the exact objective and stays exact wherever the objective is evaluated.
+        // As a SEARCH signal, though, the range of the PARTIAL loads is the wrong quantity
+        // twice over: it is an endpoint statistic read halfway, and it sees only the heaviest
+        // and lightest bay, so on prob_20's five bays three of them can drift apart without
+        // moving it at all.
+        //
+        // Rather than swap in a different shape (an RMS spread charges every bay but
+        // over-penalises an even spread, and measured it split by bay count -- prob_17 better,
+        // prob_20 and prob_13 worse), keep the objective's own shape and evaluate it where it
+        // is actually collected.  The remaining workload is known; the best a completion can
+        // do with it is spread it in balanced proportion, share_j proportional to 1/u_j.  So
+        // project each bay to L_j + remaining*share_j and take the range of that.  Early on
+        // the projections are near-balanced and the signal is small but correctly ordered;
+        // by the last level it converges to the exact objective.
+        // env OGC_PROJ=0 ranks on the partial range as before.
+        static const bool PROJ=[](){const char*e=getenv("OGC_PROJ");return !(e&&e[0]=='0');}();
+        double sinv_=0.0; for(int j=0;j<n_bays;j++) sinv_+=1.0/std::max(1e-9,u[j]);
         auto obj2rank=[&](const std::vector<double>& loads){
             if(n_bays<2) return 0.0;
-            if(!SPREAD) return obj2f(loads);
-            double mean=0.0; for(int j=0;j<n_bays;j++) mean+=u[j]*loads[j];
-            mean/=(double)n_bays;
-            double ss=0.0; for(int j=0;j<n_bays;j++){ double dv=u[j]*loads[j]-mean; ss+=dv*dv; }
-            return 2.0*std::sqrt(ss/(double)n_bays);
+            if(!PROJ) return obj2f(loads);
+            double placed=0.0; for(int j=0;j<n_bays;j++) placed+=loads[j];
+            double rest=std::max(0.0, wl_total-placed);
+            double mn=1e18,mx=-1e18;
+            for(int j=0;j<n_bays;j++){
+                double share=(1.0/std::max(1e-9,u[j]))/std::max(1e-9,sinv_);
+                double v=u[j]*(loads[j]+rest*share);
+                if(v<mn)mn=v; if(v>mx)mx=v;
+            }
+            return mx-mn;
         };
         double inc_obj=1e18;      // best COMPLETE objective seen -- the pruning threshold
         static const bool ADMP_LIVE=[](){const char*e=getenv("OGC_ADMP");return (e&&e[0]=='1');}();
