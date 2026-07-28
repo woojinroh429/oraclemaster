@@ -902,8 +902,18 @@ struct Engine {
                     // Counting contact per layer charges exactly that: the upper layer earns
                     // nothing unless the neighbour is equally tall.  env OGC_LAYCT=0 pins the
                     // flattened count.
-                    int ct = LAYCT_on() ? contact_at_layered(footprintL(bid,oi),ix,iy,occLh,bayW,bayH)
-                                        : contact_at(fp,ix,iy,occ,bayW,bayH);
+                    // Summing the layers is NOT that signal -- it is that signal times a number.
+                    // Measured, the per-layer sum runs 1.35x to 1.95x the flat count (bay walls
+                    // get counted again at every layer), and mu is fixed, so simply swapping it
+                    // in makes tightness 1.4-2x louder against tardiness and preference.  That is
+                    // what broke it: prob_30 +41.0%, prob_26 +14.9%.  Dividing by the layer count
+                    // keeps the shape and drops the inflation -- a neighbour of matching height
+                    // scores what the flat count would give, a mismatched one a fraction of it.
+                    int ct;
+                    if(LAYCT_on()){
+                        int nlq=(int)od.layers.size(); if(nlq<1) nlq=1;
+                        ct = contact_at_layered(footprintL(bid,oi),ix,iy,occLh,bayW,bayH)/nlq;
+                    } else ct = contact_at(fp,ix,iy,occ,bayW,bayH);
                     double sc;
                     if(use_ourscore()){
                         double bbp=std::max(1.0,(od.x1-od.x0)+(od.y1-od.y0));
@@ -992,6 +1002,7 @@ struct Engine {
     // path, cb_t_roll the per-state completion rollouts.
     double cb_t_retry=0.0, cb_t_roll=0.0; double cb_n_retry=0.0;
     double cb_n_arskip=0.0, cb_n_arbad=0.0;   // area precheck: skips, and skips that were wrong
+    double cb_ct_flat=0.0, cb_ct_lay=0.0, cb_ct_n=0.0;   // contact magnitude census
     // DEFAULT OFF until the soundness audit below passes: a hard reject that is wrong
     // silently removes legal placements from the search.
     double cb_n_badrej=0.0;
@@ -1053,6 +1064,7 @@ struct Engine {
         const bool CBPROF=CBPROF_on(); cb_t_rebuild=0.0; cb_t_scan=0.0;
         cb_n_cell=cb_n_bitmap=cb_n_exact=cb_t_exact=cb_n_hard=cb_n_badrej=0.0;
         cb_t_retry=cb_t_roll=cb_n_retry=0.0; cb_n_arskip=cb_n_arbad=0.0;
+        cb_ct_flat=cb_ct_lay=cb_ct_n=0.0;
         auto obj2f=[&](const std::vector<double>& loads){ double mn=1e18,mx=-1e18; for(int j=0;j<n_bays;j++){double v=u[j]*loads[j]; if(v<mn)mn=v; if(v>mx)mx=v;} return n_bays>1?(mx-mn):0.0; };
         // NOTE on ranking obj2.  Two attempts to make this a better search signal both
         // failed, and one of them was bound to:
@@ -2381,6 +2393,9 @@ PYBIND11_MODULE(ogc_fast,m){
         .def_readonly("cb_t_roll",&Engine::cb_t_roll)
         .def_readonly("cb_n_arskip",&Engine::cb_n_arskip)
         .def_readonly("cb_n_arbad",&Engine::cb_n_arbad)
+        .def_readonly("cb_ct_flat",&Engine::cb_ct_flat)
+        .def_readonly("cb_ct_lay",&Engine::cb_ct_lay)
+        .def_readonly("cb_ct_n",&Engine::cb_ct_n)
         .def_readonly("cb_n_bitmap",&Engine::cb_n_bitmap)
         .def_readonly("cb_n_exact",&Engine::cb_n_exact)
         .def_readonly("cb_t_exact",&Engine::cb_t_exact)
