@@ -824,11 +824,33 @@ struct Engine {
         std::vector<CBState> beam; beam.push_back(std::move(init));
         auto t0=std::chrono::steady_clock::now();
         auto elapsed=[&](){ return std::chrono::duration<double>(std::chrono::steady_clock::now()-t0).count(); };
+        // ADAPTIVE BEAM WIDTH.  A width predicted from a formula is silently catastrophic:
+        // the beam returns NOTHING when it overruns, and the same constant was 4x wrong the
+        // moment the beam ran inside a worker pool (one core instead of four) -- every
+        // worker then returned the greedy floor and the 300s answer was worse than the 60s
+        // one.  So do not predict.  MEASURE: after each level, cost per (state x level) is
+        // known exactly, so the width that just fits the remaining levels in the remaining
+        // budget is known too.  Narrow when behind (completion is guaranteed), widen when
+        // ahead (the budget is actually spent).  env OGC_ADAPTB=0 pins the width.
+        static const bool ADAPTB=[](){const char*e=getenv("OGC_ADAPTB");return !(e&&e[0]=='0');}();
+        const int Bmax=std::max(1,B), Bstart=ADAPTB?std::max(1,std::min(B,8)):B;
+        int Bcur=Bstart; double work=0.0;   // work = sum over levels of (states expanded)
         for(int level=0; level<nord; level++){
             if(elapsed()>time_budget_s) return {1e18,{}};
+            if(ADAPTB && level>0 && work>0.0){
+                double per=elapsed()/work;                       // seconds per state-level
+                double left=time_budget_s*0.90-elapsed();
+                int rem=nord-level;
+                int fit=(per>1e-12&&rem>0)? (int)(left/(per*(double)rem)) : Bmax;
+                if(fit<1) fit=1;
+                if(fit>Bcur*2) fit=Bcur*2;                       // grow smoothly
+                Bcur=std::max(1,std::min(Bmax,fit));
+            }
+            const int B=Bcur;                                    // width used by THIS level
             int bi=order[level]; int r=(int)shapes[bi].rt, pt=(int)shapes[bi].pt; double dd=shapes[bi].due;
             double wl=workloads[bi]; const auto& pr=shapes[bi].prefs;
             int nbeam=(int)beam.size();
+            work += (double)nbeam;          // states expanded so far -> the cost unit
             std::vector<std::vector<CBState>> perstate(nbeam);
             #pragma omp parallel
             {

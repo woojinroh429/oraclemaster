@@ -637,20 +637,18 @@ def _recs_to_ops(recs, n):
     return _build_operations([recs[b] for b in range(n)])
 
 
-def _beam_width(n, budget, mul):
-    """The beam returns NOTHING when it overruns, so an over-ambitious width yields zero
-    rather than something slightly worse -- width has to be DERIVED, not configured.
-    Measured largest width that completes (_n/calib.py):
-
-        n=100  20s -> B=24      n=150  20s -> B=6
-        n=200  40s -> B=6       n=250  20s -> none at any width
-
-    Cost grows ~n^2, so B = a*budget/n^2 with a=6000 reproduces each of those from just
-    below (100/20s -> 12, 150/20s -> 5, 200/40s -> 6, 250/40s -> 4).  cfg only scales it."""
-    return max(3, min(96, int(mul * 6000.0 * budget / max(1.0, float(n) ** 2))))
+def _beam_width(n, budget, mul, share=1.0):
+    """Just a CAP now.  The width used to be predicted from a fitted constant, which was
+    silently catastrophic -- the beam returns NOTHING when it overruns, and the constant was
+    4x wrong the moment the beam ran one-core inside the pool, so every worker fell back to
+    the greedy floor and the 300s answer came out worse than the 60s one.  The engine now
+    adapts the width per level from its own measured cost (OGC_ADAPTB, on by default), so
+    all that is needed here is a generous ceiling: measured at Bmax=96/60s, fixed width
+    finished NONE of prob_30/35/39 while adaptive finished all three using ~95% of budget."""
+    return max(8, min(96, int(mul * 96)))
 
 
-def _beam_once(prob_info, budget, cfg):
+def _beam_once(prob_info, budget, cfg, share=1.0):
     """One beam run, then a RESOLUTION LADDER if it cannot finish.
 
     This is the one place the rebuild could not stay single-shot: past ~200 blocks no beam
@@ -664,7 +662,7 @@ def _beam_once(prob_info, budget, cfg):
         left = budget - (time.time() - t0)
         if left < 4.0:
             break
-        B = _beam_width(n, budget, cfg["Bmul"] * mul)
+        B = _beam_width(n, budget, cfg["Bmul"] * mul, share)
         try:
             r = _contact_beam(prob_info, left, B=B, K=cfg["K"], pos_lam=cfg["pos_lam"],
                               order=cfg["order"], fut_beta=cfg["fut_beta"],
@@ -711,7 +709,7 @@ def _anchor_of(prob_info, sol):
     return bay, sorted(range(n), key=lambda b: (ent[b], b))
 
 
-def _rung(prob_info, sol, budget, cfg, stay):
+def _rung(prob_info, sol, budget, cfg, stay, share=1.0):
     """RUNG: re-run the SAME beam, anchored on the incumbent with a stay weight.
 
     This is the reference's rung_G and the infrastructure for it (anchor_bays / anchor_order
@@ -722,7 +720,7 @@ def _rung(prob_info, sol, budget, cfg, stay):
     is judged on the FULL objective, so a rung that loses is simply discarded."""
     n = len(prob_info["blocks"])
     ab, ao = _anchor_of(prob_info, sol)
-    B = _beam_width(n, budget, cfg["Bmul"])
+    B = _beam_width(n, budget, cfg["Bmul"], share)
     try:
         r = _contact_beam(prob_info, budget, B=B, K=cfg["K"], pos_lam=cfg["pos_lam"],
                           order=cfg["order"], fut_beta=cfg["fut_beta"], prefw=cfg["prefw"],
@@ -733,7 +731,7 @@ def _rung(prob_info, sol, budget, cfg, stay):
 
 
 def _worker(args):
-    prob_info, budget, wid, cwd = args
+    prob_info, budget, wid, cwd, share = args
     try:
         import os as _o, sys as _s
         if cwd and cwd not in _s.path:
@@ -772,9 +770,9 @@ def _worker(args):
         # cut short returns nothing at all, so a wide first attempt beats several starved
         # ones.  Whatever it leaves is split across the rest for diversity on the small
         # instances, where every axis completes easily.
-        share = (0.60 if cfg is axes[0] else 0.25) * budget
+        slot = (0.60 if cfg is axes[0] else 0.25) * budget
         try:
-            s = _beam_once(prob_info, max(8.0, min(left - 2.0, share)), cfg)
+            s = _beam_once(prob_info, max(8.0, min(left - 2.0, slot)), cfg, share)
         except Exception:
             s = None
         if s is None:
@@ -796,7 +794,7 @@ def _worker(args):
             break
         cfg = axes[rung % len(axes)]
         stay = w3v * (4.0 ** (1 - (rung % 3)))      # 4x, 1x, 0.25x -- tight, then roaming
-        s = _rung(prob_info, best[1], min(left - 2.0, max(8.0, budget * 0.30)), cfg, stay)
+        s = _rung(prob_info, best[1], min(left - 2.0, max(8.0, budget * 0.30)), cfg, stay, share)
         rung += 1
         if s is None:
             continue
@@ -835,11 +833,11 @@ def algorithm(prob_info, timelimit=60):
     try:
         if nw > 1:
             with multiprocessing.Pool(processes=nw) as pool:
-                out = pool.map(_worker, [(prob_info, wbudget, i, cwd) for i in range(nw)])
+                out = pool.map(_worker, [(prob_info, wbudget, i, cwd, 1.0 / nw) for i in range(nw)])
         else:
-            out = [_worker((prob_info, wbudget, 0, cwd))]
+            out = [_worker((prob_info, wbudget, 0, cwd, 1.0))]
     except Exception:
-        out = [_worker((prob_info, wbudget, 0, cwd))]
+        out = [_worker((prob_info, wbudget, 0, cwd, 1.0))]
     for s in out:
         if s is None:
             continue
