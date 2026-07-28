@@ -802,6 +802,93 @@ def _rung(prob_info, sol, budget, cfg, stay, share=1.0, anchor=None, mum=1.0):
     return _recs_to_ops(r, n) if r else None
 
 
+def _balance(prob_info, sol, budget):
+    """LOAD-BALANCE polish -- the one thing the beam structurally cannot do.
+
+    The beam places blocks in dispatch order, so when it chooses a bay it does not know
+    what is still coming; obj2 is the RANGE of u_j*load_j over the FINAL loads, which no
+    prefix can see.  On the low-density class that is fatal, because Z1 is 0 there and Z2
+    owns the objective: measured 60s paired, v2 lost prob_1 +37.8%, prob_6 +39.1%,
+    prob_5 +21.8%, prob_10 +12.6% -- while BEATING the old pipeline on Z3 (prob_3 271 -> 49,
+    prob_1 2 -> 0).  The old pipeline covered this with a CP-SAT assignment; the rebuild
+    deleted it.
+
+    This is the missing half, and it is deliberately not a mode: it runs on every instance,
+    moves one block at a time to a bay that lowers the TRUE objective (Z2 exactly, Z3
+    exactly, Z1 unchanged because the entry time never moves), and the engine is the only
+    feasibility authority.  Where Z2 is already tight it finds nothing and costs a scan."""
+    B = prob_info["blocks"]; n = len(B); m = len(prob_info["bays"])
+    w = prob_info["weights"]; w2 = float(w.get("w2", 0)); w3 = float(w.get("w3", 0))
+    if m < 2 or w2 <= 0:
+        return None
+    ent = {}; ext = {}; bay = {}; ori = {}; px = {}; py = {}
+    for t, ops in sol["operations"].items():
+        for op in ops:
+            b = op["block_id"]
+            if op["type"] == "ENTRY":
+                ent[b] = int(t); bay[b] = op["bay_id"]; ori[b] = op["orient_idx"]
+                px[b] = op["x"]; py[b] = op["y"]
+            else:
+                ext[b] = int(t)
+    if len(ent) != n:
+        return None
+    pref = [B[b]["bay_preferences"] for b in range(n)]
+    mxp = [max(pref[b]) for b in range(n)]
+    wl = [float(B[b].get("workload", 0.0)) for b in range(n)]
+    ar = [prob_info["bays"][j]["width"] * prob_info["bays"][j]["height"] for j in range(m)]
+    av = sum(ar) / m
+    u = [av / a if a else 0.0 for a in ar]
+    load = [0.0] * m
+    for b in range(n):
+        load[bay[b]] += wl[b]
+
+    def o2(ld):
+        v = [u[j] * ld[j] for j in range(m)]
+        return math.floor(max(v) - min(v))
+
+    E = _ogc_fast_engine(prob_info); E.clear_all()
+    for b in range(n):
+        E.add(bay[b], b, int(ori[b]), float(px[b]), float(py[b]), ent[b], ext[b])
+    t0 = time.time(); moved = 0; improved = True
+    while improved and time.time() - t0 < budget:
+        improved = False
+        # the blocks in the heaviest and lightest bays are the only ones that can move the
+        # range, so try them first
+        lv = [u[j] * load[j] for j in range(m)]
+        hot = max(range(m), key=lambda j: lv[j])
+        order = sorted((b for b in range(n) if bay[b] == hot), key=lambda b: -wl[b])
+        for b in order:
+            if time.time() - t0 > budget:
+                break
+            cur = w2 * o2(load) + w3 * sum(mxp[c] - pref[c][bay[c]] for c in range(n))
+            best = None
+            for j in range(m):
+                if j == bay[b]:
+                    continue
+                ld = load[:]; ld[bay[b]] -= wl[b]; ld[j] += wl[b]
+                cand = w2 * o2(ld) + w3 * (sum(mxp[c] - pref[c][bay[c]] for c in range(n))
+                                           - (mxp[b] - pref[b][bay[b]]) + (mxp[b] - pref[b][j]))
+                if cand < cur - 1e-9 and (best is None or cand < best[0]):
+                    best = (cand, j, ld)
+            if best is None:
+                continue
+            _c, j, ld = best
+            old = (bay[b], ori[b], px[b], py[b])
+            E.remove(b)
+            r = E.feasible_scan(b, [j], ent[b], ext[b], 1)
+            if len(r):
+                E.add(j, b, int(r[0][1]), float(r[0][2]), float(r[0][3]), ent[b], ext[b])
+                bay[b], ori[b], px[b], py[b] = j, int(r[0][1]), int(r[0][2]), int(r[0][3])
+                load = ld; moved += 1; improved = True
+            else:
+                E.add(old[0], b, int(old[1]), float(old[2]), float(old[3]), ent[b], ext[b])
+    if not moved:
+        return None
+    recs = [{"block_id": b, "bay_id": bay[b], "x": px[b], "y": py[b], "orient_idx": ori[b],
+             "entry_time": ent[b], "exit_time": ext[b]} for b in range(n)]
+    return _build_operations(recs)
+
+
 def _worker(args):
     prob_info, budget, wid, cwd, share = args
     try:
@@ -881,9 +968,21 @@ def _worker(args):
         elif o < runner[0]:
             runner = (o, s)
 
-    # 4. Z3 pass on whatever survived.
+    # 4. POLISH: load balance, then Z3.  Both judged on the full objective.
+    for _pol in (_balance, _z3_improve):
+        left = budget - (time.time() - t0)
+        if best[1] is None or left <= 2.0:
+            break
+        try:
+            imp = _pol(prob_info, best[1], left - 1.0)
+            if imp is not None:
+                o, _ = _total(prob_info, imp)
+                if o < best[0]:
+                    best = (o, imp)
+        except Exception:
+            pass
     left = budget - (time.time() - t0)
-    if best[1] is not None and left > 3.0:
+    if False:
         try:
             imp = _z3_improve(prob_info, best[1], left - 1.0)
             if imp is not None:
