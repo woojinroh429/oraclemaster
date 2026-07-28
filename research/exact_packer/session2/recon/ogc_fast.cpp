@@ -971,6 +971,11 @@ struct Engine {
     }
     double cb_t_rebuild=0.0, cb_t_scan=0.0;
     double cb_n_cell=0.0, cb_n_bitmap=0.0, cb_n_exact=0.0, cb_t_exact=0.0, cb_n_hard=0.0;
+    // Only the first-choice scan was ever timed.  On a dense instance the first choice
+    // usually finds nothing, and the retry over later entry times rescans the whole
+    // candidate set once per entry time -- that work was invisible.  cb_t_retry is that
+    // path, cb_t_roll the per-state completion rollouts.
+    double cb_t_retry=0.0, cb_t_roll=0.0; double cb_n_retry=0.0;
     // DEFAULT OFF until the soundness audit below passes: a hard reject that is wrong
     // silently removes legal placements from the search.
     double cb_n_badrej=0.0;
@@ -1012,6 +1017,7 @@ struct Engine {
         static const int CBMAXENT=[](){const char*e=getenv("OGC_CBMAXENT");return e?std::max(1,atoi(e)):4;}();
         const bool CBPROF=CBPROF_on(); cb_t_rebuild=0.0; cb_t_scan=0.0;
         cb_n_cell=cb_n_bitmap=cb_n_exact=cb_t_exact=cb_n_hard=cb_n_badrej=0.0;
+        cb_t_retry=cb_t_roll=cb_n_retry=0.0;
         auto obj2f=[&](const std::vector<double>& loads){ double mn=1e18,mx=-1e18; for(int j=0;j<n_bays;j++){double v=u[j]*loads[j]; if(v<mn)mn=v; if(v>mx)mx=v;} return n_bays>1?(mx-mn):0.0; };
         double inc_obj=1e18;      // best COMPLETE objective seen -- the pruning threshold
         static const bool ADMP_LIVE=[](){const char*e=getenv("OGC_ADMP");return (e&&e[0]=='1');}();
@@ -1096,7 +1102,13 @@ struct Engine {
                         std::sort(ents.begin(),ents.end()); ents.erase(std::unique(ents.begin(),ents.end()),ents.end());
                         if((int)ents.size()>CBMAXENT) ents.resize(CBMAXENT);
                         for(int et:ents){ cc.clear();
+                            { std::chrono::steady_clock::time_point _r0;
+                              if(CBPROF) _r0=std::chrono::steady_clock::now();
                             best_cell_contact_tl(TL,bi,et,step,pos_lam,prefw,mu,w1,w3,fut_beta,mean_proc,Kuse,cc,w2,&st.loads);
+                              if(CBPROF){ double _dr=std::chrono::duration<double>(
+                                    std::chrono::steady_clock::now()-_r0).count();
+                                _Pragma("omp atomic") cb_t_retry += _dr;
+                                _Pragma("omp atomic") cb_n_retry += 1.0; } }
                             for(auto&cd:cc){ allc.push_back(cd); allc_ct.push_back({et,et+pt}); } }
                     } else {
                         int cur=r; cc.clear();
@@ -1112,7 +1124,13 @@ struct Engine {
                             for(int bay=0;bay<n_bays;bay++) for(const Placed& te:TL[bay]) if(te.ex>r) ents.push_back(te.ex);
                             std::sort(ents.begin(),ents.end()); ents.erase(std::unique(ents.begin(),ents.end()),ents.end());
                             for(int e:ents){ if(e==r)continue; cc.clear();
+                                { std::chrono::steady_clock::time_point _r0;
+                                  if(CBPROF) _r0=std::chrono::steady_clock::now();
                                 best_cell_contact_tl(TL,bi,e,step,pos_lam,prefw,mu,w1,w3,fut_beta,mean_proc,Kuse,cc,w2,&st.loads);
+                                  if(CBPROF){ double _dr=std::chrono::duration<double>(
+                                        std::chrono::steady_clock::now()-_r0).count();
+                                    _Pragma("omp atomic") cb_t_retry += _dr;
+                                    _Pragma("omp atomic") cb_n_retry += 1.0; } }
                                 if(!cc.empty()){cur=e;break;} }
                         }
                         for(auto&cd:cc){ allc.push_back(cd); allc_ct.push_back({cur,cur+pt}); }
@@ -1123,7 +1141,13 @@ struct Engine {
                         for(int bay=0;bay<n_bays;bay++) for(const Placed& te:TL[bay]) if(te.ex>r) ents.push_back(te.ex);
                         std::sort(ents.begin(),ents.end()); ents.erase(std::unique(ents.begin(),ents.end()),ents.end());
                         for(int e:ents){ cc.clear();
+                            { std::chrono::steady_clock::time_point _r0;
+                              if(CBPROF) _r0=std::chrono::steady_clock::now();
                             best_cell_contact_tl(TL,bi,e,step,pos_lam,prefw,mu,w1,w3,fut_beta,mean_proc,Kuse,cc,w2,&st.loads);
+                              if(CBPROF){ double _dr=std::chrono::duration<double>(
+                                    std::chrono::steady_clock::now()-_r0).count();
+                                _Pragma("omp atomic") cb_t_retry += _dr;
+                                _Pragma("omp atomic") cb_n_retry += 1.0; } }
                             if(!cc.empty()){ for(auto&cd:cc){ allc.push_back(cd); allc_ct.push_back({e,e+pt}); } break; } }
                     }
                     if(allc.empty()){ outv.push_back(st); continue; }
@@ -1273,7 +1297,11 @@ struct Engine {
         }
         double best_obj=1e18; std::vector<int> best_flat;
         for(auto& st: beam){
+            std::chrono::steady_clock::time_point _g0;
+            if(CBPROF) _g0=std::chrono::steady_clock::now();
             auto res = greedy_contact_from(st.flat, order, step, pos_lam, prefw, mu, w1, w3, fut_beta, mean_proc);
+            if(CBPROF) cb_t_roll += std::chrono::duration<double>(
+                           std::chrono::steady_clock::now()-_g0).count();
             std::vector<int>& flat = res.second;
             if((int)flat.size()!=7*nb) continue;
             double z1=0,z3=0; std::vector<double> loads(n_bays,0.0);
@@ -2237,6 +2265,9 @@ PYBIND11_MODULE(ogc_fast,m){
         .def_readonly("cb_n_hard",&Engine::cb_n_hard)
         .def_readonly("cb_n_badrej",&Engine::cb_n_badrej)
         .def_readonly("cb_n_cell",&Engine::cb_n_cell)
+        .def_readonly("cb_t_retry",&Engine::cb_t_retry)
+        .def_readonly("cb_n_retry",&Engine::cb_n_retry)
+        .def_readonly("cb_t_roll",&Engine::cb_t_roll)
         .def_readonly("cb_n_bitmap",&Engine::cb_n_bitmap)
         .def_readonly("cb_n_exact",&Engine::cb_n_exact)
         .def_readonly("cb_t_exact",&Engine::cb_t_exact)
