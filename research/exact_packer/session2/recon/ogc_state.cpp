@@ -20,7 +20,9 @@ static inline bool on_seg(double ax,double ay,double bx,double by,double px,doub
 static inline bool proper_cross(double ax,double ay,double bx,double by,double cx,double cy,double dx,double dy){
     double d1=orient(cx,cy,dx,dy,ax,ay),d2=orient(cx,cy,dx,dy,bx,by);
     double d3=orient(ax,ay,bx,by,cx,cy),d4=orient(ax,ay,bx,by,dx,dy);
-    return (((d1>EPS&&d2<-EPS)||(d1<-EPS&&d2>EPS))&&((d3>EPS&&d4<-EPS)||(d3<-EPS&&d4>EPS)));
+    // No epsilon deadzone -- the grader allows none (`inter.area > 0`).  See the TOUCH note
+    // in ogc_fast.cpp for the grazing case an EPS band was hiding.
+    return (((d1>0&&d2<0)||(d1<0&&d2>0))&&((d3>0&&d4<0)||(d3<0&&d4>0)));
 }
 // poly given as flat ptr with n points, plus offset (ox,oy)
 static bool pip(double px,double py,const double* poly,int n,double ox,double oy){
@@ -28,7 +30,8 @@ static bool pip(double px,double py,const double* poly,int n,double ox,double oy
         double ax=poly[2*i]+ox,ay=poly[2*i+1]+oy; int ni=(i+1)%n;
         double bx=poly[2*ni]+ox,by=poly[2*ni+1]+oy;
         double o=orient(ax,ay,bx,by,px,py);
-        if(std::fabs(o)<=EPS&&on_seg(ax,ay,bx,by,px,py)) return false;
+        // boundary counts as INSIDE; the old early return also skipped the ray cast below
+        if(o==0.0&&on_seg(ax,ay,bx,by,px,py)) return true;
     }
     bool inside=false;int j=n-1;
     for(int i=0;i<n;i++){

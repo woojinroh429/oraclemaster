@@ -20,8 +20,11 @@ static inline bool proper_cross(double ax,double ay,double bx,double by,
     double d2 = orient(cx,cy,dx,dy,bx,by);
     double d3 = orient(ax,ay,bx,by,cx,cy);
     double d4 = orient(ax,ay,bx,by,dx,dy);
-    if(((d1>GEOM_EPS && d2<-GEOM_EPS)||(d1<-GEOM_EPS && d2>GEOM_EPS)) &&
-       ((d3>GEOM_EPS && d4<-GEOM_EPS)||(d3<-GEOM_EPS && d4>GEOM_EPS)))
+    // No epsilon deadzone: the grader allows no tolerance (`inter.area > 0`), so a grazing
+    // sign change has to count as a crossing rather than round away into "clear".  See the
+    // TOUCH note in ogc_fast.cpp for the prob_29 case this was hiding.
+    if(((d1>0 && d2<0)||(d1<0 && d2>0)) &&
+       ((d3>0 && d4<0)||(d3<0 && d4>0)))
         return true;
     return false;
 }
@@ -32,7 +35,9 @@ static bool point_in_poly_strict(double px,double py,const double* poly,int n){
         int ni=(i+1)%n;
         double bx=poly[2*ni], by=poly[2*ni+1];
         double o=orient(ax,ay,bx,by,px,py);
-        if(std::fabs(o)<=GEOM_EPS && on_seg(ax,ay,bx,by,px,py)) return false;
+        // a boundary point counts as INSIDE.  Returning false here also abandoned the ray
+        // cast below, so a vertex grazing one edge hid the fact that it was interior.
+        if(o==0.0 && on_seg(ax,ay,bx,by,px,py)) return true;
     }
     bool inside=false; int j=n-1;
     for(int i=0;i<n;i++){
