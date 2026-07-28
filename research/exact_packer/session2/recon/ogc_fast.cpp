@@ -877,7 +877,13 @@ struct Engine {
                 #pragma omp for schedule(dynamic)
                 for(int si=0;si<nbeam;si++){
                     CBState& st=beam[si];
+                    std::chrono::steady_clock::time_point _p0;
+                    if(CBPROF) _p0=std::chrono::steady_clock::now();
                     load_flat_into(st.flat, TL);
+                    if(CBPROF){ double _d=std::chrono::duration<double>(
+                                    std::chrono::steady_clock::now()-_p0).count();
+                        #pragma omp atomic
+                        cb_t_rebuild += _d; }
                     auto& outv=perstate[si];
                     // WAIT-FOR-EXIT beam (OGC_CBWAIT>0): generate candidates both at the release
                     // time `r` AND at a bounded set of near-future bay exits, each carrying its OWN
@@ -901,7 +907,13 @@ struct Engine {
                             for(auto&cd:cc){ allc.push_back(cd); allc_ct.push_back({et,et+pt}); } }
                     } else {
                         int cur=r; cc.clear();
+                        std::chrono::steady_clock::time_point _s0;
+                        if(CBPROF) _s0=std::chrono::steady_clock::now();
                         best_cell_contact_tl(TL,bi,cur,step,pos_lam,prefw,mu,w1,w3,fut_beta,mean_proc,Kuse,cc,w2,&st.loads);
+                        if(CBPROF){ double _d2=std::chrono::duration<double>(
+                                        std::chrono::steady_clock::now()-_s0).count();
+                            #pragma omp atomic
+                            cb_t_scan += _d2; }
                         if(cc.empty()){
                             std::vector<int> ents; ents.push_back(r);
                             for(int bay=0;bay<n_bays;bay++) for(const Placed& te:TL[bay]) if(te.ex>r) ents.push_back(te.ex);

@@ -152,3 +152,37 @@ oracle, with zero duals, and ask two questions:
 
 If either answer is no, the design dies there and costs a day, not a week. If both are
 yes, the master and branching are standard machinery.
+
+## Speed, measured rather than ported (ideas 6 and 7)
+
+The reference's own notes name the incremental grid cache as "THE lever", pointing at
+`load_flat_into` rebuilding the timeline per state per level.  Before porting it, the beam
+was instrumented (`OGC_CBPROF=1`, timers around the rebuild and around the position scan):
+
+| instance | total | rebuild | position scan | other |
+|---|---|---|---|---|
+| prob_30 (n=150) | 48.2s | **0%** | 60% | 40% |
+| prob_35 (n=200) | 46.8s | **0%** | **87%** | 13% |
+| prob_39 (n=250) | 46.3s | **0%** | 53% | 47% |
+
+**The named bottleneck does not exist in our code.** `load_flat_into` is already cheap;
+building the incremental grid would have optimised 0% of the runtime.  Idea 6 is closed --
+not because the reference is wrong about its own engine, but because a profile of OUR
+engine says something different.  This is the second time a reference claim had to be
+re-measured locally before acting on it.
+
+The real cost is the position scan (53-87%).  A first guess that its bitmap pre-filter was
+disabled turned out to be wrong as well: `SWEEP` (the env flag, default off) is read at
+exactly one call site, and the beam's hot loop does not consult it --
+
+    bool use_sweep = RASTER && maxLb>0 && bayH>0 && bayH<20000;   // no SWEEP term
+
+so the pre-filter is already always on inside the beam.  Measured `SWEEP=0` vs `SWEEP=1`:
+identical objective and identical runtime on prob_30/35/39/22.  (The one place it IS
+hardcoded off, `feasible_scan_win`, carries its own measurement in the source: net-neutral
+on small windowed rescans, with the bitmap build as pure overhead.)
+
+What remains for scan cost is the exact `placement_feasible_tl` call made on every cell the
+bitmap cannot clear -- the same function idea 7 (layer-aware contact) touches, so the two
+belong in one pass.
+
