@@ -30,6 +30,28 @@ namespace py = pybind11;
 static double GRID_DIV = [](){ const char* e=std::getenv("GRIDDIV"); return e? atof(e):4.0; }();
 
 static const double EPS = 1e-9;
+// TOUCH: how close to contact a placement may sit before the engine calls it a collision.
+//
+// The grader rejects any overlap with `inter.area > 0` and allows no tolerance at all.  The
+// predicates below used to carry an EPS=1e-9 deadzone in the other direction: proper_cross
+// ignored sign changes smaller than EPS, and pip treated a point on the boundary as
+// OUTSIDE and returned early, skipping the ray cast entirely.
+//
+// On randomly sampled placements that costs nothing -- 200k pairs on prob_29, every one
+// agreeing with shapely, 0 missed overlaps and 0 false ones.  The beam is not random,
+// though: it scores candidates by CONTACT, so it hunts for exactly the grazing
+// configurations the deadzone mishandles.  prob_29 block 90 @(40,13) o1 against block 143
+// @(43,16) o5 measures 9.13e-16 of intersection under shapely on all four layer pairs and
+// the old predicate called every one of them clear.  That is the whole reason prob_29 and
+// prob_35 came back grader-infeasible -- not budget, not the bitmap prefilter.
+//
+// So the deadzone is removed rather than widened.  At TOUCH=0 proper_cross accepts any true
+// sign change however small, and a point resting on the boundary counts as inside; the test
+// is sound with the least conservatism available.  Widening it only throws away legal tight
+// placements: on the same 200k pairs the count of contacts wrongly called collisions goes
+// 1138 -> 1542 (1e-9) -> 1568 (1e-4), and prob_29's objective goes 657828 -> 1104088 at
+// 1e-4.  env OGC_TOUCH overrides for that sweep.
+static const double TOUCH = [](){ const char* e=std::getenv("OGC_TOUCH"); return e? atof(e):0.0; }();
 static inline double orient_(double ax,double ay,double bx,double by,double px,double py){
     return (bx-ax)*(py-ay)-(by-ay)*(px-ax);
 }
@@ -41,14 +63,20 @@ static inline bool on_seg(double ax,double ay,double bx,double by,double px,doub
 static inline bool proper_cross(double ax,double ay,double bx,double by,double cx,double cy,double dx,double dy){
     double d1=orient_(cx,cy,dx,dy,ax,ay),d2=orient_(cx,cy,dx,dy,bx,by);
     double d3=orient_(ax,ay,bx,by,cx,cy),d4=orient_(ax,ay,bx,by,dx,dy);
-    return (((d1>EPS&&d2<-EPS)||(d1<-EPS&&d2>EPS))&&((d3>EPS&&d4<-EPS)||(d3<-EPS&&d4>EPS)));
+    // -TOUCH rather than +EPS: no deadzone, so a grazing sign change still counts as a
+    // crossing instead of being rounded away into "clear".
+    const double m = -TOUCH;
+    return (((d1>m&&d2<-m)||(d1<-m&&d2>m))&&((d3>m&&d4<-m)||(d3<-m&&d4>m)));
 }
 static bool pip(double px,double py,const double* poly,int n,double ox,double oy){
     for(int i=0;i<n;i++){
         double ax=poly[2*i]+ox,ay=poly[2*i+1]+oy; int ni=(i+1)%n;
         double bx=poly[2*ni]+ox,by=poly[2*ni+1]+oy;
         double o=orient_(ax,ay,bx,by,px,py);
-        if(std::fabs(o)<=EPS&&on_seg(ax,ay,bx,by,px,py)) return false;
+        // a point resting ON the boundary counts as INSIDE now.  It used to return false
+        // here, which not only excluded the boundary but abandoned the ray cast below, so
+        // a vertex grazing one edge hid the fact that it was interior to the polygon.
+        if(std::fabs(o)<=TOUCH&&on_seg(ax,ay,bx,by,px,py)) return true;
     }
     bool inside=false;int j=n-1;
     for(int i=0;i<n;i++){
