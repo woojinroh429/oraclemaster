@@ -412,12 +412,14 @@ def _contact_beam(prob_info, deadline_s, B=24, K=4, pos_lam=0.1, prefw=0.0, orde
                     _ob, _flat = E.contact_beam(order_ids, areas_l, wl, int(B), int(K), int(step),
                                                 float(pos_lam), float(prefw), float(mu),
                                                 float(w1), float(w2), float(w3_route), float(fut_beta),
-                                                float(_meanp), float(deadline_s), _anchor, _anchor_w)
+                                                float(_meanp), float(deadline_s), _anchor, _anchor_w,
+                                                float(_sc))
                 else:
                     _ob, _flat = E.contact_beam(order_ids, areas_l, wl, int(B), int(K), int(step),
                                                 float(pos_lam), float(prefw), float(mu),
                                                 float(w1), float(w2), float(w3_route), float(fut_beta),
-                                                float(_meanp), float(deadline_s))
+                                                float(_meanp), float(deadline_s), [], [],
+                                                float(_sc))
                 if _flat and len(_flat) == 7 * n:
                     return {int(_flat[i]): {"block_id": int(_flat[i]), "bay_id": int(_flat[i + 1]),
                                             "orient_idx": int(_flat[i + 2]), "x": int(_flat[i + 3]),

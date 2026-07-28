@@ -976,6 +976,7 @@ struct Engine {
     // candidate set once per entry time -- that work was invisible.  cb_t_retry is that
     // path, cb_t_roll the per-state completion rollouts.
     double cb_t_retry=0.0, cb_t_roll=0.0; double cb_n_retry=0.0;
+    double cb_n_arskip=0.0, cb_n_arbad=0.0;   // area precheck: skips, and skips that were wrong
     // DEFAULT OFF until the soundness audit below passes: a hard reject that is wrong
     // silently removes legal placements from the search.
     double cb_n_badrej=0.0;
@@ -989,7 +990,20 @@ struct Engine {
     // (This default was reported ON in an earlier commit while the source still said OFF --
     // the edit lived only in a working tree a container reset destroyed.)
     static bool HARDREJ_on(){ static const int v=[](){const char*e=getenv("OGC_HARDREJ");return !(e&&e[0]=='0');}(); return v; }
-    static bool CPOS_on(){ static const int v=[](){const char*e=getenv("OGC_CPOS");return(e&&e[0]=='0')?0:1;}(); return v; }
+    static bool ARAUDIT_on(){ static const int v=[](){const char*e=getenv("OGC_ARAUDIT");return(e&&e[0]=='1')?1:0;}(); return v; }
+    // ARPRE -- area precheck for the retry path.  DEFAULT OFF: it is NOT the necessary
+    // condition it was meant to be.  Auditing it (OGC_ARAUDIT=1: skip, then run the scan
+    // anyway and see whether it would have succeeded) found 14333 of 18081 skips wrong on
+    // prob_38 and 15446 of 21227 on prob_40 -- 79% and 73%.  It deletes real placements,
+    // which is why prob_38 went 41.1M -> 104.4M and prob_40 1.99M -> 4.38M.  The arithmetic
+    // has been through two corrections already (areas[] arrive scaled by SC while bw*bh is
+    // raw; and occupancy is the MAX over instants in the window, not the sum across it) and
+    // both were real bugs, but neither was the whole story -- so it stays off until the
+    // audit reads zero.  OGC_ARPRE=1 enables.
+    static bool ARPRE_on(){ static const int v=[](){const char*e=getenv("OGC_ARPRE");return(e&&e[0]=='1')?1:0;}(); return v; }
+    // CPOS -- contact-candidate positions.  DEFAULT OFF: measured 14-36x faster and NET
+    // WORSE.  See the note at the candidate-set construction for why.  OGC_CPOS=1 enables.
+    static bool CPOS_on(){ static const int v=[](){const char*e=getenv("OGC_CPOS");return(e&&e[0]=='1')?1:0;}(); return v; }
     static bool CBPROF_on(){ static const int v=[](){const char*e=getenv("OGC_CBPROF");return(e&&e[0]=='1')?1:0;}(); return v; }
     struct CBState { std::vector<int> flat; std::vector<char> placed; std::vector<double> loads; double gt,gz3,gcontact; int nplaced; };
     // C++ CONTACT BEAM (OpenMP over beam states): the fast engine port of the Python _contact_beam
@@ -1001,7 +1015,8 @@ struct Engine {
     contact_beam(std::vector<int> order, std::vector<double> areas, std::vector<double> workloads,
                  int B, int K, int step, double pos_lam, double prefw, double mu,
                  double w1, double w2, double w3, double fut_beta, double mean_proc, double time_budget_s,
-                 std::vector<int> anchor=std::vector<int>(), std::vector<double> anchor_w=std::vector<double>()){
+                 std::vector<int> anchor=std::vector<int>(), std::vector<double> anchor_w=std::vector<double>(),
+                 double area_scale=1.0){
         cb_anchor=std::move(anchor); cb_anchor_w=std::move(anchor_w);
         int nb=(int)shapes.size();
         for(int b=0;b<nb;b++) for(int oi=0;oi<(int)shapes[b].orients.size();oi++) footprint(b,oi);
@@ -1017,7 +1032,7 @@ struct Engine {
         static const int CBMAXENT=[](){const char*e=getenv("OGC_CBMAXENT");return e?std::max(1,atoi(e)):4;}();
         const bool CBPROF=CBPROF_on(); cb_t_rebuild=0.0; cb_t_scan=0.0;
         cb_n_cell=cb_n_bitmap=cb_n_exact=cb_t_exact=cb_n_hard=cb_n_badrej=0.0;
-        cb_t_retry=cb_t_roll=cb_n_retry=0.0;
+        cb_t_retry=cb_t_roll=cb_n_retry=0.0; cb_n_arskip=cb_n_arbad=0.0;
         auto obj2f=[&](const std::vector<double>& loads){ double mn=1e18,mx=-1e18; for(int j=0;j<n_bays;j++){double v=u[j]*loads[j]; if(v<mn)mn=v; if(v>mx)mx=v;} return n_bays>1?(mx-mn):0.0; };
         double inc_obj=1e18;      // best COMPLETE objective seen -- the pruning threshold
         static const bool ADMP_LIVE=[](){const char*e=getenv("OGC_ADMP");return (e&&e[0]=='1');}();
@@ -1084,6 +1099,43 @@ struct Engine {
                         #pragma omp atomic
                         cb_t_rebuild += _d; }
                     auto& outv=perstate[si];
+                    // AREA PRECHECK.  When the first-choice entry time has no free cell the
+                    // search walks later entry times, and every attempt costs a full
+                    // multi-bay, multi-orientation position scan -- measured 58707 of them on
+                    // prob_38, 29.6s of a 33.3s call, 89% of the wall clock, and 54503 /
+                    // 47.0s of 52.3s on prob_40.  Most of those attempts cannot succeed for a
+                    // reason far cheaper to check than geometry: a bay holding less free area
+                    // than the block's footprint has no room for it at any position or
+                    // orientation.  Area is a NECESSARY condition, so skipping on it discards
+                    // only attempts that were going to fail and the beam's output is
+                    // unchanged -- this buys time, not a different search.
+                    // env OGC_ARPRE=0 disables.
+                    auto room_at=[&](int e,int exx)->bool{
+                        for(int bay2=0;bay2<n_bays;bay2++){
+                            // MAX occupancy over the window, not the sum across it.  Blocks whose
+                            // intervals both meet [e,exx) need not be present at the same instant --
+                            // [0,10) and [12,22) both intersect [5,15) yet never coexist -- so summing
+                            // over the window over-counts, under-states the free area, and skips entry
+                            // times that were feasible.  The new block occupies the whole window, so
+                            // the binding instant is the busiest one; the candidate instants are e and
+                            // every entry inside the window.
+                            double used=0.0;
+                            for(const Placed& tp: TL[bay2]){
+                                int t=tp.en; if(t<e) t=e;
+                                if(t>=exx) continue;
+                                double at=0.0;
+                                for(const Placed& te: TL[bay2])
+                                    if(te.en<=t && t<te.ex) at+=areas[te.bid];
+                                if(at>used) used=at;
+                            }
+                            {   double at=0.0;                    // the instant e itself
+                                for(const Placed& te: TL[bay2])
+                                    if(te.en<=e && e<te.ex) at+=areas[te.bid];
+                                if(at>used) used=at; }
+                            if(bw[bay2]*bh[bay2]-used >= areas[bi]) return true;
+                        }
+                        return false;
+                    };
                     // WAIT-FOR-EXIT beam (OGC_CBWAIT>0): generate candidates both at the release
                     // time `r` AND at a bounded set of near-future bay exits, each carrying its OWN
                     // entry/exit (and thus tardiness).  A block that would spill to a non-preferred
@@ -1123,7 +1175,26 @@ struct Engine {
                             std::vector<int> ents; ents.push_back(r);
                             for(int bay=0;bay<n_bays;bay++) for(const Placed& te:TL[bay]) if(te.ex>r) ents.push_back(te.ex);
                             std::sort(ents.begin(),ents.end()); ents.erase(std::unique(ents.begin(),ents.end()),ents.end());
-                            for(int e:ents){ if(e==r)continue; cc.clear();
+                            for(int e:ents){ if(e==r)continue;
+                                bool noroom = ARPRE_on() && !room_at(e,e+pt);
+                                if(noroom){
+                                    #pragma omp atomic
+                                    cb_n_arskip += 1.0;
+                                    // AUDIT: run the scan anyway and see whether the entry time we
+                                    // were about to discard actually had a placement.  A nonzero
+                                    // count means the precheck is not the necessary condition it
+                                    // claims to be, and it is deleting real options.
+                                    if(ARAUDIT_on()){
+                                        cc.clear();
+                                        best_cell_contact_tl(TL,bi,e,step,pos_lam,prefw,mu,w1,w3,fut_beta,mean_proc,Kuse,cc,w2,&st.loads);
+                                        if(!cc.empty()){
+                                            #pragma omp atomic
+                                            cb_n_arbad += 1.0;
+                                        }
+                                    }
+                                    continue;
+                                }
+                                cc.clear();
                                 { std::chrono::steady_clock::time_point _r0;
                                   if(CBPROF) _r0=std::chrono::steady_clock::now();
                                 best_cell_contact_tl(TL,bi,e,step,pos_lam,prefw,mu,w1,w3,fut_beta,mean_proc,Kuse,cc,w2,&st.loads);
@@ -1140,7 +1211,9 @@ struct Engine {
                         std::vector<int> ents; ents.push_back(r);
                         for(int bay=0;bay<n_bays;bay++) for(const Placed& te:TL[bay]) if(te.ex>r) ents.push_back(te.ex);
                         std::sort(ents.begin(),ents.end()); ents.erase(std::unique(ents.begin(),ents.end()),ents.end());
-                        for(int e:ents){ cc.clear();
+                        for(int e:ents){
+                            if(ARPRE_on() && !room_at(e,e+pt)) continue;
+                            cc.clear();
                             { std::chrono::steady_clock::time_point _r0;
                               if(CBPROF) _r0=std::chrono::steady_clock::now();
                             best_cell_contact_tl(TL,bi,e,step,pos_lam,prefw,mu,w1,w3,fut_beta,mean_proc,Kuse,cc,w2,&st.loads);
@@ -2268,6 +2341,8 @@ PYBIND11_MODULE(ogc_fast,m){
         .def_readonly("cb_t_retry",&Engine::cb_t_retry)
         .def_readonly("cb_n_retry",&Engine::cb_n_retry)
         .def_readonly("cb_t_roll",&Engine::cb_t_roll)
+        .def_readonly("cb_n_arskip",&Engine::cb_n_arskip)
+        .def_readonly("cb_n_arbad",&Engine::cb_n_arbad)
         .def_readonly("cb_n_bitmap",&Engine::cb_n_bitmap)
         .def_readonly("cb_n_exact",&Engine::cb_n_exact)
         .def_readonly("cb_t_exact",&Engine::cb_t_exact)
@@ -2278,7 +2353,8 @@ PYBIND11_MODULE(ogc_fast,m){
              py::arg("step"),py::arg("pos_lam"),py::arg("prefw"),py::arg("mu"),
              py::arg("w1"),py::arg("w2"),py::arg("w3"),py::arg("fut_beta"),
              py::arg("mean_proc"),py::arg("time_budget_s"),
-             py::arg("anchor")=std::vector<int>(),py::arg("anchor_w")=std::vector<double>())
+             py::arg("anchor")=std::vector<int>(),py::arg("anchor_w")=std::vector<double>(),
+             py::arg("area_scale")=1.0)
         .def("set_bcl_prefw",&Engine::set_bcl_prefw)
         .def("wide_beam",&Engine::wide_beam,
              py::arg("order"),py::arg("areas"),py::arg("workloads"),py::arg("B"),py::arg("K"),

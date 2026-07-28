@@ -402,3 +402,69 @@ instead of O(bay area) and is nearly lossless *for this scorer specifically*.
 *prob_38 is not the scan.*  8.9s of scanning inside a 26.9s call leaves 18s unaccounted for,
 and rebuild measures 0.0, so it is in the rollout or the per-state bookkeeping.  Needs its
 own instrumentation before anything is changed.
+
+## Two speedups that were real speedups and still lost
+
+**Contact-candidate positions (OGC_CPOS) -- 14-36x faster, NET WORSE, default off.**
+
+The premise: the beam ranks by contact, so a position touching nothing can never win, and a
+full grid sweep evaluates hundreds of millions of them.  Restricting candidates to corner
+positions against present blocks and walls made prob_17 61.3s -> 1.7s and prob_20 57.1s ->
+4.1s at a pinned width.
+
+Paired at 60s through the whole pipeline it lost 5 of 6:
+
+  prob_17    63651 ->   61394   -3.5%
+  prob_29   394344 ->  405753   +2.9%
+  prob_38 34654116 -> 35561003  +2.6%
+  prob_40  1876603 -> 1951522   +4.0%
+  prob_20    96670 ->  110518  +14.3%
+  prob_30  1342417 -> 1677835  +25.0%
+
+The premise was wrong, and the scoring function says why: the position score is
+`-contact + (iy+od.y1)*pos_lam + ix*pos_lam*0.01 + prefw*pen`, plus a `fut_beta*dwall` wall
+term.  A zero-contact position CAN win on the height and wall terms alone -- especially where
+the yard is loose, which is exactly prob_20 (density 0.389) and prob_30.  Deleting every
+non-touching position deletes real winners.  Speed that costs candidates is not free.
+
+**Area precheck for the retry path (OGC_ARPRE) -- faster, unsound, default off.**
+
+The retry is the dense-instance bottleneck: 58707 calls / 29.6s of 33.3s on prob_38, 54503 /
+47.0s of 52.3s on prob_40.  Each failed entry time costs a full multi-bay,
+multi-orientation scan, and a bay with less free area than the block's footprint looked
+provably hopeless.
+
+Two genuine bugs were found and fixed along the way -- `areas[]` arrives scaled by SC while
+`bw*bh` is raw (a tenfold over-count of occupancy), and occupancy has to be the MAX over
+instants in the window rather than the sum across it, since [0,10) and [12,22) both meet
+[5,15) yet never coexist.  Neither was sufficient.
+
+Auditing it directly (OGC_ARAUDIT=1 skips as usual but runs the scan anyway and counts the
+skips that would have succeeded) settles it:
+
+  prob_38  18081 skips, 14333 wrong (79.3%)
+  prob_40  21227 skips, 15446 wrong (72.8%)
+
+so prob_38 went 41.1M -> 104.4M and prob_40 1.99M -> 4.38M.  Off until the audit reads zero.
+
+Both are env-gated and default off; with defaults the beam reproduces its previous output
+hash exactly (prob_38 8685be467eb9ec59, obj 41064551).
+
+**Still standing: the retry really is the dense bottleneck.**  Nothing above changes that
+89% of prob_38's and prob_40's time is one scan repeated tens of thousands of times.  What
+is now known is that the shortcut cannot come from discarding candidate positions (CPOS) or
+from an area argument (ARPRE) -- it has to come from not repeating work that was already
+done, which is a caching question, not a pruning one.
+
+## What contact actually measures
+
+Worth stating because it constrains every scoring idea: `footprint()` flattens ALL layers of
+an orientation into a single 2D mask, and `contact_at` counts the perimeter cells of that
+mask that touch either a bay wall or an occupied cell of `occ`, itself a flattened union of
+the present blocks.  Layers are not distinguished anywhere in the hot path.  A per-layer
+variant exists (`contact_at_layered` / `footprintL` / `occL`) but only inside
+`scan_bay_contact`, and only under OGC_PERLAYER, which is off.
+
+So the beam treats a one-layer block and a two-layer block as identical neighbours, while
+the crane descends vertically and a tall block obstructs everything at its height and above.
+That is the gap a layer-aware contact would close.
