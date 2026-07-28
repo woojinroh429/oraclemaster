@@ -249,6 +249,76 @@ been swept.
   by 11% in construction, so the boundary matters.
 * Re-check that best-of min() really protects the losing instances inside any wider band.
 
+## Phase 3 — LBBD everywhere: made it run, and it still cannot work (definitive)
+
+The shipped LBBD is `_exact_reassign` (master = bay assignment in CP-SAT, subproblem =
+packing, feedback = capacity tightening). Three things were done to it, in order:
+
+**1. Made it run at all.** Its capacity rows are written over RELEASE times --
+`sum{b : rel[b] <= t < rel[b]+pt[b]} area[b]*x[b][j] <= cap[j]` -- i.e. it assumes a Z1=0
+plan where nothing ever waits. Wherever peak release-time area exceeds total capacity the
+model is infeasible by construction and the whole path switches off in 0.1s:
+
+| instance | peak release-time area / total capacity | |
+|---|---|---|
+| prob_24 | 1.00 | master returns None |
+| prob_21 | 1.16 | master returns None |
+| prob_22 | 0.80 | runs |
+
+Those instances are not overloaded -- their real solutions just delay a few blocks (Z1 = 4
+and 13). Re-writing the rows over the **incumbent's own [entry, exit) windows** removes
+the assumption, makes the incumbent feasible by construction (so the master can only
+improve), and lets the path run on every instance.
+
+**2. Gave it real Benders cuts.** The shipped feedback scales every bay's capacity by a
+constant and re-solves -- it makes the master uniformly more pessimistic instead of telling
+it the one thing it got wrong. Replaced with the textbook logic-based feasibility cut: when
+the realiser finds block `b` cannot enter bay `j` because blocks `S` are already there
+across its window, `sum_{c in S+{b}} x[c][j] <= |S|` is valid for every feasible assignment.
+
+**3. The master then finds much better allocations, and not one is realisable.**
+
+| instance | incumbent Z3 | master Z3 | cuts | best realised Z3 |
+|---|---|---|---|---|
+| prob_22 | 1,930 | 1,538 -> 1,650 | 88 | 2,194 |
+| prob_29 | 1,175 | 467 -> 581 | 160 | 1,367 |
+| prob_28 | 2,105 | 546 | 44 | **UNPLACEABLE every round** |
+| prob_24 | 877 | 451 | 27 | **UNPLACEABLE every round** |
+| prob_30, prob_32 | -- | -- | 0 | **master infeasible at round 0** |
+
+The cuts work -- the master's claimed Z3 climbs monotonically as it learns (p22 1538 ->
+1650, p29 467 -> 581). It just never climbs far enough, and the realised Z3 never once
+beats the incumbent it started from.
+
+### Root cause: the master's currency is not a relaxation
+
+Bounding-box area is wrong in **both** directions. It under-counts because it ignores
+geometry and crane access; and it **over-counts** because blocks are polygons that nest --
+two L-shaped blocks can interlock while their bounding boxes overlap. Measured on the
+pipeline's own solutions:
+
+| instance | incumbent's peak bbox usage of one bay |
+|---|---|
+| prob_32 | **110.0%** |
+| prob_28 | **106.9%** |
+| prob_30 | **106.3%** |
+| prob_24 | **100.3%** |
+| prob_22 | 88.8% (the one that runs) |
+
+**The incumbent -- a real, feasible, verified solution -- violates the master's own
+constraints on four of five instances.** That is why the master is infeasible at round 0 on
+prob_30/prob_32 even with incumbent windows: the model excludes the answer.
+
+A quantity that is neither an upper nor a lower bound on true packability cannot support
+Benders. The master is free to fantasise (prob_28: Z3 546 against a real 2,105, a 4x
+claim), and no number of feasibility cuts repairs a bound that is invalid rather than
+merely loose. Making LBBD work needs a master whose capacity currency is a genuine
+relaxation of 2D-plus-crane packing -- and the natural candidate, a per-bay conflict
+formulation, was already measured dead (conflict graph 65-68% dense, one round > 15 min).
+
+Verdict: **LBBD is closed on this problem**, now on a proof rather than an impression.
+`harness/lbbd_cuts.py` keeps the implementation so the result is reproducible.
+
 ## Phase 2 — the preference-dominated low-density class (p1-p5, p21-p32)
 
 Objective composition of a pipeline answer, and where the Z3 actually sits:
