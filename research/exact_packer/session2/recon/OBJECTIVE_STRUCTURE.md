@@ -264,3 +264,38 @@ are both feasible and lower.
 Open: the three no-change instances are all n=150 and got 43-80 rounds against 50-123
 for n=100, with K fixed at 25 (17% of blocks freed vs 25%).  "No headroom" and "not
 enough search" are not yet distinguished.
+
+## The engine can emit grader-infeasible solutions (root cause found)
+
+`myalg_v2` collapsed to the greedy floor on prob_29 and prob_35 -- not from a budget
+problem: the beam PLACES all blocks and the result is rejected by the grader, at every beam
+width (96/32/8) and with the raster path disabled, so it is neither speed nor the bitmap
+filter.
+
+Minimal reproduction, prob_29:
+
+    block  90  bay 0  (40,13) orient 1  [10,22)
+    block 143  bay 0  (43,16) orient 5  [5,17)
+    our engine: placement_feasible -> True        grader: obstructed
+
+Computing the true geometry with `utils.Block.layers_at_pos()` shows the two blocks DO
+intersect, on every layer pair, with area below 1e-6 -- a floating-point sliver.  The block
+vertices are not integers (block 90's bbox runs 31.2221 .. 41.5012) while placement offsets
+are, so "just touching" is not exact: it leaves ~1e-13 of area.
+
+The two sides then disagree by one inequality:
+
+  * grader (`utils.py`): `if not inter.is_empty and inter.area > 0` -- a sliver is a violation
+  * engine (`ogc_fast.cpp:32,44`): `static const double EPS = 1e-9`, and segment crossing
+    requires the orientation determinants to EXCEED EPS, so anything within 1e-9 is treated
+    as not intersecting
+
+So the engine is tolerant in the direction the grader is strict, and any solution it builds
+can be rejected.  It also explains why OUR beam is the thing that trips it: the beam scores
+candidates by CONTACT and therefore drives blocks to touch on purpose.  We ask it to pack as
+tightly as possible, and tight enough is illegal.
+
+Note the tolerance is two-sided -- it can also miss a real overlap -- but only the
+permissive direction produces an infeasible answer.  The safety net (scoring every candidate
+with the real `check_feasibility`) catches it, which is why the failure shows up as a fall
+back to the floor rather than a bad submission.
