@@ -996,6 +996,87 @@ def _realise(prob_info, want, ent, ext, wait=0):
     return _build_operations([out[b] for b in range(n)]), spill, hot
 
 
+def _follow(prob_info, sol, want, budget):
+    """Move the CURRENT solution toward a wanted assignment, one block at a time, keeping
+    only the moves that improve the TRUE objective.
+
+    Realising a plan wholesale does not work here.  Measured on prob_24: the CP-SAT plan
+    collapses Z2 exactly as intended (2976 -> 379) but the realiser has to spill 13-22
+    blocks it cannot seat, and those spills LOSE the Z3 the plan was buying (814 -> 844
+    .. 1770) and pay tardiness on the way -- every over-subscribed start came out worse than
+    the seed.  The plan is a good direction and a bad instruction.
+
+    So follow it instead: for each block the plan wants to move, try that one move, score
+    the exact objective (Z2 and Z3 exactly, Z1 exactly since a delayed block is scored as
+    it lands), and keep it only if it pays.  Spills cannot accumulate because a move that
+    would cause one is simply rejected.  Blocks are tried in order of how much the plan
+    thinks they are worth, so the budget goes to the moves that matter."""
+    B = prob_info["blocks"]; n = len(B); m = len(prob_info["bays"])
+    w = prob_info["weights"]
+    w1 = float(w.get("w1", 0)); w2 = float(w.get("w2", 0)); w3 = float(w.get("w3", 0))
+    ent = {}; ext = {}; bay = {}; ori = {}; px = {}; py = {}
+    for t, ops in sol["operations"].items():
+        for op in ops:
+            b = op["block_id"]
+            if op["type"] == "ENTRY":
+                ent[b] = int(t); bay[b] = op["bay_id"]; ori[b] = op["orient_idx"]
+                px[b] = op["x"]; py[b] = op["y"]
+            else:
+                ext[b] = int(t)
+    pref = [B[b]["bay_preferences"] for b in range(n)]
+    mxp = [max(pref[b]) for b in range(n)]
+    wl = [float(B[b].get("workload", 0.0)) for b in range(n)]
+    due = [float(B[b]["due_date"]) for b in range(n)]
+    pt = [int(B[b]["processing_time"]) for b in range(n)]
+    ar = [prob_info["bays"][k]["width"] * prob_info["bays"][k]["height"] for k in range(m)]
+    av = sum(ar) / m
+    u = [av / a if a else 0.0 for a in ar]
+    load = [0.0] * m
+    for b in range(n):
+        load[bay[b]] += wl[b]
+
+    def o2(ld):
+        v = [u[k] * ld[k] for k in range(m)]
+        return math.floor(max(v) - min(v))
+
+    E = _ogc_fast_engine(prob_info); E.clear_all()
+    for b in range(n):
+        E.add(bay[b], b, int(ori[b]), float(px[b]), float(py[b]), ent[b], ext[b])
+    movers = [b for b in range(n) if want[b] != bay[b]]
+    # the plan values a move by the preference it recovers; spend the budget there first
+    movers.sort(key=lambda b: -(pref[b][want[b]] - pref[b][bay[b]]))
+    t0 = time.time(); taken = 0
+    for b in movers:
+        if time.time() - t0 > budget:
+            break
+        j = want[b]
+        d3 = w3 * ((mxp[b] - pref[b][j]) - (mxp[b] - pref[b][bay[b]]))
+        ld = load[:]; ld[bay[b]] -= wl[b]; ld[j] += wl[b]
+        d2 = w2 * (o2(ld) - o2(load))
+        E.remove(b)
+        best = None
+        for dt in (0, 1, 2, 3):                 # may WAIT a little to keep the wanted bay
+            r = E.feasible_scan(b, [j], ent[b] + dt, ent[b] + dt + pt[b], 1)
+            if not len(r):
+                continue
+            en = ent[b] + dt; ex = en + pt[b]
+            d1 = w1 * (max(0.0, ex - due[b]) - max(0.0, ext[b] - due[b]))
+            if d1 + d2 + d3 < -1e-9:
+                best = (r[0], en, ex); break    # earliest paying move wins
+        if best is None:
+            E.add(bay[b], b, int(ori[b]), float(px[b]), float(py[b]), ent[b], ext[b])
+            continue
+        q, en, ex = best
+        E.add(j, b, int(q[1]), float(q[2]), float(q[3]), en, ex)
+        bay[b], ori[b], px[b], py[b], ent[b], ext[b] = j, int(q[1]), int(q[2]), int(q[3]), en, ex
+        load = ld; taken += 1
+    if not taken:
+        return None
+    recs = [{"block_id": b, "bay_id": bay[b], "x": px[b], "y": py[b], "orient_idx": ori[b],
+             "entry_time": ent[b], "exit_time": ext[b]} for b in range(n)]
+    return _build_operations(recs)
+
+
 def _assign(prob_info, sol, budget):
     """ASSIGNMENT SEARCH -- the half of the space the beam structurally cannot see.
 
@@ -1049,6 +1130,13 @@ def _assign(prob_info, sol, budget):
                 break
             if want is None:
                 break
+            # follow the plan block by block (never-worse), and ALSO try realising it
+            # wholesale -- the two find different things and min() keeps whichever pays
+            f = _follow(prob_info, sol, want, max(2.0, budget * 0.25))
+            if f is not None:
+                o, _ = _total(prob_info, f)
+                if o < best_o:
+                    best_o = o; best = f
             s, spill, hot = _realise(prob_info, want, ent, ext, wait)
             if s is not None:
                 o, _ = _total(prob_info, s)
