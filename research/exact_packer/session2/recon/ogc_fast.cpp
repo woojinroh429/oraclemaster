@@ -754,8 +754,16 @@ struct Engine {
                     for(const Placed& te: TL[bay]){ if(!(cur<te.ex&&te.en<ex))continue;
                         const OrientData& eod=shapes[te.bid].orients[te.orient]; int ne=(int)eod.layers.size();
                         int tox=(int)std::floor(te.ox+0.5),toy=(int)std::floor(te.oy+0.5);
-                        for(int j=0;j<ne && j<maxLb;j++){const LayerData&L=eod.layers[j];if(L.npts<3)continue;
-                            or_layer_into_map(H[j],wpr,bayH,L,tox,toy);}}}
+                        // LAYER 0 ONLY.  Layer INDEX is not height: blocks have different
+                        // layer counts, so layer j of one is not the same slab as layer j of
+                        // another, and rejecting on a same-index overlap is wrong -- the audit
+                        // still caught 451-712 legal placements dropped that way.  Layer 0 is
+                        // the one slab every block shares, because every block rests on the bay
+                        // floor, so an interior-vs-interior overlap there is a genuine
+                        // collision.  Interior on both sides because blocks may legally touch
+                        // and rasterisation makes a shared boundary look like an overlap.
+                        if(ne>0){ const LayerData&L0=eod.layers[0];
+                            if(L0.npts>=3) or_layer_into_map(H[0],wpr,bayH,L0,tox,toy,true); }}}
                 if(use_sweep){ F.assign(maxLb,std::vector<uint64_t>((size_t)bayH*wpr,0ULL));
                     for(const Placed& te: TL[bay]){ if(!(cur<te.ex&&te.en<ex))continue;
                         bool ndd=(te.en<=cur&&cur<te.ex)||(te.en<ex&&ex<=te.ex);
@@ -791,14 +799,24 @@ struct Engine {
                         if(clear) ok=true;
                         else if(HARDREJ && !H.empty() && ({
                                 bool hard=false;
-                                for(int k=0;k<nl&&!hard;k++){const LayerData&L=od.layers[k];
-                                    if(L.npts<3)continue;
-                                    if(layer_hits_map(H[k],wpr,bayH,L,ix,iy,true)) hard=true;}
+                                if(nl>0){ const LayerData&L0=od.layers[0];
+                                    if(L0.npts>=3) hard=layer_hits_map(H[0],wpr,bayH,L0,ix,iy,true); }
                                 hard; })) {
                             ok=false;                      // proven overlap -- no exact test
                             if(CBPROF_on()){
                                 #pragma omp atomic
                                 cb_n_hard += 1.0;
+                            }
+                            if(HARDAUDIT_on()){
+                                // AUDIT: verify the rejection against the exact test.  A cell
+                                // that H rejected but placement_feasible_tl accepts is a legal
+                                // placement we silently deleted -- the one failure mode that
+                                // must be zero before this can be trusted.
+                                bool truth=placement_feasible_tl(TL[bay],bay,bid,oi,(double)ix,(double)iy,cur,ex);
+                                if(truth){
+                                    #pragma omp atomic
+                                    cb_n_badrej += 1.0;
+                                }
                             }
                         }
                         else {
@@ -846,6 +864,8 @@ struct Engine {
     double cb_n_cell=0.0, cb_n_bitmap=0.0, cb_n_exact=0.0, cb_t_exact=0.0, cb_n_hard=0.0;
     // DEFAULT OFF until the soundness audit below passes: a hard reject that is wrong
     // silently removes legal placements from the search.
+    double cb_n_badrej=0.0;
+    static bool HARDAUDIT_on(){ static const int v=[](){const char*e=getenv("OGC_HARDAUDIT");return (e&&e[0]=='1');}(); return v; }
     static bool HARDREJ_on(){ static const int v=[](){const char*e=getenv("OGC_HARDREJ");return (e&&e[0]=='1');}(); return v; }
     static bool CBPROF_on(){ static const int v=[](){const char*e=getenv("OGC_CBPROF");return(e&&e[0]=='1')?1:0;}(); return v; }
     struct CBState { std::vector<int> flat; std::vector<char> placed; std::vector<double> loads; double gt,gz3,gcontact; int nplaced; };
@@ -873,7 +893,7 @@ struct Engine {
         static const int CBWAIT=[](){const char*e=getenv("OGC_CBWAIT");return e?atoi(e):0;}();
         static const int CBMAXENT=[](){const char*e=getenv("OGC_CBMAXENT");return e?std::max(1,atoi(e)):4;}();
         const bool CBPROF=CBPROF_on(); cb_t_rebuild=0.0; cb_t_scan=0.0;
-        cb_n_cell=cb_n_bitmap=cb_n_exact=cb_t_exact=cb_n_hard=0.0;
+        cb_n_cell=cb_n_bitmap=cb_n_exact=cb_t_exact=cb_n_hard=cb_n_badrej=0.0;
         auto obj2f=[&](const std::vector<double>& loads){ double mn=1e18,mx=-1e18; for(int j=0;j<n_bays;j++){double v=u[j]*loads[j]; if(v<mn)mn=v; if(v>mx)mx=v;} return n_bays>1?(mx-mn):0.0; };
         double inc_obj=1e18;      // best COMPLETE objective seen -- the pruning threshold
         static const bool ADMP_LIVE=[](){const char*e=getenv("OGC_ADMP");return (e&&e[0]=='1');}();
@@ -2038,6 +2058,7 @@ PYBIND11_MODULE(ogc_fast,m){
              py::arg("fut_beta")=0.0,py::arg("mean_proc")=1.0)
         .def("hz1_est",&Engine::hz1_est,py::arg("flat"),py::arg("areas"))
         .def_readonly("cb_n_hard",&Engine::cb_n_hard)
+        .def_readonly("cb_n_badrej",&Engine::cb_n_badrej)
         .def_readonly("cb_n_cell",&Engine::cb_n_cell)
         .def_readonly("cb_n_bitmap",&Engine::cb_n_bitmap)
         .def_readonly("cb_n_exact",&Engine::cb_n_exact)
