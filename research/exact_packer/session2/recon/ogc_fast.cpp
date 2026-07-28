@@ -820,6 +820,8 @@ struct Engine {
         static const int CBMAXENT=[](){const char*e=getenv("OGC_CBMAXENT");return e?std::max(1,atoi(e)):4;}();
         const bool CBPROF=CBPROF_on(); cb_t_rebuild=0.0; cb_t_scan=0.0;
         auto obj2f=[&](const std::vector<double>& loads){ double mn=1e18,mx=-1e18; for(int j=0;j<n_bays;j++){double v=u[j]*loads[j]; if(v<mn)mn=v; if(v>mx)mx=v;} return n_bays>1?(mx-mn):0.0; };
+        double inc_obj=1e18;      // best COMPLETE objective seen -- the pruning threshold
+        static const bool ADMP_LIVE=[](){const char*e=getenv("OGC_ADMP");return (e&&e[0]=='1');}();
         CBState init; init.placed.assign(nb,0); init.loads.assign(n_bays,0.0); init.gt=0;init.gz3=0;init.gcontact=0;init.nplaced=0;
         std::vector<CBState> beam; beam.push_back(std::move(init));
         auto t0=std::chrono::steady_clock::now();
@@ -942,6 +944,22 @@ struct Engine {
                     keyed[i]={ w1*c.gt + w3*c.gz3 - mu*c.gcontact + w2*obj2f(c.loads) + w1*hz, i };
             }
             std::sort(keyed.begin(),keyed.end(),[](const std::pair<double,int>&a,const std::pair<double,int>&b){return a.first<b.first;});
+            // ADMISSIBLE PRUNING: a child whose lower bound already meets the best COMPLETE
+            // solution seen cannot lead to a better one, so dropping it frees a beam slot for
+            // a branch that still can -- the same width then searches strictly more.
+            // DEFAULT OFF -- measured a LOSS.  60s, B=96: prob_39 8,077,283 -> 9,149,439
+            // (+13.3%), prob_26 8,820,294 -> 9,770,979 (+10.8%), prob_30 +0.6%, prob_22 tie.
+            // The bound has to omit Z2 (the range of u_j*load_j can SHRINK as load is added,
+            // so no positive bound on it is admissible), which leaves it far below the true
+            // objective -- too loose to cut anything, while the live-incumbent rollout it
+            // needs costs real time.  Pure overhead, so it buys negative search.
+            static const bool ADMP=[](){const char*e=getenv("OGC_ADMP");return (e&&e[0]=='1');}();
+            if(ADMP && inc_obj<1e17){
+                int wkeep=0;
+                for(int i=0;i<nch;i++)
+                    if(wb_lb(children[keyed[i].second],w1,w3,mxp) < inc_obj-1e-9) keyed[wkeep++]=keyed[i];
+                if(wkeep>0){ keyed.resize(wkeep); nch=wkeep; }
+            }
             int keep=std::min(nch,B);
             // PER-PARENT QUOTA (the reference caps children per parent at max(2,(B+1)/2)).
             // Without it one strong parent can fill the entire next beam with its own
@@ -967,6 +985,24 @@ struct Engine {
                 for(int i=0;i<keep;i++) nb2.push_back(std::move(children[keyed[i].second]));
             }
             beam.swap(nb2);
+            // Keep a LIVE incumbent so the bound above has something to prune against.
+            // Without this inc_obj only exists after the last level and the pruning never
+            // fires at all.  One greedy completion of the current leader every ~10th level
+            // is ~10 rollouts per beam -- cheap next to B*n state expansions -- and it is
+            // exactly the quantity the bound needs.
+            if(ADMP_LIVE && !beam.empty() && (level%std::max(1,nord/10)==0)){
+                auto res0=greedy_contact_from(beam[0].flat,order,step,pos_lam,prefw,mu,w1,w3,fut_beta,mean_proc);
+                const std::vector<int>& f0=res0.second;
+                if((int)f0.size()==7*nb){
+                    double z1=0,z3=0; std::vector<double> ld(n_bays,0.0);
+                    for(size_t i2=0;i2+6<f0.size();i2+=7){ int b2=f0[i2],bay2=f0[i2+1],ex2=f0[i2+6];
+                        double dd2=shapes[b2].due; if(ex2>dd2) z1+=ex2-dd2;
+                        z3 += (bay2<(int)shapes[b2].prefs.size())?(mxp[b2]-shapes[b2].prefs[bay2]):mxp[b2];
+                        ld[bay2]+=workloads[b2]; }
+                    double ob0=w1*z1+w2*std::floor(obj2f(ld))+w3*z3;
+                    if(ob0<inc_obj) inc_obj=ob0;
+                }
+            }
         }
         double best_obj=1e18; std::vector<int> best_flat;
         for(auto& st: beam){
@@ -980,6 +1016,7 @@ struct Engine {
                 loads[bay]+=workloads[b];
             }
             double ob = w1*z1 + w2*std::floor(obj2f(loads)) + w3*z3;
+            if(ob<inc_obj) inc_obj=ob;
             if(ob<best_obj){best_obj=ob;best_flat=flat;}
         }
         return {best_obj,best_flat};
@@ -1216,6 +1253,30 @@ struct Engine {
     // free-capacity integral F(t) (rate = area_total - occupancy*avg_area); the k-th estimated
     // completion past due_k is future tardiness the exact g cannot see yet.  Predicts real
     // congestion delay far better than a flat area relaxation.  Returns raw tardiness.
+    // ADMISSIBLE LOWER BOUND on a partial beam state (idea 3).
+    // Every term must be a bound that CANNOT overshoot, or the beam prunes the optimum:
+    //   Z1  -- tardiness already incurred.  Unplaced blocks can only add to it.
+    //   Z3  -- penalty already incurred, plus, for each UNPLACED block, the smallest penalty
+    //          any bay could give it (0 whenever some bay is its favourite, but not always).
+    //   Z2  -- the range of u_j*load_j can still SHRINK as load is added, so no positive
+    //          bound is safe.  Left out entirely rather than risk pruning the optimum.
+    // The result is a true lower bound on any completion of this state, so a state whose
+    // bound already meets the incumbent cannot lead anywhere better.
+    double wb_lb(const CBState& st,double w1,double w3,const std::vector<double>& mxp) const {
+        double z3rest=0.0;
+        for(int b=0;b<(int)st.placed.size();b++){
+            if(st.placed[b]) continue;
+            const auto& pr=shapes[b].prefs;
+            double best=mxp[b];
+            for(int j=0;j<n_bays && j<(int)pr.size();j++){
+                double pen=mxp[b]-pr[j];
+                if(pen<best) best=pen;
+            }
+            z3rest+=best;
+        }
+        return w1*st.gt + w3*(st.gz3+z3rest);
+    }
+
     double wb_hz1(const std::vector<int>& flat, const std::vector<char>& placed,
                   const std::vector<double>& areas, double area_total, double avg_a){
         int nb=(int)shapes.size();
