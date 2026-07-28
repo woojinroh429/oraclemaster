@@ -249,6 +249,70 @@ been swept.
   by 11% in construction, so the boundary matters.
 * Re-check that best-of min() really protects the losing instances inside any wider band.
 
+## Phase 2 — the preference-dominated low-density class (p1-p5, p21-p32)
+
+Objective composition of a pipeline answer, and where the Z3 actually sits:
+
+| instance | dr | obj | Z1 | Z2 | Z3 | misplaced | in-preferred |
+|---|---|---|---|---|---|---|---|
+| prob_22 | .423 | 783,112 | **0.0%** | 1.4% | **98.6%** | 27 | 73/100 |
+| prob_29 | .415 | 370,983 | **0.0%** | 5.0% | **95.0%** | 27 | 123/150 |
+| prob_24 | .425 | 320,012 | 20.7% | 2.1% | 77.1% | 22 | 78/100 |
+| prob_21 | .526 | 535,299 | 32.4% | 3.8% | 63.8% | 34 | 66/100 |
+| prob_32 | .636 | 3,173,472 | 43.0% | 0.0% | 57.0% | 58 | 135/200 |
+| prob_28 | .597 | 1,457,151 | 52.2% | 0.5% | 47.4% | 48 | 102/150 |
+| prob_31 | .597 | 6,527,425 | 54.7% | 0.3% | 45.0% | 153 | 47/200 |
+| prob_1 | .360 | 1,499 | 0.0% | **73.3%** | 26.7% | 1 | 99/100 |
+| prob_4 | .339 | 15,946 | 0.0% | **100%** | 0.0% | 0 | 100/100 |
+| prob_5 | .228 | 48,187 | 0.0% | 31.8% | 68.2% | 12 | 138/150 |
+
+prob_22 and prob_29 have **Z1 exactly 0** -- there is no tardiness to trade, the whole
+objective is preference plus a little imbalance. prob_1/prob_4 are the opposite corner:
+0-1 misplaced blocks, so their remaining objective is pure **Z2** and no preference work
+can touch them.
+
+### The prize, and why it is not a scheduling prize
+
+Keep each bay's occupancy COUNT and the schedule exactly as they are, and hand the seats
+to the highest-regret blocks: Z3 drops by **22.3% (p22), 43.2% (p29), 56.1% (p24), 24.8%
+(p21)** of the objective. That is the size of the misallocation. It is an ALLOCATION
+bound, not a scheduling one -- and every local operator that could chase it is dead:
+
+| operator | result |
+|---|---|
+| single-block move to a better bay | **0 fixable** on p22/p29/p21/p32 |
+| pairwise bay swap (true objective, exact Z2) | of 443 improving candidates on p22, **every one fails on exactly one side** |
+| full bay rebuild in stake order | seats **42** blocks in p22's bay0 where the incumbent packs **52** |
+| eject-and-insert, k<=2 overlapping victims | **p29 -3.67%** (2 moves); 0 on p22/p24/p21 |
+| time-slice ruin & recreate on the popular bay | 0 everywhere (all-victims-must-reseat is too brittle) |
+
+The reason single moves fail is measured, not guessed: a misplaced block has **0 feasible
+cells** in its preferred bay at its own entry time, **thousands** once the bay is empty
+(910-5428), and only **0-7 units of slack** -- so waiting does not open the bay either.
+A swap does not help because the partner's window does not overlap, so evicting it frees
+nothing during the window that matters. Only eject-and-insert, which evicts the occupants
+that actually overlap the outsider, moves anything at all.
+
+### Defects found in the existing Z3 pass
+
+`_z3_improve` (C++ `z3_reassign`) already implements the Z1-for-Z3 trade, including
+entry-shift with the correct `w1*dtardy + w3*dpen < 0` test. Two things break it:
+
+* **Budget.** At the ~5s it actually gets it does *nothing* (0.00% on p22/p29/p21). Given
+  30s it finds -0.46% (p22) and -1.37% (p29). Note the pipeline already reserves 22% of
+  the budget for it (`_z3_res`), so this starvation is a short-budget effect -- the 300s
+  behaviour is being re-measured.
+* **Z2-blindness.** It scores `w1*Z1 + w3*Z3` only. On prob_24 it takes Z3 877 -> 844 and
+  Z2 **716 -> 3216**, so the total gets *worse* (+0.81%) and the caller's all-or-nothing
+  gate discards the entire pass -- including every Z2-neutral move in it.
+
+### Tooling (tracked, so it survives a container reset)
+
+`harness/prefdiag.py` (composition + free-slack headroom), `harness/prefreach.py`
+(single-move reachability), `harness/prefstake.py` (the regret reallocation bound),
+`harness/prefeject.py` (the eject-and-insert operator). Each carries the measurement that
+motivated it in its docstring.
+
 ## Phase 2 — low density (P1-P3), tardiness-for-Z2/Z3 trades
 
 Measured today: on prob_5 every mode reaches Z1 = 0 and the objective is 95-99% Z3, and
