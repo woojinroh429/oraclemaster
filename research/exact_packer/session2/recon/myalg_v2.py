@@ -803,17 +803,20 @@ def _beam_width(mul):
 def _beam_once(prob_info, budget, cfg, share=1.0):
     """One beam run, with a coarser position grid held in reserve.
 
-    Measured: the fine rung finishes on every instance we have, including n=300 and the
-    saturated 250s -- the engine's adaptive width narrows rather than overrunning, so the
-    ladder of progressively smaller widths it used to carry never fired once and is gone.
-    The coarse rung stays because it answers a different question (grid resolution, not
-    budget) and costs nothing while unused."""
+    The fine rung finishes whenever it is given room -- the engine's adaptive width narrows
+    rather than overrunning -- so the ladder of ever-smaller widths it used to carry never
+    fired and is gone.  What it does need is room: instrumented on prob_18 (n=300) inside a
+    12s slice, two of three beam calls returned nothing at all, because the fine rung was
+    handed the ENTIRE slice and left the coarse one with none.  The budget is split, so a
+    slice too small for step 1 still buys a step-2 answer instead of nothing.  Nothing is
+    wasted when the fine rung succeeds: it returns immediately and the reserve goes unused."""
     n = len(prob_info["blocks"])
     t0 = time.time()
-    for step in (1, 2):
+    for step, frac in ((1, 0.6), (2, 1.0)):
         left = budget - (time.time() - t0)
-        if left < 4.0:
+        if left < 2.0:
             break
+        left = left * frac if step == 1 else left
         try:
             r = _contact_beam(prob_info, left, B=_beam_width(cfg["Bmul"]), K=cfg["K"],
                               pos_lam=cfg["pos_lam"], order=cfg["order"],
@@ -1362,16 +1365,21 @@ def _worker(args):
         band.tell(ai, _total(prob_info, s)[0] if s is not None else pool[0][0] * 1.05)
         return s
 
-    ops = [("beam", _fresh, False),
-           ("grow", _grow, True),
-           ("bal",  lambda t: _balance(prob_info, pool[0][1], t), True),
-           ("pref", lambda t: _z3_improve(prob_info, pool[0][1], t), True)]
+    # (name, run, needs an incumbent, starves without budget)
+    ops = [("beam", _fresh, False, True),
+           ("grow", _grow, True, True),
+           ("bal",  lambda t: _balance(prob_info, pool[0][1], t), True, False),
+           ("pref", lambda t: _z3_improve(prob_info, pool[0][1], t), True, False)]
     if HAVE_CRANEPACK:
-        ops.append(("reloc", lambda t: _relocate(prob_info, pool[0][1], t), True))
+        ops.append(("reloc", lambda t: _relocate(prob_info, pool[0][1], t), True, False))
     if HAVE_ORTOOLS:
-        ops.append(("bay", lambda t: _assign(prob_info, pool[0][1], t), True))
+        ops.append(("bay", lambda t: _assign(prob_info, pool[0][1], t), True, True))
     gain = [0.0] * len(ops); spent = [1e-6] * len(ops); tried = [0] * len(ops)
-    slot = [budget * 0.20] * len(ops)      # opening slice; each operator steers its own
+    # One opening slice for everyone, then sized per operator below.  Opening the repair
+    # passes small looked obviously right and measured worse -- prob_18 48840 -> 56841 -- 
+    # because _z3_improve is not the quick pass it appears to be: given twelve seconds it
+    # uses all twelve and pays for them.
+    slot = [budget * 0.20] * len(ops)
 
     while True:
         left = budget - (time.time() - t0)
@@ -1387,33 +1395,22 @@ def _worker(args):
             k = rng.choice(elig)
         else:
             k = max(elig, key=lambda i: gain[i] / spent[i])
-        # EACH OPERATOR STEERS ITS OWN SLICE, by the rate it is getting.
+        # SIZE BY COMPLETION, SELECT BY PAYOFF -- two different questions.
         #
-        # A single shared slice starves the loop -- with five or six operators on 22% of the
-        # budget apiece a 60s run is nearly all probing, and the breeding never reached a
-        # second generation (one crossover, one regrow, measured over a whole worker).  The
-        # operators are not the same size either: the polish passes finish in well under a
-        # second and were drawing the same allowance as a beam that needs ten.
+        # A shared slice starves the loop: with six operators on a fifth of the budget apiece
+        # a 60s run is nearly all probing, the breeding never reaches a second generation, and
+        # the repair passes -- which finish in well under a second -- draw the same allowance
+        # as a beam that needs ten.  So each operator sizes its own.
         #
-        # But the right slice is not a constant to look up.  Swept, it inverts across
-        # instances: prob_11 improves monotonically as the slice SHRINKS (24864 at 0.10 against
-        # 33439 at 0.45) while prob_30 improves monotonically as it GROWS (1477820 at 0.45
-        # against 2200734 at 0.10), with prob_3 and prob_12 best in the middle.  A congested
-        # yard wants one long beam that can finish a good packing; a loose one wants many short
-        # looks.  Gating that on density would be guessing at the boundary.
+        # But not by its payoff.  Sizing on gain per second death-spirals: a fresh beam that
+        # returns a perfectly good solution which merely fails to beat the incumbent scores
+        # zero, shrinks, and then cannot finish at all -- measured on prob_18, fourteen calls
+        # returning four, and the objective went 48840 -> 56841.  Gain is the SELECTION signal
+        # and it already governs which operator runs next.
         #
-        # So steer instead of choosing: a slice that returned less per second than this
-        # operator's own average was too long, and one that beat its average was too short.
-        # A call that returned NOTHING is the asymmetric case -- it wanted more time, not less,
-        # so it grows; shrinking there is a death spiral, since a starved beam returns None,
-        # scores zero, and would starve itself further.
-        #
-        # Steering from a 20% opening slice reproduces the swept optimum on the instance that
-        # cares most (prob_30 1477820, matching the best fixed setting exactly, against 2093615
-        # at a fixed 0.20) and lands close on prob_3 and prob_12.  Opening lower does not help
-        # it find the short-slice end faster -- from 0.10 everything is worse, prob_11 included
-        # (36876 against 30149), because a starved beam returns nothing and the recovery costs
-        # more iterations than the smaller slice buys.
+        # Size is a completion question instead.  A search operator that returned nothing was
+        # starved and wants more; one that returned anything fit, so leave it alone.  A repair
+        # pass always completes, so it wants what it actually used and no more.
         before = pool[0][0] if pool else float("inf")
         st = time.time()
         try:
@@ -1422,12 +1419,11 @@ def _worker(args):
             s = None
         el = max(1e-6, time.time() - st)
         tried[k] += 1; spent[k] += el
-        got = (before - pool[0][0]) if (pool and before < float("inf")) else 0.0
-        if s is None:
-            slot[k] = min(budget * 0.45, slot[k] * 1.3)
+        if ops[k][3]:
+            if s is None:
+                slot[k] = min(budget * 0.45, slot[k] * 1.3)
         else:
-            slot[k] = min(budget * 0.45,
-                          max(1.0, slot[k] * (1.25 if got / el > gain[k] / spent[k] else 0.8)))
+            slot[k] = min(budget * 0.25, max(1.0, 1.3 * el))
         if s is None:
             continue
         o, _ = _total(prob_info, s)
