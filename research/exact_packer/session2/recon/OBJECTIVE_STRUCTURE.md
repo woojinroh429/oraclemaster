@@ -299,3 +299,61 @@ Note the tolerance is two-sided -- it can also miss a real overlap -- but only t
 permissive direction produces an infeasible answer.  The safety net (scoring every candidate
 with the real `check_feasibility`) catches it, which is why the failure shows up as a fall
 back to the floor rather than a bad submission.
+
+## The geometry deadzone (resolved)
+
+prob_29 and prob_35 were returning grader-infeasible packings and falling to the greedy
+floor.  Not budget, not the bitmap prefilter -- the exact predicates disagreed with the
+grader in the grader's strict direction.
+
+`utils.check_entry` rejects on `inter.area > 0` with no tolerance whatsoever.  Ours carried
+`EPS = 1e-9`:
+
+  - `proper_cross` discarded any orientation sign change smaller than EPS
+  - `pip` treated a boundary point as OUTSIDE **and returned early**, skipping the ray cast
+    entirely, so a vertex grazing one edge concealed that it was interior to the polygon
+
+Why it survived so long: on random placements the old predicate is exactly right.  200k
+sampled pairs on prob_29, compared against shapely -- 0 missed overlaps, 0 false ones.  The
+beam is not random.  It ranks candidates by CONTACT, so it deliberately seeks the grazing
+configurations the deadzone mishandles.
+
+  prob_29 block 90 @(40,13) o1  vs  block 143 @(43,16) o5
+    shapely intersection = 9.13e-16 on all four layer pairs
+    old predicate        = clear on all four
+
+Fixed by removing the deadzone, not widening it (`TOUCH=0`): any true sign change counts,
+a boundary point counts as inside.  Widening only discards legal tight placements --
+contacts wrongly called collisions go 1138 -> 1542 (1e-9) -> 1568 (1e-4) over the same 200k
+pairs, and prob_29's objective degrades 657828 -> 1104088 at 1e-4.
+
+`ogc_geom.cpp` and `ogc_state.cpp` carried the same pair of defects and are fixed likewise;
+`ogc_state` backs the shipped pipeline, so it was exposed too.
+
+Paired against the old engine at 60s, grader-checked, never worse on any instance:
+
+  prob_29  1532023148 -> 394344    Z1 114902 -> 0
+  prob_35  2852618295 -> 495286    Z1 213950 -> 22
+  prob_39     7292426 -> 7161191   -1.80%
+  prob_30     1773592 -> 1477820   -16.68%
+  prob_22      724285 -> 714891    -1.30%
+  prob_21      515626 -> 480434    -6.83%
+  prob_26     6996565 -> 6995093   -0.02%
+  prob_24      209540 -> 209540    tied
+
+Every v2 measurement taken before this was with prob_29/prob_35 collapsing.
+
+### Audit of the remaining tolerances
+
+Checked in the same pass, since a tolerance pointing the wrong way is what caused this:
+
+  - **bay containment** -- `placement_feasible` allowed `nx1 > bw[bay] + 1e-6`, while the
+    grader rejects any footprint outside the bay on `outside.area > 0`.  Made exact
+    (equality still passes, so flush-against-the-wall stays legal).
+  - **descent-shadow layer pairing** -- `desc_hit` iterates `k` over new layers and `j` from
+    `k` to `n_exist-1`, matching `check_entry`'s j >= k rule exactly.  Correct.
+  - **raster prefilter** -- `LayerData::bits` marks a cell when the polygon's interior
+    covers the cell centre OR any edge touches the cell, so it is a superset of the true
+    footprint and `bmp_overlap` can over-report but never miss.  Sound direction.  Its
+    integer-offset assumption holds: `find_best_placement` rounds every candidate with
+    `std::round` before use.
