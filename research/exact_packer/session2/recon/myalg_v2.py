@@ -1371,7 +1371,7 @@ def _worker(args):
     if HAVE_ORTOOLS:
         ops.append(("bay", lambda t: _assign(prob_info, pool[0][1], t), True))
     gain = [0.0] * len(ops); spent = [1e-6] * len(ops); tried = [0] * len(ops)
-    slot = [budget * float(os.environ.get("SLOTCAP", "0.30"))] * len(ops)   # learned below
+    slot = [budget * 0.20] * len(ops)      # opening slice; each operator steers its own
 
     while True:
         left = budget - (time.time() - t0)
@@ -1387,13 +1387,33 @@ def _worker(args):
             k = rng.choice(elig)
         else:
             k = max(elig, key=lambda i: gain[i] / spent[i])
-        # EACH OPERATOR LEARNS ITS OWN SLICE.  A single shared slice starves the loop: with
-        # five or six operators and 22% of the budget apiece, a 60s run is almost all probing,
-        # and the breeding never reaches a second generation -- measured, one crossover and one
-        # regrow in a whole worker.  But the operators are not the same size.  The polish
-        # passes finish in well under a second and were being handed the same slice as a beam
-        # that genuinely needs ten.  So hand out a generous slice the first time and then track
-        # what each one actually used, giving it a little headroom over that.
+        # EACH OPERATOR STEERS ITS OWN SLICE, by the rate it is getting.
+        #
+        # A single shared slice starves the loop -- with five or six operators on 22% of the
+        # budget apiece a 60s run is nearly all probing, and the breeding never reached a
+        # second generation (one crossover, one regrow, measured over a whole worker).  The
+        # operators are not the same size either: the polish passes finish in well under a
+        # second and were drawing the same allowance as a beam that needs ten.
+        #
+        # But the right slice is not a constant to look up.  Swept, it inverts across
+        # instances: prob_11 improves monotonically as the slice SHRINKS (24864 at 0.10 against
+        # 33439 at 0.45) while prob_30 improves monotonically as it GROWS (1477820 at 0.45
+        # against 2200734 at 0.10), with prob_3 and prob_12 best in the middle.  A congested
+        # yard wants one long beam that can finish a good packing; a loose one wants many short
+        # looks.  Gating that on density would be guessing at the boundary.
+        #
+        # So steer instead of choosing: a slice that returned less per second than this
+        # operator's own average was too long, and one that beat its average was too short.
+        # A call that returned NOTHING is the asymmetric case -- it wanted more time, not less,
+        # so it grows; shrinking there is a death spiral, since a starved beam returns None,
+        # scores zero, and would starve itself further.
+        #
+        # Steering from a 20% opening slice reproduces the swept optimum on the instance that
+        # cares most (prob_30 1477820, matching the best fixed setting exactly, against 2093615
+        # at a fixed 0.20) and lands close on prob_3 and prob_12.  Opening lower does not help
+        # it find the short-slice end faster -- from 0.10 everything is worse, prob_11 included
+        # (36876 against 30149), because a starved beam returns nothing and the recovery costs
+        # more iterations than the smaller slice buys.
         before = pool[0][0] if pool else float("inf")
         st = time.time()
         try:
@@ -1402,9 +1422,12 @@ def _worker(args):
             s = None
         el = max(1e-6, time.time() - st)
         tried[k] += 1; spent[k] += el
-        _cap = budget * float(os.environ.get("SLOTCAP", "0.30"))
-        slot[k] = min(_cap, max(1.0, 1.3 * el)) if tried[k] == 1 else \
-                  min(_cap, max(1.0, 0.6 * slot[k] + 0.4 * 1.3 * el))
+        got = (before - pool[0][0]) if (pool and before < float("inf")) else 0.0
+        if s is None:
+            slot[k] = min(budget * 0.45, slot[k] * 1.3)
+        else:
+            slot[k] = min(budget * 0.45,
+                          max(1.0, slot[k] * (1.25 if got / el > gain[k] / spent[k] else 0.8)))
         if s is None:
             continue
         o, _ = _total(prob_info, s)
