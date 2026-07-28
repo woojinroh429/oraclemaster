@@ -972,10 +972,24 @@ def _realise(prob_info, want, ent, ext, wait=0):
         if pick is None:                         # give up on the bay, take the best other
             alt = sorted((k for k in range(m) if k != want[b]), key=lambda k: -pref[b][k])
             ra = E.feasible_scan(b, alt, ent[b], ext[b], 1)
-            if not len(ra):
-                return None, -1, hot
-            pick = max(ra, key=lambda q: pref[b][int(q[0])])
-            spill += 1; hot[want[b]] += 1
+            if len(ra):
+                pick = max(ra, key=lambda q: pref[b][int(q[0])])
+                spill += 1; hot[want[b]] += 1
+            else:
+                # LAST RESORT: wait anywhere.  Failing the whole plan here is what made every
+                # over-subscribed start useless -- cap0 1.00/1.15/1.30 all came back
+                # UNPLACEABLE, so the Z1-for-Z2/Z3 trade could never even be scored.  A block
+                # can always be seated eventually (a bay empties), and how much tardiness that
+                # is worth is the objective's decision, not the realiser's.
+                for dt in range(1, 400):
+                    rr = E.feasible_scan(b, list(range(m)), ent[b] + dt, ent[b] + dt + pt, 1)
+                    if len(rr):
+                        pick = max(rr, key=lambda q: pref[b][int(q[0])])
+                        en = ent[b] + dt; ex = en + pt
+                        spill += 1; hot[want[b]] += 1
+                        break
+                if pick is None:
+                    return None, -1, hot
         E.add(int(pick[0]), b, int(pick[1]), float(pick[2]), float(pick[3]), en, ex)
         out[b] = {"block_id": b, "bay_id": int(pick[0]), "x": int(pick[2]), "y": int(pick[3]),
                   "orient_idx": int(pick[1]), "entry_time": en, "exit_time": ex}
