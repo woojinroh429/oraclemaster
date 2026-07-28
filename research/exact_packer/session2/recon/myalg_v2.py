@@ -938,31 +938,47 @@ def _assign_once(prob_info, ent, ext, bay, capf, tl):
     return [next(k for k in range(m) if slv.Value(x[b][k]) == 1) for b in range(n)]
 
 
-def _realise(prob_info, want, ent, ext):
-    """Pack a wanted assignment at unchanged times.  A block that will not fit its wanted
-    bay SPILLS to its best alternative instead of failing the plan, and the spill count is
-    the Benders signal: a bay that could not take what the model gave it is over-subscribed
-    in reality, whatever the area row said."""
+def _realise(prob_info, want, ent, ext, wait=0):
+    """Pack a wanted assignment.  A block that will not fit its wanted bay may WAIT for it
+    (paying tardiness) before it is allowed to spill to another bay.
+
+    Waiting is the mechanism the Benders loop cannot express on its own.  That loop only
+    ever TIGHTENS capacity, so it converges by construction to a plan realisable at Z1 = 0 --
+    and the true optimum is often not there.  Recorded in the old pipeline, measured on
+    prob_24: paying Z1 = 1 (+13,333) bought Z3 669 -> 502 and Z2 1693 -> 343 (-56,850), i.e.
+    165,648 against 209,165, a 21% cut for one unit of tardiness.  No local search crosses
+    that barrier either, because one move costs w1 = 13,333 against an SA temperature of
+    ~6,000.  It has to be decided globally, which is what this is.
+
+    `wait` = how many time units a block may be delayed to keep its assigned bay.  0 gives
+    the original spill-only behaviour.  Everything is still scored on the true objective, so
+    a trade that does not pay is discarded."""
     B = prob_info["blocks"]; n = len(B); m = len(prob_info["bays"])
     pref = [B[b]["bay_preferences"] for b in range(n)]
     E = _ogc_fast_engine(prob_info); E.clear_all()
     out = {}; spill = 0; hot = [0] * m
     for b in sorted(range(n), key=lambda q: (ent[q], -B[q]["processing_time"])):
-        order = [want[b]] + sorted((k for k in range(m) if k != want[b]),
-                                   key=lambda k: -pref[b][k])
-        r = E.feasible_scan(b, order, ent[b], ext[b], 1)
-        if not len(r):
-            return None, -1, hot
-        pick = None
-        for q in r:
-            if int(q[0]) == want[b]:
-                pick = q; break
-        if pick is None:
-            pick = max(r, key=lambda q: pref[b][int(q[0])])
+        pt = int(B[b]["processing_time"])
+        r = E.feasible_scan(b, [want[b]], ent[b], ext[b], 1)
+        pick = None; en = ent[b]; ex = ext[b]
+        if len(r):
+            pick = r[0]
+        elif wait > 0:
+            for dt in range(1, wait + 1):       # keep the bay, pay a little tardiness
+                rr = E.feasible_scan(b, [want[b]], ent[b] + dt, ent[b] + dt + pt, 1)
+                if len(rr):
+                    pick = rr[0]; en = ent[b] + dt; ex = en + pt
+                    break
+        if pick is None:                         # give up on the bay, take the best other
+            alt = sorted((k for k in range(m) if k != want[b]), key=lambda k: -pref[b][k])
+            ra = E.feasible_scan(b, alt, ent[b], ext[b], 1)
+            if not len(ra):
+                return None, -1, hot
+            pick = max(ra, key=lambda q: pref[b][int(q[0])])
             spill += 1; hot[want[b]] += 1
-        E.add(int(pick[0]), b, int(pick[1]), float(pick[2]), float(pick[3]), ent[b], ext[b])
+        E.add(int(pick[0]), b, int(pick[1]), float(pick[2]), float(pick[3]), en, ex)
         out[b] = {"block_id": b, "bay_id": int(pick[0]), "x": int(pick[2]), "y": int(pick[3]),
-                  "orient_idx": int(pick[1]), "entry_time": ent[b], "exit_time": ext[b]}
+                  "orient_idx": int(pick[1]), "entry_time": en, "exit_time": ex}
     return _build_operations([out[b] for b in range(n)]), spill, hot
 
 
@@ -997,28 +1013,38 @@ def _assign(prob_info, sol, budget):
                 ext[b] = int(t)
     if len(ent) != n:
         return None
-    t0 = time.time(); capf = [1.0] * m
+    t0 = time.time()
     best = None; best_o = float("inf")
-    for _rnd in range(6):
-        left = budget - (time.time() - t0)
-        if left < 2.0:
+    # START POINTS.  cap0 = 1.0 is the plan that fits at Z1 = 0.  cap0 > 1 deliberately
+    # OVER-SUBSCRIBES the bays so the assignment optimum itself sits in the Z1 > 0 region --
+    # the trade the tightening-only Benders loop can never propose, and the one worth 21% on
+    # prob_24.  Paired with a realisation that may WAIT rather than spill, so the tardiness
+    # is actually spent buying the bay it was meant to buy.  Scored on the true objective,
+    # so an over-subscribed start that does not pay is simply discarded.
+    for cap0, wait in ((1.0, 0), (1.15, 3), (1.30, 6)):
+        if budget - (time.time() - t0) < 3.0:
             break
-        try:
-            want = _assign_once(prob_info, ent, ext, bay, capf, min(left * 0.5, 10.0))
-        except Exception:
-            break
-        if want is None:
-            break
-        s, spill, hot = _realise(prob_info, want, ent, ext)
-        if s is not None:
-            o, _ = _total(prob_info, s)
-            if o < best_o:
-                best_o = o; best = s
-        if spill <= 0:
-            break                       # the plan realised exactly -> the model was right
-        for k in range(m):              # tighten exactly the bays that could not deliver
-            if hot[k] > 0:
-                capf[k] *= 0.90
+        capf = [cap0] * m
+        for _rnd in range(4):
+            left = budget - (time.time() - t0)
+            if left < 2.0:
+                break
+            try:
+                want = _assign_once(prob_info, ent, ext, bay, capf, min(left * 0.4, 8.0))
+            except Exception:
+                break
+            if want is None:
+                break
+            s, spill, hot = _realise(prob_info, want, ent, ext, wait)
+            if s is not None:
+                o, _ = _total(prob_info, s)
+                if o < best_o:
+                    best_o = o; best = s
+            if spill <= 0:
+                break                   # realised exactly -> this start point is settled
+            for k in range(m):          # tighten only the bays that could not deliver
+                if hot[k] > 0:
+                    capf[k] *= 0.90
     return best
 
 
