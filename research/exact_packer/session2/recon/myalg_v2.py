@@ -639,36 +639,34 @@ def _recs_to_ops(recs, n):
     return _build_operations([recs[b] for b in range(n)])
 
 
-def _beam_width(n, budget, mul, share=1.0):
-    """Just a CAP now.  The width used to be predicted from a fitted constant, which was
-    silently catastrophic -- the beam returns NOTHING when it overruns, and the constant was
-    4x wrong the moment the beam ran one-core inside the pool, so every worker fell back to
-    the greedy floor and the 300s answer came out worse than the 60s one.  The engine now
-    adapts the width per level from its own measured cost (OGC_ADAPTB, on by default), so
-    all that is needed here is a generous ceiling: measured at Bmax=96/60s, fixed width
-    finished NONE of prob_30/35/39 while adaptive finished all three using ~95% of budget."""
+def _beam_width(mul):
+    """Just a CAP.  The width used to be predicted from a fitted constant, which was silently
+    catastrophic -- the beam returns NOTHING when it overruns, and the constant was 4x wrong
+    the moment the beam ran one-core inside the pool, so every worker fell back to the greedy
+    floor and the 300s answer came out worse than the 60s one.  The engine now adapts the
+    width per level from its own measured cost, so all this owes it is a generous ceiling."""
     return max(8, min(96, int(mul * 96)))
 
 
 def _beam_once(prob_info, budget, cfg, share=1.0):
-    """One beam run, then a RESOLUTION LADDER if it cannot finish.
+    """One beam run, with a coarser position grid held in reserve.
 
-    This is the one place the rebuild could not stay single-shot: past ~200 blocks no beam
-    width completes a step-1 scan inside any realistic budget, which is exactly why the old
-    pipeline gated its beam to n<=200 and handed the big class to the mode zoo.  The answer
-    here is not a second heuristic -- it is the SAME search on a coarser position grid.
-    One knob, monotone: finer first, coarser only if finer did not finish."""
+    Measured: the fine rung finishes on every instance we have, including n=300 and the
+    saturated 250s -- the engine's adaptive width narrows rather than overrunning, so the
+    ladder of progressively smaller widths it used to carry never fired once and is gone.
+    The coarse rung stays because it answers a different question (grid resolution, not
+    budget) and costs nothing while unused."""
     n = len(prob_info["blocks"])
     t0 = time.time()
-    for step, mul in ((1, 1.0), (1, 0.5), (2, 1.0), (2, 0.5)):
+    for step in (1, 2):
         left = budget - (time.time() - t0)
         if left < 4.0:
             break
-        B = _beam_width(n, budget, cfg["Bmul"] * mul, share)
         try:
-            r = _contact_beam(prob_info, left, B=B, K=cfg["K"], pos_lam=cfg["pos_lam"],
-                              order=cfg["order"], fut_beta=cfg["fut_beta"],
-                              prefw=cfg["prefw"], w3mul=cfg["w3mul"], step=step)
+            r = _contact_beam(prob_info, left, B=_beam_width(cfg["Bmul"]), K=cfg["K"],
+                              pos_lam=cfg["pos_lam"], order=cfg["order"],
+                              fut_beta=cfg["fut_beta"], prefw=cfg["prefw"],
+                              w3mul=cfg["w3mul"], step=step)
         except Exception:
             r = None
         if r:
@@ -746,10 +744,10 @@ class _Bandit:
 
     Used for the crane-contact weight: contact decides whether blocks nest tightly or
     spread, and how much that is worth is an instance property, not a constant -- some
-    instances want tight packing (contact high), others want the descent paths kept open
-    (contact low).  Rather than gate on density, try each value, score it by the objective
-    it actually produced, and concentrate on the winner.  Optimism-under-uncertainty:
-    untried arms are picked first, then the best mean wins with a small exploration share."""
+    instances want tight packing, others want the descent paths kept open.  Rather than gate
+    on density, try each value, score it by the objective it actually produced, and
+    concentrate on the winner.  Optimism-under-uncertainty: untried arms are picked first,
+    then the best mean wins with a small exploration share."""
 
     def __init__(self, arms, rng):
         self.arms = list(arms); self.rng = rng
@@ -781,7 +779,7 @@ def _regrow(prob_info, sol, budget, cfg, stay, share=1.0, anchor=None, mum=1.0):
     Every regrow is judged on the FULL objective, so one that loses is simply discarded."""
     n = len(prob_info["blocks"])
     ab, ao = anchor if anchor is not None else _anchor_of(prob_info, sol)
-    B = _beam_width(n, budget, cfg["Bmul"], share)
+    B = _beam_width(cfg["Bmul"])
     try:
         r = _contact_beam(prob_info, budget, B=B, K=cfg["K"], pos_lam=cfg["pos_lam"],
                           order=cfg["order"], fut_beta=cfg["fut_beta"], prefw=cfg["prefw"],
@@ -1186,10 +1184,14 @@ def _worker(args):
     rng = random.Random(1234 + wid)
     axes = [_AXES[(wid + i) % len(_AXES)] for i in range(len(_AXES))]
     pool = [best] if best[1] is not None else []
-    band = _Bandit([0.25, 1.0, 4.0], rng)          # crane-contact weight, same idea
+    band = _Bandit([0.25, 1.0, 4.0], rng)          # crane-contact weight
     w3v = float(prob_info.get("weights", {}).get("w3", 1.0))
     gen = [0]
 
+    # The axis rotates rather than being bandit-picked: with six axes and only a handful of
+    # slices in a 60s budget a bandit never leaves its exploration phase, and measured it cost
+    # prob_3 44400 -> 49020.  Diversity across axes is already covered between workers, which
+    # each start at a different offset.
     def _fresh(t):
         gen[0] += 1
         return _beam_once(prob_info, t, axes[gen[0] % len(axes)], share)
