@@ -507,7 +507,8 @@ struct Engine {
     static bool use_ourscore(){ static const int v=[](){const char*e=getenv("OGC_OURSCORE");return(e&&e[0]=='1')?1:0;}(); return v; }
     py::array_t<int> best_cell_contact(int bid,int cur,int step,double pos_lam,double prefw,
                                        double mu,double w1,double w3,int topk,
-                                       double fut_beta=0.0,double mean_proc=1.0){
+                                       double fut_beta=0.0,double mean_proc=1.0,
+                                       double w2=0.0,std::vector<double> loads={}){
         const BlockShape& bs=shapes[bid]; int P=(int)bs.pt; int ex=cur+P; double dd=shapes[bid].due;
         double s_max=0; if(!bs.prefs.empty()){ s_max=bs.prefs[0]; for(double v:bs.prefs) if(v>s_max)s_max=v; }
         double tardy = ex>dd? (double)(ex-dd):0.0;
@@ -566,7 +567,8 @@ struct Engine {
                 }
             }
             if(boi<0)continue;
-            double drank = w1*tardy + w3*pen - mu*(double)bct;
+            double drank = w1*tardy + w3*pen - mu*(double)bct
+                         + w2*dobj2_of(loads, bay, bs.workload);
             cands.push_back({drank,bay,boi,bix,biy,bct});
         }
         std::sort(cands.begin(),cands.end(),[](const Cand&a,const Cand&b){return a.drank<b.drank;});
@@ -665,9 +667,39 @@ struct Engine {
     // before contact_beam's OpenMP region, read-only inside -> thread-safe.  Empty = no anchoring.
     std::vector<int> cb_anchor;
     std::vector<double> cb_anchor_w;
+    // W2 IN THE CANDIDATE RANK (the one term we were missing against the reference).
+    // The reference ranks candidates by the full objective delta
+    //     d_rank = w1*tardy + w2*d(obj2) + w3*pref - mu*contact
+    // and ours had every term but w2*d(obj2).  That is not a detail: the largest pipeline win
+    // ever measured here (prob_39 -2.30%) was a LOAD-BALANCE collapse -- Z2 3403 -> 1101, Z3
+    // 8081 -> 6421, Z1 +6 -- and it was reached only INDIRECTLY, by routing on a preference
+    // proxy inside a density gate.  With obj2 in the rank the beam sees that trade directly on
+    // every candidate, on every instance, with no gate and no mode.  loads empty or w2 == 0 ->
+    // the term vanishes and the rank is byte-identical to before.
+    // env OGC_W2RANK=0 removes the term -> the candidate rank is byte-identical to the
+    // pre-change engine, which is the OFF arm of the A/B.
+    static bool w2rank_on(){ static const int v=[](){const char*e=getenv("OGC_W2RANK");return(e&&e[0]=='0')?0:1;}(); return v; }
+    double dobj2_of(const std::vector<double>& loads,int bay,double wl) const {
+        if(!w2rank_on() || n_bays<2 || (int)loads.size()<n_bays) return 0.0;
+        // same normaliser contact_beam's obj2f uses (avg bay area / this bay's area), so the
+        // candidate rank and the state rank speak about the SAME obj2
+        double avg_ba=0.0; for(int j=0;j<n_bays;j++) avg_ba+=bw[j]*bh[j];
+        avg_ba/=(double)n_bays;
+        double mn=1e18,mx=-1e18,mn2=1e18,mx2=-1e18;
+        for(int j=0;j<n_bays;j++){
+            double uj=(bw[j]*bh[j]>1e-9)? avg_ba/(bw[j]*bh[j]) : 1.0;
+            double v=uj*loads[j];
+            if(v<mn)mn=v; if(v>mx)mx=v;
+            double v2=(j==bay)? uj*(loads[j]+wl) : v;
+            if(v2<mn2)mn2=v2; if(v2>mx2)mx2=v2;
+        }
+        return (mx2-mn2)-(mx-mn);
+    }
+
     void best_cell_contact_tl(const std::vector<std::vector<Placed>>& TL,int bid,int cur,int step,
                               double pos_lam,double prefw,double mu,double w1,double w3,
-                              double fut_beta,double mean_proc,int topk,std::vector<std::array<int,5>>& out){
+                              double fut_beta,double mean_proc,int topk,std::vector<std::array<int,5>>& out,
+                              double w2=0.0,const std::vector<double>* loads=nullptr){
         const BlockShape& bs=shapes[bid]; int P=(int)bs.pt; int ex=cur+P; double dd=shapes[bid].due;
         double s_max=0; if(!bs.prefs.empty()){ s_max=bs.prefs[0]; for(double v:bs.prefs) if(v>s_max)s_max=v; }
         double tardy = ex>dd? (double)(ex-dd):0.0;
@@ -749,7 +781,8 @@ struct Engine {
                 }
             }
             if(boi<0)continue;
-            double drank = w1*tardy + w3*pen - mu*(double)bct;
+            double drank = w1*tardy + w3*pen - mu*(double)bct
+                         + (loads ? w2*dobj2_of(*loads, bay, bs.workload) : 0.0);
             // guided-reconstruction anchor: bias toward the incumbent bay for this block
             if(!cb_anchor.empty() && bid<(int)cb_anchor.size() && bid<(int)cb_anchor_w.size()
                && cb_anchor[bid]>=0 && bay!=cb_anchor[bid]) drank += cb_anchor_w[bid];
@@ -821,17 +854,17 @@ struct Engine {
                         std::sort(ents.begin(),ents.end()); ents.erase(std::unique(ents.begin(),ents.end()),ents.end());
                         if((int)ents.size()>CBMAXENT) ents.resize(CBMAXENT);
                         for(int et:ents){ cc.clear();
-                            best_cell_contact_tl(TL,bi,et,step,pos_lam,prefw,mu,w1,w3,fut_beta,mean_proc,K,cc);
+                            best_cell_contact_tl(TL,bi,et,step,pos_lam,prefw,mu,w1,w3,fut_beta,mean_proc,K,cc,w2,&st.loads);
                             for(auto&cd:cc){ allc.push_back(cd); allc_ct.push_back({et,et+pt}); } }
                     } else {
                         int cur=r; cc.clear();
-                        best_cell_contact_tl(TL,bi,cur,step,pos_lam,prefw,mu,w1,w3,fut_beta,mean_proc,K,cc);
+                        best_cell_contact_tl(TL,bi,cur,step,pos_lam,prefw,mu,w1,w3,fut_beta,mean_proc,K,cc,w2,&st.loads);
                         if(cc.empty()){
                             std::vector<int> ents; ents.push_back(r);
                             for(int bay=0;bay<n_bays;bay++) for(const Placed& te:TL[bay]) if(te.ex>r) ents.push_back(te.ex);
                             std::sort(ents.begin(),ents.end()); ents.erase(std::unique(ents.begin(),ents.end()),ents.end());
                             for(int e:ents){ if(e==r)continue; cc.clear();
-                                best_cell_contact_tl(TL,bi,e,step,pos_lam,prefw,mu,w1,w3,fut_beta,mean_proc,K,cc);
+                                best_cell_contact_tl(TL,bi,e,step,pos_lam,prefw,mu,w1,w3,fut_beta,mean_proc,K,cc,w2,&st.loads);
                                 if(!cc.empty()){cur=e;break;} }
                         }
                         for(auto&cd:cc){ allc.push_back(cd); allc_ct.push_back({cur,cur+pt}); }
@@ -842,7 +875,7 @@ struct Engine {
                         for(int bay=0;bay<n_bays;bay++) for(const Placed& te:TL[bay]) if(te.ex>r) ents.push_back(te.ex);
                         std::sort(ents.begin(),ents.end()); ents.erase(std::unique(ents.begin(),ents.end()),ents.end());
                         for(int e:ents){ cc.clear();
-                            best_cell_contact_tl(TL,bi,e,step,pos_lam,prefw,mu,w1,w3,fut_beta,mean_proc,K,cc);
+                            best_cell_contact_tl(TL,bi,e,step,pos_lam,prefw,mu,w1,w3,fut_beta,mean_proc,K,cc,w2,&st.loads);
                             if(!cc.empty()){ for(auto&cd:cc){ allc.push_back(cd); allc_ct.push_back({e,e+pt}); } break; } }
                     }
                     if(allc.empty()){ outv.push_back(st); continue; }
@@ -1776,7 +1809,8 @@ PYBIND11_MODULE(ogc_fast,m){
         .def("best_cell_contact",&Engine::best_cell_contact,
              py::arg("bid"),py::arg("cur"),py::arg("step"),py::arg("pos_lam"),py::arg("prefw"),
              py::arg("mu"),py::arg("w1"),py::arg("w3"),py::arg("topk"),
-             py::arg("fut_beta")=0.0,py::arg("mean_proc")=1.0)
+             py::arg("fut_beta")=0.0,py::arg("mean_proc")=1.0,
+             py::arg("w2")=0.0,py::arg("loads")=std::vector<double>{})
         .def("greedy_contact",&Engine::greedy_contact,
              py::arg("order"),py::arg("step"),py::arg("pos_lam"),py::arg("prefw"),
              py::arg("mu"),py::arg("w1"),py::arg("w3"))
