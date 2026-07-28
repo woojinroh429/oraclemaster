@@ -524,3 +524,23 @@ the same wall the old ejection chains hit (47790 attempts, 2 accepted); now we k
 What it does redirect: on a saturated instance the lever is which BAY a block is sent to, not
 how it is packed once there.  Block 141 is stuck because it is in bay0, not because of its
 position within bay0.
+
+## Where v2 stands against the shipped pipeline (40 instances, 60s, grader-checked)
+
+  ALL 40                n=40  wins 20  losses 15  ties 5   mean  -3.56%   median -0.01%
+  congested (Z1 > 0)    n=20  wins 13  losses  6  ties 1   mean -11.44%   median -11.02%
+  loose (Z1 = 0 both)   n=20  wins  7  losses  9  ties 4   mean  +4.32%   median  +0.00%
+
+  sum of objectives   OLD 108757664   V2 105711388   -2.80%
+
+  biggest wins    p23 -36.8%  p28 -36.7%  p35 -33.3%  p32 -30.0%  p36 -28.8%  p34 -24.8%
+  biggest losses  p18 +34.8%  p12 +26.9%  p11 +24.1%  p5  +14.9%  p29 +13.5%  p40 +10.0%
+
+The split is not noise, it is the objective structure: every large win is on an instance
+where Z1 > 0 and every large loss is on one where Z1 = 0 for both algorithms.  Where the yard
+is congested and tardiness dominates the objective, v2's beam is better by a median 11%.
+Where nothing is late, the whole objective is the Z2/Z3 assignment trade and v2 is behind.
+
+This run predates the slice steering: on prob_30 it records 2333105, and the same instance
+measures 1477820 once each operator steers its own slice, so the congested column should
+widen further.
