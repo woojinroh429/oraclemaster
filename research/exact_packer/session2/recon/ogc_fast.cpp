@@ -1054,38 +1054,21 @@ struct Engine {
         cb_n_cell=cb_n_bitmap=cb_n_exact=cb_t_exact=cb_n_hard=cb_n_badrej=0.0;
         cb_t_retry=cb_t_roll=cb_n_retry=0.0; cb_n_arskip=cb_n_arbad=0.0;
         auto obj2f=[&](const std::vector<double>& loads){ double mn=1e18,mx=-1e18; for(int j=0;j<n_bays;j++){double v=u[j]*loads[j]; if(v<mn)mn=v; if(v>mx)mx=v;} return n_bays>1?(mx-mn):0.0; };
-        // RANKING ON THE PROJECTED FINAL LOADS.
+        // NOTE on ranking obj2.  Two attempts to make this a better search signal both
+        // failed, and one of them was bound to:
         //
-        // obj2f is the exact objective and stays exact wherever the objective is evaluated.
-        // As a SEARCH signal, though, the range of the PARTIAL loads is the wrong quantity
-        // twice over: it is an endpoint statistic read halfway, and it sees only the heaviest
-        // and lightest bay, so on prob_20's five bays three of them can drift apart without
-        // moving it at all.
+        //   * ranking on the range of the PROJECTED final loads is algebraically identical to
+        //     ranking on the partial range.  Projecting adds rest*share_j to bay j, and
+        //     u_j*share_j = u_j*(1/u_j)/sum_k(1/u_k) = 1/sum_k(1/u_k) -- the same constant for
+        //     every bay.  A constant added to every value leaves max-min untouched.
+        //   * twice the RMS deviation from the balanced value DOES change the search, since it
+        //     charges every bay rather than only the extremes (on prob_20's five bays three can
+        //     drift apart without moving the range at all).  Paired over 12 instances it came
+        //     out net worse: prob_3 -10.3%, prob_17 -7.7%, prob_39 -3.9%, prob_10 -1.4%
+        //     against prob_20 +16.1% and prob_13 +10.3%.  It is a different objective, and
+        //     over-penalising an even spread costs more than the blindness it cures.
         //
-        // Rather than swap in a different shape (an RMS spread charges every bay but
-        // over-penalises an even spread, and measured it split by bay count -- prob_17 better,
-        // prob_20 and prob_13 worse), keep the objective's own shape and evaluate it where it
-        // is actually collected.  The remaining workload is known; the best a completion can
-        // do with it is spread it in balanced proportion, share_j proportional to 1/u_j.  So
-        // project each bay to L_j + remaining*share_j and take the range of that.  Early on
-        // the projections are near-balanced and the signal is small but correctly ordered;
-        // by the last level it converges to the exact objective.
-        // env OGC_PROJ=0 ranks on the partial range as before.
-        static const bool PROJ=[](){const char*e=getenv("OGC_PROJ");return !(e&&e[0]=='0');}();
-        double sinv_=0.0; for(int j=0;j<n_bays;j++) sinv_+=1.0/std::max(1e-9,u[j]);
-        auto obj2rank=[&](const std::vector<double>& loads){
-            if(n_bays<2) return 0.0;
-            if(!PROJ) return obj2f(loads);
-            double placed=0.0; for(int j=0;j<n_bays;j++) placed+=loads[j];
-            double rest=std::max(0.0, wl_total-placed);
-            double mn=1e18,mx=-1e18;
-            for(int j=0;j<n_bays;j++){
-                double share=(1.0/std::max(1e-9,u[j]))/std::max(1e-9,sinv_);
-                double v=u[j]*(loads[j]+rest*share);
-                if(v<mn)mn=v; if(v>mx)mx=v;
-            }
-            return mx-mn;
-        };
+        // So ranking uses the exact objective, as it did before either attempt.
         double inc_obj=1e18;      // best COMPLETE objective seen -- the pruning threshold
         static const bool ADMP_LIVE=[](){const char*e=getenv("OGC_ADMP");return (e&&e[0]=='1');}();
         CBState init; init.placed.assign(nb,0); init.loads.assign(n_bays,0.0); init.gt=0;init.gz3=0;init.gcontact=0;init.nplaced=0;
@@ -1309,9 +1292,9 @@ struct Engine {
                 if(THRUBEAM)
                     // KEEP Z3 (dropping it blew up Z3 for a tiny Z1 gain -> net worse); only AMPLIFY
                     // the future-tardiness lookahead so the search still steers away from congestion.
-                    keyed[i]={ w1*(c.gt + THRUHZ*hz) + w3*c.gz3 - mu*c.gcontact + w2*obj2rank(c.loads), i };
+                    keyed[i]={ w1*(c.gt + THRUHZ*hz) + w3*c.gz3 - mu*c.gcontact + w2*obj2f(c.loads), i };
                 else
-                    keyed[i]={ w1*c.gt + w3*c.gz3 - mu*c.gcontact + w2*obj2rank(c.loads) + w1*hz, i };
+                    keyed[i]={ w1*c.gt + w3*c.gz3 - mu*c.gcontact + w2*obj2f(c.loads) + w1*hz, i };
             }
             std::sort(keyed.begin(),keyed.end(),[](const std::pair<double,int>&a,const std::pair<double,int>&b){return a.first<b.first;});
             // CANONICAL DEDUP: two states that placed the SAME blocks in the same bays at the

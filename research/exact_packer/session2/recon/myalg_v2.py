@@ -79,10 +79,16 @@ try:
 except Exception:
     HAVE_OGC_FAST = False
 
-# cranepack: pure-C++ exact-style crane set-packing (no Gurobi/ortools dependency).
-# Powers the STRONGER low-density Z3 relocator (_z3_relocate_cp).  Fork-safe detection
-# only (find_spec); imported lazily post-fork inside the operator.
+# cranepack: pure-C++ exact-style crane set-packing.  Powers _relocate, which moves a block
+# into a better bay by repacking that bay's time-neighbours around it.  Fork-safe detection
+# only (find_spec); imported lazily post-fork inside the operator, and absent it simply is
+# not offered as an operator.
 HAVE_CRANEPACK = False
+try:
+    import importlib.util as _ilu_cpk
+    HAVE_CRANEPACK = _ilu_cpk.find_spec("cranepack") is not None
+except Exception:
+    HAVE_CRANEPACK = False
 
 # ortools CP-SAT: used ONLY for the global-scheduling path on high-contention
 # (P6-class) instances -- area-relaxed cumulative scheduling to minimise total
@@ -623,6 +629,152 @@ def _z3_improve(prob_info, sol, budget):
 # floor, and a polish.  Selection everywhere is on w1*Z1 + w2*Z2 + w3*Z3 -- never on a
 # component, never on a construction proxy.
 # ---------------------------------------------------------------------------
+
+def _relocate(prob_info, sol, budget):
+    """Move a block into a more-preferred bay by FREEING that bay's time-neighbours and
+    repacking them together with it.
+
+    _z3_improve only asks whether a block fits where it currently stands, and on a busy bay
+    the answer is almost always no -- measured, single-block bay moves judged on the full
+    objective recovered 0.56% on prob_3 and 3.47% on prob_5 before hitting a local optimum in
+    under a second.  Freeing the nearest-in-time neighbours turns the question into a small
+    exact packing, which cranepack solves outright: on prob_5 the first block tried relocated
+    and gave back 57 of 328 Z3.
+
+    Three things the probes taught, all load-bearing.
+
+    Aiming: the identical machine pointed at Z1 recovered nothing at all in 83 attempts across
+    five instances, because that tardiness is capacity, not misplacement.  So this only ever
+    chases Z3.
+
+    Grid: at step 6 a control that merely had to reproduce the current placement failed
+    outright -- real placements sit on arbitrary integers and a coarse grid cannot express
+    them.  Step 2 expresses them and is 16x faster than step 1 for the same result (prob_3,
+    ten freed: 11/11 either way, 5.0s against 81.9s).
+
+    Size, not time: cranepack overruns its own time budget badly at fine resolution -- one
+    call given 0.6s took 101s -- so the only real bound is the size of the set handed to it.
+    That cost is measured here, not assumed: the freed count starts small and grows only
+    while the calls it has actually timed say the next one still fits in the slice.
+
+    What it will and will not find: on a poor incumbent a single repack took prob_3 from 57330
+    to 43600.  On a good one (51760, Z3 already down to 313) nothing improves at any size or
+    resolution tried, including six freed at step 1 with two minutes.  So it is offered as an
+    operator and left to earn its budget -- the payoff loop measures what it returns per
+    second and starves it where there is nothing to recover, which is most of the time."""
+    if not HAVE_CRANEPACK or sol is None:
+        return None
+    try:
+        import numpy as _np, cranepack as _CP
+        from utils import Block as _Blk
+    except Exception:
+        return None
+    B = prob_info["blocks"]; bays = prob_info["bays"]
+    n = len(B); m = len(bays)
+    if m < 2:
+        return None
+    rel = [b["release_time"] for b in B]; pt = [b["processing_time"] for b in B]
+    due = [b["due_date"] for b in B]; pref = [b["bay_preferences"] for b in B]
+    mxp = [max(p) for p in pref]
+    place = {}
+    for tstr, row in (sol.get("operations") or {}).items():
+        for op in row:
+            if op["type"] == "ENTRY":
+                place[op["block_id"]] = [op["bay_id"], op["orient_idx"], op["x"], op["y"],
+                                         int(tstr), int(tstr) + pt[op["block_id"]]]
+    if len(place) != n:
+        return None
+
+    shp = {}                    # orientation polygons at the origin, built once per block
+    def _shape(b):
+        if b not in shp:
+            shp[b] = ([[_np.ascontiguousarray(_np.asarray(L, dtype=_np.float64))
+                        for L in _Blk(block_id=b, block_data=B[b], x=0, y=0,
+                                      orient_idx=o).resolved_layers()]
+                       for o in range(len(B[b]["shape"]))],
+                      [_orient_bbox(B[b], o) for o in range(len(B[b]["shape"]))])
+        return shp[b]
+    frz = {}                    # world polygons of a block AT ITS CURRENT PLACE, built once
+    def _frozen(b):
+        key = (b, place[b][1], place[b][2], place[b][3])
+        if key not in frz:
+            frz[key] = [_np.ascontiguousarray(_np.asarray(L, dtype=_np.float64))
+                        for L in _Blk(block_id=b, block_data=B[b], x=place[b][2],
+                                      y=place[b][3], orient_idx=place[b][1]).layers_at_pos()]
+        return frz[key]
+
+    def pen(b, j):
+        return mxp[b] - (pref[b][j] if j < len(pref[b]) else 0)
+
+    bu = _bay_unit_weights(bays)
+
+    def _place_obj(pl):
+        return _objective([{"block_id": g, "bay_id": pl[g][0], "orient_idx": pl[g][1],
+                            "x": pl[g][2], "y": pl[g][3], "entry_time": pl[g][4],
+                            "exit_time": pl[g][5]} for g in range(n)], prob_info, bu)[0]
+
+    dead = time.time() + max(2.0, budget)
+    order = sorted((b for b in place if pen(b, place[b][0]) > 0),
+                   key=lambda b: -pen(b, place[b][0]))
+    moved = False
+    cur_obj = _place_obj(place)
+    kfree, per = 4, 0.0            # freed count, and seconds per freed block as measured
+    for b in order:
+        if time.time() > dead - 0.8:
+            break
+        cur = place[b][0]
+        for J in sorted((j for j in range(m) if pen(b, j) < pen(b, cur)),
+                        key=lambda j: pen(b, j)):
+            if time.time() > dead - 0.5:
+                break
+            inbay = [x for x in place if x != b and place[x][0] == J]
+            ov = sorted((x for x in inbay
+                         if not (place[x][5] <= rel[b] or due[b] <= place[x][4])),
+                        key=lambda x: abs(place[x][4] - rel[b]))
+            # grow the freed set only as far as the measured cost says fits in what is left
+            if per > 0.0:
+                kfree = max(3, min(6, int((dead - time.time()) * 0.4 / per)))
+            free = ov[:kfree]; fs = set(free); cand = free + [b]
+            blocks_in = []
+            for g in cand:
+                lo = rel[g]; hi = max(lo, due[g] - pt[g])
+                ee = sorted({lo + ((hi - lo) * k) // 2 for k in range(3)} |
+                            ({place[g][4]} if g != b else set()))
+                ol, ob = _shape(g)
+                blocks_in.append((ol, ob, [(t, t + pt[g]) for t in ee]))
+            froz = [(_frozen(x), int(place[x][4]), int(place[x][5]))
+                    for x in inbay if x not in fs]
+            st = time.time()
+            try:
+                got, pl = _CP.pack(blocks_in, float(bays[J]["width"]),
+                                   float(bays[J]["height"]), 2,
+                                   max(0.1, dead - st),
+                                   seed=12345, warm=None, frozen=froz)[:2]
+            except Exception:
+                got, pl = 0, []
+            el = time.time() - st
+            per = el / max(1, len(cand)) if per <= 0.0 else 0.7 * per + 0.3 * el / max(1, len(cand))
+            if got < len(cand):
+                continue
+            # A successful repack is not automatically an improvement: the freed blocks come
+            # back at new entry times and in a bay whose load has changed, so a preference win
+            # can be paid for twice over in tardiness and imbalance.  Judge the whole move on
+            # the full objective and keep it only if it actually pays.
+            trial = {g: list(v) for g, v in place.items()}
+            for (loc, o, x, y, en, ex) in pl:
+                trial[cand[loc]] = [J, int(o), int(x), int(y), int(en), int(ex)]
+            if _place_obj(trial) >= cur_obj - 1e-9:
+                continue
+            place = trial; cur_obj = _place_obj(place)
+            moved = True
+            break
+    if not moved:
+        return None
+    return _build_operations([{"block_id": b, "bay_id": place[b][0], "orient_idx": place[b][1],
+                               "x": place[b][2], "y": place[b][3],
+                               "entry_time": place[b][4], "exit_time": place[b][5]}
+                              for b in range(n)])
+
 
 def _total(prob_info, sol):
     """The ONLY selection criterion in this file: the full objective, or inf."""
@@ -1214,6 +1366,8 @@ def _worker(args):
            ("grow", _grow, True),
            ("bal",  lambda t: _balance(prob_info, pool[0][1], t), True),
            ("pref", lambda t: _z3_improve(prob_info, pool[0][1], t), True)]
+    if HAVE_CRANEPACK:
+        ops.append(("reloc", lambda t: _relocate(prob_info, pool[0][1], t), True))
     if HAVE_ORTOOLS:
         ops.append(("bay", lambda t: _assign(prob_info, pool[0][1], t), True))
     gain = [0.0] * len(ops); spent = [1e-6] * len(ops); tried = [0] * len(ops)
