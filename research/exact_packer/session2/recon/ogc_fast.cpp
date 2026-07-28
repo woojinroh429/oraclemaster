@@ -792,6 +792,8 @@ struct Engine {
         int m=std::min((int)cands.size(),std::max(1,topk));
         for(int i=0;i<m;i++) out.push_back({cands[i].bay,cands[i].oi,cands[i].ix,cands[i].iy,cands[i].ct});
     }
+    double cb_t_rebuild=0.0, cb_t_scan=0.0;
+    static bool CBPROF_on(){ static const int v=[](){const char*e=getenv("OGC_CBPROF");return(e&&e[0]=='1')?1:0;}(); return v; }
     struct CBState { std::vector<int> flat; std::vector<char> placed; std::vector<double> loads; double gt,gz3,gcontact; int nplaced; };
     // C++ CONTACT BEAM (OpenMP over beam states): the fast engine port of the Python _contact_beam
     // so a WIDE beam (B~50) fits in budget on congested instances.  Fixed dispatch `order`; each
@@ -816,6 +818,7 @@ struct Engine {
         // CBMAXENT = cap on distinct entry times tried per state (bounds cost at 250 blocks).
         static const int CBWAIT=[](){const char*e=getenv("OGC_CBWAIT");return e?atoi(e):0;}();
         static const int CBMAXENT=[](){const char*e=getenv("OGC_CBMAXENT");return e?std::max(1,atoi(e)):4;}();
+        const bool CBPROF=CBPROF_on(); cb_t_rebuild=0.0; cb_t_scan=0.0;
         auto obj2f=[&](const std::vector<double>& loads){ double mn=1e18,mx=-1e18; for(int j=0;j<n_bays;j++){double v=u[j]*loads[j]; if(v<mn)mn=v; if(v>mx)mx=v;} return n_bays>1?(mx-mn):0.0; };
         CBState init; init.placed.assign(nb,0); init.loads.assign(n_bays,0.0); init.gt=0;init.gz3=0;init.gcontact=0;init.nplaced=0;
         std::vector<CBState> beam; beam.push_back(std::move(init));
@@ -1819,6 +1822,8 @@ PYBIND11_MODULE(ogc_fast,m){
              py::arg("prefw"),py::arg("mu"),py::arg("w1"),py::arg("w3"),
              py::arg("fut_beta")=0.0,py::arg("mean_proc")=1.0)
         .def("hz1_est",&Engine::hz1_est,py::arg("flat"),py::arg("areas"))
+        .def_readonly("cb_t_rebuild",&Engine::cb_t_rebuild)
+        .def_readonly("cb_t_scan",&Engine::cb_t_scan)
         .def("contact_beam",&Engine::contact_beam,
              py::arg("order"),py::arg("areas"),py::arg("workloads"),py::arg("B"),py::arg("K"),
              py::arg("step"),py::arg("pos_lam"),py::arg("prefw"),py::arg("mu"),

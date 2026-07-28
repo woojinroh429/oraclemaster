@@ -638,29 +638,43 @@ def _recs_to_ops(recs, n):
 
 
 def _beam_width(n, budget, mul):
-    """The beam returns NOTHING if it runs out of budget mid-construction, so a width that
-    is too ambitious yields zero rather than something slightly worse.  Width therefore has
-    to be derived, not configured: measured, B=24 completes 100 blocks in ~25s, so the
-    affordable width is ~96*budget/n.  cfg only scales that."""
-    return max(4, min(96, int(mul * 96.0 * budget / max(1, n))))
+    """The beam returns NOTHING when it overruns, so an over-ambitious width yields zero
+    rather than something slightly worse -- width has to be DERIVED, not configured.
+    Measured largest width that completes (_n/calib.py):
+
+        n=100  20s -> B=24      n=150  20s -> B=6
+        n=200  40s -> B=6       n=250  20s -> none at any width
+
+    Cost grows ~n^2, so B = a*budget/n^2 with a=6000 reproduces each of those from just
+    below (100/20s -> 12, 150/20s -> 5, 200/40s -> 6, 250/40s -> 4).  cfg only scales it."""
+    return max(3, min(96, int(mul * 6000.0 * budget / max(1.0, float(n) ** 2))))
 
 
 def _beam_once(prob_info, budget, cfg):
-    """One beam run.  cfg selects a diversification axis, not a 'mode': it is the same
-    search every time, only the ranking constants and the dispatch order differ.  If the
-    derived width still overruns, halve it once rather than waste the slot."""
+    """One beam run, then a RESOLUTION LADDER if it cannot finish.
+
+    This is the one place the rebuild could not stay single-shot: past ~200 blocks no beam
+    width completes a step-1 scan inside any realistic budget, which is exactly why the old
+    pipeline gated its beam to n<=200 and handed the big class to the mode zoo.  The answer
+    here is not a second heuristic -- it is the SAME search on a coarser position grid.
+    One knob, monotone: finer first, coarser only if finer did not finish."""
     n = len(prob_info["blocks"])
     t0 = time.time()
-    for div in (1.0, 0.5):
+    for step, mul in ((1, 1.0), (1, 0.5), (2, 1.0), (2, 0.5)):
         left = budget - (time.time() - t0)
         if left < 4.0:
             break
-        B = _beam_width(n, budget, cfg["Bmul"] * div)
-        r = _contact_beam(prob_info, left, B=B, K=cfg["K"], pos_lam=cfg["pos_lam"],
-                          order=cfg["order"], fut_beta=cfg["fut_beta"], prefw=cfg["prefw"],
-                          w3mul=cfg["w3mul"])
+        B = _beam_width(n, budget, cfg["Bmul"] * mul)
+        try:
+            r = _contact_beam(prob_info, left, B=B, K=cfg["K"], pos_lam=cfg["pos_lam"],
+                              order=cfg["order"], fut_beta=cfg["fut_beta"],
+                              prefw=cfg["prefw"], w3mul=cfg["w3mul"], step=step)
+        except Exception:
+            r = None
         if r:
-            return _recs_to_ops(r, n)
+            s = _recs_to_ops(r, n)
+            if s is not None and _total(prob_info, s)[0] < float("inf"):
+                return s          # a coarse step can land infeasible -- keep only real answers
     return None
 
 
@@ -684,6 +698,38 @@ _AXES = [
     dict(Bmul=1.4, K=3, pos_lam=0.10, order="edd_big",  fut_beta=0.5, prefw=0.0, w3mul=6.0),
     dict(Bmul=0.5, K=6, pos_lam=0.20, order="edd_tri2", fut_beta=0.0, prefw=0.0, w3mul=1.5),
 ]
+
+
+def _anchor_of(prob_info, sol):
+    """(bay per block, dispatch order) of a solution -- the anchor a rung re-derives from."""
+    n = len(prob_info["blocks"])
+    bay = [-1] * n; ent = [0] * n
+    for t, ops in sol["operations"].items():
+        for op in ops:
+            if op["type"] == "ENTRY":
+                bay[op["block_id"]] = op["bay_id"]; ent[op["block_id"]] = int(t)
+    return bay, sorted(range(n), key=lambda b: (ent[b], b))
+
+
+def _rung(prob_info, sol, budget, cfg, stay):
+    """RUNG: re-run the SAME beam, anchored on the incumbent with a stay weight.
+
+    This is the reference's rung_G and the infrastructure for it (anchor_bays / anchor_order
+    / stay_w) has been sitting in _contact_beam unused.  It is what turns one beam into a
+    search: the beam re-derives the incumbent's structure, so it starts from a good packing
+    instead of a blank bay, and migrates only the blocks where migrating strictly lowers the
+    objective.  A high stay weight explores near the incumbent, a low one roams.  Each rung
+    is judged on the FULL objective, so a rung that loses is simply discarded."""
+    n = len(prob_info["blocks"])
+    ab, ao = _anchor_of(prob_info, sol)
+    B = _beam_width(n, budget, cfg["Bmul"])
+    try:
+        r = _contact_beam(prob_info, budget, B=B, K=cfg["K"], pos_lam=cfg["pos_lam"],
+                          order=cfg["order"], fut_beta=cfg["fut_beta"], prefw=cfg["prefw"],
+                          w3mul=cfg["w3mul"], anchor_bays=ab, anchor_order=ao, stay_w=stay)
+    except Exception:
+        return None
+    return _recs_to_ops(r, n) if r else None
 
 
 def _worker(args):
@@ -737,7 +783,28 @@ def _worker(args):
         if o < best[0]:
             best = (o, s)
 
-    # 3. POLISH the worker's own best on the remaining time.
+    # 3. RUNGS: spend everything that is left re-running the beam anchored on the current
+    #    best.  This is the whole refinement stage -- no ALNS, no SA, no second algorithm,
+    #    just the same search restarted from a good structure with a decaying stay weight.
+    #    The old pipeline lowered Z1 here with a 479-line ALNS; a rung does it with the
+    #    machinery already in the beam.
+    w3v = float(prob_info.get("weights", {}).get("w3", 1.0))
+    rung = 0
+    while best[1] is not None:
+        left = budget - (time.time() - t0)
+        if left < 10.0:
+            break
+        cfg = axes[rung % len(axes)]
+        stay = w3v * (4.0 ** (1 - (rung % 3)))      # 4x, 1x, 0.25x -- tight, then roaming
+        s = _rung(prob_info, best[1], min(left - 2.0, max(8.0, budget * 0.30)), cfg, stay)
+        rung += 1
+        if s is None:
+            continue
+        o, _ = _total(prob_info, s)
+        if o < best[0]:
+            best = (o, s)
+
+    # 4. Z3 pass on whatever survived.
     left = budget - (time.time() - t0)
     if best[1] is not None and left > 3.0:
         try:
