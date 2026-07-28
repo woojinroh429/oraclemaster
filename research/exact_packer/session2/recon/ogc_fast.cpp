@@ -814,7 +814,8 @@ struct Engine {
                 const FP& fp=footprint(bid,oi);
                 int lox=(int)std::ceil(-od.x0),hix=(int)std::floor(bw_j-od.x1);
                 int loy=(int)std::ceil(-od.y0),hiy=(int)std::floor(bh_j-od.y1);
-                for(int ix=lox;ix<=hix;ix+=step)for(int iy=loy;iy<=hiy;iy+=step){
+                bool any=false;
+                auto try_cell=[&](int ix,int iy){
                     bool ok;
                     if(CBPROF_on()){
                         #pragma omp atomic
@@ -886,7 +887,7 @@ struct Engine {
                             } else ok=placement_feasible_tl(TL[bay],bay,bid,oi,(double)ix,(double)iy,cur,ex);
                         }
                     } else ok=placement_feasible_tl(TL[bay],bay,bid,oi,(double)ix,(double)iy,cur,ex);
-                    if(!ok)continue;
+                    if(!ok)return;
                     int ct=contact_at(fp,ix,iy,occ,bayW,bayH);
                     double sc;
                     if(use_ourscore()){
@@ -900,8 +901,61 @@ struct Engine {
                         double db=(double)iy+od.y0,dt=bh_j-((double)iy+od.y1);
                         double dwall=std::min(std::min(dl,dr),std::min(db,dt));
                         sc += fut_beta*((double)P/std::max(1e-9,mean_proc))*dwall; }
+                    any=true;
                     if(sc<bestsc){bestsc=sc;boi=oi;bix=ix;biy=iy;bct=ct;}
+                };
+                // CONTACT CANDIDATE POSITIONS.  This beam ranks by contact, so a position
+                // touching nothing can never win -- yet the full grid sweep evaluates every
+                // one of them.  Measured on prob_20: 202M cells, 55.6s of a 56.2s call, on
+                // bays of 40500 cells.
+                //
+                // A contact needs an edge to coincide with something, so collect the x
+                // offsets that put this block's left or right edge against a present
+                // block's opposite edge or a wall, the same for y, and try the
+                // combinations -- the corner positions.  prob_20 carries roughly ten
+                // blocks per bay at any instant, so that is ~22 x 22 candidates where the
+                // sweep had 40500.
+                //
+                // A restriction, not an equivalence: a position touching in x while free
+                // in y is a real contact this set omits.  So when the corner set finds
+                // nothing feasible, fall back to the full sweep for this orientation --
+                // the beam's correctness never depends on the shortcut, only its speed.
+                // env OGC_CPOS=0 pins the old sweep.
+                // Cheaper of the two candidate sets wins, decided by arithmetic rather than
+                // by a density gate: |xs|*|ys| against the swept cell count.  On prob_38 the
+                // bays hold ~55 blocks at a time and are only ~2176 cells, so the corner set
+                // (112 x 112) is BIGGER than the sweep and the first version of this made the
+                // instance slower -- 1.06G cells to 1.38G.  Comparing the two costs picks the
+                // sweep there and the corners on prob_20 automatically.
+                bool usec=false;
+                std::vector<int> xs, ys;
+                if(CPOS_on()){
+                    xs.assign({lox,hix}); ys.assign({loy,hiy});
+                    for(const Placed& te: TL[bay]){
+                        if(!(cur < te.ex && te.en < ex)) continue;
+                        int xa=(int)std::ceil(te.bx1-od.x0), xb=(int)std::floor(te.bx0-od.x1);
+                        if(xa>=lox&&xa<=hix) xs.push_back(xa);
+                        if(xb>=lox&&xb<=hix) xs.push_back(xb);
+                        int ya=(int)std::ceil(te.by1-od.y0), yb=(int)std::floor(te.by0-od.y1);
+                        if(ya>=loy&&ya<=hiy) ys.push_back(ya);
+                        if(yb>=loy&&yb<=hiy) ys.push_back(yb);
+                    }
+                    std::sort(xs.begin(),xs.end()); xs.erase(std::unique(xs.begin(),xs.end()),xs.end());
+                    std::sort(ys.begin(),ys.end()); ys.erase(std::unique(ys.begin(),ys.end()),ys.end());
+                    double corner=(double)xs.size()*(double)ys.size();
+                    double swept =(double)(std::max(0,(hix-lox)/std::max(1,step))+1)
+                                 *(double)(std::max(0,(hiy-loy)/std::max(1,step))+1);
+                    // 4x margin, not merely "cheaper": when the corner set finds nothing the
+                    // sweep runs too, so a corner attempt that usually fails has to be cheap
+                    // enough that paying for both is bounded.  prob_38 rejects 99.7% of cells,
+                    // so its corner set almost always falls through -- requiring 4x caps that
+                    // waste at 25% and hands the instance straight to the sweep, while prob_20's
+                    // corner set is ~1% of its sweep and is unaffected.
+                    usec = corner*4.0 < swept;
+                    if(usec) for(int ix: xs) for(int iy: ys) try_cell(ix,iy);
                 }
+                if(!usec || !any)
+                    for(int ix=lox;ix<=hix;ix+=step)for(int iy=loy;iy<=hiy;iy+=step) try_cell(ix,iy);
             }
             if(boi<0)continue;
             double drank = w1*tardy + w3*pen - mu*(double)bct
@@ -930,6 +984,7 @@ struct Engine {
     // (This default was reported ON in an earlier commit while the source still said OFF --
     // the edit lived only in a working tree a container reset destroyed.)
     static bool HARDREJ_on(){ static const int v=[](){const char*e=getenv("OGC_HARDREJ");return !(e&&e[0]=='0');}(); return v; }
+    static bool CPOS_on(){ static const int v=[](){const char*e=getenv("OGC_CPOS");return(e&&e[0]=='0')?0:1;}(); return v; }
     static bool CBPROF_on(){ static const int v=[](){const char*e=getenv("OGC_CBPROF");return(e&&e[0]=='1')?1:0;}(); return v; }
     struct CBState { std::vector<int> flat; std::vector<char> placed; std::vector<double> loads; double gt,gz3,gcontact; int nplaced; };
     // C++ CONTACT BEAM (OpenMP over beam states): the fast engine port of the Python _contact_beam
@@ -1435,7 +1490,9 @@ struct Engine {
             const FP& fp=footprint(bid,oi);
             int lo_x=(int)std::ceil(-od.x0), hi_x=(int)std::floor(bw_j-od.x1);
             int lo_y=(int)std::ceil(-od.y0), hi_y=(int)std::floor(bh_j-od.y1);
-            for(int ix=lo_x; ix<=hi_x; ix+=step) for(int iy=lo_y; iy<=hi_y; iy+=step){
+            size_t before=all.size();
+            // one candidate position: filter, then score by contact
+            auto try_pos=[&](int ix,int iy){
                 bool ok;
                 if(use_sweep){ bool clear=true;
                     for(int k=0;k<nl&&clear;k++){ const LayerData& L=od.layers[k]; if(L.npts<3)continue;
@@ -1445,7 +1502,41 @@ struct Engine {
                 if(ok){ int ct = _perlayer ? contact_at_layered(footprintL(bid,oi),ix,iy,occL,bayW,bayH)
                                            : contact_at(fp,ix,iy,occ,bayW,bayH);
                         all.push_back({ct,oi,ix,iy}); }
+            };
+            // CONTACT CANDIDATE POSITIONS.  This beam ranks by contact, so a position that
+            // touches nothing can never win -- and yet a full grid sweep evaluates every one
+            // of them.  Measured on prob_20: 202M cells, 55.6s of a 56.2s call, on bays of
+            // 40500 cells each.
+            //
+            // A contact needs an edge to coincide with something, so collect the x offsets
+            // that put this block's left or right edge against a present block's opposite
+            // edge or against a wall, the same for y, and try the combinations -- the corner
+            // positions.  prob_20 carries roughly ten blocks per bay at any instant, so that
+            // is ~22 x 22 = 484 candidates where the sweep had 40500.
+            //
+            // It is a restriction, not an equivalence: a position touching in x while free in
+            // y is a real contact this set does not contain.  So when the corner set yields
+            // nothing feasible, fall back to the full sweep for this orientation rather than
+            // let the block go unplaceable -- correctness of the beam does not depend on the
+            // shortcut, only its speed.  env OGC_CPOS=0 pins the old sweep.
+            static const bool CPOS=[](){const char*e=getenv("OGC_CPOS");return !(e&&e[0]=='0');}();
+            if(CPOS){
+                std::vector<int> xs{lo_x,hi_x}, ys{lo_y,hi_y};
+                for(const Placed& te: btl){
+                    if(!(en < te.ex && te.en < ex)) continue;
+                    int xa=(int)std::ceil(te.bx1-od.x0), xb=(int)std::floor(te.bx0-od.x1);
+                    if(xa>=lo_x&&xa<=hi_x) xs.push_back(xa);
+                    if(xb>=lo_x&&xb<=hi_x) xs.push_back(xb);
+                    int ya=(int)std::ceil(te.by1-od.y0), yb=(int)std::floor(te.by0-od.y1);
+                    if(ya>=lo_y&&ya<=hi_y) ys.push_back(ya);
+                    if(yb>=lo_y&&yb<=hi_y) ys.push_back(yb);
+                }
+                std::sort(xs.begin(),xs.end()); xs.erase(std::unique(xs.begin(),xs.end()),xs.end());
+                std::sort(ys.begin(),ys.end()); ys.erase(std::unique(ys.begin(),ys.end()),ys.end());
+                for(int ix: xs) for(int iy: ys) try_pos(ix,iy);
             }
+            if(!CPOS || all.size()==before)
+                for(int ix=lo_x; ix<=hi_x; ix+=step) for(int iy=lo_y; iy<=hi_y; iy+=step) try_pos(ix,iy);
         }
         int tot=(int)all.size();
         if(tot==0) return;
