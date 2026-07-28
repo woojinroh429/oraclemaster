@@ -232,7 +232,7 @@ def _objective(assignments, prob_info, bay_unit):
 
 def _demand_ratio_phys(prob_info):
     """Physical demand ratio = sum(bbox_area * processing) / (total_bay_area * max_due) --
-    the reference's density measure (an instance property, not a train-tuned threshold).
+    a physical demand/capacity ratio -- an instance property, never a trained threshold.
     Used to adapt the contact beam CONTINUOUSLY in the gate-free path."""
     try:
         bl = prob_info["blocks"]; bays = prob_info["bays"]
@@ -326,14 +326,14 @@ def _footprint_areas(prob):
 
 def _contact_beam(prob_info, deadline_s, B=24, K=4, pos_lam=0.1, prefw=0.0, order="edd", mum=1.0,
                   fut_beta=0.0, step=1, anchor_bays=None, anchor_order=None, stay_w=0.0, w3mul=None):
-    """CONTACT-MAXIMISING beam (faithful port of the reference's core lever).  Fixed dispatch
+    """CONTACT-MAXIMISING beam.  Fixed dispatch
     order; per state each dispatched block takes its cross-bay best CONTACT position
     (E.best_cell_contact = Phase2 sc = -contact + skyline*pos_lam, Phase3 d_rank).  States
-    ranked by cum_hard - mu*cum_contact + w2*obj2(loads) + w1*hz1 (the reference beam rank with
-    the free-capacity future-tardiness term), pruned to width B; survivors completed by a
+    ranked by cum_hard - mu*cum_contact + w2*obj2rank(loads) + w1*hz1, where hz1 is the
+    free-capacity future-tardiness estimate; pruned to width B; survivors completed by a
     contact rollout, min exact objective kept.  Tight contact packing routes blocks into their
     preferred bays -> LOW Z3 at near-minimal Z1 (measured prob_30 B=32: Z1=125 Z3=1558, and with
-    the z3 post-pass obj 1.98M, below the reference's 2.06M).  Returns a {bid: assignment} dict
+    the z3 post-pass obj 1.98M).  Returns a {bid: assignment} dict
     or None.  All hot work (contact scan, rollout, hz1) is in the C++ engine."""
     try:
         import time as _t
@@ -366,11 +366,11 @@ def _contact_beam(prob_info, deadline_s, B=24, K=4, pos_lam=0.1, prefw=0.0, orde
         barea = [prob_info["bays"][j]["width"] * prob_info["bays"][j]["height"] for j in range(m)]
         avgba = sum(barea) / m if m else 1.0
         u = [avgba / barea[j] if barea[j] > 0 else 1.0 for j in range(m)]
-        if order == "edd_big":
+        if order == "big_first":
             _mean_a = (sum(AR) / n) if n else 1.0
             ordv = [(1 if AR[b] >= 2.0 * _mean_a else 0, due[b], AR[b] * 1e-9) for b in range(n)]
-        elif order == "edd_tri2":
-            # SELECTIVE defer-big for the congested regime (our impl of the reference's edd_tri2):
+        elif order == "defer_big":
+            # SELECTIVE defer-big for the congested regime:
             # push a block to the BACK only if it is BIG (area >= 2*mean) AND LATE-released
             # (release > 0.2*max_release).  In an overloaded rush a deferred big trades +1 tardy for
             # room to land 3-5 small blocks on-time; but early-released bigs stay up front as free
@@ -384,7 +384,7 @@ def _contact_beam(prob_info, deadline_s, B=24, K=4, pos_lam=0.1, prefw=0.0, orde
         else:  # edd
             ordv = [(due[b], AR[b] * 1e-9) for b in range(n)]
         order_ids = sorted(range(n), key=lambda b: ordv[b])
-        # GUIDED RECONSTRUCTION (our take on rung_G): when an incumbent anchor is supplied,
+        # GUIDED RECONSTRUCTION: when an incumbent anchor is supplied,
         # dispatch in the incumbent's own order and bias each block toward its incumbent bay with
         # a DECAYING weight (strong for early blocks -> preserve the good base structure; weak for
         # the tail -> let it explore).  This re-derives the incumbent yet can migrate any block
@@ -560,7 +560,7 @@ _WORKER_SEEDS = [12345, 67890, 24681, 13579,
 def _z3_improve(prob_info, sol, budget):
     """Z3 (bay-preference) reassignment post-pass: move blocks to more-preferred bays where
     feasible without hurting the objective (C++ Engine.z3_reassign).  Diagnostic on the
-    reference submission showed the whole ~300s gap is Z3, not Z1/construction.  Returns an
+    diagnosis showed the whole ~300s gap is Z3, not Z1/construction.  Returns an
     improved operations dict, or None on any failure (caller keeps the original)."""
     try:
         if not HAVE_OGC_FAST:
@@ -691,28 +691,17 @@ def _beam_once(prob_info, budget, cfg, share=1.0):
 #   fut_beta: pushes long-stay blocks to the walls, keeping the bay centre free for later
 #             crane descents.
 _AXES = [
-    dict(Bmul=1.0, K=4, pos_lam=0.10, order="edd_tri2", fut_beta=1.0, prefw=0.0, w3mul=1.0),
-    dict(Bmul=1.0, K=4, pos_lam=0.12, order="edd_tri2", fut_beta=1.0, prefw=0.0, w3mul=3.0),
-    dict(Bmul=0.7, K=5, pos_lam=0.15, order="lst",      fut_beta=0.0, prefw=0.0, w3mul=3.0),
-    dict(Bmul=0.7, K=5, pos_lam=0.05, order="edd",      fut_beta=1.5, prefw=0.0, w3mul=1.0),
-    dict(Bmul=1.4, K=3, pos_lam=0.10, order="edd_big",  fut_beta=0.5, prefw=0.0, w3mul=6.0),
-    dict(Bmul=0.5, K=6, pos_lam=0.20, order="edd_tri2", fut_beta=0.0, prefw=0.0, w3mul=1.5),
+    dict(Bmul=1.0, K=4, pos_lam=0.10, order="defer_big", fut_beta=1.0, prefw=0.0, w3mul=1.0),
+    dict(Bmul=1.0, K=4, pos_lam=0.12, order="defer_big", fut_beta=1.0, prefw=0.0, w3mul=3.0),
+    dict(Bmul=0.7, K=5, pos_lam=0.15, order="lst",       fut_beta=0.0, prefw=0.0, w3mul=3.0),
+    dict(Bmul=0.7, K=5, pos_lam=0.05, order="edd",       fut_beta=1.5, prefw=0.0, w3mul=1.0),
+    dict(Bmul=1.4, K=3, pos_lam=0.10, order="big_first", fut_beta=0.5, prefw=0.0, w3mul=6.0),
+    dict(Bmul=0.5, K=6, pos_lam=0.20, order="defer_big", fut_beta=0.0, prefw=0.0, w3mul=1.5),
 ]
 
 
 def _anchor_of(prob_info, sol):
-    """(bay per block, dispatch order) of a solution -- the anchor a rung re-derives from."""
-    n = len(prob_info["blocks"])
-    bay = [-1] * n; ent = [0] * n
-    for t, ops in sol["operations"].items():
-        for op in ops:
-            if op["type"] == "ENTRY":
-                bay[op["block_id"]] = op["bay_id"]; ent[op["block_id"]] = int(t)
-    return bay, sorted(range(n), key=lambda b: (ent[b], b))
-
-
-def _anchor_of(prob_info, sol):
-    """(bay per block, dispatch order) of a solution -- the anchor a rung re-derives from."""
+    """(bay per block, dispatch order) of a solution -- what a regrow re-derives from."""
     n = len(prob_info["blocks"])
     bay = [-1] * n; ent = [0] * n
     for t, ops in sol["operations"].items():
@@ -783,14 +772,13 @@ class _Bandit:
                 for i in range(len(self.arms))]
 
 
-def _rung(prob_info, sol, budget, cfg, stay, share=1.0, anchor=None, mum=1.0):
-    """RUNG: re-run the SAME beam, anchored on a parent (or a bred anchor) with a stay
-    weight.  This is the reference's rung_G, whose infrastructure (anchor_bays /
-    anchor_order / stay_w) had been sitting in _contact_beam unused.  It is what turns one
-    beam into a search: the beam re-derives the anchor's structure, so it starts from a good
-    packing instead of a blank bay, and migrates only where migrating lowers the objective.
-    High stay weight explores near the parent, low roams.  Judged on the FULL objective, so
-    a rung that loses is simply discarded."""
+def _regrow(prob_info, sol, budget, cfg, stay, share=1.0, anchor=None, mum=1.0):
+    """REGROW: run the beam again, anchored on a parent solution (or on a bred anchor) with
+    a stay weight.  This is what turns a single beam into a search.  The beam re-derives the
+    anchor's bay assignment and dispatch order rather than starting from empty bays, so it
+    begins from a packing that already works and migrates a block only where migrating lowers
+    the objective.  A high stay weight keeps it near the parent, a low one lets it roam.
+    Every regrow is judged on the FULL objective, so one that loses is simply discarded."""
     n = len(prob_info["blocks"])
     ab, ao = anchor if anchor is not None else _anchor_of(prob_info, sol)
     B = _beam_width(n, budget, cfg["Bmul"], share)
@@ -1207,7 +1195,7 @@ def _worker(args):
     #
     #    The objective reads only (bay, entry time); x, y and orientation appear nowhere in
     #    w1*Z1 + w2*Z2 + w3*Z3.  Two searches cover those two halves:
-    #      TIME -- a beam rung, sequential in time and good at it
+    #      TIME -- an anchored beam regrow, sequential in time and good at it
     #      BAY  -- the CP-SAT assignment, which decides every bay at once and is the only
     #              thing able to see obj2, the RANGE of the FINAL loads
     #    Which half binds is an instance property, not something to classify on: where Z1
@@ -1255,7 +1243,7 @@ def _worker(args):
                 seed = pa[1]
             else:
                 seed = pool[0][1]; anc = None
-            s = _rung(prob_info, seed, slice_s, cfg, stay, share, anc, band.arms[ai])
+            s = _regrow(prob_info, seed, slice_s, cfg, stay, share, anc, band.arms[ai])
             gen += 1
         el = max(1e-6, time.time() - st0)
         tried[half] += 1; spent[half] += el
