@@ -63,3 +63,26 @@ achievable frontier under real packability; crane packability does not relax int
 useful MIP (loose => illusory, tight => geometric intractability — same wall task #20
 hit).  prob_27's 15s(1796)->60s(1564) gap is packing-search TIME, not schedule
 sub-optimality.  Do NOT port this to C++.
+
+## Recovering this working tree after a container reset
+
+Everything is on the branch; only the untracked scaffolding is lost.
+
+    git fetch origin claude/repair-plan-model-1ig6it
+    git checkout claude/repair-plan-model-1ig6it
+    git reset --hard origin/claude/repair-plan-model-1ig6it
+    for m in ogc_fast ogc_geom ogc_state cranepack st3dtcs; do
+      g++ -O3 -shared -std=c++17 -fPIC -w $(python3.12 -m pybind11 --includes) \
+          $m.cpp -o $m.cpython-312-x86_64-linux-gnu.so
+    done
+
+The instances live in the session scratchpad, split across two directories, and the harness
+wants them as data/set1 (prob_1..20) and data/train (prob_21..40):
+
+    SP=/tmp/claude-0/-home-user-oraclemaster/*/scratchpad/data
+    mkdir -p /tmp/ds
+    ln -sfn "$(readlink -f $SP/training_instances/train)" /tmp/ds/set1
+    ln -sfn "$(readlink -f $SP/train)" /tmp/ds/train
+    ln -sfn /tmp/ds data
+
+Check it took:  python3.12 -c "import myalg_v2,json,utils; ..."  -> prob_3 solves to ~44400.
