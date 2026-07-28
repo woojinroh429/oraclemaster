@@ -468,3 +468,59 @@ variant exists (`contact_at_layered` / `footprintL` / `occL`) but only inside
 So the beam treats a one-layer block and a two-layer block as identical neighbours, while
 the crane descends vertically and a tall block obstructs everything at its height and above.
 That is the gap a layer-aware contact would close.
+
+## The tardiness on the congested instances is capacity, not misplacement
+
+The objective decomposes very unevenly.  Weights across the 40 instances run w1 667..29630,
+w2 1..10, w3 13..600, and the rigorous Z1 lower bound `sum max(0, rel+pt-due)` is **0 on all
+40** while the average per-block slack `due-rel-pt` is only 1.2..5.2.  So a zero-tardiness
+solution is never excluded by the data, and any queuing at all costs immediately.
+
+Share of the objective at our best solutions:
+
+  prob_38  Z1 95.7%  Z2  0.0%  Z3  4.3%      prob_22  Z1  0.0%  Z2 1.6%  Z3 98.4%
+  prob_40  Z1 93.5%  Z2  0.2%  Z3  6.3%      prob_29  Z1  0.0%  Z2 3.9%  Z3 96.1%
+  prob_39  Z1 90.3%  Z2  0.1%  Z3  9.6%      prob_24  Z1  0.0%  Z2 8.2%  Z3 91.8%
+  prob_26  Z1 90.0%  Z2  0.1%  Z3  9.9%      prob_20  Z1  0.0%  Z2 26.8% Z3 73.2%
+  prob_30  Z1 76.5%  Z2  1.2%  Z3 22.3%      prob_17  Z1  0.0%  Z2 55.9% Z3 44.1%
+  prob_35  Z1 59.0%  Z2  2.0%  Z3 39.0%      prob_1   Z1  0.0%  Z2 73.3% Z3 26.7%
+
+Bimodal with nothing in between: Z1 is either exactly 0% or at least 22%, exactly as slack
+of ~1.4 predicts -- a block either fits at release or it queues and cascades.  Z2 only
+matters once Z3 is nearly solved (prob_1's Z3 is 2).
+
+### Why the window-repack idea was dropped
+
+If the beam's contact-greedy placement of earlier blocks is what locks a later block out,
+then repacking the block's time window should let it in, and that is worth w1 per unit --
+13333 on prob_38.  `cranepack.pack` already does exactly this (max weighted set packing in
+one bay, with `frozen` for the blocks that stay and per-block entry/exit variants), and
+`_z3_relocate_cp`'s `try_insert` already drives it -- but aimed at Z3.
+
+Measured, after two harness corrections.  The first run reported 0/135 with the FREED blocks
+restricted to moving EARLIER, which is backwards -- room appears when they move later.  The
+second still read 0/135 including on a control that asked only to reproduce the current
+entry times, which cannot fail; the cause was `step=6`, quantising positions to multiples of
+6 when the real placements sit on arbitrary integers.  At `step=1` the control passes 11/11
+in 0.2s, so the harness is sound.
+
+On that harness, over the tardy blocks in descending lateness, freeing the 10 (or 20)
+nearest-in-time neighbours in the block's bay and freezing the rest:
+
+  prob_38  FREE=10  24 tried  0 on-time  0 even-earlier   0 tardiness saved
+  prob_38  FREE=20   3 tried  0 on-time  0 even-earlier   0 tardiness saved
+  prob_39  FREE=10  18 tried  0 on-time  0 even-earlier   0 tardiness saved
+
+Not one attempt recovered even a single unit, and the weaker question -- move it to the
+midpoint between release and its current entry -- failed just as completely.  A representative
+case: prob_38 block 141, bay0 68x16, released at 40 and entered at 99 (48 late), 45 blocks in
+the bay and 23 overlapping it in time.  Freeing 10 neighbours and giving cranepack 20s at
+step 1 reaches 10 of 11.  The eleventh does not fit.
+
+So the tardiness on these instances is **capacity, not misplacement** -- consistent with
+prob_38's density of 0.993.  There is nothing for a repack operator to recover, and this is
+the same wall the old ejection chains hit (47790 attempts, 2 accepted); now we know why.
+
+What it does redirect: on a saturated instance the lever is which BAY a block is sent to, not
+how it is packed once there.  Block 141 is stuck because it is in bay0, not because of its
+position within bay0.
