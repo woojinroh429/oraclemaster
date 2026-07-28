@@ -918,7 +918,9 @@ struct Engine {
                 }
             }
             std::vector<CBState> children;
-            for(auto& ps:perstate) for(auto& c:ps) children.push_back(std::move(c));
+            std::vector<int> parent_of;      // for the per-parent quota below
+            for(int pi=0;pi<(int)perstate.size();pi++)
+                for(auto& c:perstate[pi]){ children.push_back(std::move(c)); parent_of.push_back(pi); }
             if(children.empty()) return {1e18,{}};
             int nch=(int)children.size();
             std::vector<std::pair<double,int>> keyed(nch);
@@ -941,8 +943,29 @@ struct Engine {
             }
             std::sort(keyed.begin(),keyed.end(),[](const std::pair<double,int>&a,const std::pair<double,int>&b){return a.first<b.first;});
             int keep=std::min(nch,B);
+            // PER-PARENT QUOTA (the reference caps children per parent at max(2,(B+1)/2)).
+            // Without it one strong parent can fill the entire next beam with its own
+            // children, so the beam carries B copies of a single structure and its width
+            // buys nothing.  The quota costs a little rank quality per level and buys
+            // structural diversity, which is what a beam is for.  env OGC_PPQ=0 disables.
+            static const bool PPQ=[](){const char*e=getenv("OGC_PPQ");return !(e&&e[0]=='0');}();
             std::vector<CBState> nb2; nb2.reserve(keep);
-            for(int i=0;i<keep;i++) nb2.push_back(std::move(children[keyed[i].second]));
+            if(PPQ && (int)perstate.size()>1){
+                const int quota=std::max(2,(B+1)/2);
+                std::vector<int> taken(perstate.size(),0);
+                for(int i=0;i<nch && (int)nb2.size()<keep;i++){
+                    int idx=keyed[i].second, par=parent_of[idx];
+                    if(taken[par]>=quota) continue;
+                    taken[par]++; nb2.push_back(std::move(children[idx]));
+                }
+                for(int i=0;i<nch && (int)nb2.size()<keep;i++){   // top up if the quota starved us
+                    int idx=keyed[i].second;
+                    if(children[idx].flat.empty() && children[idx].nplaced==0) continue;
+                    nb2.push_back(std::move(children[idx]));
+                }
+            } else {
+                for(int i=0;i<keep;i++) nb2.push_back(std::move(children[keyed[i].second]));
+            }
             beam.swap(nb2);
         }
         double best_obj=1e18; std::vector<int> best_flat;
