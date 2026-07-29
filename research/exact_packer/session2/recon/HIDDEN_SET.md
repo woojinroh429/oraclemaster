@@ -79,3 +79,60 @@ entire Z2 is 3391.
 Caveat worth keeping: the probe moved one block at a time.  If the opening requires several
 blocks to shift together it would not show up here -- the same blind spot that limited
 single-block bay moves to 0.56-3.47% earlier.
+
+## What the objective is actually made of
+
+Measured on the real instances at their real limits.  Z2 is worth under one percent anywhere,
+which is worth knowing before spending another night on it.
+
+    P3   Z1 = 0        Z3 is 81% of the score    (w1 17778, w2 5, w3 150)
+    P4   Z1 is 79%     Z3 is 20%                 (w1 13333, w2 7, w3 150)
+    P5   Z1 is 96%                               (w1 13333, w2 7, w3 133)
+    P6   Z1 is 97%                               (w1  6667, w2 8, w3 150)
+
+Time-aware capacity bounds on Z3 -- for each bay and each instant, the floor demanded by the
+blocks that want that bay against the floor it has, with the overflow costed at the cheapest
+second choice:
+
+              forced >=   ours    recoverable   as % of the score
+    P3           297       551        254            37%
+    P4          1430      3390       1960            11.8%
+    P5          1584      2990       1406             2.0%
+    P6          3804      5204       1400             0.7%
+
+## Why the shipped pipeline still wins P6
+
+Both run at 900s on the real P6, solutions taken apart side by side:
+
+                        shipped        rebuild
+    objective          28373827       31784337
+    Z1                     4049           4633
+    Z3                     9152           5857
+    entered on time     74 (30%)       96 (38%)
+    blocks tardy             162            146
+    delay of the late, median 21             36
+    bay peak fill        62-64%         65-66%
+    bay mean fill        50-52%         48-51%
+
+The rebuild packs no worse, gets MORE blocks in on time and has FEWER tardy blocks -- and
+still scores 12% worse, because the ones it does delay wait far longer: 31.7 units each
+against 25.0.  Z1 is a sum, so spreading the delay beats concentrating it.
+
+The chain is visible: the rebuild chases preferred bays (every axis had w3mul at 1.0 or above,
+three of them amplifying), those bays fill early, and later blocks cannot get in at all -- of
+167 late blocks, ZERO could have entered at their release with everything else where it is.
+The shipped pipeline breaks the first link, spilling blocks to whatever bay is free.  It pays
+Z3 5851 -> 9152, worth 495150, and takes Z1 4276 -> 4049, worth 1513409.  On P6 w1/w3 is 44.4
+to one.
+
+## Doors closed by measurement
+
+    cantilevers (upper layers over a shorter neighbour)  3 of 21 penalised blocks on P3
+    bay height as a feasibility partition               every block fits every bay
+    height quantisation / slivers                       bay2 (two medians stack) 66.5%,
+                                                        bay0 (they do not) 64.2%
+    free space fragmented in space                      95% of it is in usable pieces,
+                                                        largest 561 with 245 blocks' bbox
+    free space fragmented in time                       a 543 room persists a full median stay
+    single-block repair on P6                           0 of 167 late blocks could enter
+    contact weight (mum) as an axis                     preference outweighs it 1000:1 on P3
