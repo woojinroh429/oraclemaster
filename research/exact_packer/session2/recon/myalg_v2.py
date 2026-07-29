@@ -1365,16 +1365,27 @@ def _worker(args):
         band.tell(ai, _total(prob_info, s)[0] if s is not None else pool[0][0] * 1.05)
         return s
 
-    # (name, run, needs an incumbent, starves without budget)
-    ops = [("beam", _fresh, False, True),
-           ("grow", _grow, True, True),
-           ("bal",  lambda t: _balance(prob_info, pool[0][1], t), True, False),
-           ("pref", lambda t: _z3_improve(prob_info, pool[0][1], t), True, False)]
+    # (name, run, needs an incumbent, starves without budget, smallest useful slice)
+    #
+    # The last field stops a spin: a beam handed less than its own internal floor gives up
+    # instantly and returns nothing, so the loop kept re-picking it and calling it twenty-odd
+    # times in the final seconds -- burning the tail of the budget and, worse, poisoning its
+    # own statistics, since every no-op call counted as a try that earned nothing.
+    ops = [("beam", _fresh, False, True, 4.0),
+           ("grow", _grow, True, True, 4.0),
+           ("bal",  lambda t: _balance(prob_info, pool[0][1], t), True, False, 0.5),
+           ("pref", lambda t: _z3_improve(prob_info, pool[0][1], t), True, False, 0.5)]
     if HAVE_CRANEPACK:
-        ops.append(("reloc", lambda t: _relocate(prob_info, pool[0][1], t), True, False))
+        ops.append(("reloc", lambda t: _relocate(prob_info, pool[0][1], t), True, False, 1.0))
     if HAVE_ORTOOLS:
-        ops.append(("bay", lambda t: _assign(prob_info, pool[0][1], t), True, True))
+        ops.append(("bay", lambda t: _assign(prob_info, pool[0][1], t), True, True, 3.0))
     gain = [0.0] * len(ops); spent = [1e-6] * len(ops); tried = [0] * len(ops)
+    # incumbent value at which a repair pass last came back empty.  Those passes are
+    # deterministic, so asking again without a changed incumbent gets the same nothing --
+    # and it gets it in zero seconds, which leaves its rate untouched and had the loop
+    # re-picking _balance forty times in a row.  Search operators are exempt: their None
+    # means starved, not exhausted, and their slice grows in response.
+    empty_at = [None] * len(ops)
     # One opening slice for everyone, then sized per operator below.  Opening the repair
     # passes small looked obviously right and measured worse -- prob_18 48840 -> 56841 -- 
     # because _z3_improve is not the quick pass it appears to be: given twelve seconds it
@@ -1385,7 +1396,10 @@ def _worker(args):
         left = budget - (time.time() - t0)
         if left < 2.0:
             break
-        elig = [i for i in range(len(ops)) if pool or not ops[i][2]]
+        cur = pool[0][0] if pool else None
+        elig = [i for i in range(len(ops))
+                if (pool or not ops[i][2]) and left - 1.0 >= ops[i][4]
+                and not (empty_at[i] is not None and empty_at[i] == cur)]
         if not elig:
             break
         unt = [i for i in elig if tried[i] == 0]
@@ -1424,6 +1438,8 @@ def _worker(args):
                 slot[k] = min(budget * 0.45, slot[k] * 1.3)
         else:
             slot[k] = min(budget * 0.25, max(1.0, 1.3 * el))
+            if s is None:
+                empty_at[k] = cur
         if s is None:
             continue
         o, _ = _total(prob_info, s)
