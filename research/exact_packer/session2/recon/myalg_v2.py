@@ -674,7 +674,7 @@ def _beam_once(prob_info, budget, cfg):
             r = _contact_beam(prob_info, left, B=_beam_width(cfg["Bmul"]), K=cfg["K"],
                               pos_lam=cfg["pos_lam"], order=cfg["order"],
                               fut_beta=cfg["fut_beta"], prefw=cfg["prefw"],
-                              w3mul=cfg["w3mul"], step=step)
+                              w3mul=cfg["w3mul"], mum=cfg["mum"], step=step)
         except Exception:
             r = None
         if r:
@@ -696,13 +696,23 @@ def _beam_once(prob_info, budget, cfg):
 #             it is not a knife-edge.
 #   fut_beta: pushes long-stay blocks to the walls, keeping the bay centre free for later
 #             crane descents.
+#   mum     : how much the rank pays for CONTACT.  Contact appears nowhere in
+#             w1*Z1 + w2*Z2 + w3*Z3 -- it is a stand-in for "leave room for what is coming",
+#             and where nothing is coming it is a pure tax on the two terms that do count.
+#             Measured on the real P3: bay1 peaks at 0.34x of its floor and bay2 at 0.46x,
+#             every one of the 200 blocks fits every bay, and Z1 is 0, so the whole objective
+#             is preference -- yet 21 blocks are still routed away from the bay they want.
+#             The regrow bandit has been sweeping this weight over {0.25, 1, 4} all along;
+#             fresh beams never passed it at all and ran the 1.0 default every time.  Same
+#             three values, now on an axis, so the best-of decides per instance instead of
+#             two regrows out of fifteen slices deciding for it.
 _AXES = [
-    dict(Bmul=1.0, K=4, pos_lam=0.10, order="defer_big", fut_beta=1.0, prefw=0.0, w3mul=1.0),
-    dict(Bmul=1.0, K=4, pos_lam=0.12, order="defer_big", fut_beta=1.0, prefw=0.0, w3mul=3.0),
-    dict(Bmul=0.7, K=5, pos_lam=0.15, order="lst",       fut_beta=0.0, prefw=0.0, w3mul=3.0),
-    dict(Bmul=0.7, K=5, pos_lam=0.05, order="edd",       fut_beta=1.5, prefw=0.0, w3mul=1.0),
-    dict(Bmul=1.4, K=3, pos_lam=0.10, order="big_first", fut_beta=0.5, prefw=0.0, w3mul=6.0),
-    dict(Bmul=0.5, K=6, pos_lam=0.20, order="defer_big", fut_beta=0.0, prefw=0.0, w3mul=1.5),
+    dict(Bmul=1.0, K=4, pos_lam=0.10, order="defer_big", fut_beta=1.0, prefw=0.0, w3mul=1.0, mum=1.0),
+    dict(Bmul=1.0, K=4, pos_lam=0.12, order="defer_big", fut_beta=1.0, prefw=0.0, w3mul=3.0, mum=0.25),
+    dict(Bmul=0.7, K=5, pos_lam=0.15, order="lst",       fut_beta=0.0, prefw=0.0, w3mul=3.0, mum=1.0),
+    dict(Bmul=0.7, K=5, pos_lam=0.05, order="edd",       fut_beta=1.5, prefw=0.0, w3mul=1.0, mum=4.0),
+    dict(Bmul=1.4, K=3, pos_lam=0.10, order="big_first", fut_beta=0.5, prefw=0.0, w3mul=6.0, mum=0.25),
+    dict(Bmul=0.5, K=6, pos_lam=0.20, order="defer_big", fut_beta=0.0, prefw=0.0, w3mul=1.5, mum=1.0),
 ]
 
 
