@@ -1499,20 +1499,19 @@ def _worker(args):
     # re-picking _balance forty times in a row.  Search operators are exempt: their None
     # means starved, not exhausted, and their slice grows in response.
     empty_at = [None] * len(ops)
-    # OPENING SLICE, derived from how many operators there are rather than picked.
+    # OPENING SLICE.  Search operators open on a fifth of the budget; repair passes open on a
+    # share derived from the roster, budget/(2n), so that probing them all costs at most half
+    # the budget however many there are.
     #
-    # It was a flat fifth of the budget each.  With six operators that is 1.2x the whole
-    # budget spent before any of them has been tried twice -- traced on the real P6 at 300s,
-    # the first beam produced the best solution of the entire run in 33 seconds and the
-    # remaining 267 went on first probes (regrow 54s, preference 60s, relocate 60s,
-    # assignment 54s), not one of which beat it.  The search never got to start.
-    #
-    # Spend at most half the budget learning which operators pay, so one probing round is
-    # budget/2 spread over however many operators exist: budget / (2 * n).  Six gives 8.3%
-    # each, four gives 12.5% -- the number falls out of the roster instead of being chosen,
-    # and stays right when an operator is added or an optional dependency is missing.  What
-    # an operator earns after that is what grows its slice.
-    slot = [budget / (2.0 * len(ops))] * len(ops)
+    # The asymmetry is the point, and it was learned the hard way.  Traced on the real hidden
+    # P6 at 300s, a flat fifth each over six operators is 1.2x the whole budget spent before
+    # any of them is tried twice: the first beam produced the best solution of the entire run
+    # in 33 seconds and the other 267 went on first probes that never beat it.  But giving
+    # EVERY operator the small derived share is worse still -- P6 at its real 900s went
+    # 29396046 -> 30898889, with Z1, Z2 and Z3 all degrading.  A beam either finishes or
+    # returns nothing; there is no cheap look at one, so a probe-sized slice just starves it.
+    # Repair passes have no such threshold and answer whatever they are given.
+    slot = [budget * (0.20 if o[3] else 1.0 / (2.0 * len(ops))) for o in ops]
 
     while True:
         left = budget - (time.time() - t0)
