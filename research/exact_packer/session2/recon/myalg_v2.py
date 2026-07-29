@@ -41,11 +41,6 @@ from utils import (
     _poly_from_verts,
 )
 
-# How fast an operator's measured payoff forgets.  1.0 is a lifetime average; the value here
-# gives a memory of roughly 1/(1-r) slices, which at three is about the number a run gets
-# before the pool stops being empty.  See the decay in _worker for why it is not 1.0.
-_PAYOFF_DECAY = float(os.environ.get("OGC_DECAY", "0.65"))
-
 # Ceiling on the beam width.  Not a prediction -- see _beam_width.
 _BEAM_CAP = float(os.environ.get("OGC_BCAP", "512"))
 
@@ -1199,22 +1194,15 @@ def _worker(args):
     pool = [best] if best[1] is not None else []
     band = _Bandit([0.25, 1.0, 4.0], rng)          # crane-contact weight
     w3v = float(prob_info.get("weights", {}).get("w3", 1.0))
-    gen = [0]; fg = [0]
+    gen = [0]
 
     # The axis rotates rather than being bandit-picked: with six axes and only a handful of
     # slices in a 60s budget a bandit never leaves its exploration phase, and measured it cost
     # prob_3 44400 -> 49020.  Diversity across axes is already covered between workers, which
     # each start at a different offset.
-    #
-    # It rotates on ITS OWN counter.  Sharing one with the breeder meant every regrow ate a
-    # place in the rotation, so the beam skipped axes and came back to ones it had already
-    # run -- and the beam is deterministic, so a revisited axis at a similar slice returns a
-    # byte-identical answer.  Traced on the real P4 at 480s, three of twelve beams did exactly
-    # that, and the axis that produced the run's best solution by 25% was not reached until
-    # 314 seconds in, on the seventh beam.  Walking the axes without gaps reaches it sixth.
     def _fresh(t):
-        fg[0] += 1
-        return _beam_once(prob_info, t, axes[fg[0] % len(axes)])
+        gen[0] += 1
+        return _beam_once(prob_info, t, axes[gen[0] % len(axes)])
 
     def _grow(t):
         gen[0] += 1; g = gen[0]; ai = band.pick()
@@ -1285,12 +1273,7 @@ def _worker(args):
         elif rng.random() < 0.15:
             k = rng.choice(elig)
         else:
-            # Ties on the second key, not the first: once every rate has decayed to nothing
-            # the ratio is 0.0 for all of them and a plain max() hands the budget to whichever
-            # happens to be first in the list -- which is the beam, every time.  Spreading the
-            # slices over whoever has had the least time is the only honest answer when the
-            # measurements say none of them is paying.
-            k = max(elig, key=lambda i: (gain[i] / spent[i], -spent[i]))
+            k = max(elig, key=lambda i: gain[i] / spent[i])
         # SIZE BY COMPLETION, SELECT BY PAYOFF -- two different questions.
         #
         # A shared slice starves the loop: with six operators on a fifth of the budget apiece
@@ -1314,16 +1297,6 @@ def _worker(args):
         except Exception:
             s = None
         el = max(1e-6, time.time() - st)
-        # RECENCY, NOT LIFETIME AVERAGE.  gain/spent as a running total is a stationary-bandit
-        # statistic and this problem is not stationary: the first few beams fill an empty pool
-        # and improve on almost every call, so the beam banks a rate it will never repeat, and
-        # a lifetime average only erodes it as 1/t.  Traced on the real P4 at 480s that was 13
-        # beams to 2 regrows, all thirteen landing on a value the second one had already found.
-        # Decaying both terms leaves a steady payoff exactly where it was -- g/(1-r) over
-        # c/(1-r) is g/c -- while an operator that has stopped paying loses its claim
-        # geometrically instead of linearly.  Breeding gets its generations from the slices the
-        # plateaued beam stops taking, so they cost nothing extra.
-        gain[k] *= _PAYOFF_DECAY; spent[k] *= _PAYOFF_DECAY
         tried[k] += 1; spent[k] += el
         # An operator that just improved the incumbent has earned a longer look; one that came
         # back empty is either starved (search) or exhausted (repair).
