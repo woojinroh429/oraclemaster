@@ -378,6 +378,17 @@ def _contact_beam(prob_info, deadline_s, B=24, K=4, pos_lam=0.1, prefw=0.0, orde
             _thr = 2.0 * _mean_a
             _r0 = (max(rel) * 0.2) if rel else 0
             ordv = [(1 if (AR[b] >= _thr and rel[b] > _r0) else 0, due[b], -AR[b]) for b in range(n)]
+        elif order == "rel":
+            # CHRONOLOGICAL.  Every other order here sorts by a DEADLINE, so the timeline gets
+            # built out of time order: a block that arrives late but is due early is placed
+            # first, and the earlier-arriving blocks processed after it have to fit around
+            # something already fixed in their future.  Measured on the real P3, where Z1 is 0
+            # and every entry time therefore IS the release time: at the moment a block was
+            # refused its preferred bay that bay was 38.5% full, but swept over the block's
+            # whole stay it was 61.3% -- the space is there instant by instant and gone across
+            # the window.  Dispatching by arrival grows the timeline forwards instead, so
+            # blocks whose windows coincide are placed consecutively and share the same region.
+            ordv = [(rel[b], due[b], -AR[b]) for b in range(n)]
         elif order == "lst":
             ordv = [(due[b] - pt[b], AR[b] * 1e-9) for b in range(n)]
         else:  # edd
@@ -713,6 +724,7 @@ _AXES = [
     dict(Bmul=0.7, K=5, pos_lam=0.05, order="edd",       fut_beta=1.5, prefw=0.0, w3mul=1.0, mum=4.0),
     dict(Bmul=1.4, K=3, pos_lam=0.10, order="big_first", fut_beta=0.5, prefw=0.0, w3mul=6.0, mum=0.25),
     dict(Bmul=0.5, K=6, pos_lam=0.20, order="defer_big", fut_beta=0.0, prefw=0.0, w3mul=1.5, mum=1.0),
+    dict(Bmul=1.0, K=4, pos_lam=0.10, order="rel",       fut_beta=0.5, prefw=0.0, w3mul=3.0, mum=1.0),
 ]
 
 
