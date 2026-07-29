@@ -717,14 +717,19 @@ def _beam_once(prob_info, budget, cfg):
 #             fresh beams never passed it at all and ran the 1.0 default every time.  Same
 #             three values, now on an axis, so the best-of decides per instance instead of
 #             two regrows out of fifteen slices deciding for it.
+# ORDER OF THIS LIST IS NOT COSMETIC.  The rotation is axes[gen % len(axes)] and gen is shared
+# with the breeder, so at a short budget only the first few are ever reached: P3 at 240s gives
+# each worker 199s and a beam costs ~50s, so three or four axes get tried and the rest may as
+# well not exist.  Appending the chronological axis measured as an exact no-op for that reason
+# alone -- run alone it is the best single order on P3 by 23% over edd (107790 vs 140640).
 _AXES = [
+    dict(Bmul=1.0, K=4, pos_lam=0.10, order="rel",       fut_beta=0.5, prefw=0.0, w3mul=3.0, mum=1.0),
     dict(Bmul=1.0, K=4, pos_lam=0.10, order="defer_big", fut_beta=1.0, prefw=0.0, w3mul=1.0, mum=1.0),
     dict(Bmul=1.0, K=4, pos_lam=0.12, order="defer_big", fut_beta=1.0, prefw=0.0, w3mul=3.0, mum=0.25),
     dict(Bmul=0.7, K=5, pos_lam=0.15, order="lst",       fut_beta=0.0, prefw=0.0, w3mul=3.0, mum=1.0),
     dict(Bmul=0.7, K=5, pos_lam=0.05, order="edd",       fut_beta=1.5, prefw=0.0, w3mul=1.0, mum=4.0),
     dict(Bmul=1.4, K=3, pos_lam=0.10, order="big_first", fut_beta=0.5, prefw=0.0, w3mul=6.0, mum=0.25),
     dict(Bmul=0.5, K=6, pos_lam=0.20, order="defer_big", fut_beta=0.0, prefw=0.0, w3mul=1.5, mum=1.0),
-    dict(Bmul=1.0, K=4, pos_lam=0.10, order="rel",       fut_beta=0.5, prefw=0.0, w3mul=3.0, mum=1.0),
 ]
 
 
