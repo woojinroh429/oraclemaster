@@ -46,6 +46,9 @@ from utils import (
 # before the pool stops being empty.  See the decay in _worker for why it is not 1.0.
 _PAYOFF_DECAY = float(os.environ.get("OGC_DECAY", "0.65"))
 
+# Ceiling on the beam width.  Not a prediction -- see _beam_width.
+_BEAM_CAP = float(os.environ.get("OGC_BCAP", "512"))
+
 # ----------------------------------------------------------------------------
 # Optional C++ acceleration (geometry engine).  Pre-compiled .so files shipped
 # alongside this module are loaded if present; on ANY failure (missing file,
@@ -645,11 +648,17 @@ def _beam_width(mul):
     catastrophic -- the beam returns NOTHING when it overruns, and the constant was 4x wrong
     the moment the beam ran one-core inside the pool, so every worker fell back to the greedy
     floor and the 300s answer came out worse than the 60s one.  The engine now adapts the
-    width per level from its own measured cost, so all this owes it is a generous ceiling."""
-    return max(8, min(96, int(mul * 96)))
+    width per level from its own measured cost, so all this owes it is a generous ceiling.
+
+    It was not generous, it was binding.  Swept on the real P4 the raw beam improves all the
+    way to the old ceiling -- 4528905 at B=8 down to 3616056 at B=96 -- and the B=96 run
+    finishes in 50s whether it is handed 120s or 480s, returning the identical answer.  The
+    clock was never what stopped it.  Raised until the measured-cost controller is the thing
+    that binds, which is the only part of this that has an instance in front of it."""
+    return max(8, int(mul * _BEAM_CAP))
 
 
-def _beam_once(prob_info, budget, cfg, share=1.0):
+def _beam_once(prob_info, budget, cfg):
     """One beam run, with a coarser position grid held in reserve.
 
     The fine rung finishes whenever it is given room -- the engine's adaptive width narrows
@@ -774,7 +783,7 @@ class _Bandit:
                 for i in range(len(self.arms))]
 
 
-def _regrow(prob_info, sol, budget, cfg, stay, share=1.0, anchor=None, mum=1.0):
+def _regrow(prob_info, sol, budget, cfg, stay, anchor=None, mum=1.0):
     """REGROW: run the beam again, anchored on a parent solution (or on a bred anchor) with
     a stay weight.  This is what turns a single beam into a search.  The beam re-derives the
     anchor's bay assignment and dispatch order rather than starting from empty bays, so it
@@ -1143,7 +1152,7 @@ def _assign(prob_info, sol, budget):
 
 
 def _worker(args):
-    prob_info, budget, wid, cwd, share = args
+    prob_info, budget, wid, cwd = args
     try:
         import os as _o, sys as _s
         if cwd and cwd not in _s.path:
@@ -1198,7 +1207,7 @@ def _worker(args):
     # each start at a different offset.
     def _fresh(t):
         gen[0] += 1
-        return _beam_once(prob_info, t, axes[gen[0] % len(axes)], share)
+        return _beam_once(prob_info, t, axes[gen[0] % len(axes)])
 
     def _grow(t):
         gen[0] += 1; g = gen[0]; ai = band.pick()
@@ -1210,7 +1219,7 @@ def _worker(args):
             seed = pa[1]
         else:
             seed = pool[0][1]; anc = None
-        s = _regrow(prob_info, seed, t, axes[g % len(axes)], stay, share, anc, band.arms[ai])
+        s = _regrow(prob_info, seed, t, axes[g % len(axes)], stay, anc, band.arms[ai])
         band.tell(ai, _total(prob_info, s)[0] if s is not None else pool[0][0] * 1.05)
         return s
 
@@ -1350,11 +1359,11 @@ def algorithm(prob_info, timelimit=60):
     try:
         if nw > 1:
             with multiprocessing.Pool(processes=nw) as pool:
-                out = pool.map(_worker, [(prob_info, wbudget, i, cwd, 1.0 / nw) for i in range(nw)])
+                out = pool.map(_worker, [(prob_info, wbudget, i, cwd) for i in range(nw)])
         else:
-            out = [_worker((prob_info, wbudget, 0, cwd, 1.0))]
+            out = [_worker((prob_info, wbudget, 0, cwd))]
     except Exception:
-        out = [_worker((prob_info, wbudget, 0, cwd, 1.0))]
+        out = [_worker((prob_info, wbudget, 0, cwd))]
     for s in out:
         if s is None:
             continue
