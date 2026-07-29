@@ -585,7 +585,7 @@ struct Engine {
                         double cdens=(double)ct/bbp;
                         sc = -cdens*12.0 + ((double)iy+od.y1)*pos_lam*1.4 + (double)ix*pos_lam*0.02 + prefw*pen;
                     } else {
-                        sc = -(double)ct + ((double)iy+od.y1)*pos_lam + (double)ix*pos_lam*0.01 + prefw*pen;
+                        sc = -(double)ct + ((double)iy+od.y1)*pos_lam*sw_y + (double)ix*pos_lam*sw_x + prefw*pen;
                     }
                     if(fut_beta>0.0){
                         // FUTURE-VALUE (reference fut_beta): push blocks toward walls so the bay
@@ -920,7 +920,7 @@ struct Engine {
                         double cdens=(double)ct/bbp;
                         sc = -cdens*12.0 + ((double)iy+od.y1)*pos_lam*1.4 + (double)ix*pos_lam*0.02 + prefw*pen;
                     } else {
-                        sc = -(double)ct + ((double)iy+od.y1)*pos_lam + (double)ix*pos_lam*0.01 + prefw*pen;
+                        sc = -(double)ct + ((double)iy+od.y1)*pos_lam*sw_y + (double)ix*pos_lam*sw_x + prefw*pen;
                     }
                     if(fut_beta>0.0){ double dl=(double)ix+od.x0,dr=bw_j-((double)ix+od.x1);
                         double db=(double)iy+od.y0,dt=bh_j-((double)iy+od.y1);
@@ -994,6 +994,14 @@ struct Engine {
         int m=std::min((int)cands.size(),std::max(1,topk));
         for(int i=0;i<m;i++) out.push_back({cands[i].bay,cands[i].oi,cands[i].ix,cands[i].iy,cands[i].ct});
     }
+    // SWEEP DIRECTION.  The position score's only channel to the objective is which way it
+    // fills a bay -- x and y appear nowhere in w1*Z1 + w2*Z2 + w3*Z3, so all a position can
+    // do is decide whether the free region stays contiguous.  The score has always been
+    // (iy+top)*pos_lam + ix*pos_lam*0.01: bottom-up, with x a tiebreak, one direction and no
+    // way to ask for another.  The shipped pipeline carries a portfolio of directions and
+    // names one of them the P6 winner and another the P4 winner, differing in exactly this.
+    // These two multipliers make it a parameter; 1.0 / 0.01 reproduces the old score.
+    double sw_y=1.0, sw_x=0.01;
     double cb_t_rebuild=0.0, cb_t_scan=0.0;
     double cb_n_cell=0.0, cb_n_bitmap=0.0, cb_n_exact=0.0, cb_t_exact=0.0, cb_n_hard=0.0;
     // Only the first-choice scan was ever timed.  On a dense instance the first choice
@@ -1046,7 +1054,8 @@ struct Engine {
                  int B, int K, int step, double pos_lam, double prefw, double mu,
                  double w1, double w2, double w3, double fut_beta, double mean_proc, double time_budget_s,
                  std::vector<int> anchor=std::vector<int>(), std::vector<double> anchor_w=std::vector<double>(),
-                 double area_scale=1.0){
+                 double area_scale=1.0, double swy=1.0, double swx=0.01){
+        sw_y=swy; sw_x=swx;
         cb_anchor=std::move(anchor); cb_anchor_w=std::move(anchor_w);
         wl_total=0.0; for(double v: workloads) wl_total+=v;
         int nb=(int)shapes.size();
@@ -2407,7 +2416,7 @@ PYBIND11_MODULE(ogc_fast,m){
              py::arg("w1"),py::arg("w2"),py::arg("w3"),py::arg("fut_beta"),
              py::arg("mean_proc"),py::arg("time_budget_s"),
              py::arg("anchor")=std::vector<int>(),py::arg("anchor_w")=std::vector<double>(),
-             py::arg("area_scale")=1.0)
+             py::arg("area_scale")=1.0,py::arg("swy")=1.0,py::arg("swx")=0.01)
         .def("set_bcl_prefw",&Engine::set_bcl_prefw)
         .def("wide_beam",&Engine::wide_beam,
              py::arg("order"),py::arg("areas"),py::arg("workloads"),py::arg("B"),py::arg("K"),
