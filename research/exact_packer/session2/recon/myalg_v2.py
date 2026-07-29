@@ -1499,11 +1499,20 @@ def _worker(args):
     # re-picking _balance forty times in a row.  Search operators are exempt: their None
     # means starved, not exhausted, and their slice grows in response.
     empty_at = [None] * len(ops)
-    # One opening slice for everyone, then sized per operator below.  Opening the repair
-    # passes small looked obviously right and measured worse -- prob_18 48840 -> 56841 -- 
-    # because _z3_improve is not the quick pass it appears to be: given twelve seconds it
-    # uses all twelve and pays for them.
-    slot = [budget * 0.20] * len(ops)
+    # OPENING SLICE, derived from how many operators there are rather than picked.
+    #
+    # It was a flat fifth of the budget each.  With six operators that is 1.2x the whole
+    # budget spent before any of them has been tried twice -- traced on the real P6 at 300s,
+    # the first beam produced the best solution of the entire run in 33 seconds and the
+    # remaining 267 went on first probes (regrow 54s, preference 60s, relocate 60s,
+    # assignment 54s), not one of which beat it.  The search never got to start.
+    #
+    # Spend at most half the budget learning which operators pay, so one probing round is
+    # budget/2 spread over however many operators exist: budget / (2 * n).  Six gives 8.3%
+    # each, four gives 12.5% -- the number falls out of the roster instead of being chosen,
+    # and stays right when an operator is added or an optional dependency is missing.  What
+    # an operator earns after that is what grows its slice.
+    slot = [budget / (2.0 * len(ops))] * len(ops)
 
     while True:
         left = budget - (time.time() - t0)
@@ -1546,7 +1555,11 @@ def _worker(args):
             s = None
         el = max(1e-6, time.time() - st)
         tried[k] += 1; spent[k] += el
-        if ops[k][3]:
+        # An operator that just improved the incumbent has earned a longer look; one that came
+        # back empty is either starved (search) or exhausted (repair).
+        if pool and pool[0][0] < before - 1e-9:
+            slot[k] = min(budget * 0.45, slot[k] * 1.5)
+        elif ops[k][3]:
             if s is None:
                 slot[k] = min(budget * 0.45, slot[k] * 1.3)
         else:
