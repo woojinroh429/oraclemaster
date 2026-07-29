@@ -776,6 +776,118 @@ def _relocate(prob_info, sol, budget):
                               for b in range(n)])
 
 
+def _swapbay(prob_info, sol, budget):
+    """Trade places: put an expensively-displaced block into the bay it wants by evicting a
+    cheaply-displaceable one, instead of paying whatever the arrival order happened to cost.
+
+    The beam places blocks in dispatch order.  When one cannot get into its favourite bay it
+    pays its own second-best penalty on the spot, and never asks whether something already
+    sitting there would have moved for less.  Measured on the real P3: our Z3 of 527 comes
+    from displacing about eleven blocks at a mean cost of 48 each, while the eleven CHEAPEST
+    blocks to displace cost 28 in total -- and even the thirty cheapest only cost 189.  The
+    number displaced is not what we lose on; the choice of which is.
+
+    So for each block paying a penalty, look at what is in the bay it wanted during its own
+    window, and swap with whichever of those would move for less.  Both sides are re-placed
+    for real and the whole trade is judged on the full objective, so it is kept only when the
+    packing allows it and the arithmetic works out."""
+    if sol is None:
+        return None
+    B = prob_info["blocks"]; bays = prob_info["bays"]
+    n = len(B); m = len(bays)
+    if m < 2:
+        return None
+    rel = [b["release_time"] for b in B]; pt = [b["processing_time"] for b in B]
+    pref = [b["bay_preferences"] for b in B]; mxp = [max(p) for p in pref]
+
+    def pen(b, j):
+        return mxp[b] - (pref[b][j] if j < len(pref[b]) else 0)
+
+    place = {}
+    for tstr, row in (sol.get("operations") or {}).items():
+        for op in row:
+            if op["type"] == "ENTRY":
+                b = op["block_id"]
+                place[b] = [op["bay_id"], op["orient_idx"], op["x"], op["y"],
+                            int(tstr), int(tstr) + pt[b]]
+    if len(place) != n:
+        return None
+    bu = _bay_unit_weights(bays)
+
+    def obj_of(pl):
+        return _objective([{"block_id": g, "bay_id": pl[g][0], "orient_idx": pl[g][1],
+                            "x": pl[g][2], "y": pl[g][3], "entry_time": pl[g][4],
+                            "exit_time": pl[g][5]} for g in range(n)], prob_info, bu)[0]
+
+    E = _ogc_fast_engine(prob_info)
+
+    def reload_engine():
+        E.clear_all()
+        for g in range(n):
+            q = place[g]
+            E.add(q[0], g, q[1], float(q[2]), float(q[3]), q[4], q[5])
+
+    reload_engine()
+    cur = obj_of(place)
+    # second-best bay penalty: what this block would cost if displaced from its favourite
+    cheap = [sorted(pen(b, j) for j in range(m))[1] for b in range(n)]
+    dead = time.time() + max(2.0, budget)
+    victims = sorted((b for b in place if pen(b, place[b][0]) > 0),
+                     key=lambda b: -pen(b, place[b][0]))
+    moved = False
+    for a in victims:
+        if time.time() > dead - 0.5:
+            break
+        pa = pen(a, place[a][0])
+        want = min(range(m), key=lambda j: pen(a, j))
+        if want == place[a][0]:
+            continue
+        # who is in that bay while a needs it, and would move for less than a is paying
+        here = [g for g in place
+                if place[g][0] == want and g != a and cheap[g] < pa
+                and not (place[g][5] <= rel[a] or rel[a] + pt[a] <= place[g][4])]
+        here.sort(key=lambda g: cheap[g])
+        for b in here[:8]:
+            if time.time() > dead - 0.5:
+                break
+            keep_a, keep_b = list(place[a]), list(place[b])
+            E.remove(a); E.remove(b)
+            ra = E.find_best_placement(a, [want], [rel[a]])
+            if not ra[0]:
+                E.add(keep_a[0], a, keep_a[1], float(keep_a[2]), float(keep_a[3]),
+                      keep_a[4], keep_a[5])
+                E.add(keep_b[0], b, keep_b[1], float(keep_b[2]), float(keep_b[3]),
+                      keep_b[4], keep_b[5])
+                continue
+            E.add(want, a, int(ra[2]), float(ra[3]), float(ra[4]), int(ra[5]), int(ra[6]))
+            alt = sorted((j for j in range(m) if j != want), key=lambda j: pen(b, j))
+            rb = E.find_best_placement(b, alt, [rel[b]])
+            if not rb[0]:
+                E.remove(a)
+                E.add(keep_a[0], a, keep_a[1], float(keep_a[2]), float(keep_a[3]),
+                      keep_a[4], keep_a[5])
+                E.add(keep_b[0], b, keep_b[1], float(keep_b[2]), float(keep_b[3]),
+                      keep_b[4], keep_b[5])
+                continue
+            E.add(int(rb[1]), b, int(rb[2]), float(rb[3]), float(rb[4]),
+                  int(rb[5]), int(rb[6]))
+            trial = {g: list(v) for g, v in place.items()}
+            trial[a] = [want, int(ra[2]), int(ra[3]), int(ra[4]), int(ra[5]), int(ra[6])]
+            trial[b] = [int(rb[1]), int(rb[2]), int(rb[3]), int(rb[4]), int(rb[5]),
+                        int(rb[6])]
+            if obj_of(trial) < cur - 1e-9:
+                place = trial; cur = obj_of(place); moved = True
+                break
+            place[a], place[b] = keep_a, keep_b
+            reload_engine()
+    if not moved:
+        return None
+    return _build_operations([{"block_id": g, "bay_id": place[g][0],
+                               "orient_idx": place[g][1], "x": place[g][2],
+                               "y": place[g][3], "entry_time": place[g][4],
+                               "exit_time": place[g][5]} for g in range(n)])
+
+
 def _total(prob_info, sol):
     """The ONLY selection criterion in this file: the full objective, or inf."""
     try:
@@ -1374,7 +1486,8 @@ def _worker(args):
     ops = [("beam", _fresh, False, True, 4.0),
            ("grow", _grow, True, True, 4.0),
            ("bal",  lambda t: _balance(prob_info, pool[0][1], t), True, False, 0.5),
-           ("pref", lambda t: _z3_improve(prob_info, pool[0][1], t), True, False, 0.5)]
+           ("pref", lambda t: _z3_improve(prob_info, pool[0][1], t), True, False, 0.5),
+           ("swap", lambda t: _swapbay(prob_info, pool[0][1], t), True, False, 1.0)]
     if HAVE_CRANEPACK:
         ops.append(("reloc", lambda t: _relocate(prob_info, pool[0][1], t), True, False, 1.0))
     if HAVE_ORTOOLS:
