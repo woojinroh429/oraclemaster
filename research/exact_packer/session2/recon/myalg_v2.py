@@ -379,6 +379,18 @@ def _contact_beam(prob_info, deadline_s, B=24, K=4, pos_lam=0.1, prefw=0.0, orde
             _thr = 2.0 * _mean_a
             _r0 = (max(rel) * 0.2) if rel else 0
             ordv = [(1 if (AR[b] >= _thr and rel[b] > _r0) else 0, due[b], -AR[b]) for b in range(n)]
+        elif order == "rel_big":
+            # Same chronological spine, biggest first inside an arrival.  The shipped pipeline
+            # builds SIX orders and every one of them is (release, then something); this is its
+            # first.  Ours had only the (release, due, -area) variant, which is its second.
+            ordv = [(rel[b], -AR[b], due[b]) for b in range(n)]
+        elif order == "rel_st":
+            # (release, -area*processing) -- the space-time consumption rule, and the standard
+            # priority for scheduling against a spatial resource.  Blocks that will hold the
+            # most floor for the longest go first, while the yard is still open.
+            ordv = [(rel[b], -AR[b] * pt[b]) for b in range(n)]
+        elif order == "rel_long":
+            ordv = [(rel[b], -pt[b], -AR[b]) for b in range(n)]
         elif order == "rel":
             # CHRONOLOGICAL.  Every other order here sorts by a DEADLINE, so the timeline gets
             # built out of time order: a block that arrives late but is due early is placed
@@ -742,7 +754,10 @@ def _beam_once(prob_info, budget, cfg):
 _AXES = [
     dict(Bmul=1.0, K=4, pos_lam=0.10, order="rel",       fut_beta=0.5, prefw=0.0, w3mul=3.0, mum=1.0,  sweep=(1.0, 0.01)),
     dict(Bmul=1.0, K=4, pos_lam=0.12, order="defer_big", fut_beta=1.0, prefw=0.0, w3mul=3.0, mum=0.25, sweep=(1.0, 0.01)),
+    dict(Bmul=1.0, K=4, pos_lam=0.10, order="rel_big",   fut_beta=0.5, prefw=0.0, w3mul=3.0, mum=1.0,  sweep=(1.0, 0.01)),
+    dict(Bmul=1.0, K=4, pos_lam=0.10, order="rel_st",    fut_beta=0.5, prefw=0.0, w3mul=3.0, mum=0.25, sweep=(1.0, 0.01)),
     dict(Bmul=1.0, K=4, pos_lam=0.10, order="defer_big", fut_beta=1.0, prefw=0.0, w3mul=1.0, mum=1.0,  sweep=(1.0, 0.01)),
+    dict(Bmul=1.0, K=4, pos_lam=0.10, order="rel_long",  fut_beta=1.0, prefw=0.0, w3mul=3.0, mum=1.0,  sweep=(1.0, 0.01)),
     dict(Bmul=1.4, K=3, pos_lam=0.10, order="big_first", fut_beta=0.5, prefw=0.0, w3mul=6.0, mum=0.25, sweep=(1.0, 0.01)),
     dict(Bmul=0.7, K=5, pos_lam=0.15, order="lst",       fut_beta=0.0, prefw=0.0, w3mul=3.0, mum=1.0,  sweep=(1.0, 0.01)),
     dict(Bmul=0.7, K=5, pos_lam=0.05, order="edd",       fut_beta=1.5, prefw=0.0, w3mul=1.0, mum=4.0,  sweep=(1.0, 0.01)),
