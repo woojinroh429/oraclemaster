@@ -1492,6 +1492,12 @@ def _worker(args):
         ops.append(("reloc", lambda t: _relocate(prob_info, pool[0][1], t), True, False, 1.0))
     if HAVE_ORTOOLS:
         ops.append(("bay", lambda t: _assign(prob_info, pool[0][1], t), True, True, 3.0))
+    # OGC_OPS: comma-separated roster filter, for ablation.  "beam,grow" runs the search
+    # operators alone.  Unset means everything, which is the shipped behaviour.
+    _only = os.environ.get("OGC_OPS")
+    if _only:
+        keep = {x.strip() for x in _only.split(",") if x.strip()}
+        ops = [o for o in ops if o[0] in keep] or ops[:1]
     gain = [0.0] * len(ops); spent = [1e-6] * len(ops); tried = [0] * len(ops)
     # incumbent value at which a repair pass last came back empty.  Those passes are
     # deterministic, so asking again without a changed incumbent gets the same nothing --
