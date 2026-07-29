@@ -7,3 +7,4 @@ data
 .artifacts/
 friend_ref/_*
 _n/
+myalg_base.py
