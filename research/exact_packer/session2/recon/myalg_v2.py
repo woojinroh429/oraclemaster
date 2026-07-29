@@ -1199,15 +1199,22 @@ def _worker(args):
     pool = [best] if best[1] is not None else []
     band = _Bandit([0.25, 1.0, 4.0], rng)          # crane-contact weight
     w3v = float(prob_info.get("weights", {}).get("w3", 1.0))
-    gen = [0]
+    gen = [0]; fg = [0]
 
     # The axis rotates rather than being bandit-picked: with six axes and only a handful of
     # slices in a 60s budget a bandit never leaves its exploration phase, and measured it cost
     # prob_3 44400 -> 49020.  Diversity across axes is already covered between workers, which
     # each start at a different offset.
+    #
+    # It rotates on ITS OWN counter.  Sharing one with the breeder meant every regrow ate a
+    # place in the rotation, so the beam skipped axes and came back to ones it had already
+    # run -- and the beam is deterministic, so a revisited axis at a similar slice returns a
+    # byte-identical answer.  Traced on the real P4 at 480s, three of twelve beams did exactly
+    # that, and the axis that produced the run's best solution by 25% was not reached until
+    # 314 seconds in, on the seventh beam.  Walking the axes without gaps reaches it sixth.
     def _fresh(t):
-        gen[0] += 1
-        return _beam_once(prob_info, t, axes[gen[0] % len(axes)])
+        fg[0] += 1
+        return _beam_once(prob_info, t, axes[fg[0] % len(axes)])
 
     def _grow(t):
         gen[0] += 1; g = gen[0]; ai = band.pick()
