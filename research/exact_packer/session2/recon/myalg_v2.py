@@ -41,6 +41,11 @@ from utils import (
     _poly_from_verts,
 )
 
+# How fast an operator's measured payoff forgets.  1.0 is a lifetime average; the value here
+# gives a memory of roughly 1/(1-r) slices, which at three is about the number a run gets
+# before the pool stops being empty.  See the decay in _worker for why it is not 1.0.
+_PAYOFF_DECAY = float(os.environ.get("OGC_DECAY", "0.65"))
+
 # ----------------------------------------------------------------------------
 # Optional C++ acceleration (geometry engine).  Pre-compiled .so files shipped
 # alongside this module are loaded if present; on ANY failure (missing file,
@@ -1264,7 +1269,12 @@ def _worker(args):
         elif rng.random() < 0.15:
             k = rng.choice(elig)
         else:
-            k = max(elig, key=lambda i: gain[i] / spent[i])
+            # Ties on the second key, not the first: once every rate has decayed to nothing
+            # the ratio is 0.0 for all of them and a plain max() hands the budget to whichever
+            # happens to be first in the list -- which is the beam, every time.  Spreading the
+            # slices over whoever has had the least time is the only honest answer when the
+            # measurements say none of them is paying.
+            k = max(elig, key=lambda i: (gain[i] / spent[i], -spent[i]))
         # SIZE BY COMPLETION, SELECT BY PAYOFF -- two different questions.
         #
         # A shared slice starves the loop: with six operators on a fifth of the budget apiece
@@ -1288,6 +1298,16 @@ def _worker(args):
         except Exception:
             s = None
         el = max(1e-6, time.time() - st)
+        # RECENCY, NOT LIFETIME AVERAGE.  gain/spent as a running total is a stationary-bandit
+        # statistic and this problem is not stationary: the first few beams fill an empty pool
+        # and improve on almost every call, so the beam banks a rate it will never repeat, and
+        # a lifetime average only erodes it as 1/t.  Traced on the real P4 at 480s that was 13
+        # beams to 2 regrows, all thirteen landing on a value the second one had already found.
+        # Decaying both terms leaves a steady payoff exactly where it was -- g/(1-r) over
+        # c/(1-r) is g/c -- while an operator that has stopped paying loses its claim
+        # geometrically instead of linearly.  Breeding gets its generations from the slices the
+        # plateaued beam stops taking, so they cost nothing extra.
+        gain[k] *= _PAYOFF_DECAY; spent[k] *= _PAYOFF_DECAY
         tried[k] += 1; spent[k] += el
         # An operator that just improved the incumbent has earned a longer look; one that came
         # back empty is either starved (search) or exhausted (repair).
