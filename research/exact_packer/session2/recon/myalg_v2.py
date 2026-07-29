@@ -701,7 +701,12 @@ def _beam_once(prob_info, budget, cfg):
 #   order   : the largest single effect (edd_tri2 = selective defer-big, the friend's
 #             lever: +1 tardy on a big released into an already-full yard buys room for
 #             3-5 small blocks on time)
-#   w3mul   : how hard the rank routes toward preferred bays.  The user's point, and the
+#   w3mul   : how hard the rank routes toward preferred bays.  It may need to be ZERO.  The
+#             shipped pipeline beats this one on the real P6 by giving preference away to buy
+#             tardiness -- Z3 5851 -> 9152, which costs 495150, in exchange for Z1 4276 -> 4049,
+#             which returns 1513409, because w1/w3 there is 44.4 to one.  Every axis here had
+#             w3mul at 1.0 or above, several amplifying preference on an instance where it is
+#             worth a fortyfourth of the thing it competes with.  The user's point, and the
 #             measured one: prob_39 gave up Z1 +6 for Z2 -2431 and Z3 -3107 and the
 #             objective improved.  Sitting on a wide plateau (2.5/3/4/8 all identical) so
 #             it is not a knife-edge.
@@ -724,6 +729,7 @@ def _beam_once(prob_info, budget, cfg):
 # alone -- run alone it is the best single order on P3 by 23% over edd (107790 vs 140640).
 _AXES = [
     dict(Bmul=1.0, K=4, pos_lam=0.10, order="rel",       fut_beta=0.5, prefw=0.0, w3mul=3.0, mum=1.0),
+    dict(Bmul=1.0, K=4, pos_lam=0.10, order="lst",       fut_beta=1.0, prefw=0.0, w3mul=0.0, mum=1.0),
     dict(Bmul=1.0, K=4, pos_lam=0.10, order="defer_big", fut_beta=1.0, prefw=0.0, w3mul=1.0, mum=1.0),
     dict(Bmul=1.0, K=4, pos_lam=0.12, order="defer_big", fut_beta=1.0, prefw=0.0, w3mul=3.0, mum=0.25),
     dict(Bmul=0.7, K=5, pos_lam=0.15, order="lst",       fut_beta=0.0, prefw=0.0, w3mul=3.0, mum=1.0),
