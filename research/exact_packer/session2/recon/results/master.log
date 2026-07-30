@@ -92,3 +92,6 @@ P3  GRASP k=6  polished     obj=103300      Z1=0.0     Z2=2240  Z3=614.0   feasi
    draw 1   obj=11056288      at 67s
    draw 2   obj=10258221      at 131s
    draw 3   obj=9842614       at 193s
+P5  BGRASP k=3 axis=1 10 draws in 585s  obj=9842614      Z1=708.0   Z2=3001   Z3=2871.0   feasible=True
+[20:35:37] END   bg-5-k3
+[20:35:37] START bg-5-k5
