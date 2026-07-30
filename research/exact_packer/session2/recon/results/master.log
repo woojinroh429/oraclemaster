@@ -156,3 +156,6 @@ P4  prefmid    ord=rank    thr=0.60 obj=5271800     Z1=328.0    Z2=2068   Z3=589
    draw 1   obj=10216744     at 5s
 P5  GRASP k=6  79 draws in 382s   best obj=10216744    Z1=697.0   Z2=2103  Z3=6834.0
    finalist build=10216744    short-polish=10158049   
+   finalist build=10542510    short-polish=10495113   
+   finalist build=10599895    short-polish=10535628   
+   finalist build=10607234    short-polish=10540846   
