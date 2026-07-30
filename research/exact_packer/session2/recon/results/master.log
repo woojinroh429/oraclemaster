@@ -164,3 +164,4 @@ P5  GRASP k=6  polished     obj=10158049    Z1=697.0   Z2=2458  Z3=6374.0  feasi
 [21:14:45] END   fair-5-99
 [21:14:45] START bg-5-k3-b
    draw 1   obj=10124507      at 62s
+   draw 4   obj=9461467       at 260s
