@@ -143,3 +143,10 @@ P3  GRASP k=6  32 draws in 132s   best obj=542890      Z1=0.0     Z2=2768  Z3=35
    finalist build=564830      short-polish=106065     
    finalist build=568940      short-polish=110090     
    -> re-ranked: the best build was NOT the best polished
+P3  GRASP k=6  polished     obj=93905       Z1=0.0     Z2=2971  Z3=527.0   feasible=True
+   base=rank mode=prefmid  (P6 fixed-order reference is 28,138,113)
+[21:05:40] END   p3-grasp-prefmid
+[21:05:40] START p4-mode-prefaware
+P4  prefaware  ord=rank    thr=0.60 obj=5204686     Z1=340.0    Z2=1788   Z3=4393.0   feasible=True  built in 4s
+[21:05:45] END   p4-mode-prefaware
+[21:05:45] START p4-mode-prefmid
