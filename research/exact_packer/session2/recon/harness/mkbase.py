@@ -21,7 +21,8 @@ import sys
 
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ORIG = os.path.join(HERE, "myalg_orig.py")
-OUT = os.path.join(HERE, "myalg_base.py")
+FLOOR = float(sys.argv[1]) if len(sys.argv) > 1 else 0.3
+OUT = os.path.join(HERE, sys.argv[2] if len(sys.argv) > 2 else "myalg_base.py")
 
 if not os.path.exists(ORIG):
     src = subprocess.check_output(
@@ -50,12 +51,13 @@ s = s.replace('                          mum=mum)',
 
 AXES = '''_AXES = [
     dict(Bmul=1.0, K=4, pos_lam=0.10, order="defer_big", fut_beta=1.0, prefw=0.0, w3mul=1.0, cohort=0.0),
-    dict(Bmul=1.0, K=4, pos_lam=0.12, order="defer_big", fut_beta=1.0, prefw=0.0, w3mul=3.0, cohort=0.3),
-    dict(Bmul=0.7, K=5, pos_lam=0.15, order="lst",       fut_beta=0.0, prefw=0.0, w3mul=3.0, cohort=0.3),
-    dict(Bmul=0.7, K=5, pos_lam=0.05, order="edd",       fut_beta=1.5, prefw=0.0, w3mul=1.0, cohort=0.3),
-    dict(Bmul=1.4, K=3, pos_lam=0.10, order="big_first", fut_beta=0.5, prefw=0.0, w3mul=6.0, cohort=0.3),
+    dict(Bmul=1.0, K=4, pos_lam=0.12, order="defer_big", fut_beta=1.0, prefw=0.0, w3mul=3.0, cohort=%(F)s),
+    dict(Bmul=0.7, K=5, pos_lam=0.15, order="lst",       fut_beta=0.0, prefw=0.0, w3mul=3.0, cohort=%(F)s),
+    dict(Bmul=0.7, K=5, pos_lam=0.05, order="edd",       fut_beta=1.5, prefw=0.0, w3mul=1.0, cohort=%(F)s),
+    dict(Bmul=1.4, K=3, pos_lam=0.10, order="big_first", fut_beta=0.5, prefw=0.0, w3mul=6.0, cohort=%(F)s),
     dict(Bmul=0.5, K=6, pos_lam=0.20, order="defer_big", fut_beta=0.0, prefw=0.0, w3mul=1.5, cohort=0.0),
 ]'''
+AXES = AXES % {'F': repr(FLOOR)}
 old = re.search(r"_AXES = \[\n(?:.*\n)*?\]", s).group(0)
 assert old.count("dict(") == 6, "myalg_orig.py should have exactly six axes"
 s = s.replace(old, AXES, 1)
@@ -63,4 +65,4 @@ s = s.replace(old, AXES, 1)
 ast.parse(s)
 open(OUT, "w").write(s)
 print("wrote %s -- cap preserved=%s, cohort axes=%d"
-      % (OUT, "min(96," in s, s.count("cohort=0.3")))
+      % (OUT, "min(96," in s, s.count("cohort=" + repr(FLOOR))))

@@ -11,8 +11,8 @@ while true; do
     if [ "$cur" != "$last" ]; then
       cp "$SRCDIR"/*.log results/
       for i in 1 2 3 4 5; do
-        if git add -f results/ && git commit -q -m "measurement logs" 2>/dev/null; then
-          for j in 1 2 3 4; do git push -q origin HEAD && break || sleep $((2**j)); done
+        if nice -n 19 git add -f results/ && nice -n 19 git commit -q -m "measurement logs" 2>/dev/null; then
+          for j in 1 2 3 4; do nice -n 19 git push -q origin HEAD && break || sleep $((2**j)); done
           last=$cur; break
         fi
         git diff --quiet HEAD -- results/ && { last=$cur; break; }   # genuinely nothing to commit

@@ -11,3 +11,4 @@ myalg_base.py
 myalg_prev.py
 !results/
 !results/*.log
+myalg_c*.py
