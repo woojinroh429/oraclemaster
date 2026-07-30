@@ -29,6 +29,13 @@ SHADOW = float(sys.argv[3]) if len(sys.argv) > 3 else 0.0
 # the same principle upstream, to which blocks are even candidates to be neighbours.
 ORDER  = sys.argv[4] if len(sys.argv) > 4 else ""
 SPAN   = float(sys.argv[5]) if len(sys.argv) > 5 else 0.0
+# The deployed build's construction key is (h, ...) with h -- the block's top edge -- as the
+# ABSOLUTE first key, because in a 154x15 bay one unit of depth can cost a whole row.  Our
+# score has the same h, at pos_lam*sw_y, but weighted an order of magnitude BELOW contact, so
+# contact leads and h merely nudges.  pos_lam is therefore already the knob; it was tuned where
+# depth does not bind, and the range that makes flatness primary (contact peaks near 44, so
+# pos_lam of a few units) has never been tried.
+PLMUL  = float(sys.argv[6]) if len(sys.argv) > 6 else 1.0
 OUT = os.path.join(HERE, sys.argv[2] if len(sys.argv) > 2 else "myalg_base.py")
 
 if not os.path.exists(ORIG):
@@ -65,6 +72,9 @@ AXES = '''_AXES = [
     dict(Bmul=0.5, K=6, pos_lam=0.20, order="defer_big", fut_beta=0.0, prefw=0.0, w3mul=1.5, cohort=0.0),
 ]'''
 AXES = AXES % {'F': repr(FLOOR)}
+if PLMUL != 1.0:
+    AXES = re.sub(r"pos_lam=([0-9.]+)",
+                  lambda m: "pos_lam=%g" % (float(m.group(1)) * PLMUL), AXES)
 if SPAN:
     AXES = AXES.replace('cohort=' + repr(FLOOR), 'cohort=%s, span=%s' % (repr(FLOOR), repr(SPAN)))
 if SHADOW:
