@@ -1,1 +1,8 @@
 P6  full pipeline, 300s each: myalg_orig vs myalgorithm
+  myalg_orig obj=30868337    Z1=4487.0   Z2=2676   Z3=6214.0
+     alignment   0.6243   (contact-weighted window overlap of realised neighbours)
+     free        12.9 components, largest 630  (mean over exit events)
+     shadow      1.2816  (union / layer0, stay-weighted -- the 1.27x)
+     swept       1.4197  (union over one median stay / mean instantaneous -- the 1.6x)
+     delay       mean 21.4, median 11, 102 of 250 entered at release
+     (303s)
