@@ -3,3 +3,9 @@ Traceback (most recent call last):
     o, c = mod._total(d, s)
            ^^^^^^^^^^
 AttributeError: module 'myalgorithm' has no attribute '_total'
+Traceback (most recent call last):
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 11, in <module>
+    # Score with a fixed scorer, not the module under test.  The deployed build has no _total,
+           ^^^^^^^^^^
+AttributeError: module 'myalgorithm' has no attribute '_total'
+NIGHT7-DONE
