@@ -163,3 +163,4 @@ P5  GRASP k=6  polished     obj=10158049    Z1=697.0   Z2=2458  Z3=6374.0  feasi
    base=rank mode=bigleft  (P6 fixed-order reference is 28,138,113)
 [21:14:45] END   fair-5-99
 [21:14:45] START bg-5-k3-b
+   draw 1   obj=10124507      at 62s
