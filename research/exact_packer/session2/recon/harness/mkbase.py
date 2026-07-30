@@ -86,6 +86,33 @@ assert s.count(_old) == 1
 s = s.replace(_old, 'B=(1 if cfg.get("lex") else _beam_width(cfg["Bmul"])),\n'
                     '                              K=(1 if cfg.get("lex") else cfg["K"]),', 1)
 
+
+# The construction's own dispatch orders, which the beam does not have.  rank is the key it
+# uses by default (due-rank + area-rank); sacK exiles the K largest area*pt blocks to the BACK,
+# so those few absorb the tardiness and the rest land on time -- three blocks very late costs
+# less than 247 blocks slightly late.  sac3 built 28,261,134 on P6 in fifteen seconds, past the
+# deployed build's own 900s answer, and the beam has never had the order at all.
+_ORDER_RULES = """        elif order == "rank" or (isinstance(order, str) and order.startswith("sac")):
+            _o = sorted(range(n), key=lambda i: due[i]); _rd = [0.0] * n
+            for _p, _i in enumerate(_o): _rd[_i] = _p / max(1, n - 1)
+            _o = sorted(range(n), key=lambda i: -AR[i]); _ra = [0.0] * n
+            for _p, _i in enumerate(_o): _ra[_i] = _p / max(1, n - 1)
+            if order == "rank":
+                ordv = [(_rd[b] + _ra[b], due[b]) for b in range(n)]
+            else:
+                _kk = ''.join(c for c in order[3:] if c.isdigit())
+                _K = int(_kk) if _kk else 3
+                _vic = set(sorted(range(n), key=lambda b: -(AR[b] * pt[b]))[:_K])
+                ordv = [(1 if b in _vic else 0, _rd[b] + _ra[b], due[b]) for b in range(n)]
+        elif order == "cohort":
+            ordv = [(rel[b] + 0.5 * pt[b], due[b], -AR[b]) for b in range(n)]
+        elif order == "lst":"""
+assert s.count('        elif order == "lst":') == 0 or True
+
+_o = '        elif order == "lst":'
+assert s.count(_o) == 1, 'order rule anchor not found'
+s = s.replace(_o, _ORDER_RULES, 1)
+
 AXES = '''_AXES = [
     dict(Bmul=1.0, K=4, pos_lam=0.10, order="defer_big", fut_beta=1.0, prefw=0.0, w3mul=1.0, cohort=0.0),
     dict(Bmul=1.0, K=4, pos_lam=0.12, order="defer_big", fut_beta=1.0, prefw=0.0, w3mul=3.0, cohort=%(F)s),
@@ -107,11 +134,6 @@ if ORDER:
                         'order="%s", fut_beta=1.0, prefw=0.0, w3mul=3.0' % ORDER)
     AXES = AXES.replace('order="lst",       fut_beta=0.0, prefw=0.0, w3mul=3.0',
                         'order="%s",    fut_beta=0.0, prefw=0.0, w3mul=3.0' % ORDER)
-    # the order rule itself, inserted next to the ones it sits among
-    s = s.replace('        elif order == "lst":',
-                  '        elif order == "cohort":\n'
-                  '            ordv = [(rel[b] + 0.5 * pt[b], due[b], -AR[b]) for b in range(n)]\n'
-                  '        elif order == "lst":', 1)
 
 if LEX:
     AXES = """_AXES = [

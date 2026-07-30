@@ -17,3 +17,5 @@ myalg_co.py
 myalg_sp*.py
 myalg_pl*.py
 myalg_lex.py
+myalg_sac3.py
+myalg_rank.py
