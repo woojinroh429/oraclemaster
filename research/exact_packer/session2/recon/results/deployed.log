@@ -9,3 +9,4 @@ Traceback (most recent call last):
            ^^^^^^^^^^
 AttributeError: module 'myalgorithm' has no attribute '_total'
 NIGHT7-DONE
+P6  DEPLOYED       900s  obj=28373827    Z1=4049.0   Z2=793    Z3=9152.0    ran 858s
