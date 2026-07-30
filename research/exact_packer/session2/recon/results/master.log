@@ -101,3 +101,4 @@ P5  BGRASP k=5 axis=1 10 draws in 585s  obj=9968884      Z1=713.0   Z2=800    Z3
 [20:45:23] END   bg-5-k5
 [20:45:23] START bg-4-k3
    draw 1   obj=3604475       at 47s
+   draw 3   obj=3460100       at 141s
