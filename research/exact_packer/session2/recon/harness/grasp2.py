@@ -13,10 +13,14 @@ Three changes, all standard, all removing something hand-set:
                  solutions on this instance share structure -- which blocks must go early -- and
                  blind restarts throw that away every time.  alpha ramps with the pool so the
                  first draws stay close to the base key.
-  reactive k     k is not fixed.  Each value carries a weight, raised when it produces a draw
-                 better than the running median.  This is also what makes the procedure
-                 instance-agnostic: P5 and P6 are different regimes and can prefer different k
-                 without anything being gated on the instance.
+  reactive k     k is not fixed.  Each value carries a weight, raised when it sets a new
+                 incumbent.  The first version rewarded beating the running median and that was
+                 backwards: the weights converged onto k=3/k=4 and starved k=6, the value that
+                 had won the fixed sweep, because a narrow k sits near the greedy and clears the
+                 median steadily while a wide k is mostly below it and occasionally far above.
+                 A best-of keeps the maximum, so variance is the asset and consistency is not.
+                 This is also what keeps the procedure instance-agnostic: P5 and P6 are different
+                 regimes and can prefer different k with nothing gated on the instance.
   polish-aware   the old selection picked the best UNPOLISHED construction and polished it once.
     selection    Those are not the same ranking: the polish takes Z2 and Z3, so a build holding
                  more of them can finish ahead of one that starts lower.  Short-polish the top
@@ -117,7 +121,8 @@ def polish(recs, secs):
 
 elite = []                                  # [(obj, order)], best first
 kw = {k: 1.0 for k in KS}                   # reactive weights
-seen = []                                   # objective history, for the median test
+seen = []                                   # objective history
+best_seen = [float("inf")]                  # incumbent, which is what a best-of actually keeps
 pool_best = []                              # [(obj, recs, order)] candidates for re-ranking
 
 t0 = time.time()
@@ -137,8 +142,10 @@ while time.time() - t0 < BUDGET:
     if draws == 0:
         order = list(base_order)
     else:
-        if elite:
-            # where the elites agree, follow them; alpha ramps so early draws stay near the key
+        if elite and rng.random() < 0.6:
+            # Where the elites agree, follow them -- but not every draw.  Biasing all of them
+            # compounds with a narrow k and the pool collapses onto its own opinion.
+            # alpha ramps so early draws stay near the key.
             alpha = min(0.5, 0.08 * len(elite))
             epos = [0.0] * n
             for _o, eo in elite:
@@ -159,9 +166,16 @@ while time.time() - t0 < BUDGET:
         continue
     o = score(recs)
     seen.append(o)
-    med = sorted(seen)[len(seen) // 2]
-    kw[k] *= 1.25 if o <= med else 0.9       # reactive: reward what beats the running median
-    kw[k] = max(0.15, min(6.0, kw[k]))
+    # Reward a k for setting a new incumbent, not for beating the running median.  The median
+    # rule was backwards for a best-of procedure and the weights showed it: it converged onto
+    # k=3 and k=4 and starved k=6, the value that had won the fixed sweep.  A narrow k sits near
+    # the greedy and clears the median steadily; a wide k is mostly below it and occasionally
+    # far above.  Best-of keeps the maximum, so that variance is the asset -- and rewarding
+    # consistency taxes exactly what pays.  The floor keeps every k sampled, so a value that
+    # goes quiet for a while can still come back.
+    kw[k] *= 1.6 if o < best_seen[0] else 0.97
+    kw[k] = max(0.4, min(8.0, kw[k]))
+    best_seen[0] = min(best_seen[0], o)
 
     elite.append((o, list(order)))
     elite.sort(key=lambda t: t[0])
