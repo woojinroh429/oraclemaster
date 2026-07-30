@@ -6,3 +6,20 @@ P6  full pipeline, 300s each: myalg_orig vs myalgorithm
      swept       1.4197  (union over one median stay / mean instantaneous -- the 1.6x)
      delay       mean 21.4, median 11, 102 of 250 entered at release
      (303s)
+  myalgorith obj=28373827    Z1=4049.0   Z2=793    Z3=9152.0
+     alignment   0.6292   (contact-weighted window overlap of realised neighbours)
+     free        15.7 components, largest 550  (mean over exit events)
+     shadow      1.2794  (union / layer0, stay-weighted -- the 1.27x)
+     swept       1.3056  (union over one median stay / mean instantaneous -- the 1.6x)
+     delay       mean 19.8, median 10, 75 of 250 entered at release
+     (303s)
+
+  delta (myalgorithm vs myalg_orig)
+     objective          -8.08%
+     alignment          +0.78%
+     free components    +21.84%
+     largest free       -12.77%
+     shadow 1.27x       -0.17%
+     swept 1.6x         -8.04%
+     mean entry delay   -7.38%
+     entered at release -26.47%
