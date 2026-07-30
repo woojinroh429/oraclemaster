@@ -2,3 +2,6 @@ P6  flatbl     ord=sac1    thr=0.60 obj=28493452    Z1=4052.0   Z2=2296   Z3=973
 P6  flatbl     ord=sac2    thr=0.60 obj=28489614    Z1=4052.0   Z2=2285   Z3=9711.0   feasible=True  built in 16s
 P6  flatbl     ord=sac4    thr=0.60 obj=28428335    Z1=4047.0   Z2=1117   Z3=9587.0   feasible=True  built in 15s
 P6  flatbl     ord=sac5    thr=0.60 obj=30036898    Z1=4262.0   Z2=2443   Z3=10684.0  feasible=True  built in 15s
+P6  flatbl     ord=sac6    thr=0.60 obj=30036898    Z1=4262.0   Z2=2443   Z3=10684.0  feasible=True  built in 15s
+P6  flatbl     ord=sac8    thr=0.60 obj=29151383    Z1=4147.0   Z2=473    Z3=9997.0   feasible=True  built in 15s
+P6  flatbl     ord=sac3    thr=0.45 obj=29354166    Z1=4170.0   Z2=522    Z3=10324.0  feasible=True  built in 15s
