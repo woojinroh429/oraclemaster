@@ -125,3 +125,5 @@ P3  flatbl     ord=rank    thr=0.60 obj=1131175     Z1=0.0      Z2=395    Z3=752
    draw 4   obj=176005       at 17s
    draw 8   obj=175495       at 34s
    draw 16  obj=172050       at 67s
+P3  GRASP k=6  32 draws in 133s   best obj=172050      Z1=0.0     Z2=5610  Z3=960.0
+   finalist build=172050      short-polish=108455     
