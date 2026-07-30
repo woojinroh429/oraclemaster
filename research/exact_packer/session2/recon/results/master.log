@@ -107,3 +107,4 @@ P4  BGRASP k=3 axis=1 11 draws in 466s  obj=3388791      Z1=219.0   Z2=1752   Z3
 [20:53:09] END   bg-4-k3
 [20:53:09] START bg-3-k3
    draw 1   obj=151710        at 77s
+   draw 2   obj=134175        at 154s
