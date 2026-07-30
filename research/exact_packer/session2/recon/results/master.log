@@ -136,3 +136,4 @@ P3  GRASP k=6  polished     obj=100840      Z1=0.0     Z2=2108  Z3=602.0   feasi
 [21:01:25] END   p3-grasp-prefaware
 [21:01:25] START p3-grasp-prefmid
    draw 1   obj=562670       at 4s
+   draw 13  obj=542890       at 53s
