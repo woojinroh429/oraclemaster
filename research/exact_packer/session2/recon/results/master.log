@@ -5,3 +5,6 @@
 P3  myalg_base    240s  obj=97570        Z1=0.0      Z2=3134   Z3=546.0    feasible=True  ran 239s
 [19:01:57] END   base-3-myalg_base
 [19:01:57] START base-3-myalgorithm
+P3  myalgorithm   240s  obj=90545        Z1=0.0      Z2=2299   Z3=527.0    feasible=True  ran 239s
+[19:05:58] END   base-3-myalgorithm
+[19:05:58] START base-4-myalg_orig
