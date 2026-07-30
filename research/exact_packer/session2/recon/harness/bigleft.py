@@ -29,6 +29,13 @@ PROB = int(sys.argv[1])
 SECS = float(sys.argv[2])
 MODE = sys.argv[3] if len(sys.argv) > 3 else "bigleft"
 STEP = int(sys.argv[4]) if len(sys.argv) > 4 else 1
+# The construction takes a dispatch ORDER and a small-block threshold, and neither has been
+# looked at for P6.  The deployed build's own note says "recon had only rank", and its ablation
+# says the small-block rule (sx) is worth 4.2% -- more than the sweep direction's 2% -- so the
+# threshold that decides which blocks get that rule is the untuned knob with the most attached
+# to it.
+ORDER = sys.argv[5] if len(sys.argv) > 5 else "rank"
+THR   = float(sys.argv[6]) if len(sys.argv) > 6 else 0.60
 
 d = json.load(open(os.path.join(HERE, "data/hidden/prob_%d.json" % PROB)))
 n = len(d["blocks"])
@@ -37,19 +44,20 @@ saved = A._CPP_ENGINE_MODE
 A._CPP_ENGINE_MODE = A.HAVE_OGC_FAST
 t = time.time()
 try:
-    recs = A._smallright_construct(d, max(1.0, SECS - 2.0), step=STEP, mode=MODE)
+    recs = A._smallright_construct(d, max(1.0, SECS - 2.0), small_thresh=THR,
+                                   step=STEP, mode=MODE, order=ORDER)
 finally:
     A._CPP_ENGINE_MODE = saved
 el = time.time() - t
 
 if not recs or len(recs) != n:
-    print("P%-2d %-10s step=%d  INCOMPLETE (%s of %d blocks placed) in %.0fs"
-          % (PROB, MODE, STEP, len(recs) if recs else 0, n, el), flush=True)
+    print("P%-2d %-10s ord=%-7s thr=%.2f INCOMPLETE (%s of %d blocks placed) in %.0fs"
+          % (PROB, MODE, ORDER, THR, len(recs) if recs else 0, n, el), flush=True)
     sys.exit()
 
 sol = A._build_operations([recs[b] for b in range(n)])
 chk = A.check_feasibility(d, sol)
 o, c = SC._total(d, sol)
-print("P%-2d %-10s step=%d  obj=%-11d Z1=%-8s Z2=%-6s Z3=%-8s feasible=%s  built in %.0fs"
-      % (PROB, MODE, STEP, int(o), c.get("obj1"), c.get("obj2"), c.get("obj3"),
+print("P%-2d %-10s ord=%-7s thr=%.2f obj=%-11d Z1=%-8s Z2=%-6s Z3=%-8s feasible=%s  built in %.0fs"
+      % (PROB, MODE, ORDER, THR, int(o), c.get("obj1"), c.get("obj2"), c.get("obj3"),
          chk.get("feasible"), el), flush=True)
