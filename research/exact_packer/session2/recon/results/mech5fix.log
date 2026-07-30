@@ -6,3 +6,21 @@ P5  one beam each, 150s, identical axis but for the cohort floor
      swept       1.3912  (union over one median stay / mean instantaneous -- the 1.6x)
      delay       mean 6.9, median 0, 104 of 200 entered at release
      (73s)
+  cohort=0.3 obj=10124507    Z1=731.0    Z2=1382   Z3=2770.0
+     alignment   0.7678   (contact-weighted window overlap of realised neighbours)
+     free        9.9 components, largest 625  (mean over exit events)
+     shadow      1.1186  (union / layer0, stay-weighted -- the 1.27x)
+     swept       1.3776  (union over one median stay / mean instantaneous -- the 1.6x)
+     delay       mean 6.6, median 1, 100 of 200 entered at release
+     (69s)
+
+  delta (cohort on vs off)
+     objective          -7.91%
+     alignment          +7.45%
+     free components    -12.28%
+     largest free       -7.99%
+     shadow 1.27x       +0.01%
+     swept 1.6x         -0.98%
+     mean entry delay   -3.57%
+     entered at release -3.85%
+NIGHT3-DONE
