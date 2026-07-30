@@ -2,3 +2,6 @@
 [18:57:11] START base-3-myalg_orig
 [18:57:57] END   base-3-myalg_orig
 [18:57:57] START base-3-myalg_base
+P3  myalg_base    240s  obj=97570        Z1=0.0      Z2=3134   Z3=546.0    feasible=True  ran 239s
+[19:01:57] END   base-3-myalg_base
+[19:01:57] START base-3-myalgorithm
