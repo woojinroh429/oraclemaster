@@ -19,3 +19,4 @@ P6  GRASP k=3  43 draws in 585s   best obj=28111254    Z1=3988.0  Z2=1351  Z3=10
 P6  GRASP k=3  polished     obj=28021824    Z1=3988.0  Z2=1441  Z3=9482.0  feasible=True
    -> -0.41% vs the fixed-order 28,138,113
 GRASP-DONE
+   draw 1   obj=12121880     at 5s
