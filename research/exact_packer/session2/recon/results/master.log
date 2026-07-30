@@ -71,3 +71,8 @@ P4  GRASP k=6  76 draws in 283s   best obj=4273097     Z1=239.0   Z2=2280  Z3=71
    finalist build=4321485     short-polish=4181152    
    finalist build=4448580     short-polish=4327278    
    finalist build=4467962     short-polish=4303601    
+P4  GRASP k=6  polished     obj=4131579     Z1=239.0   Z2=2356  Z3=6190.0  feasible=True
+   base=rank mode=bigleft  (P6 fixed-order reference is 28,138,113)
+[20:21:35] END   fair-4-777
+[20:21:35] START fair-3-777
+   draw 1   obj=1054180      at 4s
