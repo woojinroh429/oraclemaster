@@ -635,7 +635,22 @@ struct Engine {
                         double cdens=(double)ct/bbp;
                         sc = -cdens*12.0 + ((double)iy+od.y1)*pos_lam*1.4 + (double)ix*pos_lam*0.02 + prefw*pen;
                     } else {
-                        sc = -(double)ct + ((double)iy+od.y1)*pos_lam*sw_y + (double)ix*pos_lam*sw_x + prefw*pen;
+                        if(lex_on){
+                            // Lexicographic (h, iy, ix), the key the deployed build's
+                            // construction sorts by -- h the block's top edge first, absolutely,
+                            // then the sweep.  pos_lam showed that a weighted sum cannot say
+                            // "within ties": raising h's weight does not promote h, it deletes
+                            // contact, and the packing spreads and fragments.  So encode the
+                            // tuple exactly instead.  Coordinates are integer and small
+                            // (h,iy <= ~20, ix <= ~160), so h*1e6 + iy*1e3 + ix orders
+                            // identically to the tuple and is exact in a double, which means the
+                            // comparator, the top-K collection and everything downstream stay
+                            // untouched.
+                            double hh=std::floor((double)iy+od.y1+0.5);
+                            sc = hh*1e6 + (double)iy*1e3 + (double)ix;
+                        } else {
+                            sc = -(double)ct + ((double)iy+od.y1)*pos_lam*sw_y + (double)ix*pos_lam*sw_x + prefw*pen;
+                        }
                         if(span_lam>0.0&&l0w>0)
                             sc += span_lam*span_drop(runL,runR,runMx1,runMx2,
                                                      ix+l0x,ix+l0x+l0w,bayW);
@@ -1021,7 +1036,22 @@ struct Engine {
                         double cdens=(double)ct/bbp;
                         sc = -cdens*12.0 + ((double)iy+od.y1)*pos_lam*1.4 + (double)ix*pos_lam*0.02 + prefw*pen;
                     } else {
-                        sc = -(double)ct + ((double)iy+od.y1)*pos_lam*sw_y + (double)ix*pos_lam*sw_x + prefw*pen;
+                        if(lex_on){
+                            // Lexicographic (h, iy, ix), the key the deployed build's
+                            // construction sorts by -- h the block's top edge first, absolutely,
+                            // then the sweep.  pos_lam showed that a weighted sum cannot say
+                            // "within ties": raising h's weight does not promote h, it deletes
+                            // contact, and the packing spreads and fragments.  So encode the
+                            // tuple exactly instead.  Coordinates are integer and small
+                            // (h,iy <= ~20, ix <= ~160), so h*1e6 + iy*1e3 + ix orders
+                            // identically to the tuple and is exact in a double, which means the
+                            // comparator, the top-K collection and everything downstream stay
+                            // untouched.
+                            double hh=std::floor((double)iy+od.y1+0.5);
+                            sc = hh*1e6 + (double)iy*1e3 + (double)ix;
+                        } else {
+                            sc = -(double)ct + ((double)iy+od.y1)*pos_lam*sw_y + (double)ix*pos_lam*sw_x + prefw*pen;
+                        }
                         if(span_lam>0.0&&l0w>0)
                             sc += span_lam*span_drop(runL,runR,runMx1,runMx2,
                                                      ix+l0x,ix+l0x+l0w,bayW);
@@ -1159,6 +1189,7 @@ struct Engine {
     // Swept on P6: 0.0 gave 31322863, 0.15 gave 32294087, 0.3 gave 30981589, 0.5 gave 32079136.
     double coh_floor=0.0;
     double span_lam=0.0;
+    bool   lex_on=false;
     // Cohort weighting attacks the swept factor -- it stops a block holding space through a
     // window its neighbours do not share.  This is the same idea one axis over.  check_entry
     // forbids j >= k and every block rests on the floor, so a placed block sterilises its
@@ -1192,8 +1223,8 @@ struct Engine {
                  int B, int K, int step, double pos_lam, double prefw, double mu,
                  double w1, double w2, double w3, double fut_beta, double mean_proc, double time_budget_s,
                  std::vector<int> anchor=std::vector<int>(), std::vector<double> anchor_w=std::vector<double>(),
-                 double area_scale=1.0, double swy=1.0, double swx=0.01, double cohort=0.0, double shadow=0.0, double span=0.0){
-        sw_y=swy; sw_x=swx; coh_floor=cohort; span_lam=span; shad_lam=shadow;
+                 double area_scale=1.0, double swy=1.0, double swx=0.01, double cohort=0.0, double shadow=0.0, double span=0.0, int lex=0){
+        sw_y=swy; sw_x=swx; coh_floor=cohort; span_lam=span; lex_on=(lex!=0); shad_lam=shadow;
         cb_anchor=std::move(anchor); cb_anchor_w=std::move(anchor_w);
         wl_total=0.0; for(double v: workloads) wl_total+=v;
         int nb=(int)shapes.size();
@@ -2808,7 +2839,7 @@ PYBIND11_MODULE(ogc_fast,m){
              py::arg("w1"),py::arg("w2"),py::arg("w3"),py::arg("fut_beta"),
              py::arg("mean_proc"),py::arg("time_budget_s"),
              py::arg("anchor")=std::vector<int>(),py::arg("anchor_w")=std::vector<double>(),
-             py::arg("area_scale")=1.0,py::arg("swy")=1.0,py::arg("swx")=0.01,py::arg("cohort")=0.0,py::arg("shadow")=0.0,py::arg("span")=0.0)
+             py::arg("area_scale")=1.0,py::arg("swy")=1.0,py::arg("swx")=0.01,py::arg("cohort")=0.0,py::arg("shadow")=0.0,py::arg("span")=0.0,py::arg("lex")=0)
         .def("set_bcl_prefw",&Engine::set_bcl_prefw)
         .def("wide_beam",&Engine::wide_beam,
              py::arg("order"),py::arg("areas"),py::arg("workloads"),py::arg("B"),py::arg("K"),
