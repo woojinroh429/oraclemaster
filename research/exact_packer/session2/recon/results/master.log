@@ -150,3 +150,7 @@ P3  GRASP k=6  polished     obj=93905       Z1=0.0     Z2=2971  Z3=527.0   feasi
 P4  prefaware  ord=rank    thr=0.60 obj=5204686     Z1=340.0    Z2=1788   Z3=4393.0   feasible=True  built in 4s
 [21:05:45] END   p4-mode-prefaware
 [21:05:45] START p4-mode-prefmid
+P4  prefmid    ord=rank    thr=0.60 obj=5271800     Z1=328.0    Z2=2068   Z3=5894.0   feasible=True  built in 4s
+[21:05:51] END   p4-mode-prefmid
+[21:05:51] START fair-5-99
+   draw 1   obj=10216744     at 5s
