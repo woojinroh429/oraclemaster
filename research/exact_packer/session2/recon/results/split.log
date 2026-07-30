@@ -3,3 +3,6 @@
    draw 16  obj=28145428     at 226s
    draw 20  obj=28110759     at 285s
    draw 34  obj=27887068     at 482s
+P6  GRASP k=6  42 draws in 592s   best obj=27887068    Z1=3944.0  Z2=5290  Z3=10334.0
+   finalist build=27887068    short-polish=27786975   
+   finalist build=28110759    short-polish=28068573   
