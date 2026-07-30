@@ -3,3 +3,5 @@ P6  tilted         900s  obj=30638941    Z1=4451.0   Z2=1903   Z3=6326.0    ran 
 P6  origv2         900s  obj=30370733    Z1=4415.0   Z2=3216   Z3=6068.0    ran 900s
 P6  origv2+coh     900s  obj=29387514    Z1=4276.0   Z2=784    Z3=5821.0    ran 900s
 P6  origv2         900s  obj=30370733    Z1=4415.0   Z2=3216   Z3=6068.0    ran 900s
+P6  origv2+coh     900s  obj=30111690    Z1=4392.0   Z2=1647   Z3=5447.0    ran 900s
+P6CMP-DONE
