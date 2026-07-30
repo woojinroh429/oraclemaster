@@ -750,13 +750,26 @@ def _beam_once(prob_info, budget, cfg):
 #             So the direction is now sayable and every axis says the same thing, which is the
 #             measured answer rather than the only one available.  Kept as a field because it is
 #             the only channel position has to the objective and P4 may not agree with P6.
+#
+# THE FIRST FOUR SLOTS ARE THE FIRST BEAMS.  axes = [_AXES[(wid+i) % L]] and _fresh starts at
+# index 1, so with four workers the first beam of worker w is _AXES[(w+1) % 7] -- slots 1, 2, 3
+# and 4.  What comes after depends on how many beams the budget buys, and that is the whole
+# reason this can be tilted without a gate:
+#
+#     P6 at 900s   3-4 beams a worker   sees slots 1-4 and little else
+#     P4 at 480s   12 beams a worker    goes round twice, reaching 5, 6 and 0 as well
+#
+# and the traced improvement curves say the same thing -- P6's last improvement lands at 354s
+# and is worth 0.01%, so the first beam IS the run, while P4 takes 27.4% off at 337s.  So the
+# instances where slot 1-4 decides everything are exactly the saturated ones where cohort
+# weighting wins, and the ones that keep searching reach the plain axes on their own.
 _AXES = [
     dict(Bmul=1.0, K=4, pos_lam=0.10, order="rel",       fut_beta=0.5, prefw=0.0, w3mul=3.0, mum=1.0,  sweep=(1.0, 0.01), cohort=0.0),
     dict(Bmul=1.0, K=4, pos_lam=0.12, order="defer_big", fut_beta=1.0, prefw=0.0, w3mul=3.0, mum=0.25, sweep=(1.0, 0.01), cohort=0.3),
-    dict(Bmul=1.0, K=4, pos_lam=0.10, order="defer_big", fut_beta=1.0, prefw=0.0, w3mul=1.0, mum=1.0,  sweep=(1.0, 0.01), cohort=0.0),
+    dict(Bmul=1.0, K=4, pos_lam=0.10, order="defer_big", fut_beta=1.0, prefw=0.0, w3mul=1.0, mum=1.0,  sweep=(1.0, 0.01), cohort=0.3),
     dict(Bmul=1.4, K=3, pos_lam=0.10, order="big_first", fut_beta=0.5, prefw=0.0, w3mul=6.0, mum=0.25, sweep=(1.0, 0.01), cohort=0.3),
-    dict(Bmul=0.7, K=5, pos_lam=0.15, order="lst",       fut_beta=0.0, prefw=0.0, w3mul=3.0, mum=1.0,  sweep=(1.0, 0.01), cohort=0.0),
-    dict(Bmul=0.7, K=5, pos_lam=0.05, order="edd",       fut_beta=1.5, prefw=0.0, w3mul=1.0, mum=4.0,  sweep=(1.0, 0.01), cohort=0.3),
+    dict(Bmul=0.7, K=5, pos_lam=0.15, order="lst",       fut_beta=0.0, prefw=0.0, w3mul=3.0, mum=1.0,  sweep=(1.0, 0.01), cohort=0.3),
+    dict(Bmul=0.7, K=5, pos_lam=0.05, order="edd",       fut_beta=1.5, prefw=0.0, w3mul=1.0, mum=4.0,  sweep=(1.0, 0.01), cohort=0.0),
     dict(Bmul=0.5, K=6, pos_lam=0.20, order="defer_big", fut_beta=0.0, prefw=0.0, w3mul=1.5, mum=1.0,  sweep=(1.0, 0.01), cohort=0.0),
 ]
 
