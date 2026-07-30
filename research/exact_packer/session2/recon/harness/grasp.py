@@ -85,8 +85,11 @@ def build(order, secs):
         A._CPP_ENGINE_MODE = saved
 
 
+TOPN = 4
+SHORTPOL = 15.0
 t0 = time.time()
 best_o, best_recs, draws = float("inf"), None, 0
+pool_best = []                      # [(obj, recs)], best first
 while time.time() - t0 < BUDGET:
     left = BUDGET - (time.time() - t0)
     if left < 20.0:
@@ -96,6 +99,9 @@ while time.time() - t0 < BUDGET:
     if not recs or len(recs) != n:
         continue
     o, _ = M._total(d, A._build_operations([recs[b] for b in range(n)]))
+    pool_best.append((o, recs))
+    pool_best.sort(key=lambda t: t[0])
+    del pool_best[TOPN:]
     if o < best_o:
         best_o, best_recs = o, recs
         print("   draw %-3d obj=%-11d  at %.0fs" % (draws, int(o), time.time() - t0), flush=True)
@@ -107,13 +113,47 @@ print("P%-2d GRASP k=%d  %d draws in %.0fs   best obj=%-11d Z1=%-7s Z2=%-5s Z3=%
       % (PROB, K, draws, time.time() - t0, int(o0), c0.get("obj1"), c0.get("obj2"), c0.get("obj3")),
       flush=True)
 
+E = M._ogc_fast_engine(d)
+wls = [float(B[b].get("workload", 0.0)) for b in range(n)]
+
+
+def _polish(recs, secs):
+    f = []
+    for b in range(n):
+        r = recs[b]
+        f += [b, r["bay_id"], r["orient_idx"], int(r["x"]), int(r["y"]),
+              int(r["entry_time"]), int(r["exit_time"])]
+    try:
+        o = list(E.z3_reassign(f, float(w["w1"]), float(w["w3"]), float(secs),
+                               float(w["w2"]), wls))
+    except TypeError:
+        o = list(E.z3_reassign(f, float(w["w1"]), float(w["w3"]), float(secs)))
+    rr = {}
+    for i in range(0, len(o), 7):
+        bb = o[i]
+        rr[bb] = {"block_id": bb, "bay_id": o[i + 1], "orient_idx": o[i + 2],
+                  "x": o[i + 3], "y": o[i + 4], "entry_time": o[i + 5], "exit_time": o[i + 6]}
+    return rr, M._total(d, M._build_operations([rr[bb] for bb in range(n)]))[0]
+
+
+# Re-rank the finalists by what they are worth AFTER polishing.  The polish takes Z2 and Z3, so
+# a build holding more of them can finish ahead of one that starts lower -- measured twice, and
+# it matters more the shorter the final polish is, because the gap between builds survives.
+ranked = []
+for o, recs in pool_best:
+    _r, po = _polish(recs, SHORTPOL)
+    ranked.append((po, o, recs))
+    print("   finalist build=%-11d short-polish=%-11d" % (int(o), int(po)), flush=True)
+ranked.sort(key=lambda t: t[0])
+if ranked[0][1] != pool_best[0][0]:
+    print("   -> re-ranked: the best build was NOT the best polished", flush=True)
+best_recs = ranked[0][2]
+
 flat = []
 for b in range(n):
     r = best_recs[b]
     flat += [b, r["bay_id"], r["orient_idx"], int(r["x"]), int(r["y"]),
              int(r["entry_time"]), int(r["exit_time"])]
-E = M._ogc_fast_engine(d)
-wls = [float(B[b].get("workload", 0.0)) for b in range(n)]
 try:
     out = list(E.z3_reassign(flat, float(w["w1"]), float(w["w3"]), float(POL), float(w["w2"]), wls))
 except TypeError:
