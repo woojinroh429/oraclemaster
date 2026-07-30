@@ -2,3 +2,5 @@ span=0.0  obj=31997902    Z1=4660.0 feasible=True
 span=4.0  obj=31596831    Z1=4571.0 feasible=True
 span reaches the scorer
 lex order=rank       obj=40211389    Z1=5861.0  Z2=2644  Z3=7433.0  feasible=True (4s)
+lex order=edd        obj=40211389    Z1=5861.0  Z2=2644  Z3=7433.0  feasible=True (3s)
+lex order=big_first  obj=39454575    Z1=5771.0  Z2=3371  Z3=6349.0  feasible=True (3s)
