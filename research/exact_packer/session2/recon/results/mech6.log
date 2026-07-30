@@ -5,3 +5,18 @@ P6  one beam each, 150s, identical axis but for the cohort floor
      st-util     0.4737  (occupied cell-time / bay cell-time),  mean instantaneous 2778 cells
      delay       mean 23.1, median 17, 81 of 250 entered at release
      (85s)
+  cohort=0.3 obj=32059750    Z1=4678.0   Z2=1053   Z3=5754.0
+     alignment   0.8747   (contact-weighted window overlap of realised neighbours)
+     free        19.3 components, largest 360  (mean over exit events)
+     st-util     0.4739  (occupied cell-time / bay cell-time),  mean instantaneous 2779 cells
+     delay       mean 22.6, median 15, 84 of 250 entered at release
+     (84s)
+
+  delta (cohort on vs off)
+     objective          -2.72%
+     alignment          +5.15%
+     free components    +0.04%
+     largest free       -12.86%
+     space-time util    +0.05%
+     mean entry delay   -2.20%
+     entered at release +3.70%
