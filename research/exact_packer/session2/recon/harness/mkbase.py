@@ -28,6 +28,7 @@ SHADOW = float(sys.argv[3]) if len(sys.argv) > 3 else 0.0
 # each other.  Cohort weighting only reranks positions AFTER the order is fixed; this moves
 # the same principle upstream, to which blocks are even candidates to be neighbours.
 ORDER  = sys.argv[4] if len(sys.argv) > 4 else ""
+SPAN   = float(sys.argv[5]) if len(sys.argv) > 5 else 0.0
 OUT = os.path.join(HERE, sys.argv[2] if len(sys.argv) > 2 else "myalg_base.py")
 
 if not os.path.exists(ORIG):
@@ -45,11 +46,11 @@ assert '"rel"' not in s, "myalg_orig.py already has the rel axis -- wrong commit
 s = s.replace(
     'def _contact_beam(prob_info, deadline_s, B=24, K=4, pos_lam=0.1, prefw=0.0, order="edd", mum=1.0,',
     'def _contact_beam(prob_info, deadline_s, B=24, K=4, pos_lam=0.1, prefw=0.0, order="edd", mum=1.0,\n'
-    '                  cohort=0.0, shadow=0.0,', 1)
+    '                  cohort=0.0, shadow=0.0, span=0.0,', 1)
 # contact_beam(..., area_scale, swy, swx, cohort); 1.0/0.01 are the defaults the orig relied on
 n = s.count("float(_sc))")
 assert n == 2, "expected two E.contact_beam call sites, found %d" % n
-s = s.replace("float(_sc))", "float(_sc), 1.0, 0.01, float(cohort), float(shadow))")
+s = s.replace("float(_sc))", "float(_sc), 1.0, 0.01, float(cohort), float(shadow), float(span))")
 s = s.replace('w3mul=cfg["w3mul"], step=step)',
               'w3mul=cfg["w3mul"], cohort=cfg.get("cohort", 0.0), shadow=cfg.get("shadow", 0.0), step=step)', 1)
 s = s.replace('                          mum=mum)',
@@ -64,6 +65,8 @@ AXES = '''_AXES = [
     dict(Bmul=0.5, K=6, pos_lam=0.20, order="defer_big", fut_beta=0.0, prefw=0.0, w3mul=1.5, cohort=0.0),
 ]'''
 AXES = AXES % {'F': repr(FLOOR)}
+if SPAN:
+    AXES = AXES.replace('cohort=' + repr(FLOOR), 'cohort=%s, span=%s' % (repr(FLOOR), repr(SPAN)))
 if SHADOW:
     AXES = AXES.replace("cohort=" + repr(FLOOR), "cohort=%s, shadow=%s" % (repr(FLOOR), repr(SHADOW)))
 if ORDER:

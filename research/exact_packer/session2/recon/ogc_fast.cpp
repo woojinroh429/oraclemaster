@@ -586,11 +586,34 @@ struct Engine {
                     wgt[te.bid+1]=(float)(COHORT_FLOORV() + (1.0-COHORT_FLOORV())*std::min(1.0,ov/den));
                 }
             }
+
+            // Floor free-runs, built once per (bay, window) beside the cohort weights so the
+            // candidate loop only indexes them.  O(bayW) here, O(1) per candidate -- the shape
+            // the cohort weighting should have had from the start.
+            static thread_local std::vector<int> runL, runR;
+            int runMx1=0, runMx2=0;
+            if(span_lam>0.0){
+                runL.assign(bayW,-1); runR.assign(bayW,-1);
+                for(int x=0;x<bayW;){
+                    if(occ[(size_t)x]){ x++; continue; }
+                    int st=x; while(x<bayW && !occ[(size_t)x]) x++;
+                    int en=x-1, len=en-st+1;
+                    for(int k=st;k<=en;k++){ runL[k]=st; runR[k]=en; }
+                    if(len>runMx1){ runMx2=runMx1; runMx1=len; }
+                    else if(len>runMx2) runMx2=len;
+                }
+            }
             double pen = (bay<(int)bs.prefs.size())? (s_max-bs.prefs[bay]) : s_max;
             double bestsc=1e300; int boi=-1,bix=0,biy=0,bct=0;
             for(int oi=0;oi<norient;oi++){ const OrientData& od=bs.orients[oi]; int nl=(int)od.layers.size();
                 double w=od.x1-od.x0,h=od.y1-od.y0; if(w>bw_j+1e-9||h>bh_j+1e-9)continue;
                 const FP& fp=footprint(bid,oi);
+                // layer 0's column span for this orientation: the floor cells the block will
+                // actually take.  Hoisted out of the ix/iy sweep -- footprintL is map-cached but
+                // a lookup per candidate is exactly the kind of cost that ate the cohort gain.
+                int l0x=0,l0w=0;
+                if(span_lam>0.0){ const FPL& p0=footprintL(bid,oi);
+                    if(p0.nl>0){ l0x=p0.cx0[0]; l0w=p0.cw[0]; } }
                 int lox=(int)std::ceil(-od.x0),hix=(int)std::floor(bw_j-od.x1);
                 int loy=(int)std::ceil(-od.y0),hiy=(int)std::floor(bh_j-od.y1);
                 for(int ix=lox;ix<=hix;ix+=step)for(int iy=loy;iy<=hiy;iy+=step){
@@ -613,6 +636,9 @@ struct Engine {
                         sc = -cdens*12.0 + ((double)iy+od.y1)*pos_lam*1.4 + (double)ix*pos_lam*0.02 + prefw*pen;
                     } else {
                         sc = -(double)ct + ((double)iy+od.y1)*pos_lam*sw_y + (double)ix*pos_lam*sw_x + prefw*pen;
+                        if(span_lam>0.0&&l0w>0)
+                            sc += span_lam*span_drop(runL,runR,runMx1,runMx2,
+                                                     ix+l0x,ix+l0x+l0w,bayW);
                         if(shad_lam>0.0) sc += shad_lam*shadow_excess(bid,oi)
                                                *((double)(ex-cur)/std::max(1.0,mean_proc));
                     }
@@ -865,11 +891,34 @@ struct Engine {
                     wgt[te.bid+1]=(float)(COHORT_FLOORV() + (1.0-COHORT_FLOORV())*std::min(1.0,ov/den));
                 }
             }
+
+            // Floor free-runs, built once per (bay, window) beside the cohort weights so the
+            // candidate loop only indexes them.  O(bayW) here, O(1) per candidate -- the shape
+            // the cohort weighting should have had from the start.
+            static thread_local std::vector<int> runL, runR;
+            int runMx1=0, runMx2=0;
+            if(span_lam>0.0){
+                runL.assign(bayW,-1); runR.assign(bayW,-1);
+                for(int x=0;x<bayW;){
+                    if(occ[(size_t)x]){ x++; continue; }
+                    int st=x; while(x<bayW && !occ[(size_t)x]) x++;
+                    int en=x-1, len=en-st+1;
+                    for(int k=st;k<=en;k++){ runL[k]=st; runR[k]=en; }
+                    if(len>runMx1){ runMx2=runMx1; runMx1=len; }
+                    else if(len>runMx2) runMx2=len;
+                }
+            }
             double pen = (bay<(int)bs.prefs.size())? (s_max-bs.prefs[bay]) : s_max;
             double bestsc=1e300; int boi=-1,bix=0,biy=0,bct=0;
             for(int oi=0;oi<norient;oi++){ const OrientData& od=bs.orients[oi]; int nl=(int)od.layers.size();
                 double w=od.x1-od.x0,h=od.y1-od.y0; if(w>bw_j+1e-9||h>bh_j+1e-9)continue;
                 const FP& fp=footprint(bid,oi);
+                // layer 0's column span for this orientation: the floor cells the block will
+                // actually take.  Hoisted out of the ix/iy sweep -- footprintL is map-cached but
+                // a lookup per candidate is exactly the kind of cost that ate the cohort gain.
+                int l0x=0,l0w=0;
+                if(span_lam>0.0){ const FPL& p0=footprintL(bid,oi);
+                    if(p0.nl>0){ l0x=p0.cx0[0]; l0w=p0.cw[0]; } }
                 int lox=(int)std::ceil(-od.x0),hix=(int)std::floor(bw_j-od.x1);
                 int loy=(int)std::ceil(-od.y0),hiy=(int)std::floor(bh_j-od.y1);
                 bool any=false;
@@ -973,6 +1022,9 @@ struct Engine {
                         sc = -cdens*12.0 + ((double)iy+od.y1)*pos_lam*1.4 + (double)ix*pos_lam*0.02 + prefw*pen;
                     } else {
                         sc = -(double)ct + ((double)iy+od.y1)*pos_lam*sw_y + (double)ix*pos_lam*sw_x + prefw*pen;
+                        if(span_lam>0.0&&l0w>0)
+                            sc += span_lam*span_drop(runL,runR,runMx1,runMx2,
+                                                     ix+l0x,ix+l0x+l0w,bayW);
                         if(shad_lam>0.0) sc += shad_lam*shadow_excess(bid,oi)
                                                *((double)(ex-cur)/std::max(1.0,mean_proc));
                     }
@@ -1106,6 +1158,7 @@ struct Engine {
     // overlap mine at all still counts for, because touching it still beats touching air.
     // Swept on P6: 0.0 gave 31322863, 0.15 gave 32294087, 0.3 gave 30981589, 0.5 gave 32079136.
     double coh_floor=0.0;
+    double span_lam=0.0;
     // Cohort weighting attacks the swept factor -- it stops a block holding space through a
     // window its neighbours do not share.  This is the same idea one axis over.  check_entry
     // forbids j >= k and every block rests on the floor, so a placed block sterilises its
@@ -1139,8 +1192,8 @@ struct Engine {
                  int B, int K, int step, double pos_lam, double prefw, double mu,
                  double w1, double w2, double w3, double fut_beta, double mean_proc, double time_budget_s,
                  std::vector<int> anchor=std::vector<int>(), std::vector<double> anchor_w=std::vector<double>(),
-                 double area_scale=1.0, double swy=1.0, double swx=0.01, double cohort=0.0, double shadow=0.0){
-        sw_y=swy; sw_x=swx; coh_floor=cohort; shad_lam=shadow;
+                 double area_scale=1.0, double swy=1.0, double swx=0.01, double cohort=0.0, double shadow=0.0, double span=0.0){
+        sw_y=swy; sw_x=swx; coh_floor=cohort; span_lam=span; shad_lam=shadow;
         cb_anchor=std::move(anchor); cb_anchor_w=std::move(anchor_w);
         wl_total=0.0; for(double v: workloads) wl_total+=v;
         int nb=(int)shapes.size();
@@ -1643,6 +1696,30 @@ struct Engine {
     // So weight each touching cell by how much its owner's window overlaps mine.  wgt is
     // indexed by owner id and built once per candidate, so the inner loop pays one lookup into
     // an array that fits in L1.  wgt == nullptr reproduces the old plain count exactly.
+    // How much of the bay's best floor span does this placement cost?
+    //
+    // check_entry forbids j >= k and every block rests on the floor, so whatever a block needs,
+    // it needs as free cells on row 0.  A big block that cannot enter is late and big blocks
+    // carry the tardiness, so row 0's longest free run is the scarce resource -- and contact
+    // does not protect it.  contact is local: it asks whether this block is snug, never whether
+    // being snug here cut the bay in half.  A small block dropped in the middle of the only long
+    // run scores well on contact and leaves two halves no big block fits.
+    //
+    // Charging the drop in the LONGEST run needs no big/small split, which is how the deployed
+    // build does it (small blocks only, area_rank >= 0.60).  A block at the end of a run
+    // shortens it by its own width; the same block mid-run costs the larger fragment too.  The
+    // term says "go to the edge" on its own, out of the geometry, with no threshold to fit.
+    static double span_drop(const std::vector<int>& runL,const std::vector<int>& runR,
+                            int mx1,int mx2,int x0,int x1,int bayW){
+        if(x0<0||x1>bayW||x1<=x0||mx1<=0) return 0.0;
+        int a=runL[x0], b=runL[x1-1];
+        if(a<0||b<0||a!=b) return 0.0;   // straddles occupied floor: no clean read, charge nothing
+        int L=a, R=runR[x0], len=R-L+1;
+        int other=(len==mx1)? mx2 : mx1;                 // best run left standing elsewhere
+        int after=std::max(other,std::max(x0-L,R-(x1-1)));
+        int drop=mx1-after;
+        return drop>0 ? (double)drop/(double)std::max(1,bayW) : 0.0;
+    }
     int contact_at(const FP& fp,int ix,int iy,const std::vector<int16_t>& occ,int bayW,int bayH,
                    const float* wgt=nullptr){
         static const int DX[4]={1,-1,0,0}, DY[4]={0,0,1,-1};
@@ -2731,7 +2808,7 @@ PYBIND11_MODULE(ogc_fast,m){
              py::arg("w1"),py::arg("w2"),py::arg("w3"),py::arg("fut_beta"),
              py::arg("mean_proc"),py::arg("time_budget_s"),
              py::arg("anchor")=std::vector<int>(),py::arg("anchor_w")=std::vector<double>(),
-             py::arg("area_scale")=1.0,py::arg("swy")=1.0,py::arg("swx")=0.01,py::arg("cohort")=0.0,py::arg("shadow")=0.0)
+             py::arg("area_scale")=1.0,py::arg("swy")=1.0,py::arg("swx")=0.01,py::arg("cohort")=0.0,py::arg("shadow")=0.0,py::arg("span")=0.0)
         .def("set_bcl_prefw",&Engine::set_bcl_prefw)
         .def("wide_beam",&Engine::wide_beam,
              py::arg("order"),py::arg("areas"),py::arg("workloads"),py::arg("B"),py::arg("K"),

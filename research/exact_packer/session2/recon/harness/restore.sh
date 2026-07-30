@@ -42,7 +42,8 @@ python3.12 harness/mkbase.py 0.3 myalg_base.py            >/dev/null
 python3.12 harness/mkbase.py 0.5 myalg_c5.py              >/dev/null
 python3.12 harness/mkbase.py 0.3 myalg_sh1.py  1.0        >/dev/null
 python3.12 harness/mkbase.py 0.3 myalg_co.py   0.0 cohort >/dev/null
-echo "rebuilt arms: orig base c5 sh1 co"
+python3.12 harness/mkbase.py 0.3 myalg_sp.py   0.0 "" 2.0 >/dev/null
+echo "rebuilt arms: orig base c5 sh1 co sp"
 
 # 4. the log mirror.  Without it a reset takes the night's results with it.
 if ! pgrep -f '^/bin/bash harness/keep.sh' >/dev/null; then
