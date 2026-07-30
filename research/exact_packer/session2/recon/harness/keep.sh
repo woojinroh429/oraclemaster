@@ -12,11 +12,12 @@ while true; do
     if [ "$cur" != "$last" ]; then
       cp "$SRC" "$DST"
       for i in 1 2 3 4 5; do
-        if git add "$DST" && git commit -q -m "P6 measurement log: cohort effect at the 29.4M baseline" 2>/dev/null; then
+        if git add -f "$DST" && git commit -q -m "P6 measurement log: cohort effect at the 29.4M baseline" 2>/dev/null; then
           for j in 1 2 3 4; do git push -q origin HEAD && break || sleep $((2**j)); done
           last=$cur; break
         fi
-        git diff --quiet HEAD -- "$DST" && { last=$cur; break; }   # nothing to commit
+        git ls-files --error-unmatch "$DST" >/dev/null 2>&1 \
+          && git diff --quiet HEAD -- "$DST" && { last=$cur; break; }   # genuinely nothing to commit
         sleep 5
       done
     fi
