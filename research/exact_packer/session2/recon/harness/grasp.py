@@ -36,6 +36,10 @@ POL = float(sys.argv[3]) if len(sys.argv) > 3 else 300.0
 K = int(sys.argv[4]) if len(sys.argv) > 4 else 3
 MODE = sys.argv[5] if len(sys.argv) > 5 else "flatbl"
 SEED = int(sys.argv[6]) if len(sys.argv) > 6 else 12345
+# Which greedy key the draws relax.  sac3 is P6's winner and was hardwired here; on P5 it starts
+# at 12,121,880 where plain rank starts at 10,216,744, so anchoring every instance on it tested
+# the wrong thing and the P5 verdict drawn from it is withdrawn.
+BASE = sys.argv[7] if len(sys.argv) > 7 else "sac3"
 
 d = json.load(open(os.path.join(HERE, "data/hidden/prob_%d.json" % PROB)))
 n = len(d["blocks"])
@@ -57,8 +61,12 @@ def _rank(v, rev):
 
 
 rd, ra = _rank(due, False), _rank(ar, True)
-vic = set(sorted(range(n), key=lambda b: -(ar[b] * pt[b]))[:3])
-key = [(1 if b in vic else 0, rd[b] + ra[b], due[b]) for b in range(n)]
+if BASE.startswith("sac"):
+    _kk = ''.join(c for c in BASE[3:] if c.isdigit())
+    vic = set(sorted(range(n), key=lambda b: -(ar[b] * pt[b]))[:(int(_kk) if _kk else 3)])
+    key = [(1 if b in vic else 0, rd[b] + ra[b], due[b]) for b in range(n)]
+else:                                   # "rank": the construction's own default key
+    key = [(rd[b] + ra[b], due[b]) for b in range(n)]
 base_order = sorted(range(n), key=lambda b: key[b])
 
 rng = random.Random(SEED)
@@ -168,4 +176,4 @@ o1, c1 = M._total(d, sol2)
 print("P%-2d GRASP k=%d  polished     obj=%-11d Z1=%-7s Z2=%-5s Z3=%-7s feasible=%s"
       % (PROB, K, int(o1), c1.get("obj1"), c1.get("obj2"), c1.get("obj3"),
          M.check_feasibility(d, sol2).get("feasible")), flush=True)
-print("   -> %+.2f%% vs the fixed-order 28,138,113" % (100.0 * (o1 - 28138113.0) / 28138113.0))
+print("   base=%s mode=%s  (P6 fixed-order reference is 28,138,113)" % (BASE, MODE))
