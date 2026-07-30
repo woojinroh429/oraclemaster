@@ -12,3 +12,5 @@ P6  GRASP2 42 draws in 589s   k weights 3:0.78 4:1.14 6:1.18 8:1.18   best build
    finalist build=28193321    short-polish=28112672   
    finalist build=28196071    short-polish=28083911   
    finalist build=28211209    short-polish=28097767   
+   finalist build=28254852    short-polish=28213056   
+   -> re-ranked: the best build was NOT the best polished
