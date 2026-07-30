@@ -22,12 +22,21 @@ one with it on:
   alignment   the contact the packing actually realised, weighted by how much the two windows
               overlap.  This is the sanity check -- if the scoring change did not move this, it
               did not do what it was written to do and the rest of the table is a coincidence.
-  free        connected free components in the bay immediately after each exit event: how many,
-              and how big the largest is.  (A) predicts fewer and bigger.
-  st-util     occupied cell-time over bay cell-time, and the swept/instantaneous ratio.  (B)
-              predicts this rises.
+  free        connected free components in the bay after each exit event, sampled across the
+              whole horizon and skipping the first quarter.  (A) predicts fewer and bigger.
+  shadow      union silhouette over layer 0, stay-weighted -- the 1.27x.  Orientation is a
+              decision, so this moves.
+  swept       union over one median stay divided by mean instantaneous occupancy -- the 1.6x,
+              the pure cost of holding a cell for a whole stay.  (B) predicts this falls.
   delay       entry minus release, and how many blocks got in on their release date.  This is
               the channel Z1 has to come through either way.
+
+Two metrics in the first cut of this file were wrong and are kept here as a warning.  "st-util"
+divided occupied cell-time by bay cell-time: a block's stay IS its processing time and its area
+does not depend on placement, so the numerator is an instance constant and the metric was
+reporting 1/horizon.  And the free-region sample took exits[:40] -- the EARLIEST forty per bay,
+which on P6 (~83 blocks a bay) is the fill phase, not the saturated phase where the tardiness is
+made.  Both read as "no effect", which is exactly what a broken metric looks like.
 """
 import json
 import os
@@ -47,12 +56,19 @@ NB = len(D["blocks"])
 
 
 def cells_of(bid, oi, x, y):
-    """Union silhouette of a placed block as a set of integer cells."""
+    """(union silhouette, layer-0 footprint) of a placed block, as sets of integer cells.
+
+    Both are needed: the union is what sterilises space for every later block (check_entry
+    forbids j >= k and everything rests on the floor), layer 0 is what the block actually
+    needs.  Their ratio is the 1.27x overhang shadow.
+    """
     from shapely.geometry import Polygon
     from shapely.prepared import prep
     b = Block(block_id=bid, block_data=D["blocks"][bid], x=x, y=y, orient_idx=oi)
-    out = set()
-    for poly in b.layers_at_pos():
+    out, lay0 = set(), set()
+    for li, poly in enumerate(b.layers_at_pos()):
+        if li == 0:
+            lay0 = set()
         g = Polygon(poly)
         if not g.is_valid or g.area <= 0:
             continue
@@ -62,7 +78,9 @@ def cells_of(bid, oi, x, y):
             for cy in range(int(y0), int(y1) + 1):
                 if pg.contains(Polygon([(cx, cy), (cx + 1, cy), (cx + 1, cy + 1), (cx, cy + 1)]).centroid):
                     out.add((cx, cy))
-    return out
+                    if li == 0:
+                        lay0.add((cx, cy))
+    return out, lay0
 
 
 def unpack(sol):
@@ -79,7 +97,9 @@ def unpack(sol):
 
 def analyse(sol, label):
     rec = unpack(sol)
-    cells = {b: cells_of(b, oi, x, y) for b, (bay, oi, x, y, en, ex) in rec.items()}
+    both = {b: cells_of(b, oi, x, y) for b, (bay, oi, x, y, en, ex) in rec.items()}
+    cells = {b: v[0] for b, v in both.items()}
+    l0 = {b: (v[1] or v[0]) for b, v in both.items()}
     owner = defaultdict(dict)                       # bay -> cell -> bid
     for b, (bay, oi, x, y, en, ex) in rec.items():
         for c in cells[b]:
@@ -105,16 +125,21 @@ def analyse(sol, label):
     align = tot_al / tot_ct if tot_ct else 0.0
 
     # -- free-region granularity right after each exit ----------------------------------------
+    # The first cut of this took exits[:40], i.e. the EARLIEST forty per bay.  P6 puts ~83
+    # blocks in a bay, so that sampled the fill phase -- when the yard still has unclaimed
+    # room -- and never looked at the saturated phase where the tardiness is actually made.
+    # Spread the sample over the whole horizon instead, and drop the first quarter.
     bays = {i: (int(bd["size"][0]), int(bd["size"][1])) if isinstance(bd.get("size"), (list, tuple))
             else (int(bd["width"]), int(bd["height"])) for i, bd in enumerate(D["bays"])}
+    HZ = max(r[5] for r in rec.values())
     ncomp, biggest = [], []
     by_bay = defaultdict(list)
     for b, r in rec.items():
         by_bay[r[0]].append(b)
     for bay, blist in by_bay.items():
         W, H = bays[bay]
-        exits = sorted({rec[b][5] for b in blist})
-        for t in exits[:40]:                         # 40 events a bay is plenty for a mean
+        exits = [t for t in sorted({rec[b][5] for b in blist}) if t >= 0.25 * HZ]
+        for t in exits[::max(1, len(exits) // 40)]:
             occ = set()
             for b in blist:
                 if rec[b][4] <= t < rec[b][5]:
@@ -140,19 +165,42 @@ def analyse(sol, label):
                 ncomp.append(len(comps))
                 biggest.append(max(comps))
 
-    # -- space-time utilisation ---------------------------------------------------------------
-    horizon = max(r[5] for r in rec.values())
-    cellt = sum(len(cells[b]) * (rec[b][5] - rec[b][4]) for b in rec)
-    baycellt = sum(W * H for (W, H) in bays.values()) * horizon
-    # swept/instantaneous: union of silhouettes over a window vs mean instantaneous occupancy
-    inst = []
-    for t in range(0, horizon, max(1, horizon // 60)):
-        a = 0
-        for b, r in rec.items():
-            if r[4] <= t < r[5]:
-                a += len(cells[b])
-        inst.append(a)
-    mean_inst = sum(inst) / len(inst) if inst else 0.0
+    # -- the two ratios that actually decompose the 49% ----------------------------------------
+    # The first cut divided occupied cell-time by bay cell-time.  That is an instance constant:
+    # a block's stay IS its processing time and its area does not depend on where it goes, so
+    # the numerator cannot move and the metric was reporting 1/horizon.  The two ratios that DO
+    # depend on the packing are the ones the 49% decomposes into:
+    #
+    #   shadow  union silhouette over layer 0, on the orientation the solver chose.  This is the
+    #           1.27x, and orientation is a decision, so it moves.
+    #   swept   over a window one median stay long, the union of everything that passed through
+    #           divided by the mean instantaneous occupancy.  This is the 1.6x -- the pure cost
+    #           of holding a cell for a whole stay -- and it is what (B) predicts cohort shrinks.
+    shadow_n = shadow_d = 0.0
+    for b, r in rec.items():
+        stay = max(1, r[5] - r[4])
+        shadow_n += len(cells[b]) * stay
+        shadow_d += len(l0[b]) * stay
+    shadow = shadow_n / shadow_d if shadow_d else 0.0
+
+    medstay = sorted(max(1, r[5] - r[4]) for r in rec.values())[len(rec) // 2]
+    sw_r = []
+    for bay, blist in by_bay.items():
+        for w0 in range(0, HZ - medstay, max(1, medstay)):
+            w1 = w0 + medstay
+            through = [b for b in blist if rec[b][4] < w1 and w0 < rec[b][5]]
+            if not through:
+                continue
+            union = set()
+            for b in through:
+                union |= cells[b]
+            inst = []
+            for t in range(w0, w1, max(1, medstay // 8)):
+                inst.append(sum(len(cells[b]) for b in through if rec[b][4] <= t < rec[b][5]))
+            mi = sum(inst) / len(inst) if inst else 0.0
+            if mi > 0:
+                sw_r.append(len(union) / mi)
+    swept = sum(sw_r) / len(sw_r) if sw_r else 0.0
 
     # -- entry delay --------------------------------------------------------------------------
     rel = [D["blocks"][b]["release_time"] for b in range(NB)]
@@ -164,13 +212,13 @@ def analyse(sol, label):
     print("     alignment   %.4f   (contact-weighted window overlap of realised neighbours)" % align)
     print("     free        %.1f components, largest %.0f  (mean over exit events)"
           % (sum(ncomp) / len(ncomp) if ncomp else 0, sum(biggest) / len(biggest) if biggest else 0))
-    print("     st-util     %.4f  (occupied cell-time / bay cell-time),  mean instantaneous %.0f cells"
-          % (cellt / baycellt if baycellt else 0, mean_inst))
+    print("     shadow      %.4f  (union / layer0, stay-weighted -- the 1.27x)" % shadow)
+    print("     swept       %.4f  (union over one median stay / mean instantaneous -- the 1.6x)" % swept)
     print("     delay       mean %.1f, median %.0f, %d of %d entered at release"
           % (sum(delays) / len(delays), sorted(delays)[len(delays) // 2], at_rel, len(delays)))
     return dict(obj=o, align=align, ncomp=sum(ncomp) / len(ncomp) if ncomp else 0,
-                big=sum(biggest) / len(biggest) if biggest else 0,
-                stu=cellt / baycellt if baycellt else 0, delay=sum(delays) / len(delays), at_rel=at_rel)
+                big=sum(biggest) / len(biggest) if biggest else 0, shadow=shadow, swept=swept,
+                delay=sum(delays) / len(delays), at_rel=at_rel)
 
 
 CFG = dict(Bmul=1.0, K=4, pos_lam=0.12, order="defer_big", fut_beta=1.0, prefw=0.0, w3mul=3.0)
@@ -190,7 +238,8 @@ for coh in (0.0, 0.3):
 a, b = res[0.0], res[0.3]
 print("\n  delta (cohort on vs off)")
 for k, name in (("obj", "objective"), ("align", "alignment"), ("ncomp", "free components"),
-                ("big", "largest free"), ("stu", "space-time util"), ("delay", "mean entry delay"),
+                ("big", "largest free"), ("shadow", "shadow 1.27x"), ("swept", "swept 1.6x"),
+                ("delay", "mean entry delay"),
                 ("at_rel", "entered at release")):
     if a[k]:
         print("     %-18s %+.2f%%" % (name, 100.0 * (b[k] - a[k]) / abs(a[k])))
