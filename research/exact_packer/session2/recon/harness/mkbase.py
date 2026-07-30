@@ -115,12 +115,12 @@ if ORDER:
 
 if LEX:
     AXES = """_AXES = [
-    dict(Bmul=1.0, K=1, pos_lam=0.10, order="rank",       fut_beta=0.0, prefw=0.0, w3mul=1.0, lex=1),
-    dict(Bmul=1.0, K=1, pos_lam=0.10, order="edd",        fut_beta=0.0, prefw=0.0, w3mul=1.0, lex=1),
-    dict(Bmul=1.0, K=1, pos_lam=0.10, order="lst",        fut_beta=0.0, prefw=0.0, w3mul=1.0, lex=1),
-    dict(Bmul=1.0, K=1, pos_lam=0.10, order="big_first",  fut_beta=0.0, prefw=0.0, w3mul=1.0, lex=1),
-    dict(Bmul=1.0, K=1, pos_lam=0.10, order="defer_big",  fut_beta=0.0, prefw=0.0, w3mul=1.0, lex=1),
-]"""
+    dict(Bmul=1.0, K=1, pos_lam=0.10, order="rank",       fut_beta=0.0, prefw=0.0, w3mul=1.0, lex=1, span=%(S)s),
+    dict(Bmul=1.0, K=1, pos_lam=0.10, order="edd",        fut_beta=0.0, prefw=0.0, w3mul=1.0, lex=1, span=%(S)s),
+    dict(Bmul=1.0, K=1, pos_lam=0.10, order="lst",        fut_beta=0.0, prefw=0.0, w3mul=1.0, lex=1, span=%(S)s),
+    dict(Bmul=1.0, K=1, pos_lam=0.10, order="big_first",  fut_beta=0.0, prefw=0.0, w3mul=1.0, lex=1, span=%(S)s),
+    dict(Bmul=1.0, K=1, pos_lam=0.10, order="defer_big",  fut_beta=0.0, prefw=0.0, w3mul=1.0, lex=1, span=%(S)s),
+]""" % {"S": repr(SPAN if SPAN else 4.0)}
 old = re.search(r"_AXES = \[\n(?:.*\n)*?\]", s).group(0)
 assert old.count("dict(") == 6, "myalg_orig.py should have exactly six axes"
 s = s.replace(old, AXES, 1)

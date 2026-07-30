@@ -646,8 +646,23 @@ struct Engine {
                             // identically to the tuple and is exact in a double, which means the
                             // comparator, the top-K collection and everything downstream stay
                             // untouched.
-                            double hh=std::floor((double)iy+od.y1+0.5);
+                            // h is the ORIENTATION's height, not the placement's top edge.
+                            // The construction's comment calls it an orientation rule and the
+                            // call site reads x0,y0,x1,y1 = bbox(b,oi); h = y1-y0.  Scoring the
+                            // top edge instead asks a different question entirely -- "sit
+                            // shallow" rather than "pick the flattest shape" -- and that is what
+                            // the first attempt at this measured.
+                            double hh=std::floor(od.y1-od.y0+0.5);
                             sc = hh*1e6 + (double)iy*1e3 + (double)ix;
+                            if(span_lam>0.0 && lex_small(bid)){
+                                // Small blocks drop h from the key entirely and rank on the free
+                                // span that survives them -- primary, not a penalty added to a
+                                // sum.  This is the field their own ablation prices at 4.2%
+                                // (bigleft 29.06M with it, leftbottom 30.27M without).
+                                int l0a=ix+l0x, l0b=l0a+l0w;
+                                double after=span_after(runL,runR,runMx1,runMx2,l0a,l0b,bayW);
+                                sc = -after*1e6 + (double)iy*1e3 + (double)ix;
+                            }
                         } else {
                             sc = -(double)ct + ((double)iy+od.y1)*pos_lam*sw_y + (double)ix*pos_lam*sw_x + prefw*pen;
                         }
@@ -1047,8 +1062,23 @@ struct Engine {
                             // identically to the tuple and is exact in a double, which means the
                             // comparator, the top-K collection and everything downstream stay
                             // untouched.
-                            double hh=std::floor((double)iy+od.y1+0.5);
+                            // h is the ORIENTATION's height, not the placement's top edge.
+                            // The construction's comment calls it an orientation rule and the
+                            // call site reads x0,y0,x1,y1 = bbox(b,oi); h = y1-y0.  Scoring the
+                            // top edge instead asks a different question entirely -- "sit
+                            // shallow" rather than "pick the flattest shape" -- and that is what
+                            // the first attempt at this measured.
+                            double hh=std::floor(od.y1-od.y0+0.5);
                             sc = hh*1e6 + (double)iy*1e3 + (double)ix;
+                            if(span_lam>0.0 && lex_small(bid)){
+                                // Small blocks drop h from the key entirely and rank on the free
+                                // span that survives them -- primary, not a penalty added to a
+                                // sum.  This is the field their own ablation prices at 4.2%
+                                // (bigleft 29.06M with it, leftbottom 30.27M without).
+                                int l0a=ix+l0x, l0b=l0a+l0w;
+                                double after=span_after(runL,runR,runMx1,runMx2,l0a,l0b,bayW);
+                                sc = -after*1e6 + (double)iy*1e3 + (double)ix;
+                            }
                         } else {
                             sc = -(double)ct + ((double)iy+od.y1)*pos_lam*sw_y + (double)ix*pos_lam*sw_x + prefw*pen;
                         }
@@ -1224,7 +1254,15 @@ struct Engine {
                  double w1, double w2, double w3, double fut_beta, double mean_proc, double time_budget_s,
                  std::vector<int> anchor=std::vector<int>(), std::vector<double> anchor_w=std::vector<double>(),
                  double area_scale=1.0, double swy=1.0, double swx=0.01, double cohort=0.0, double shadow=0.0, double span=0.0, int lex=0){
-        sw_y=swy; sw_x=swx; coh_floor=cohort; span_lam=span; lex_on=(lex!=0); shad_lam=shadow;
+        sw_y=swy; sw_x=swx; coh_floor=cohort; span_lam=span; lex_on=(lex!=0);
+        if(lex_on){
+            int nb_=(int)areas.size();
+            std::vector<int> ord_(nb_); for(int i=0;i<nb_;i++) ord_[i]=i;
+            std::sort(ord_.begin(),ord_.end(),[&](int a,int b){return areas[a]>areas[b];});
+            _issmall.assign(nb_,0);
+            for(int r=0;r<nb_;r++)
+                if((double)r/std::max(1,nb_-1) >= lex_thr) _issmall[ord_[r]]=1;
+        } shad_lam=shadow;
         cb_anchor=std::move(anchor); cb_anchor_w=std::move(anchor_w);
         wl_total=0.0; for(double v: workloads) wl_total+=v;
         int nb=(int)shapes.size();
@@ -1740,6 +1778,20 @@ struct Engine {
     // build does it (small blocks only, area_rank >= 0.60).  A block at the end of a run
     // shortens it by its own width; the same block mid-run costs the larger fragment too.  The
     // term says "go to the edge" on its own, out of the geometry, with no threshold to fit.
+    static double span_after(const std::vector<int>& runL,const std::vector<int>& runR,
+                             int mx1,int mx2,int x0,int x1,int bayW){
+        if(x0<0||x1>bayW||x1<=x0||mx1<=0) return 0.0;
+        int a=runL[x0], b=runL[x1-1];
+        if(a<0||b<0||a!=b) return 0.0;
+        int L=a, R=runR[x0], len=R-L+1;
+        int other=(len==mx1)? mx2 : mx1;
+        return (double)std::max(other,std::max(x0-L,R-(x1-1)));
+    }
+    // "small" is a rank over footprint area, the construction's small_thresh.  Built once per
+    // contact_beam call from the areas it is already given.
+    std::vector<char> _issmall;
+    double lex_thr=0.60;
+    bool lex_small(int bid) const { return bid<(int)_issmall.size() && _issmall[bid]; }
     static double span_drop(const std::vector<int>& runL,const std::vector<int>& runR,
                             int mx1,int mx2,int x0,int x1,int bayW){
         if(x0<0||x1>bayW||x1<=x0||mx1<=0) return 0.0;
