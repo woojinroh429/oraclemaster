@@ -21,7 +21,13 @@ import sys
 
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ORIG = os.path.join(HERE, "myalg_orig.py")
-FLOOR = float(sys.argv[1]) if len(sys.argv) > 1 else 0.3
+FLOOR  = float(sys.argv[1]) if len(sys.argv) > 1 else 0.3
+SHADOW = float(sys.argv[3]) if len(sys.argv) > 3 else 0.0
+# "cohort" dispatches by the centre of a block's earliest occupancy window, so blocks that
+# would be co-resident are decided next to each other and the beam can seat them against
+# each other.  Cohort weighting only reranks positions AFTER the order is fixed; this moves
+# the same principle upstream, to which blocks are even candidates to be neighbours.
+ORDER  = sys.argv[4] if len(sys.argv) > 4 else ""
 OUT = os.path.join(HERE, sys.argv[2] if len(sys.argv) > 2 else "myalg_base.py")
 
 if not os.path.exists(ORIG):
@@ -39,15 +45,15 @@ assert '"rel"' not in s, "myalg_orig.py already has the rel axis -- wrong commit
 s = s.replace(
     'def _contact_beam(prob_info, deadline_s, B=24, K=4, pos_lam=0.1, prefw=0.0, order="edd", mum=1.0,',
     'def _contact_beam(prob_info, deadline_s, B=24, K=4, pos_lam=0.1, prefw=0.0, order="edd", mum=1.0,\n'
-    '                  cohort=0.0,', 1)
+    '                  cohort=0.0, shadow=0.0,', 1)
 # contact_beam(..., area_scale, swy, swx, cohort); 1.0/0.01 are the defaults the orig relied on
 n = s.count("float(_sc))")
 assert n == 2, "expected two E.contact_beam call sites, found %d" % n
-s = s.replace("float(_sc))", "float(_sc), 1.0, 0.01, float(cohort))")
+s = s.replace("float(_sc))", "float(_sc), 1.0, 0.01, float(cohort), float(shadow))")
 s = s.replace('w3mul=cfg["w3mul"], step=step)',
-              'w3mul=cfg["w3mul"], cohort=cfg.get("cohort", 0.0), step=step)', 1)
+              'w3mul=cfg["w3mul"], cohort=cfg.get("cohort", 0.0), shadow=cfg.get("shadow", 0.0), step=step)', 1)
 s = s.replace('                          mum=mum)',
-              '                          mum=mum, cohort=cfg.get("cohort", 0.0))', 1)
+              '                          mum=mum, cohort=cfg.get("cohort", 0.0), shadow=cfg.get("shadow", 0.0))', 1)
 
 AXES = '''_AXES = [
     dict(Bmul=1.0, K=4, pos_lam=0.10, order="defer_big", fut_beta=1.0, prefw=0.0, w3mul=1.0, cohort=0.0),
@@ -58,6 +64,18 @@ AXES = '''_AXES = [
     dict(Bmul=0.5, K=6, pos_lam=0.20, order="defer_big", fut_beta=0.0, prefw=0.0, w3mul=1.5, cohort=0.0),
 ]'''
 AXES = AXES % {'F': repr(FLOOR)}
+if SHADOW:
+    AXES = AXES.replace("cohort=" + repr(FLOOR), "cohort=%s, shadow=%s" % (repr(FLOOR), repr(SHADOW)))
+if ORDER:
+    AXES = AXES.replace('order="defer_big", fut_beta=1.0, prefw=0.0, w3mul=3.0',
+                        'order="%s", fut_beta=1.0, prefw=0.0, w3mul=3.0' % ORDER)
+    AXES = AXES.replace('order="lst",       fut_beta=0.0, prefw=0.0, w3mul=3.0',
+                        'order="%s",    fut_beta=0.0, prefw=0.0, w3mul=3.0' % ORDER)
+    # the order rule itself, inserted next to the ones it sits among
+    s = s.replace('        elif order == "lst":',
+                  '        elif order == "cohort":\n'
+                  '            ordv = [(rel[b] + 0.5 * pt[b], due[b], -AR[b]) for b in range(n)]\n'
+                  '        elif order == "lst":', 1)
 old = re.search(r"_AXES = \[\n(?:.*\n)*?\]", s).group(0)
 assert old.count("dict(") == 6, "myalg_orig.py should have exactly six axes"
 s = s.replace(old, AXES, 1)

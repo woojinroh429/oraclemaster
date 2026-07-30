@@ -600,6 +600,8 @@ struct Engine {
                         sc = -cdens*12.0 + ((double)iy+od.y1)*pos_lam*1.4 + (double)ix*pos_lam*0.02 + prefw*pen;
                     } else {
                         sc = -(double)ct + ((double)iy+od.y1)*pos_lam*sw_y + (double)ix*pos_lam*sw_x + prefw*pen;
+                        if(shad_lam>0.0) sc += shad_lam*shadow_excess(bid,oi)
+                                               *((double)(ex-cur)/std::max(1.0,mean_proc));
                     }
                     if(fut_beta>0.0){
                         // FUTURE-VALUE (reference fut_beta): push blocks toward walls so the bay
@@ -950,6 +952,8 @@ struct Engine {
                         sc = -cdens*12.0 + ((double)iy+od.y1)*pos_lam*1.4 + (double)ix*pos_lam*0.02 + prefw*pen;
                     } else {
                         sc = -(double)ct + ((double)iy+od.y1)*pos_lam*sw_y + (double)ix*pos_lam*sw_x + prefw*pen;
+                        if(shad_lam>0.0) sc += shad_lam*shadow_excess(bid,oi)
+                                               *((double)(ex-cur)/std::max(1.0,mean_proc));
                     }
                     if(fut_beta>0.0){ double dl=(double)ix+od.x0,dr=bw_j-((double)ix+od.x1);
                         double db=(double)iy+od.y0,dt=bh_j-((double)iy+od.y1);
@@ -1081,6 +1085,25 @@ struct Engine {
     // overlap mine at all still counts for, because touching it still beats touching air.
     // Swept on P6: 0.0 gave 31322863, 0.15 gave 32294087, 0.3 gave 30981589, 0.5 gave 32079136.
     double coh_floor=0.0;
+    // Cohort weighting attacks the swept factor -- it stops a block holding space through a
+    // window its neighbours do not share.  This is the same idea one axis over.  check_entry
+    // forbids j >= k and every block rests on the floor, so a placed block sterilises its
+    // whole UNION silhouette against every later block's layer 0.  Measured at 1.28x the
+    // layer-0 area, paid for the whole stay, and charged nowhere in sc -- so an orientation
+    // that overhangs has been free.  (union/layer0 - 1) is exactly that excess, dimensionless,
+    // and it is owed for as long as the block stays.
+    double shad_lam=0.0;
+    std::map<int,double> _shexcache;
+    double shadow_excess(int bid,int oi){
+        int key=bid*64+oi; auto it=_shexcache.find(key);
+        if(it!=_shexcache.end()) return it->second;
+        const FP& u=footprint(bid,oi);
+        size_t un=0; for(char c: u.g) if(c) un++;
+        const FPL& pl=footprintL(bid,oi);
+        size_t l0=0; if(pl.nl>0) for(char c: pl.g[0]) if(c) l0++;
+        double v=(l0>0)?((double)un/(double)l0-1.0):0.0;
+        _shexcache.emplace(key,v); return v;
+    }
     bool COHORT_on() const { return coh_floor>0.0; }
     double COHORT_FLOORV() const { return coh_floor; }
     static bool CBPROF_on(){ static const int v=[](){const char*e=getenv("OGC_CBPROF");return(e&&e[0]=='1')?1:0;}(); return v; }
@@ -1095,8 +1118,8 @@ struct Engine {
                  int B, int K, int step, double pos_lam, double prefw, double mu,
                  double w1, double w2, double w3, double fut_beta, double mean_proc, double time_budget_s,
                  std::vector<int> anchor=std::vector<int>(), std::vector<double> anchor_w=std::vector<double>(),
-                 double area_scale=1.0, double swy=1.0, double swx=0.01, double cohort=0.0){
-        sw_y=swy; sw_x=swx; coh_floor=cohort;
+                 double area_scale=1.0, double swy=1.0, double swx=0.01, double cohort=0.0, double shadow=0.0){
+        sw_y=swy; sw_x=swx; coh_floor=cohort; shad_lam=shadow;
         cb_anchor=std::move(anchor); cb_anchor_w=std::move(anchor_w);
         wl_total=0.0; for(double v: workloads) wl_total+=v;
         int nb=(int)shapes.size();
@@ -2687,7 +2710,7 @@ PYBIND11_MODULE(ogc_fast,m){
              py::arg("w1"),py::arg("w2"),py::arg("w3"),py::arg("fut_beta"),
              py::arg("mean_proc"),py::arg("time_budget_s"),
              py::arg("anchor")=std::vector<int>(),py::arg("anchor_w")=std::vector<double>(),
-             py::arg("area_scale")=1.0,py::arg("swy")=1.0,py::arg("swx")=0.01,py::arg("cohort")=0.0)
+             py::arg("area_scale")=1.0,py::arg("swy")=1.0,py::arg("swx")=0.01,py::arg("cohort")=0.0,py::arg("shadow")=0.0)
         .def("set_bcl_prefw",&Engine::set_bcl_prefw)
         .def("wide_beam",&Engine::wide_beam,
              py::arg("order"),py::arg("areas"),py::arg("workloads"),py::arg("B"),py::arg("K"),

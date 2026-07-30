@@ -12,3 +12,5 @@ myalg_prev.py
 !results/
 !results/*.log
 myalg_c*.py
+myalg_sh*.py
+myalg_co.py
