@@ -1,1 +1,2 @@
 beam defer_big  obj=32059750    Z1=4678.0  Z2=1053  Z3=5754.0  feasible=True (65s)
+beam rank       obj=48160060    Z1=7056.0  Z2=401   Z3=7430.0  feasible=True (66s)
