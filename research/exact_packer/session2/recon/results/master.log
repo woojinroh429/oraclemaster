@@ -40,3 +40,4 @@ P6   w=(6667,8,150)  n=250  bays=3   Z1floor=0  Z3floor=3445   target=27,000,000
 [19:57:27] END   headroom
 [19:57:27] START fair-5-777
    draw 1   obj=10216744     at 5s
+   draw 54  obj=10213125     at 263s
