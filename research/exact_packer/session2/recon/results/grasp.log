@@ -25,3 +25,4 @@ GRASP-DONE
    draw 4   obj=11315517     at 20s
    draw 5   obj=10832316     at 25s
    draw 43  obj=10631125     at 213s
+P5  GRASP k=3  77 draws in 381s   best obj=10631125    Z1=731.0   Z2=3627  Z3=6461.0
