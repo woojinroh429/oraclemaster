@@ -1,0 +1,29 @@
+=== (1) improvement curve ===
+P6  900s  final obj=32590239  Z1=4737.0 Z2=3345 Z3=6546.0
+  at      op     took    incumbent    gain vs prev
+  0       floor  0.0     4211788816   
+  98      beam   97.9    32594001     -99.23%
+  263     bal    0.4     32592319     -0.01%
+  354     pref   90.0    32590239     -0.01%
+  LAST improvement at 354s of 900s -- the final 61% of the budget bought nothing
+P4  480s  final obj=2531937  Z1=149.0 Z2=2110 Z3=3537.0
+  at      op     took    incumbent    gain vs prev
+  0       floor  0.0     2285648765   
+  52      beam   52.2    3540429      -99.85%
+  139     bal    0.0     3531674      -0.25%
+  149     pref   9.3     3494963      -1.04%
+  233     bay    83.3    3492632      -0.07%
+  337     beam   51.7    2535990      -27.39%
+  479     pref   3.3     2531937      -0.16%
+  LAST improvement at 479s of 480s -- the final 0% of the budget bought nothing
+=== (2) budget ladder ===
+python3.12: can't open file '/tmp/ab.py': [Errno 2] No such file or directory
+python3.12: can't open file '/tmp/ab.py': [Errno 2] No such file or directory
+python3.12: can't open file '/tmp/ab.py': [Errno 2] No such file or directory
+python3.12: can't open file '/tmp/ab.py': [Errno 2] No such file or directory
+python3.12: can't open file '/tmp/ab.py': [Errno 2] No such file or directory
+python3.12: can't open file '/tmp/ab.py': [Errno 2] No such file or directory
+python3.12: can't open file '/tmp/ab.py': [Errno 2] No such file or directory
+python3.12: can't open file '/tmp/ab.py': [Errno 2] No such file or directory
+python3.12: can't open file '/tmp/ab.py': [Errno 2] No such file or directory
+NIGHT1-DONE
