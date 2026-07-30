@@ -177,3 +177,10 @@ P5  BGRASP k=3 axis=1 10 draws in 584s  obj=9461467      Z1=675.0   Z2=2059   Z3
 P4  GRASP k=6  76 draws in 283s   best obj=4209649     Z1=238.0   Z2=1335  Z3=6847.0
    finalist build=4209649     short-polish=4059444    
    finalist build=4216234     short-polish=4052051    
+   finalist build=4296455     short-polish=4107054    
+   finalist build=4300452     short-polish=4161762    
+   -> re-ranked: the best build was NOT the best polished
+P4  GRASP k=6  polished     obj=4052051     Z1=241.0   Z2=1264  Z3=5533.0  feasible=True
+   base=rank mode=bigleft  (P6 fixed-order reference is 28,138,113)
+[21:30:36] END   fair-4-4242
+[21:30:36] MASTER-PLAN-COMPLETE
