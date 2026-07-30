@@ -1,0 +1,9 @@
+P6  construction   obj=28261134    Z1=4022.0  Z2=2570  Z3=9506.0
+Traceback (most recent call last):
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/sepcheck.py", line 60, in <module>
+    moved = sum(1 for b in range(n)
+            ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/sepcheck.py", line 61, in <genexpr>
+    if r2.get(b, {}).get("bay_id") != want[b] or r2.get(b, {}).get("entry_time") != ent[b])
+       ^^^^^^
+AttributeError: 'tuple' object has no attribute 'get'
