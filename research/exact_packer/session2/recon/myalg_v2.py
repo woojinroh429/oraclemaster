@@ -596,7 +596,17 @@ def _z3_improve(prob_info, sol, budget):
                 return None
             flat += [b, int(bay[b]), int(oo[b]), int(round(xx[b])), int(round(yy[b])), int(ent[b]), int(ext[b])]
         w = prob_info["weights"]; w1 = float(w["w1"]); w3 = float(w.get("w3", 0))
-        flat2 = list(E.z3_reassign(flat, w1, w3, float(budget)))
+        # Z2 IS PART OF THE SCORE THIS PASS IS ALLOWED TO SPEND.  It used to be told only about
+        # Z1 and Z3, so it traded Z2 away for free -- and the pipeline's other repair pass, which
+        # DOES read the true objective, kept trading it back.  Measured on the real P3: with
+        # repair on Z2 2375 / Z3 613, with repair off Z2 4377 / Z3 531, while the shipped
+        # pipeline holds both down at 2299 / 527.  w2 = 0 restores the old behaviour exactly.
+        _w2 = float(prob_info["weights"].get("w2", 0.0)) * (0.0 if os.environ.get("OGC_Z3W2") == "0" else 1.0)
+        _wls = [float(prob_info["blocks"][b].get("workload", 0.0)) for b in range(n)]
+        try:
+            flat2 = list(E.z3_reassign(flat, w1, w3, float(budget), _w2, _wls))
+        except TypeError:
+            flat2 = list(E.z3_reassign(flat, w1, w3, float(budget)))
         if len(flat2) != 7 * n:
             return None
         assigns = []

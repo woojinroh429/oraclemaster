@@ -1983,7 +1983,16 @@ struct Engine {
     // feasible entry (same entry, or entry-shifted) and 2-block bay swaps, accepting iff the
     // true objective delta w1*d_tardy + w3*d_pen < 0.  Iterates to the time budget (time-
     // scalable).  Returns the improved flat solution (7 ints per block).
-    std::vector<int> z3_reassign(std::vector<int> flat, double w1, double w3, double time_budget_s){
+    // Z2 IS NOT FREE HERE.  This pass used to score w1*Z1 + w3*Z3 and say so in a comment --
+    // "Z2 unchanged; pipeline gate guards it" -- but every move it makes changes a bay's load,
+    // so it moves Z2 whether it looks or not.  On the real P3 that term is a fifth of the
+    // score: 5 * 4377 against a total of 101535, with Z1 at zero.  Worse, the pipeline's other
+    // repair pass optimises the TRUE objective, so the two undo each other -- repair on gives
+    // Z2 2375 / Z3 613, repair off gives Z2 4377 / Z3 531, while the shipped pipeline holds
+    // BOTH down at 2299 / 527.  Passing w2 and the workloads lets one pass see all three.
+    // w2 <= 0 or empty workloads reproduces the old behaviour exactly.
+    std::vector<int> z3_reassign(std::vector<int> flat, double w1, double w3, double time_budget_s,
+                                 double w2=0.0, std::vector<double> wls=std::vector<double>()){
         int nb=(int)shapes.size();
         std::vector<std::array<int,7>> recs(nb); std::vector<char> has(nb,0);
         for(size_t i=0;i+6<flat.size();i+=7){ int b=flat[i]; recs[b]={b,flat[i+1],flat[i+2],flat[i+3],flat[i+4],flat[i+5],flat[i+6]}; has[b]=1; }
@@ -1995,17 +2004,55 @@ struct Engine {
         auto t0=std::chrono::steady_clock::now();
         auto elapsed=[&](){ return std::chrono::duration<double>(std::chrono::steady_clock::now()-t0).count(); };
         // objective handled here = w1*Z1 + w3*Z3 (Z2 unchanged; pipeline gate guards it).
+        const bool Z2ON = (w2 > 0.0 && (int)wls.size() == nb && n_bays > 1);
+        std::vector<double> zu(n_bays, 1.0), zload(n_bays, 0.0);
+        if(Z2ON){
+            double avg=0.0; for(int j=0;j<n_bays;j++) avg += bw[j]*bh[j];
+            avg /= (double)n_bays;
+            for(int j=0;j<n_bays;j++){ double a=bw[j]*bh[j]; zu[j] = (a>0.0)? avg/a : 1.0; }
+            for(int b=0;b<nb;b++) if(has[b]) zload[recs[b][1]] += wls[b];
+        }
+        // obj2 of the current loads with `b` hypothetically moved from `from` to `to`
+        auto z2_at=[&](int b,int from,int to){
+            if(!Z2ON) return 0.0;
+            double mn=1e18,mx=-1e18;
+            for(int j=0;j<n_bays;j++){
+                double L=zload[j];
+                if(j==from) L-=wls[b];
+                if(j==to)   L+=wls[b];
+                double v=zu[j]*L; if(v<mn)mn=v; if(v>mx)mx=v; }
+            return std::floor(mx-mn); };
+        auto z2_swap=[&](int a,int Ba,int c,int Bc){
+            if(!Z2ON) return 0.0;
+            double mn=1e18,mx=-1e18;
+            for(int j=0;j<n_bays;j++){
+                double L=zload[j];
+                if(j==Ba) L += wls[c]-wls[a];
+                if(j==Bc) L += wls[a]-wls[c];
+                double v=zu[j]*L; if(v<mn)mn=v; if(v>mx)mx=v; }
+            return std::floor(mx-mn); };
         auto evalobj=[&](){ double z1=0,z3=0;
             for(int b=0;b<nb;b++) if(has[b]){ auto&r=recs[b]; double dd=shapes[b].due;
                 if(r[6]>dd) z1+=r[6]-dd; z3+=mxp[b]-prefv(b,r[1]); }
-            return w1*z1+w3*z3; };
+            double base=w1*z1+w3*z3;
+            if(Z2ON){ std::vector<double> L(n_bays,0.0);
+                for(int b=0;b<nb;b++) if(has[b]) L[recs[b][1]] += wls[b];
+                double mn=1e18,mx=-1e18;
+                for(int j=0;j<n_bays;j++){ double v=zu[j]*L[j]; if(v<mn)mn=v; if(v>mx)mx=v; }
+                base += w2*std::floor(mx-mn); }
+            return base; };
+        // the incremental loads are only used for move deltas inside a hill-climb pass;
+        // ruin-recreate reassigns bays behind their back, so resync at the top of every pass
+        auto zsync=[&](){ if(!Z2ON) return;
+            std::fill(zload.begin(), zload.end(), 0.0);
+            for(int b=0;b<nb;b++) if(has[b]) zload[recs[b][1]] += wls[b]; };
         auto rebuild=[&](const std::vector<std::array<int,7>>& R){
             for(auto&t:timeline)t.clear();
             for(int b=0;b<nb;b++) if(has[b]){ const auto&r=R[b]; add(r[1],b,r[2],(double)r[3],(double)r[4],r[5],r[6]); } };
         // one hill-climb to local optimum (single-block moves + 2-block bay swaps).
         auto hillclimb=[&](){ bool improved=true;
           while(improved && elapsed()<time_budget_s){
-            improved=false;
+            improved=false; zsync();
             std::vector<int> ord; for(int b=0;b<nb;b++) if(has[b]) ord.push_back(b);
             std::sort(ord.begin(),ord.end(),[&](int a,int c){ return (mxp[a]-prefv(a,recs[a][1])) > (mxp[c]-prefv(c,recs[c][1])); });
             // (1) single-block moves to a more-preferred bay
@@ -2019,8 +2066,9 @@ struct Engine {
                 for(int tb=0;tb<n_bays;tb++){
                     if(prefv(b,tb)<=prefv(b,cur_bay)) continue;
                     double npen=mxp[b]-prefv(b,tb); int oo,oix,oiy;
+                    double dz2 = Z2ON ? w2*(z2_at(b,cur_bay,tb) - z2_at(b,cur_bay,cur_bay)) : 0.0;
                     if(find_pos_in_bay(b,tb,en,ex,oo,oix,oiy)){
-                        double d=w3*(npen-cur_pen);
+                        double d=w3*(npen-cur_pen)+dz2;
                         if(d<bestd){ bestd=d; btb=tb;bo=oo;bix=oix;biy=oiy;be=en;bex=ex; }
                     } else {
                         // entry-shift: earliest feasible later entry in tb (exit times)
@@ -2033,14 +2081,16 @@ struct Engine {
                         // gain outweighs the extra Z1 (w1*dtardy + w3*dpen < 0).
                         int tried=0;
                         for(int e2: es){ if(++tried>64) break; int ex2=e2+(int)shapes[b].pt;
-                            double nt=(ex2>dd)?(ex2-dd):0.0; double d=w1*(nt-cur_tardy)+w3*(npen-cur_pen);
+                            double nt=(ex2>dd)?(ex2-dd):0.0; double d=w1*(nt-cur_tardy)+w3*(npen-cur_pen)+dz2;
                             if(d>=bestd) continue;   // even best-case placement here can't beat current best
                             if(find_pos_in_bay(b,tb,e2,ex2,oo,oix,oiy)){
                                 bestd=d; btb=tb;bo=oo;bix=oix;biy=oiy;be=e2;bex=ex2; break; }
                         }
                     }
                 }
-                if(btb>=0){ add(btb,b,bo,(double)bix,(double)biy,be,bex); recs[b]={b,btb,bo,bix,biy,be,bex}; improved=true; }
+                if(btb>=0){ add(btb,b,bo,(double)bix,(double)biy,be,bex);
+                    if(Z2ON){ zload[cur_bay]-=wls[b]; zload[btb]+=wls[b]; }
+                    recs[b]={b,btb,bo,bix,biy,be,bex}; improved=true; }
                 else { add(cur_bay,b,r[2],(double)r[3],(double)r[4],en,ex); }
             }
             // (2) 2-block bay swaps: a in Ba, c in Bb; both improve by swapping bays.
@@ -2052,7 +2102,8 @@ struct Engine {
                     int c=ord[ic]; auto& rc=recs[c]; int Bc=rc[1]; if(Bc==Ba) continue;
                     // a wants Bc AND c wants Ba (net pref gain)?
                     double dpen = (mxp[a]-prefv(a,Bc)) + (mxp[c]-prefv(c,Ba)) - apen - (mxp[c]-prefv(c,Bc));
-                    if(w3*dpen >= -1e-9) continue;   // swap wouldn't help prefs
+                    double sdz2 = Z2ON ? w2*(z2_swap(a,Ba,c,Bc) - z2_at(a,Ba,Ba)) : 0.0;
+                    if(w3*dpen + sdz2 >= -1e-9) continue;   // the trade has to pay overall
                     int ea=ra[5],exa=ra[6], ec=rc[5],exc=rc[6];
                     remove(a); remove(c);
                     int ao,aix,aiy,co,cix,ciy;
@@ -2060,6 +2111,7 @@ struct Engine {
                     bool fc = fa && find_pos_in_bay(c,Ba,ec,exc,co,cix,ciy);
                     if(fa && fc){
                         add(Bc,a,ao,(double)aix,(double)aiy,ea,exa); add(Ba,c,co,(double)cix,(double)ciy,ec,exc);
+                        if(Z2ON){ zload[Ba]+=wls[c]-wls[a]; zload[Bc]+=wls[a]-wls[c]; }
                         ra={a,Bc,ao,aix,aiy,ea,exa}; rc={c,Ba,co,cix,ciy,ec,exc}; improved=true; break;
                     } else {
                         add(Ba,a,ra[2],(double)ra[3],(double)ra[4],ea,exa); add(Bc,c,rc[2],(double)rc[3],(double)rc[4],ec,exc);
@@ -2423,5 +2475,6 @@ PYBIND11_MODULE(ogc_fast,m){
              py::arg("step"),py::arg("w1p"),py::arg("w2p"),py::arg("w3p"),py::arg("mu"),
              py::arg("time_budget_s"),py::arg("nent")=1,py::arg("cps")=6)
         .def("z3_reassign",&Engine::z3_reassign,
-             py::arg("flat"),py::arg("w1"),py::arg("w3"),py::arg("time_budget_s"));
+             py::arg("flat"),py::arg("w1"),py::arg("w3"),py::arg("time_budget_s"),
+             py::arg("w2")=0.0,py::arg("wls")=std::vector<double>());
 }
