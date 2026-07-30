@@ -63,3 +63,5 @@ P5  GRASP k=6  polished     obj=10158049    Z1=697.0   Z2=2458  Z3=6374.0  feasi
    draw 1   obj=5588450      at 4s
    draw 2   obj=4774804      at 8s
    draw 3   obj=4516066      at 12s
+   draw 14  obj=4448580      at 52s
+   draw 19  obj=4321485      at 70s
