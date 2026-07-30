@@ -46,3 +46,8 @@ P5  GRASP k=6  78 draws in 381s   best obj=10213125    Z1=697.0   Z2=1491  Z3=68
    finalist build=10216744    short-polish=10158049   
    finalist build=10296333    short-polish=10229056   
    finalist build=10735263    short-polish=10679487   
+P5  GRASP k=6  polished     obj=10101510    Z1=697.0   Z2=879   Z3=6032.0  feasible=True
+   base=rank mode=bigleft  (P6 fixed-order reference is 28,138,113)
+[20:06:30] END   fair-5-777
+[20:06:30] START fair-5-4242
+   draw 1   obj=10216744     at 5s
