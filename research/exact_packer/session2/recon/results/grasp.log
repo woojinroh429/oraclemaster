@@ -26,3 +26,6 @@ GRASP-DONE
    draw 5   obj=10832316     at 25s
    draw 43  obj=10631125     at 213s
 P5  GRASP k=3  77 draws in 381s   best obj=10631125    Z1=731.0   Z2=3627  Z3=6461.0
+P5  GRASP k=3  polished     obj=10537682    Z1=731.0   Z2=3160  Z3=5783.0  feasible=True
+   -> -62.55% vs the fixed-order 28,138,113
+GRASP5-DONE
