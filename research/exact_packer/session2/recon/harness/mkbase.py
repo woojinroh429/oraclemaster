@@ -113,6 +113,20 @@ _o = '        elif order == "lst":'
 assert s.count(_o) == 1, 'order rule anchor not found'
 s = s.replace(_o, _ORDER_RULES, 1)
 
+
+# The beam takes its dispatch order as a fixed input and never varies it, which is what makes it
+# deterministic wherever it completes -- on P5 both cohort arms were bit-identical across runs,
+# so the budget beyond the first beam buys literally nothing.  That is the same pathology the
+# fixed construction had on P6, and GRASP fixed it there.  Accepting an explicit permutation is
+# all the beam needs to be drawable the same way.
+_o = "        order_ids = sorted(range(n), key=lambda b: ordv[b])"
+assert s.count(_o) == 1, "order_ids anchor not found"
+s = s.replace(_o,
+              "        if isinstance(order, (list, tuple)):\n"
+              "            order_ids = [int(b) for b in order]\n"
+              "        else:\n"
+              "            order_ids = sorted(range(n), key=lambda b: ordv[b])", 1)
+
 AXES = '''_AXES = [
     dict(Bmul=1.0, K=4, pos_lam=0.10, order="defer_big", fut_beta=1.0, prefw=0.0, w3mul=1.0, cohort=0.0),
     dict(Bmul=1.0, K=4, pos_lam=0.12, order="defer_big", fut_beta=1.0, prefw=0.0, w3mul=3.0, cohort=%(F)s),
