@@ -82,13 +82,19 @@ single-block bay moves to 0.56-3.47% earlier.
 
 ## What the objective is actually made of
 
-Measured on the real instances at their real limits.  Z2 is worth under one percent anywhere,
-which is worth knowing before spending another night on it.
+Measured on the real instances at their real limits.
 
-    P3   Z1 = 0        Z3 is 81% of the score    (w1 17778, w2 5, w3 150)
-    P4   Z1 is 79%     Z3 is 20%                 (w1 13333, w2 7, w3 150)
-    P5   Z1 is 96%                               (w1 13333, w2 7, w3 133)
-    P6   Z1 is 97%                               (w1  6667, w2 8, w3 150)
+    P3   Z1 = 0        Z3 is 81%   Z2 is 12-22%   (w1 17778, w2 5, w3 150)
+    P4   Z1 is 79%     Z3 is 20%   Z2 is 0.8%     (w1 13333, w2 7, w3 150)
+    P5   Z1 is 96%                 Z2 is 0.1%     (w1 13333, w2 7, w3 133)
+    P6   Z1 is 97%                 Z2 is 0.04%    (w1  6667, w2 8, w3 150)
+
+An earlier version of this file said "Z2 is worth under one percent anywhere".  That was
+generalised from P4/P5/P6 and it is wrong for P3, where Z2 is the second-largest term and
+swings between 12% and 22% run to run -- a bigger share than Z1 has on any instance except
+the two saturated ones.  P3 is a Z3-and-Z2 problem, not a Z3-only one, and any P3 operator
+that ignores workload balance is optimising four fifths of the score at best.  This is why
+z3_reassign was made Z2-aware.
 
 Time-aware capacity bounds on Z3 -- for each bay and each instant, the floor demanded by the
 blocks that want that bay against the floor it has, with the overflow costed at the cheapest
