@@ -81,3 +81,4 @@ P4  GRASP k=6  polished     obj=4131579     Z1=239.0   Z2=2356  Z3=6190.0  feasi
    draw 21  obj=957765       at 85s
 P3  GRASP k=6  33 draws in 134s   best obj=957765      Z1=0.0     Z2=1563  Z3=6333.0
    finalist build=957765      short-polish=131390     
+   finalist build=1031525     short-polish=121975     
