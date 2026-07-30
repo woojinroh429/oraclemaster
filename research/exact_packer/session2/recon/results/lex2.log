@@ -1,0 +1,8 @@
+lex edd        span=0.0  obj=40782961    Z1=5963.0  Z2=1255  Z3=6784.0  feasible=True (4s)
+lex edd        span=4.0  obj=39125101    Z1=5707.0  Z2=1854  Z3=7078.0  feasible=True (3s)
+lex big_first  span=0.0  obj=37154071    Z1=5411.0  Z2=973   Z3=7141.0  feasible=True (3s)
+lex big_first  span=4.0  obj=38213487    Z1=5587.0  Z2=2701  Z3=6289.0  feasible=True (3s)
+lex defer_big  span=0.0  obj=39117287    Z1=5717.0  Z2=2181  Z3=6564.0  feasible=True (3s)
+lex defer_big  span=4.0  obj=38358443    Z1=5597.0  Z2=1668  Z3=6866.0  feasible=True (4s)
+lex lst        span=0.0  obj=40182463    Z1=5847.0  Z2=908   Z3=7955.0  feasible=True (3s)
+lex lst        span=4.0  obj=42418589    Z1=6185.0  Z2=618   Z3=7855.0  feasible=True (4s)
