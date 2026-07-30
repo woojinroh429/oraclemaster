@@ -1,0 +1,2 @@
+P6  flatbl     ord=rank    thr=0.30 obj=30498239    Z1=4341.0   Z2=1399   Z3=10304.0  feasible=True  built in 16s
+P6  flatbl     ord=rank    thr=0.45 obj=29122963    Z1=4139.0   Z2=2650   Z3=10047.0  feasible=True  built in 15s
