@@ -174,3 +174,6 @@ P5  BGRASP k=3 axis=1 10 draws in 584s  obj=9461467      Z1=675.0   Z2=2059   Z3
    draw 7   obj=4306064      at 27s
    draw 8   obj=4216234      at 30s
    draw 66  obj=4209649      at 244s
+P4  GRASP k=6  76 draws in 283s   best obj=4209649     Z1=238.0   Z2=1335  Z3=6847.0
+   finalist build=4209649     short-polish=4059444    
+   finalist build=4216234     short-polish=4052051    
