@@ -85,3 +85,7 @@ P3  GRASP k=6  33 draws in 134s   best obj=957765      Z1=0.0     Z2=1563  Z3=63
    finalist build=1041440     short-polish=142765     
    finalist build=1044140     short-polish=147135     
    -> re-ranked: the best build was NOT the best polished
+P3  GRASP k=6  polished     obj=103300      Z1=0.0     Z2=2240  Z3=614.0   feasible=True
+   base=rank mode=bigleft  (P6 fixed-order reference is 28,138,113)
+[20:25:52] END   fair-3-777
+[20:25:52] START bg-5-k3
