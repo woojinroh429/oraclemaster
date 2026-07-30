@@ -14,3 +14,6 @@ P4  myalg_orig    480s  obj=2640891      Z1=156.0    Z2=1299   Z3=3679.0   feasi
 P4  myalg_base    480s  obj=1780253      Z1=88.0     Z2=2707   Z3=3920.0   feasible=True  ran 451s
 [19:21:01] END   base-4-myalg_base
 [19:21:01] START base-4-myalgorithm
+P4  myalgorithm   480s  obj=3273791      Z1=201.0    Z2=1244   Z3=3901.0   feasible=True  ran 381s
+[19:27:24] END   base-4-myalgorithm
+[19:27:24] START base-5-myalg_orig
