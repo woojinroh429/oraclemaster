@@ -6,3 +6,4 @@ P6  GRASP2 43 draws in 592s   k weights 3:2.25 4:2.60 6:1.04 8:1.27   best build
    finalist build=28426895    short-polish=28384120   
    finalist build=28429893    short-polish=28387261   
 P6  GRASP2 final  obj=28129619    Z1=4019.0  Z2=1062  Z3=8843.0  feasible=True
+   draw 1   k=8 obj=28261134     at 14s
