@@ -20,3 +20,7 @@ P6  GRASP k=3  polished     obj=28021824    Z1=3988.0  Z2=1441  Z3=9482.0  feasi
    -> -0.41% vs the fixed-order 28,138,113
 GRASP-DONE
    draw 1   obj=12121880     at 5s
+   draw 2   obj=11901455     at 10s
+   draw 3   obj=11446792     at 15s
+   draw 4   obj=11315517     at 20s
+   draw 5   obj=10832316     at 25s
