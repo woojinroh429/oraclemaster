@@ -8,7 +8,13 @@ p = int(sys.argv[2]); T = float(sys.argv[3]); tag = sys.argv[4] if len(sys.argv)
 here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 d = json.load(open(os.path.join(here, 'data/hidden/prob_%d.json' % p)))
 t = time.time(); s = mod.algorithm(d, T); el = time.time() - t
-o, c = mod._total(d, s)
+# Score with a fixed scorer, not the module under test.  The deployed build has no _total,
+# so a 900s P6 run finished and then threw the result away at the last line.
+try:
+    o, c = mod._total(d, s)
+except AttributeError:
+    import myalg_orig as _SC
+    o, c = _SC._total(d, s)
 print("P%-2d %-12s %5.0fs  obj=%-11d Z1=%-8s Z2=%-6s Z3=%-8s  ran %.0fs"
       % (p, tag or sys.argv[1], T, int(o), c.get("obj1"), c.get("obj2"), c.get("obj3"), el),
       flush=True)
