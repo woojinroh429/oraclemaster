@@ -7,3 +7,5 @@ P6  flatbl     step=1  obj=28493452    Z1=4052.0   Z2=2296   Z3=9736.0   feasibl
 P6  bigleft    step=1  obj=29058025    Z1=4137.0   Z2=1112   Z3=9785.0   feasible=True  built in 22s
 P6  prefaware  step=1  obj=30479109    Z1=4391.0   Z2=4289   Z3=7800.0   feasible=True  built in 24s
 P6  prefmid    step=1  obj=28845880    Z1=4126.0   Z2=2511   Z3=8785.0   feasible=True  built in 24s
+P6  diagonal   step=1  obj=28511119    Z1=4049.0   Z2=1042   Z3=10054.0  feasible=True  built in 23s
+MODES-DONE
