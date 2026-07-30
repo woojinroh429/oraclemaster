@@ -127,3 +127,7 @@ P3  flatbl     ord=rank    thr=0.60 obj=1131175     Z1=0.0      Z2=395    Z3=752
    draw 16  obj=172050       at 67s
 P3  GRASP k=6  32 draws in 133s   best obj=172050      Z1=0.0     Z2=5610  Z3=960.0
    finalist build=172050      short-polish=108455     
+   finalist build=175495      short-polish=107410     
+   finalist build=176005      short-polish=114795     
+   finalist build=178525      short-polish=111980     
+   -> re-ranked: the best build was NOT the best polished
