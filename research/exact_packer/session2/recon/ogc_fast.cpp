@@ -1071,11 +1071,18 @@ struct Engine {
     // CPOS -- contact-candidate positions.  DEFAULT OFF: measured 14-36x faster and NET
     // WORSE.  See the note at the candidate-set construction for why.  OGC_CPOS=1 enables.
     static bool CPOS_on(){ static const int v=[](){const char*e=getenv("OGC_CPOS");return(e&&e[0]=='1')?1:0;}(); return v; }
-    // env OGC_COHORT=1 turns the cohort weighting on; default off so the A/B is clean.
-    // OGC_COHORTF is the floor -- a neighbour whose window does not overlap mine at all still
-    // counts for this much, because touching it is still better than touching air.
-    static bool COHORT_on(){ static const int v=[](){const char*e=getenv("OGC_COHORT");return(e&&e[0]=='1')?1:0;}(); return v; }
-    static double COHORT_FLOORV(){ static const double v=[](){const char*e=getenv("OGC_COHORTF");return e?atof(e):0.3;}(); return v; }
+    // COHORT STRENGTH, per beam call.  Measured on one 180s beam, three pairs each:
+    //   P6  32984273 -> 31073900  (-5.79%, wins all three)
+    //   P3    162645 ->   159191  (-2.12%)
+    //   P4   3513709 ->  3575046  (+1.75%, loses)
+    // So it cannot be a global switch, and it should not be a density test either -- it is an
+    // axis, decided per instance by the best-of over the true objective.  0 = off (plain
+    // contact count).  Otherwise the value is the FLOOR: what a neighbour whose window does not
+    // overlap mine at all still counts for, because touching it still beats touching air.
+    // Swept on P6: 0.0 gave 31322863, 0.15 gave 32294087, 0.3 gave 30981589, 0.5 gave 32079136.
+    double coh_floor=0.0;
+    bool COHORT_on() const { return coh_floor>0.0; }
+    double COHORT_FLOORV() const { return coh_floor; }
     static bool CBPROF_on(){ static const int v=[](){const char*e=getenv("OGC_CBPROF");return(e&&e[0]=='1')?1:0;}(); return v; }
     struct CBState { std::vector<int> flat; std::vector<char> placed; std::vector<double> loads; double gt,gz3,gcontact; int nplaced; };
     // C++ CONTACT BEAM (OpenMP over beam states): the fast engine port of the Python _contact_beam
@@ -1088,8 +1095,8 @@ struct Engine {
                  int B, int K, int step, double pos_lam, double prefw, double mu,
                  double w1, double w2, double w3, double fut_beta, double mean_proc, double time_budget_s,
                  std::vector<int> anchor=std::vector<int>(), std::vector<double> anchor_w=std::vector<double>(),
-                 double area_scale=1.0, double swy=1.0, double swx=0.01){
-        sw_y=swy; sw_x=swx;
+                 double area_scale=1.0, double swy=1.0, double swx=0.01, double cohort=0.0){
+        sw_y=swy; sw_x=swx; coh_floor=cohort;
         cb_anchor=std::move(anchor); cb_anchor_w=std::move(anchor_w);
         wl_total=0.0; for(double v: workloads) wl_total+=v;
         int nb=(int)shapes.size();
@@ -2680,7 +2687,7 @@ PYBIND11_MODULE(ogc_fast,m){
              py::arg("w1"),py::arg("w2"),py::arg("w3"),py::arg("fut_beta"),
              py::arg("mean_proc"),py::arg("time_budget_s"),
              py::arg("anchor")=std::vector<int>(),py::arg("anchor_w")=std::vector<double>(),
-             py::arg("area_scale")=1.0,py::arg("swy")=1.0,py::arg("swx")=0.01)
+             py::arg("area_scale")=1.0,py::arg("swy")=1.0,py::arg("swx")=0.01,py::arg("cohort")=0.0)
         .def("set_bcl_prefw",&Engine::set_bcl_prefw)
         .def("wide_beam",&Engine::wide_beam,
              py::arg("order"),py::arg("areas"),py::arg("workloads"),py::arg("B"),py::arg("K"),

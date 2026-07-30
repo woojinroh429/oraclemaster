@@ -324,7 +324,7 @@ def _footprint_areas(prob):
     return out
 
 def _contact_beam(prob_info, deadline_s, B=24, K=4, pos_lam=0.1, prefw=0.0, order="edd", mum=1.0,
-                  sweep=(1.0, 0.01),
+                  sweep=(1.0, 0.01), cohort=0.0,
                   fut_beta=0.0, step=1, anchor_bays=None, anchor_order=None, stay_w=0.0, w3mul=None):
     """CONTACT-MAXIMISING beam.  Fixed dispatch
     order; per state each dispatched block takes its cross-bay best CONTACT position
@@ -424,13 +424,13 @@ def _contact_beam(prob_info, deadline_s, B=24, K=4, pos_lam=0.1, prefw=0.0, orde
                                                 float(pos_lam), float(prefw), float(mu),
                                                 float(w1), float(w2), float(w3_route), float(fut_beta),
                                                 float(_meanp), float(deadline_s), _anchor, _anchor_w,
-                                                float(_sc), float(sweep[0]), float(sweep[1]))
+                                                float(_sc), float(sweep[0]), float(sweep[1]), float(cohort))
                 else:
                     _ob, _flat = E.contact_beam(order_ids, areas_l, wl, int(B), int(K), int(step),
                                                 float(pos_lam), float(prefw), float(mu),
                                                 float(w1), float(w2), float(w3_route), float(fut_beta),
                                                 float(_meanp), float(deadline_s), [], [],
-                                                float(_sc), float(sweep[0]), float(sweep[1]))
+                                                float(_sc), float(sweep[0]), float(sweep[1]), float(cohort))
                 if _flat and len(_flat) == 7 * n:
                     return {int(_flat[i]): {"block_id": int(_flat[i]), "bay_id": int(_flat[i + 1]),
                                             "orient_idx": int(_flat[i + 2]), "x": int(_flat[i + 3]),
@@ -696,7 +696,8 @@ def _beam_once(prob_info, budget, cfg):
             r = _contact_beam(prob_info, left, B=_beam_width(cfg["Bmul"]), K=cfg["K"],
                               pos_lam=cfg["pos_lam"], order=cfg["order"],
                               fut_beta=cfg["fut_beta"], prefw=cfg["prefw"],
-                              w3mul=cfg["w3mul"], mum=cfg["mum"], sweep=cfg["sweep"], step=step)
+                              w3mul=cfg["w3mul"], mum=cfg["mum"], sweep=cfg["sweep"],
+                              cohort=cfg["cohort"], step=step)
         except Exception:
             r = None
         if r:
@@ -750,13 +751,13 @@ def _beam_once(prob_info, budget, cfg):
 #             measured answer rather than the only one available.  Kept as a field because it is
 #             the only channel position has to the objective and P4 may not agree with P6.
 _AXES = [
-    dict(Bmul=1.0, K=4, pos_lam=0.10, order="rel",       fut_beta=0.5, prefw=0.0, w3mul=3.0, mum=1.0,  sweep=(1.0, 0.01)),
-    dict(Bmul=1.0, K=4, pos_lam=0.12, order="defer_big", fut_beta=1.0, prefw=0.0, w3mul=3.0, mum=0.25, sweep=(1.0, 0.01)),
-    dict(Bmul=1.0, K=4, pos_lam=0.10, order="defer_big", fut_beta=1.0, prefw=0.0, w3mul=1.0, mum=1.0,  sweep=(1.0, 0.01)),
-    dict(Bmul=1.4, K=3, pos_lam=0.10, order="big_first", fut_beta=0.5, prefw=0.0, w3mul=6.0, mum=0.25, sweep=(1.0, 0.01)),
-    dict(Bmul=0.7, K=5, pos_lam=0.15, order="lst",       fut_beta=0.0, prefw=0.0, w3mul=3.0, mum=1.0,  sweep=(1.0, 0.01)),
-    dict(Bmul=0.7, K=5, pos_lam=0.05, order="edd",       fut_beta=1.5, prefw=0.0, w3mul=1.0, mum=4.0,  sweep=(1.0, 0.01)),
-    dict(Bmul=0.5, K=6, pos_lam=0.20, order="defer_big", fut_beta=0.0, prefw=0.0, w3mul=1.5, mum=1.0,  sweep=(1.0, 0.01)),
+    dict(Bmul=1.0, K=4, pos_lam=0.10, order="rel",       fut_beta=0.5, prefw=0.0, w3mul=3.0, mum=1.0,  sweep=(1.0, 0.01), cohort=0.0),
+    dict(Bmul=1.0, K=4, pos_lam=0.12, order="defer_big", fut_beta=1.0, prefw=0.0, w3mul=3.0, mum=0.25, sweep=(1.0, 0.01), cohort=0.3),
+    dict(Bmul=1.0, K=4, pos_lam=0.10, order="defer_big", fut_beta=1.0, prefw=0.0, w3mul=1.0, mum=1.0,  sweep=(1.0, 0.01), cohort=0.0),
+    dict(Bmul=1.4, K=3, pos_lam=0.10, order="big_first", fut_beta=0.5, prefw=0.0, w3mul=6.0, mum=0.25, sweep=(1.0, 0.01), cohort=0.3),
+    dict(Bmul=0.7, K=5, pos_lam=0.15, order="lst",       fut_beta=0.0, prefw=0.0, w3mul=3.0, mum=1.0,  sweep=(1.0, 0.01), cohort=0.0),
+    dict(Bmul=0.7, K=5, pos_lam=0.05, order="edd",       fut_beta=1.5, prefw=0.0, w3mul=1.0, mum=4.0,  sweep=(1.0, 0.01), cohort=0.3),
+    dict(Bmul=0.5, K=6, pos_lam=0.20, order="defer_big", fut_beta=0.0, prefw=0.0, w3mul=1.5, mum=1.0,  sweep=(1.0, 0.01), cohort=0.0),
 ]
 
 
@@ -846,7 +847,7 @@ def _regrow(prob_info, sol, budget, cfg, stay, anchor=None, mum=1.0):
         r = _contact_beam(prob_info, budget, B=B, K=cfg["K"], pos_lam=cfg["pos_lam"],
                           order=cfg["order"], fut_beta=cfg["fut_beta"], prefw=cfg["prefw"],
                           w3mul=cfg["w3mul"], anchor_bays=ab, anchor_order=ao, stay_w=stay,
-                          mum=mum, sweep=cfg["sweep"])
+                          mum=mum, sweep=cfg["sweep"], cohort=cfg["cohort"])
     except Exception:
         return None
     return _recs_to_ops(r, n) if r else None

@@ -6,8 +6,10 @@ import myalg_v2 as M
 p = int(sys.argv[1]); T = float(sys.argv[2]); tag = sys.argv[3] if len(sys.argv) > 3 else ""
 here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 d = json.load(open(os.path.join(here, 'data/hidden/prob_%d.json' % p)))
+import os as _o
 cfg = dict(Bmul=1.0, K=4, pos_lam=0.12, order="defer_big", fut_beta=1.0,
-           prefw=0.0, w3mul=3.0, mum=0.25, sweep=(1.0, 0.01))
+           prefw=0.0, w3mul=3.0, mum=0.25, sweep=(1.0, 0.01),
+           cohort=float(_o.environ.get("OGC_COHORTF", "0.0")) if _o.environ.get("OGC_COHORT") == "1" else 0.0)
 M._OGC_FAST_CACHE.clear()
 t = time.time(); s = M._beam_once(d, T, cfg); el = time.time() - t
 if s is None:
