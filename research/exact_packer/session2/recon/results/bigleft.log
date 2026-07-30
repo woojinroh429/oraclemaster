@@ -1,0 +1,3 @@
+P6  bigleft    step=1  obj=29058025    Z1=4137.0   Z2=1112   Z3=9785.0   feasible=True  built in 15s
+P5  bigleft    step=1  obj=10216744    Z1=697.0    Z2=2103   Z3=6834.0   feasible=True  built in 6s
+P6  flatbl     step=1  obj=28493452    Z1=4052.0   Z2=2296   Z3=9736.0   feasible=True  built in 16s
