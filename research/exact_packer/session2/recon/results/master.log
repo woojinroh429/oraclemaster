@@ -52,3 +52,6 @@ P5  GRASP k=6  polished     obj=10101510    Z1=697.0   Z2=879   Z3=6032.0  feasi
 [20:06:30] START fair-5-4242
    draw 1   obj=10216744     at 5s
 P5  GRASP k=6  79 draws in 383s   best obj=10216744    Z1=697.0   Z2=2103  Z3=6834.0
+   finalist build=10216744    short-polish=10163894   
+   finalist build=10445353    short-polish=10376361   
+   finalist build=10454397    short-polish=10362977   
