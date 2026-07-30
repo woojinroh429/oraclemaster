@@ -2,3 +2,6 @@ P6  flatbl/sac3/0.60  built   obj=28261134    Z1=4022.0  Z2=2570  Z3=9506.0
 P6  flatbl/sac3/0.60  polished obj=28138113    Z1=4023.0  Z2=2109  Z3=8666.0  feasible=True (300s)
    -> -0.44%   Z1 4022.0 -> 4023.0   (the deployed build recovers 137,292 this way, Z1 untouched)
 P6  flatbl/sac3/0.60  built   obj=28261134    Z1=4022.0  Z2=2570  Z3=9506.0
+P6  flatbl/sac3/0.60  polished obj=28138113    Z1=4023.0  Z2=2109  Z3=8666.0  feasible=True (575s)
+   -> -0.44%   Z1 4022.0 -> 4023.0   (the deployed build recovers 137,292 this way, Z1 untouched)
+P6  diagonal/sac3/0.60  built   obj=28436084    Z1=4032.0  Z2=1180  Z3=10302.0
