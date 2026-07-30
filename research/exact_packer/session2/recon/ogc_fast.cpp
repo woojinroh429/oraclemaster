@@ -566,10 +566,18 @@ struct Engine {
                         if(td){for(int k=std::max(j,0);k<maxLb;k++)or_layer_into_map(F[k],wpr,bayH,L,tox,toy);}}}}
             // cohort weights: how much each resident's window overlaps the one this block is
             // asking for.  Built once per (block, bay, window); the cell loop just indexes it.
-            std::vector<float> wgt;
+            // Scratch, not a fresh vector.  This ran once per (block, bay, window) -- i.e. per
+            // candidate the beam evaluates -- and each call malloc'd and then zeroed one float
+            // per block.  buildOcc only ever writes owners drawn from this same bay list, so no
+            // cell can read an entry this call did not set, and the clear was pure cost.  Killing
+            // it matters because the beam is a best-of: the weighting improves the average beam,
+            // but the pipeline keeps the maximum, so any throughput it costs is paid straight out
+            // of the number of draws -- which is why the -5.79% measured on single beams came
+            // out a tie across the whole pipeline.
+            static thread_local std::vector<float> wgt;
             if(COHORT_on()){
                 int mx=0; for(const Placed& te: timeline[bay]) mx=std::max(mx,te.bid+1);
-                wgt.assign(mx+2, 0.0f);
+                if((int)wgt.size() < mx+2) wgt.resize(mx+2, 0.0f);
                 double mylen=std::max(1.0,(double)(ex-cur));
                 for(const Placed& te: timeline[bay]){
                     double ov=(double)(std::min(ex,te.ex)-std::max(cur,te.en));
@@ -592,7 +600,12 @@ struct Engine {
                         ok=clear?true:placement_feasible(bay,bid,oi,(double)ix,(double)iy,cur,ex);
                     } else ok=placement_feasible(bay,bid,oi,(double)ix,(double)iy,cur,ex);
                     if(!ok)continue;
-                    int ct=contact_at(fp,ix,iy,occ,bayW,bayH);
+                    // This scanner built the cohort weights and then called contact_at without
+                    // them -- paying for the array on every candidate and scoring as if the
+                    // feature were off.  Half-wired is worse than either state: cost with no
+                    // effect.
+                    int ct=contact_at(fp,ix,iy,occ,bayW,bayH,
+                                      COHORT_on()? wgt.data() : nullptr);
                     double sc;
                     if(use_ourscore()){
                         double bbp=std::max(1.0,(od.x1-od.x0)+(od.y1-od.y0));
@@ -832,10 +845,18 @@ struct Engine {
             }
             // cohort weights: how much each resident's window overlaps the one this block is
             // asking for.  Built once per (block, bay, window); the cell loop just indexes it.
-            std::vector<float> wgt;
+            // Scratch, not a fresh vector.  This ran once per (block, bay, window) -- i.e. per
+            // candidate the beam evaluates -- and each call malloc'd and then zeroed one float
+            // per block.  buildOcc only ever writes owners drawn from this same bay list, so no
+            // cell can read an entry this call did not set, and the clear was pure cost.  Killing
+            // it matters because the beam is a best-of: the weighting improves the average beam,
+            // but the pipeline keeps the maximum, so any throughput it costs is paid straight out
+            // of the number of draws -- which is why the -5.79% measured on single beams came
+            // out a tie across the whole pipeline.
+            static thread_local std::vector<float> wgt;
             if(COHORT_on()){
                 int mx=0; for(const Placed& te: TL[bay]) mx=std::max(mx,te.bid+1);
-                wgt.assign(mx+2, 0.0f);
+                if((int)wgt.size() < mx+2) wgt.resize(mx+2, 0.0f);
                 double mylen=std::max(1.0,(double)(ex-cur));
                 for(const Placed& te: TL[bay]){
                     double ov=(double)(std::min(ex,te.ex)-std::max(cur,te.en));
@@ -944,7 +965,7 @@ struct Engine {
                         int nlq=(int)od.layers.size(); if(nlq<1) nlq=1;
                         ct = contact_at_layered(footprintL(bid,oi),ix,iy,occLh,bayW,bayH)/nlq;
                     } else ct = contact_at(fp,ix,iy,occ,bayW,bayH,
-                                           wgt.empty()? nullptr : wgt.data());
+                                           COHORT_on()? wgt.data() : nullptr);
                     double sc;
                     if(use_ourscore()){
                         double bbp=std::max(1.0,(od.x1-od.x0)+(od.y1-od.y0));
