@@ -42,3 +42,6 @@ P6   w=(6667,8,150)  n=250  bays=3   Z1floor=0  Z3floor=3445   target=27,000,000
    draw 1   obj=10216744     at 5s
    draw 54  obj=10213125     at 263s
 P5  GRASP k=6  78 draws in 381s   best obj=10213125    Z1=697.0   Z2=1491  Z3=6839.0
+   finalist build=10213125    short-polish=10115587   
+   finalist build=10216744    short-polish=10158049   
+   finalist build=10296333    short-polish=10229056   
