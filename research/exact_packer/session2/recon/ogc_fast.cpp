@@ -551,7 +551,7 @@ struct Engine {
         for(int bay=0;bay<n_bays;bay++){
             double bw_j=bw[bay],bh_j=bh[bay];
             int bayH=(int)std::ceil(bh_j),bayW=(int)std::ceil(bw_j); int wpr=(bayW+64)>>6;
-            std::vector<char> occ; buildOcc(timeline[bay],cur,ex,bayW,bayH,occ);
+            std::vector<int16_t> occ; buildOcc(timeline[bay],cur,ex,bayW,bayH,occ);
             std::vector<std::vector<uint64_t>> F;
             bool use_sweep=RASTER&&maxLb>0&&bayH>0&&bayH<20000;
             const bool HARDREJ=HARDREJ_on();
@@ -564,6 +564,20 @@ struct Engine {
                     for(int j=0;j<ne;j++){const LayerData&L=eod.layers[j];if(L.npts<3)continue;
                         if(nd){int hi=std::min(j,maxLb-1);for(int k=0;k<=hi;k++)or_layer_into_map(F[k],wpr,bayH,L,tox,toy);}
                         if(td){for(int k=std::max(j,0);k<maxLb;k++)or_layer_into_map(F[k],wpr,bayH,L,tox,toy);}}}}
+            // cohort weights: how much each resident's window overlaps the one this block is
+            // asking for.  Built once per (block, bay, window); the cell loop just indexes it.
+            std::vector<float> wgt;
+            if(COHORT_on()){
+                int mx=0; for(const Placed& te: timeline[bay]) mx=std::max(mx,te.bid+1);
+                wgt.assign(mx+2, 0.0f);
+                double mylen=std::max(1.0,(double)(ex-cur));
+                for(const Placed& te: timeline[bay]){
+                    double ov=(double)(std::min(ex,te.ex)-std::max(cur,te.en));
+                    if(ov<0) ov=0;
+                    double den=std::min(mylen,std::max(1.0,(double)(te.ex-te.en)));
+                    wgt[te.bid+1]=(float)(COHORT_FLOORV() + (1.0-COHORT_FLOORV())*std::min(1.0,ov/den));
+                }
+            }
             double pen = (bay<(int)bs.prefs.size())? (s_max-bs.prefs[bay]) : s_max;
             double bestsc=1e300; int boi=-1,bix=0,biy=0,bct=0;
             for(int oi=0;oi<norient;oi++){ const OrientData& od=bs.orients[oi]; int nl=(int)od.layers.size();
@@ -748,7 +762,7 @@ struct Engine {
         for(int bay=0;bay<n_bays;bay++){
             double bw_j=bw[bay],bh_j=bh[bay];
             int bayH=(int)std::ceil(bh_j),bayW=(int)std::ceil(bw_j); int wpr=(bayW+64)>>6;
-            std::vector<char> occ; std::vector<std::vector<char>> occLh;
+            std::vector<int16_t> occ; std::vector<std::vector<char>> occLh;
             std::vector<std::vector<uint64_t>> F;
             std::vector<std::vector<uint64_t>> H;   // hard-reject twin of F (see below)
             bool use_sweep=RASTER&&maxLb>0&&bayH>0&&bayH<20000;
@@ -760,7 +774,7 @@ struct Engine {
             // an infeasible cell "clear" -> committed placement then fails check_feasibility -> best-of
             // rejects it (never a wrong accepted answer).  env OGC_FCACHE=1; default off => identical.
             static thread_local std::unordered_map<uint64_t,
-                std::pair<std::vector<char>,std::vector<std::vector<uint64_t>>>> fcache;
+                std::pair<std::vector<int16_t>,std::vector<std::vector<uint64_t>>>> fcache;
             static const int FCACHE=[](){const char*e=getenv("OGC_FCACHE");return(e&&e[0]=='1')?1:0;}();
             uint64_t fk=0; bool fhit=false;
             if(FCACHE){
@@ -813,6 +827,20 @@ struct Engine {
                             if(td){for(int k=std::max(j,0);k<maxLb;k++)or_layer_into_map(F[k],wpr,bayH,L,tox,toy);}}}}
                 if(FCACHE){ if(fcache.size()>8000) fcache.clear();
                     fcache.emplace(fk,std::make_pair(occ,F)); }
+            }
+            // cohort weights: how much each resident's window overlaps the one this block is
+            // asking for.  Built once per (block, bay, window); the cell loop just indexes it.
+            std::vector<float> wgt;
+            if(COHORT_on()){
+                int mx=0; for(const Placed& te: TL[bay]) mx=std::max(mx,te.bid+1);
+                wgt.assign(mx+2, 0.0f);
+                double mylen=std::max(1.0,(double)(ex-cur));
+                for(const Placed& te: TL[bay]){
+                    double ov=(double)(std::min(ex,te.ex)-std::max(cur,te.en));
+                    if(ov<0) ov=0;
+                    double den=std::min(mylen,std::max(1.0,(double)(te.ex-te.en)));
+                    wgt[te.bid+1]=(float)(COHORT_FLOORV() + (1.0-COHORT_FLOORV())*std::min(1.0,ov/den));
+                }
             }
             double pen = (bay<(int)bs.prefs.size())? (s_max-bs.prefs[bay]) : s_max;
             double bestsc=1e300; int boi=-1,bix=0,biy=0,bct=0;
@@ -913,7 +941,8 @@ struct Engine {
                     if(LAYCT_on()){
                         int nlq=(int)od.layers.size(); if(nlq<1) nlq=1;
                         ct = contact_at_layered(footprintL(bid,oi),ix,iy,occLh,bayW,bayH)/nlq;
-                    } else ct = contact_at(fp,ix,iy,occ,bayW,bayH);
+                    } else ct = contact_at(fp,ix,iy,occ,bayW,bayH,
+                                           wgt.empty()? nullptr : wgt.data());
                     double sc;
                     if(use_ourscore()){
                         double bbp=std::max(1.0,(od.x1-od.x0)+(od.y1-od.y0));
@@ -1042,6 +1071,11 @@ struct Engine {
     // CPOS -- contact-candidate positions.  DEFAULT OFF: measured 14-36x faster and NET
     // WORSE.  See the note at the candidate-set construction for why.  OGC_CPOS=1 enables.
     static bool CPOS_on(){ static const int v=[](){const char*e=getenv("OGC_CPOS");return(e&&e[0]=='1')?1:0;}(); return v; }
+    // env OGC_COHORT=1 turns the cohort weighting on; default off so the A/B is clean.
+    // OGC_COHORTF is the floor -- a neighbour whose window does not overlap mine at all still
+    // counts for this much, because touching it is still better than touching air.
+    static bool COHORT_on(){ static const int v=[](){const char*e=getenv("OGC_COHORT");return(e&&e[0]=='1')?1:0;}(); return v; }
+    static double COHORT_FLOORV(){ static const double v=[](){const char*e=getenv("OGC_COHORTF");return e?atof(e):0.3;}(); return v; }
     static bool CBPROF_on(){ static const int v=[](){const char*e=getenv("OGC_CBPROF");return(e&&e[0]=='1')?1:0;}(); return v; }
     struct CBState { std::vector<int> flat; std::vector<char> placed; std::vector<double> loads; double gt,gz3,gcontact; int nplaced; };
     // C++ CONTACT BEAM (OpenMP over beam states): the fast engine port of the Python _contact_beam
@@ -1534,7 +1568,7 @@ struct Engine {
         return true;
     }
     // bay occupancy grid (union footprint of blocks present during [en,ex)).
-    void buildOcc(const std::vector<Placed>& btl,int en,int ex,int bayW,int bayH,std::vector<char>& occ){
+    void buildOcc(const std::vector<Placed>& btl,int en,int ex,int bayW,int bayH,std::vector<int16_t>& occ){
         occ.assign((size_t)bayW*bayH,0);
         for(const Placed& te: btl){
             if(!(en<te.ex && te.en<ex)) continue;
@@ -1542,25 +1576,38 @@ struct Engine {
             int tox=(int)std::floor(te.ox+0.5), toy=(int)std::floor(te.oy+0.5);
             for(int r=0;r<fp.ch;r++) for(int c=0;c<fp.cw;c++) if(fp.g[(size_t)r*fp.cw+c]){
                 int wx=tox+fp.cx0+c, wy=toy+fp.cy0+r;
-                if(wx>=0&&wx<bayW&&wy>=0&&wy<bayH) occ[(size_t)wy*bayW+wx]=1; }
+                if(wx>=0&&wx<bayW&&wy>=0&&wy<bayH) occ[(size_t)wy*bayW+wx]=(int16_t)(te.bid+1); }
         }
     }
     // CONTACT PERIMETER (tight-packing quality): count of the block's boundary cells whose
     // outward 4-neighbour is a bay wall or an occupied cell.  High = nestled tightly.
-    int contact_at(const FP& fp,int ix,int iy,const std::vector<char>& occ,int bayW,int bayH){
+    // COHORT-WEIGHTED CONTACT.  Contact used to count perimeter cells touching anything, which
+    // says how tightly a block sits but not who it sits against.  What limits this problem is
+    // not the instant -- the yard runs at 50% -- it is that a block needs its space for its
+    // WHOLE stay, and the union over that stay measured 1.6x the instantaneous occupancy.  A
+    // neighbour that leaves halfway through my stay leaves a hole I cannot use and a shape the
+    // next block cannot use either; a neighbour that lives and dies with me leaves a clean room
+    // when we both go.
+    //
+    // So weight each touching cell by how much its owner's window overlaps mine.  wgt is
+    // indexed by owner id and built once per candidate, so the inner loop pays one lookup into
+    // an array that fits in L1.  wgt == nullptr reproduces the old plain count exactly.
+    int contact_at(const FP& fp,int ix,int iy,const std::vector<int16_t>& occ,int bayW,int bayH,
+                   const float* wgt=nullptr){
         static const int DX[4]={1,-1,0,0}, DY[4]={0,0,1,-1};
-        int ct=0;
+        double ct=0.0;
         for(int r=0;r<fp.ch;r++) for(int c=0;c<fp.cw;c++){
             if(!fp.g[(size_t)r*fp.cw+c]) continue;
             for(int k=0;k<4;k++){
-                int nc=c+DX[k], nr=r+DY[k];
-                if(nc>=0&&nc<fp.cw&&nr>=0&&nr<fp.ch && fp.g[(size_t)nr*fp.cw+nc]) continue; // internal edge
-                int wx=ix+fp.cx0+nc, wy=iy+fp.cy0+nr;
-                if(wx<0||wx>=bayW||wy<0||wy>=bayH){ ct++; continue; }      // bay wall
-                if(occ[(size_t)wy*bayW+wx]) ct++;                          // touches a block
+                int nx=ix+fp.cx0+c+DX[k], ny=iy+fp.cy0+r+DY[k];
+                if(nx<0||nx>=bayW||ny<0||ny>=bayH){ ct+=1.0; continue; }
+                int fr=ny-(iy+fp.cy0), fc=nx-(ix+fp.cx0);
+                if(fr>=0&&fr<fp.ch&&fc>=0&&fc<fp.cw&&fp.g[(size_t)fr*fp.cw+fc]) continue;
+                int16_t o=occ[(size_t)ny*bayW+nx];
+                if(o) ct += wgt? (double)wgt[o] : 1.0;
             }
         }
-        return ct;
+        return (int)(ct+0.5);
     }
     // ---- PER-LAYER footprint cache + layered contact (more accurate 3D tightness) ----
     struct FPL { int nl; std::vector<int> cx0,cy0,cw,ch; std::vector<std::vector<char>> g; };
@@ -1635,7 +1682,7 @@ struct Engine {
                 }
             }
         }
-        std::vector<char> occ; std::vector<std::vector<char>> occL;
+        std::vector<int16_t> occ; std::vector<std::vector<char>> occL;
         if(_perlayer) buildOccL(btl,en,ex,bayW,bayH,maxL,occL);
         else buildOcc(btl,en,ex,bayW,bayH,occ);
         // (contact, orient, ix, iy) for each feasible position
@@ -1991,6 +2038,171 @@ struct Engine {
     // Z2 2375 / Z3 613, repair off gives Z2 4377 / Z3 531, while the shipped pipeline holds
     // BOTH down at 2299 / 527.  Passing w2 and the workloads lets one pass see all three.
     // w2 <= 0 or empty workloads reproduces the old behaviour exactly.
+    // RUIN-RECREATE AIMED AT TARDINESS.  The Z3 version below fixes every entry time and only
+    // re-picks bays, so Z1 is invariant by construction -- which is the wrong invariant on the
+    // instances where Z1 IS the score (97% of P6, 96% of P5).
+    //
+    // What the measurements ask for is precise.  Of the 167 blocks that entered late on the
+    // real P6, ZERO could have entered at their release with everything else where it is; 82
+    // of them fit if their stay were one unit, so it is the WINDOW that blocks them, not the
+    // instant.  No single-block move exists.  Several blocks have to step aside together, and
+    // the ones stepping aside have to be allowed to land later -- which the Z3 recreate cannot
+    // express.
+    //
+    // So: pick a tardy block, weighted by how tardy; ruin what is sitting in the window it
+    // wants; give it first refusal at its release; re-seat the displaced wherever the TRUE
+    // objective likes, later or elsewhere.  Keep the round only if w1*Z1 + w2*Z2 + w3*Z3 falls.
+    std::vector<int> ruin_tardy(std::vector<int> flat, double w1, double w2, double w3,
+                                std::vector<double> wls, double time_budget_s, int seed=12345){
+        int nb=(int)shapes.size();
+        std::vector<std::array<int,7>> recs(nb); std::vector<char> has(nb,0);
+        for(size_t i=0;i+6<flat.size();i+=7){ int b=flat[i]; recs[b]={b,flat[i+1],flat[i+2],flat[i+3],flat[i+4],flat[i+5],flat[i+6]}; has[b]=1; }
+        auto reload=[&](){ for(auto&t:timeline)t.clear();
+            for(int b=0;b<nb;b++) if(has[b]){ auto&r=recs[b]; add(r[1],b,r[2],(double)r[3],(double)r[4],r[5],r[6]); } };
+        reload();
+        std::vector<double> mxp(nb);
+        for(int b=0;b<nb;b++){ const auto&pr=shapes[b].prefs; double mx=pr.empty()?0:pr[0]; for(double v:pr)if(v>mx)mx=v; mxp[b]=mx; }
+        auto prefv=[&](int b,int bay){ return (bay<(int)shapes[b].prefs.size())? shapes[b].prefs[bay] : 0.0; };
+        const bool Z2ON = (w2>0.0 && (int)wls.size()==nb && n_bays>1);
+        std::vector<double> zu(n_bays,1.0);
+        if(Z2ON){ double avg=0.0; for(int j=0;j<n_bays;j++) avg+=bw[j]*bh[j]; avg/=(double)n_bays;
+            for(int j=0;j<n_bays;j++){ double a=bw[j]*bh[j]; zu[j]=(a>0.0)?avg/a:1.0; } }
+        auto score=[&](const std::vector<std::array<int,7>>& R){
+            double z1=0,z3=0; std::vector<double> L(n_bays,0.0);
+            for(int b=0;b<nb;b++) if(has[b]){ const auto&r=R[b]; double dd=shapes[b].due;
+                if(r[6]>dd) z1+=r[6]-dd; z3+=mxp[b]-prefv(b,r[1]);
+                if(Z2ON) L[r[1]]+=wls[b]; }
+            double v=w1*z1+w3*z3;
+            if(Z2ON){ double mn=1e18,mx=-1e18;
+                for(int j=0;j<n_bays;j++){ double q=zu[j]*L[j]; if(q<mn)mn=q; if(q>mx)mx=q; }
+                v+=w2*std::floor(mx-mn); }
+            return v; };
+        auto t0=std::chrono::steady_clock::now();
+        auto elapsed=[&](){ return std::chrono::duration<double>(std::chrono::steady_clock::now()-t0).count(); };
+        uint64_t rng=(uint64_t)seed*2862933555777941757ULL+3037000493ULL;
+        auto nextr=[&](){ rng=rng*6364136223846793005ULL+1442695040888963407ULL; return (rng>>33)&0x7FFFFFFF; };
+        double cur=score(recs);
+        // PLATEAU WALK.  Strict improvement never fires here: measured on the real P6, 102 of
+        // 102 completed rounds were rejected and the BEST of them came in at a relative delta
+        // of exactly 0.0 -- the tardy block takes its seat, the displaced blocks are pushed
+        // back by precisely as much, and the sum does not move.  That is what a saturated yard
+        // means; throughput is fixed and Z1 is conserved under rearrangement.
+        //
+        // But a move that costs nothing is a move.  Accepting equal-scoring rounds lets the
+        // search cross the plateau instead of stopping at its edge, and the rearrangement is
+        // free to pick up Z2 and Z3 on the way.  The incumbent is kept separately so the walk
+        // can never return something worse than it started with.
+        std::vector<std::array<int,7>> bestrecs=recs; double bestv=cur;
+        int rounds=0, kept=0;
+        while(elapsed()<time_budget_s){
+            rounds++;
+            // pivot: a tardy block, chosen proportional to its tardiness
+            double tot=0.0;
+            for(int b=0;b<nb;b++) if(has[b]){ double dd=shapes[b].due; if(recs[b][6]>dd) tot+=recs[b][6]-dd; }
+            if(tot<=0) break;
+            double pick=((double)nextr()/(double)0x7FFFFFFF)*tot; int g=-1;
+            for(int b=0;b<nb;b++) if(has[b]){ double dd=shapes[b].due; double q=(recs[b][6]>dd)?(recs[b][6]-dd):0.0;
+                if(q<=0) continue; if(pick<q){ g=b; break; } pick-=q; }
+            if(g<0) break;
+            // the window g WANTS: its release, for its processing time
+            int wen=(int)shapes[g].rt, wex=wen+(int)shapes[g].pt;
+            // TARGET ONE BAY.  A first cut ruined by time overlap alone, across every bay, and
+            // kept 0 of 281 rounds: most of what it tore out was nowhere near g, so g's seat
+            // never opened while the displaced blocks paid to sit back down.  Clearing a seat
+            // means clearing the bay g is trying to sit in.  Pick the bay that costs g least
+            // if it can have its release, preferring one it also wants.
+            int tb=-1; double tbv=1e18;
+            for(int j=0;j<n_bays;j++){
+                double v=w3*(mxp[g]-prefv(g,j));
+                if(v<tbv){ tbv=v; tb=j; } }
+            if(tb<0) continue;
+            // ruin set: g, plus the blocks sitting in tb across that window, most-overlapping
+            // first.  K stays small -- every displaced block has to be re-seated somewhere no
+            // better than where it was, so the bill grows with K while g's gain does not.
+            int K=2+(int)(nextr()%5);
+            std::vector<std::pair<int,int>> cand;   // (-overlap, block)
+            for(int b=0;b<nb;b++){ if(b==g||!has[b]||recs[b][1]!=tb) continue;
+                int e=recs[b][5],x=recs[b][6];
+                int ov=std::min(x,wex)-std::max(e,wen);
+                if(ov>0) cand.push_back({-ov,b}); }
+            if(cand.empty()){ rt_nocand++; continue; }
+            std::sort(cand.begin(),cand.end());
+            std::vector<int> S; S.push_back(g);
+            for(auto&pr2:cand){ if((int)S.size()>=K) break; S.push_back(pr2.second); }
+            if((int)S.size()<2){ rt_nocand++; continue; }
+            std::vector<std::array<int,7>> snap; for(int b:S) snap.push_back(recs[b]);
+            for(int b:S) remove(b);
+            // recreate: g first at the earliest entry it can get, then the rest by descending
+            // workload (the awkward ones need the room while there still is some).
+            std::vector<int> ord(S.begin()+1,S.end());
+            std::sort(ord.begin(),ord.end(),[&](int a,int c){ return shapes[a].workload>shapes[c].workload; });
+            ord.insert(ord.begin(),g);
+            bool ok=true;
+            for(int b: ord){
+                double dd=shapes[b].due; int pt=(int)shapes[b].pt, rt=(int)shapes[b].rt;
+                if(b==g){   // g gets first refusal on the seat that was just cleared
+                    int oo2,oix2,oiy2;
+                    if(find_pos_in_bay(g,tb,rt,rt+pt,oo2,oix2,oiy2)){
+                        add(tb,g,oo2,(double)oix2,(double)oiy2,rt,rt+pt);
+                        recs[g]={g,tb,oo2,oix2,oiy2,rt,rt+pt}; rt_seated++; continue; }
+                }
+                // candidate entry times: release, then every exit already on the timelines
+                std::vector<int> es; es.push_back(rt);
+                for(int j=0;j<n_bays;j++) for(const Placed& te: timeline[j]) if(te.ex>rt) es.push_back(te.ex);
+                std::sort(es.begin(),es.end()); es.erase(std::unique(es.begin(),es.end()),es.end());
+                double bestv=1e18; int pb=-1,po=0,pix=0,piy=0,pe=rt,pex=rt+pt;
+                int tried=0, oo,oix,oiy;
+                for(int e2: es){
+                    if(++tried>48) break;
+                    int ex2=e2+pt; double nt=(ex2>dd)?(ex2-dd):0.0;
+                    if(w1*nt>=bestv-1e-9) break;      // entries only get later: no better ahead
+                    for(int tb=0;tb<n_bays;tb++){
+                        double v=w1*nt+w3*(mxp[b]-prefv(b,tb));
+                        if(v>=bestv-1e-9) continue;
+                        if(find_pos_in_bay(b,tb,e2,ex2,oo,oix,oiy)){
+                            bestv=v; pb=tb;po=oo;pix=oix;piy=oiy;pe=e2;pex=ex2; }
+                    }
+                }
+                if(pb<0){
+                    // LAST RESORT: walk forward a unit at a time until it seats.  A block can
+                    // always be seated eventually, because bays empty -- and giving up instead
+                    // throws the whole round away.  Measured before this existed: 243 of 376
+                    // rounds died here, against 133 that completed and were merely too
+                    // expensive, so two thirds of the search was never scored at all.
+                    for(int e2=rt; e2<rt+400 && pb<0; e2++){
+                        int ex2=e2+pt;
+                        for(int tb2=0;tb2<n_bays && pb<0;tb2++)
+                            if(find_pos_in_bay(b,tb2,e2,ex2,oo,oix,oiy)){
+                                pb=tb2;po=oo;pix=oix;piy=oiy;pe=e2;pex=ex2; }
+                    }
+                }
+                if(pb<0){ ok=false; break; }
+                add(pb,b,po,(double)pix,(double)piy,pe,pex);
+                recs[b]={b,pb,po,pix,piy,pe,pex};
+            }
+            double nv = ok ? score(recs) : 1e18;
+            if(!ok) rt_unplaceable++;
+            else if(nv > cur+1e-9){ rt_worse++;
+                double rel=(nv-cur)/std::max(1.0,std::fabs(cur));
+                if(rel<rt_bestrel) rt_bestrel=rel; rt_sumrel+=rel; }
+            if(ok && nv <= cur+1e-9){          // strictly better OR level: take the step
+                if(nv < cur-1e-9) kept++; else rt_level++;
+                cur=nv;
+                if(nv < bestv-1e-9){ bestv=nv; bestrecs=recs; }
+            } else {                                 // roll back exactly
+                for(auto&r:snap) remove(r[0]);
+                for(auto&r:snap){ int b=r[0]; add(r[1],b,r[2],(double)r[3],(double)r[4],r[5],r[6]); recs[b]=r; }
+            }
+        }
+        rt_rounds=rounds; rt_kept=kept;
+        std::vector<int> out; out.reserve(nb*7);
+        for(int b=0;b<nb;b++) if(has[b]){ auto&r=bestrecs[b]; for(int k=0;k<7;k++) out.push_back(r[k]); }
+        return out;
+    }
+    int rt_rounds=0, rt_kept=0, rt_nocand=0, rt_seated=0, rt_unplaceable=0, rt_worse=0;
+    double rt_bestrel=1e18, rt_sumrel=0.0;
+    int rt_level=0;
+
     std::vector<int> z3_reassign(std::vector<int> flat, double w1, double w3, double time_budget_s,
                                  double w2=0.0, std::vector<double> wls=std::vector<double>()){
         int nb=(int)shapes.size();
@@ -2476,5 +2688,17 @@ PYBIND11_MODULE(ogc_fast,m){
              py::arg("time_budget_s"),py::arg("nent")=1,py::arg("cps")=6)
         .def("z3_reassign",&Engine::z3_reassign,
              py::arg("flat"),py::arg("w1"),py::arg("w3"),py::arg("time_budget_s"),
-             py::arg("w2")=0.0,py::arg("wls")=std::vector<double>());
+             py::arg("w2")=0.0,py::arg("wls")=std::vector<double>())
+        .def("ruin_tardy",&Engine::ruin_tardy,
+             py::arg("flat"),py::arg("w1"),py::arg("w2"),py::arg("w3"),py::arg("wls"),
+             py::arg("time_budget_s"),py::arg("seed")=12345)
+        .def_readonly("rt_rounds",&Engine::rt_rounds)
+        .def_readonly("rt_kept",&Engine::rt_kept)
+        .def_readonly("rt_nocand",&Engine::rt_nocand)
+        .def_readonly("rt_seated",&Engine::rt_seated)
+        .def_readonly("rt_unplaceable",&Engine::rt_unplaceable)
+        .def_readonly("rt_worse",&Engine::rt_worse)
+        .def_readonly("rt_bestrel",&Engine::rt_bestrel)
+        .def_readonly("rt_sumrel",&Engine::rt_sumrel)
+        .def_readonly("rt_level",&Engine::rt_level);
 }
