@@ -1,1 +1,4 @@
 [01:42:00] START base-3-myalg_orig
+P3  myalg_orig    240s  obj=106335       Z1=0.0      Z2=4257   Z3=567.0    feasible=True  ran 239s
+[01:46:01] END   base-3-myalg_orig
+[01:46:01] START base-3-myalg_base
