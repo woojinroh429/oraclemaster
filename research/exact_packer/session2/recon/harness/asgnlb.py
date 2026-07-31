@@ -13,10 +13,27 @@ Separately, minimising Z3 alone subject to nothing but area-time capacity gives 
 586 we score -- 494 units, 74,100 of objective, that capacity does not force us to pay.
 
 So the search has to be over the ASSIGNMENT, and it has to price both terms at once.  This
-solves exactly that: choose a bay for every block, minimising w2*Z2 + w3*Z3, subject to each
-bay's area never being exceeded at any instant.  It ignores packing, crane access and placement,
-so its value is a genuine lower bound on w2*Z2 + w3*Z3 for any solution with this schedule -- and
-because it prices the coupling, it is a bound the local operators' failures cannot explain away.
+solves exactly that: choose a bay for every block, minimising w2*Z2 + w3*Z3, subject to bay
+capacity.  Packing, crane access and placement are all ignored, so the packer can only do worse
+than whatever comes out.
+
+Two capacity models, because they are worth different things and only one of them is a proof:
+
+  slice      area used in bay j at instant t <= bay j's area, with every block pinned to its
+             EARLIEST window [release, release + processing).  This is NOT a valid bound on the
+             instance.  A real schedule may enter a block later, and a later block can overlap
+             blocks it previously missed, so the two feasible sets are not nested in either
+             direction.  What it is: the exact optimum for the earliest-release schedule, which
+             is the schedule our Z1 = 0 solutions are already close to.  Treat it as a target,
+             not a certificate.
+
+  aggregate  total area-time in bay j over the horizon <= bay j's area x horizon.  Every block
+             occupies its own area for exactly its processing time no matter WHEN it is
+             scheduled, so this constraint holds for every feasible solution.  Weaker, and a
+             genuine lower bound.
+
+If even the aggregate model lands far below what we score, the gap is real regardless of what
+one thinks of the slice model.
 
 The optimal assignment is written out as an anchor.  Every anchor perturbation tried so far was
 random or single-term (pref moved blocks INTO their preferred bay ignoring load, and Z1 went
@@ -36,7 +53,8 @@ import myalg_orig as M          # noqa: E402
 
 PROB = int(sys.argv[1]) if len(sys.argv) > 1 else 3
 SECS = float(sys.argv[2]) if len(sys.argv) > 2 else 120.0
-OUT = sys.argv[3] if len(sys.argv) > 3 else os.path.join(HERE, "results/anchor_p%d.json" % PROB)
+MODE = sys.argv[3] if len(sys.argv) > 3 else "slice"
+OUT = sys.argv[4] if len(sys.argv) > 4 else os.path.join(HERE, "results/anchor_p%d.json" % PROB)
 
 d = json.load(open(os.path.join(HERE, "data/hidden/prob_%d.json" % PROB)))
 B, bays, w = d["blocks"], d["bays"], d["weights"]
@@ -69,13 +87,20 @@ for b in range(n):
     mdl.AddExactlyOne(x[b])
 
 nrows = 0
-for j in range(m):
-    for t in steps:
-        live = [b for b in range(n) if st[b] <= t < en[b]]
-        if not live:
-            continue
-        mdl.Add(sum(area[b] * x[b][j] for b in live) <= cap[j])
+if MODE == "aggregate":
+    horizon = max(int(B[b]["due_date"]) for b in range(n))
+    pt = [int(B[b]["processing_time"]) for b in range(n)]
+    for j in range(m):
+        mdl.Add(sum(area[b] * pt[b] * x[b][j] for b in range(n)) <= cap[j] * horizon)
         nrows += 1
+else:
+    for j in range(m):
+        for t in steps:
+            live = [b for b in range(n) if st[b] <= t < en[b]]
+            if not live:
+                continue
+            mdl.Add(sum(area[b] * x[b][j] for b in live) <= cap[j])
+            nrows += 1
 
 hi = sum(max(uw[b][j] for j in range(m)) for b in range(n))
 L = [mdl.NewIntVar(0, hi, "L_%d" % j) for j in range(m)]
@@ -107,11 +132,12 @@ bound = slv.BestObjectiveBound() / SCALE
 got = slv.ObjectiveValue() / SCALE
 gz3 = slv.Value(z3)
 gz2 = slv.Value(spread) / float(SCALE)
-print("P%d  assignment bound on w2*Z2 + w3*Z3 : %.0f   %s"
-      % (PROB, bound, "(proven optimal)" if status == cp_model.OPTIMAL else "(not closed)"))
+print("P%d  %-9s assignment optimum of w2*Z2 + w3*Z3 : %.0f   %s%s"
+      % (PROB, MODE, bound, "(closed)" if status == cp_model.OPTIMAL else "(not closed)",
+         "  -- a valid lower bound" if MODE == "aggregate" else "  -- a target, not a bound"))
 print("   best assignment found:  Z2 = %.0f  Z3 = %d  ->  w2*Z2 + w3*Z3 = %.0f"
       % (gz2, gz3, got))
-print("   %d (bay, time) capacity rows over %d blocks, %d bays" % (nrows, n, m))
+print("   %d capacity rows over %d blocks, %d bays" % (nrows, n, m))
 
 asg = [max(range(m), key=lambda j: slv.Value(x[b][j])) for b in range(n)]
 cnt = [asg.count(j) for j in range(m)]

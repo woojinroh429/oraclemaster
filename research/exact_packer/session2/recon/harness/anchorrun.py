@@ -15,12 +15,18 @@ their preferred bay ignoring load and Z1 went 0 -> 105.  This anchor is differen
 on both terms at once and it respects capacity at every instant, so the load it asks for is one
 the yard can physically hold.
 
-stay is swept because it decides how much of the anchor survives.  stay = 1 enforces it and
-measures whether the packer can realise the optimum at all; lower values let the beam overrule it
-where the packing genuinely cannot take it, which is the setting that has to win for this to be
-worth shipping.
+stay is in OBJECTIVE UNITS, not a fraction.  The C++ adds it straight into
 
-    python3.12 harness/anchorrun.py PROB BUDGET [MOD] [STAYS]
+    drank = w1*tardy + w3*pen - mu*contact + w2*dobj2
+
+for any bay other than the anchored one, decayed by dispatch position.  The pipeline knows this
+and passes w3 * 4^(1 - g%3), which is 37 to 600 on P3.  shake.py passed 0.6 and the first cut of
+this file passed 1.0 -- against terms of order 150 to 17778, an anchor roughly 250x too weak to
+bend a single decision.  So shake.py's three perturbation experiments, all of which reported no
+improvement, were measured with the anchor effectively switched off.  The sweep here is scaled by
+w3 so the values mean something: 0.25x barely suggests, 40x is close to enforcement.
+
+    python3.12 harness/anchorrun.py PROB BUDGET [MOD] [STAY_MULTIPLES_OF_W3]
 """
 import importlib
 import json
@@ -35,8 +41,8 @@ import myalg_orig as SC          # noqa: E402  fixed scorer
 PROB = int(sys.argv[1]) if len(sys.argv) > 1 else 3
 BUDGET = float(sys.argv[2]) if len(sys.argv) > 2 else 120.0
 MOD = sys.argv[3] if len(sys.argv) > 3 else "myalg_base"
-STAYS = [float(x) for x in (sys.argv[4].split(",") if len(sys.argv) > 4 else
-                            ["1.0", "0.8", "0.6", "0.3"])]
+MULTS = [float(x) for x in (sys.argv[4].split(",") if len(sys.argv) > 4 else
+                            ["0.25", "1", "4", "40"])]
 
 M = importlib.import_module(MOD)
 d = json.load(open(os.path.join(HERE, "data/hidden/prob_%d.json" % PROB)))
@@ -57,22 +63,24 @@ print("   the anchor moves %d of %d blocks to a different bay"
       % (sum(1 for b in range(n) if asg[b] != bay0[b]), n), flush=True)
 
 cfg = dict(M._AXES[1])
+w3v = float(d["weights"]["w3"])
 best_o, best_s = o0, sol
-for stay in STAYS:
+for mult in MULTS:
+    stay = w3v * mult
     t0 = time.time()
     try:
         s = M._regrow(d, sol, BUDGET, cfg, stay=stay, anchor=(asg, order0))
     except Exception as e:
-        print("   stay=%.2f  regrow failed: %s" % (stay, e), flush=True)
+        print("   stay=%.0f  regrow failed: %s" % (stay, e), flush=True)
         continue
     if s is None:
-        print("   stay=%.2f  regrow returned nothing" % stay, flush=True)
+        print("   stay=%.0f  regrow returned nothing" % stay, flush=True)
         continue
     o, c = SC._total(d, s)
     nb, _ = SC._anchor_of(d, s)
     kept = sum(1 for b in range(n) if nb[b] == asg[b])
-    print("   stay=%-4.2f obj=%-9d Z1=%-6s Z2=%-6s Z3=%-7s  kept %d/%d of the anchor  %s  %.0fs"
-          % (stay, int(o), c.get("obj1"), c.get("obj2"), c.get("obj3"), kept, n,
+    print("   stay=%-7.0f (%.2f x w3) obj=%-9d Z1=%-6s Z2=%-6s Z3=%-7s  kept %d/%d  %s  %.0fs"
+          % (stay, mult, int(o), c.get("obj1"), c.get("obj2"), c.get("obj3"), kept, n,
              "BEST" if o < best_o else "", time.time() - t0), flush=True)
     if o < best_o:
         best_o, best_s = o, s
