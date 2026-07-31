@@ -24,10 +24,12 @@ The ratio is exactly how much of the bay the descent rule sterilises, per block,
 configuration we actually ship.  No heuristic can distort it and nothing can be made infeasible,
 because nothing is moved.
 
-    python3.12 harness/cranecost.py PROB [BUDGET] [MOD]
+    python3.12 harness/cranecost.py PROB [BUDGET] [MOD] [SOLFILE]
 
-Run it twice, once with OGC_NOCRANE=1, and pair the two outputs -- the flag changes what
-feasible_scan counts, not what the solution is.
+The two arms MUST count on the same solution.  The first cut re-solved inside each arm, so the
+crane-off arm counted against its own (broken, Z1 416,541) answer whose blocks barely overlap in
+time -- of course it found more room.  Pass SOLFILE: the first run writes the solution it built,
+the second reads it back, and only the counting rule differs between them.
 """
 import importlib
 import json
@@ -41,6 +43,7 @@ import myalg_orig as SC          # noqa: E402
 PROB = int(sys.argv[1]) if len(sys.argv) > 1 else 5
 BUDGET = float(sys.argv[2]) if len(sys.argv) > 2 else 120.0
 MOD = sys.argv[3] if len(sys.argv) > 3 else "myalg_base"
+SOLF = sys.argv[4] if len(sys.argv) > 4 else os.path.join(HERE, "results/sol_p%d.json" % PROB)
 TAG = os.environ.get("OGC_NOCRANE", "0")
 
 d = json.load(open(os.path.join(HERE, "data/hidden/prob_%d.json" % PROB)))
@@ -48,7 +51,12 @@ B = d["blocks"]
 n = len(B)
 m = len(d["bays"])
 
-sol = importlib.import_module(MOD).algorithm(d, BUDGET)
+if os.path.exists(SOLF):
+    sol = json.load(open(SOLF))
+    print("   counting on the solution in %s" % os.path.basename(SOLF), flush=True)
+else:
+    sol = importlib.import_module(MOD).algorithm(d, BUDGET)
+    json.dump(sol, open(SOLF, "w"))
 o0, c0 = SC._total(d, sol)
 print("P%d %s  obj=%d Z1=%s Z2=%s Z3=%s   (OGC_NOCRANE=%s)"
       % (PROB, MOD, int(o0), c0.get("obj1"), c0.get("obj2"), c0.get("obj3"), TAG), flush=True)
