@@ -1,0 +1,6 @@
+P5 myalg_base  obj=9438551 Z1=674.0 Z2=2628 Z3=3261.0   (OGC_NOCRANE=0)
+   cells available to each block against the real timeline, at its own entry window:
+      in its OWN bay : 719  (mean 3.6 per block, 0 blocks had none)
+      across ALL bays: 1,013  (mean 5.1 per block)
+   per bay (own-bay residents): [248, 148, 177, 146]
+PAIRME P5 nocrane=0 own=719 all=1013 zero=0
