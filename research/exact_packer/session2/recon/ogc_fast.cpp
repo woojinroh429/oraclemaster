@@ -1322,14 +1322,22 @@ struct Engine {
     bool COHORT_on() const { return coh_floor>0.0; }
     double COHORT_FLOORV() const { return coh_floor; }
     static bool CBPROF_on(){ static const int v=[](){const char*e=getenv("OGC_CBPROF");return(e&&e[0]=='1')?1:0;}(); return v; }
-    // ganch: cumulative anchor deviation.  The anchor used to enter only the CANDIDATE rank
+    // MEASURED AND REVERTED -- the anchor genuinely never binds, and making it bind loses.
+    //
+    // The anchor weight enters only the CANDIDATE rank
     // (drank), which is sorted and truncated to topk -- and cands holds one entry per bay, so
     // with topk = K >= n_bays nothing is ever dropped and the sort is a no-op on the retained
     // set.  Every hidden instance is in that regime (bays 3,2,3,3,4,3 against K 3-6), so the
     // guided-reconstruction anchor did literally nothing on any of them: _regrow, the operator
     // the pipeline calls its search, has been an unguided beam re-run.  Carrying the deviation
     // on the STATE and adding it to the pruning key is what makes an anchor bind.
-    struct CBState { std::vector<int> flat; std::vector<char> placed; std::vector<double> loads; double gt,gz3,gcontact,ganch; int nplaced; };
+    //
+    // That was built and measured: P3 96,990 -> 96,990 (tie), P5 9,044,458 -> 9,044,458 (tie),
+    // P4 1,780,253 -> 1,981,906 (11.3% worse).  A single regrow improves a lot (152,485 ->
+    // 115,515 as the weight rises) but the pipeline is a best-of over several operators, and on
+    // P4 the anchored regrow trades away the diversity the portfolio relied on -- Z2 2707 ->
+    // 1627 bought with Z3 3920 -> 4337 and Z1 88 -> 99.  Reverted; the finding is the comment.
+    struct CBState { std::vector<int> flat; std::vector<char> placed; std::vector<double> loads; double gt,gz3,gcontact; int nplaced; };
     // C++ CONTACT BEAM (OpenMP over beam states): the fast engine port of the Python _contact_beam
     // so a WIDE beam (B~50) fits in budget on congested instances.  Fixed dispatch `order`; each
     // state expands its dispatched block into its top-K contact positions (best_cell_contact_tl),
@@ -1386,7 +1394,7 @@ struct Engine {
         // So ranking uses the exact objective, as it did before either attempt.
         double inc_obj=1e18;      // best COMPLETE objective seen -- the pruning threshold
         static const bool ADMP_LIVE=[](){const char*e=getenv("OGC_ADMP");return (e&&e[0]=='1');}();
-        CBState init; init.placed.assign(nb,0); init.loads.assign(n_bays,0.0); init.gt=0;init.gz3=0;init.gcontact=0;init.ganch=0;init.nplaced=0;
+        CBState init; init.placed.assign(nb,0); init.loads.assign(n_bays,0.0); init.gt=0;init.gz3=0;init.gcontact=0;init.nplaced=0;
         std::vector<CBState> beam; beam.push_back(std::move(init));
         auto t0=std::chrono::steady_clock::now();
         auto elapsed=[&](){ return std::chrono::duration<double>(std::chrono::steady_clock::now()-t0).count(); };
@@ -1583,9 +1591,6 @@ struct Engine {
                         c.gt = st.gt + (exx>dd?(double)(exx-dd):0.0);
                         double pen=(bay<(int)pr.size())?(mxp[bi]-pr[bay]):mxp[bi];
                         c.gz3=st.gz3+pen; c.gcontact=st.gcontact+ct;
-                        c.ganch = st.ganch + ((!cb_anchor.empty() && bi<(int)cb_anchor.size()
-                                               && bi<(int)cb_anchor_w.size() && cb_anchor[bi]>=0
-                                               && bay!=cb_anchor[bi]) ? cb_anchor_w[bi] : 0.0);
                         outv.push_back(std::move(c));
                     }
                 }
@@ -1607,15 +1612,12 @@ struct Engine {
             #pragma omp parallel for schedule(dynamic)
             for(int i=0;i<nch;i++){ CBState& c=children[i];
                 double hz = (c.nplaced<nb)? wb_hz1(c.flat,c.placed,areas,area_total,avg_a):0.0;
-                // c.ganch steers the SEARCH toward the anchor; it is not part of the objective, and
-                // the final pick below scores states on the true objective only, so an anchor can
-                // only change which states survive pruning -- never what a solution is worth.
                 if(THRUBEAM)
                     // KEEP Z3 (dropping it blew up Z3 for a tiny Z1 gain -> net worse); only AMPLIFY
                     // the future-tardiness lookahead so the search still steers away from congestion.
-                    keyed[i]={ w1*(c.gt + THRUHZ*hz) + w3*c.gz3 - mu*c.gcontact + w2*obj2f(c.loads) + c.ganch, i };
+                    keyed[i]={ w1*(c.gt + THRUHZ*hz) + w3*c.gz3 - mu*c.gcontact + w2*obj2f(c.loads), i };
                 else
-                    keyed[i]={ w1*c.gt + w3*c.gz3 - mu*c.gcontact + w2*obj2f(c.loads) + w1*hz + c.ganch, i };
+                    keyed[i]={ w1*c.gt + w3*c.gz3 - mu*c.gcontact + w2*obj2f(c.loads) + w1*hz, i };
             }
             std::sort(keyed.begin(),keyed.end(),[](const std::pair<double,int>&a,const std::pair<double,int>&b){return a.first<b.first;});
             // CANONICAL DEDUP: two states that placed the SAME blocks in the same bays at the

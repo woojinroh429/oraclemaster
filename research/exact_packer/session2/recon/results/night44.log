@@ -1,0 +1,3 @@
+baseline verified dk-free: {'Bmul': 1.0, 'K': 4, 'pos_lam': 0.12, 'order': 'defer_big', 'fut_beta': 1.0, 'prefw': 0.0, 'w3mul': 3.0, 'cohort': 0.3}
+arms verified: shadow 0.0 vs 1.5, dk off in both
+=== P3 shadow=0.0 (240s)  11:13:32
