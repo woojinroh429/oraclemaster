@@ -8,3 +8,4 @@ SHAKE3-DONE
 P3 myalg_base start obj=100685 Z1=0.0 Z2=3157 Z3=566.0
    round 1   obj=152485     Z2=3797   Z3=890.0     17 blocks moved    at 108s
    round 2   obj=152485     Z2=3797   Z3=890.0     17 blocks moved    at 215s
+   round 3   obj=152485     Z2=3797   Z3=890.0     17 blocks moved    at 323s
