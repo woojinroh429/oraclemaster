@@ -626,6 +626,26 @@ struct Engine {
                     else if(len>runMx2) runMx2=len;
                 }
             }
+            // Same runs, every row instead of just the floor.  Built here so the candidate loop
+            // only indexes them, exactly as the 1-D version is.
+            static thread_local std::vector<int> r2L, r2R, r2M1, r2M2;
+            if(span2_lam>0.0){
+                r2L.assign((size_t)bayW*bayH,-1); r2R.assign((size_t)bayW*bayH,-1);
+                r2M1.assign(bayH,0); r2M2.assign(bayH,0);
+                for(int y=0;y<bayH;y++){
+                    int* L=&r2L[(size_t)y*bayW]; int* R=&r2R[(size_t)y*bayW];
+                    const int16_t* o=&occ[(size_t)y*bayW];
+                    int m1=0,m2=0;
+                    for(int x=0;x<bayW;){
+                        if(o[x]){ x++; continue; }
+                        int st=x; while(x<bayW && !o[x]) x++;
+                        int en=x-1, len=en-st+1;
+                        for(int k=st;k<=en;k++){ L[k]=st; R[k]=en; }
+                        if(len>m1){ m2=m1; m1=len; } else if(len>m2) m2=len;
+                    }
+                    r2M1[y]=m1; r2M2[y]=m2;
+                }
+            }
             double pen = (bay<(int)bs.prefs.size())? (s_max-bs.prefs[bay]) : s_max;
             double bestsc=1e300; int boi=-1,bix=0,biy=0,bct=0;
             for(int oi=0;oi<norient;oi++){ const OrientData& od=bs.orients[oi]; int nl=(int)od.layers.size();
@@ -694,6 +714,8 @@ struct Engine {
                                                      ix+l0x,ix+l0x+l0w,bayW);
                         if(shad_lam>0.0) sc += shad_lam*shadow_excess(bid,oi)
                                                *((double)(ex-cur)/std::max(1.0,mean_proc));
+                        if(span2_lam>0.0)
+                            sc += span2_lam*span2_drop(r2L,r2R,r2M1,r2M2,fp,ix,iy,bayW,bayH);
                         // A long stay holds the sterilised cells for longer, so the waste is
                         // charged in space-TIME, matching how shad_lam already scales.
                         if(shadw_lam>0.0) sc += shadw_lam*shadow_waste(bid,oi,ix,iy,occ,bayW,bayH)
@@ -965,6 +987,26 @@ struct Engine {
                     else if(len>runMx2) runMx2=len;
                 }
             }
+            // Same runs, every row instead of just the floor.  Built here so the candidate loop
+            // only indexes them, exactly as the 1-D version is.
+            static thread_local std::vector<int> r2L, r2R, r2M1, r2M2;
+            if(span2_lam>0.0){
+                r2L.assign((size_t)bayW*bayH,-1); r2R.assign((size_t)bayW*bayH,-1);
+                r2M1.assign(bayH,0); r2M2.assign(bayH,0);
+                for(int y=0;y<bayH;y++){
+                    int* L=&r2L[(size_t)y*bayW]; int* R=&r2R[(size_t)y*bayW];
+                    const int16_t* o=&occ[(size_t)y*bayW];
+                    int m1=0,m2=0;
+                    for(int x=0;x<bayW;){
+                        if(o[x]){ x++; continue; }
+                        int st=x; while(x<bayW && !o[x]) x++;
+                        int en=x-1, len=en-st+1;
+                        for(int k=st;k<=en;k++){ L[k]=st; R[k]=en; }
+                        if(len>m1){ m2=m1; m1=len; } else if(len>m2) m2=len;
+                    }
+                    r2M1[y]=m1; r2M2[y]=m2;
+                }
+            }
             double pen = (bay<(int)bs.prefs.size())? (s_max-bs.prefs[bay]) : s_max;
             double bestsc=1e300; int boi=-1,bix=0,biy=0,bct=0;
             for(int oi=0;oi<norient;oi++){ const OrientData& od=bs.orients[oi]; int nl=(int)od.layers.size();
@@ -1114,6 +1156,8 @@ struct Engine {
                                                      ix+l0x,ix+l0x+l0w,bayW);
                         if(shad_lam>0.0) sc += shad_lam*shadow_excess(bid,oi)
                                                *((double)(ex-cur)/std::max(1.0,mean_proc));
+                        if(span2_lam>0.0)
+                            sc += span2_lam*span2_drop(r2L,r2R,r2M1,r2M2,fp,ix,iy,bayW,bayH);
                         // A long stay holds the sterilised cells for longer, so the waste is
                         // charged in space-TIME, matching how shad_lam already scales.
                         if(shadw_lam>0.0) sc += shadw_lam*shadow_waste(bid,oi,ix,iy,occ,bayW,bayH)
@@ -1276,6 +1320,7 @@ struct Engine {
     // con_w = 1.0 reproduces current behaviour exactly, so this is a relaxation and not a new
     // rule; 0.0 removes contact from candidate choice entirely and lets position decide.
     // (mum already scales the STATE-level contact term, so the two levels are separable.)
+    double span2_lam=0.0;
     double con_w=1.0;
     double shad_lam=0.0;
     // shadw_lam: the POSITION-dependent companion to shad_lam.  shad_lam scores a shape, this
@@ -1367,7 +1412,7 @@ struct Engine {
                  int B, int K, int step, double pos_lam, double prefw, double mu,
                  double w1, double w2, double w3, double fut_beta, double mean_proc, double time_budget_s,
                  std::vector<int> anchor=std::vector<int>(), std::vector<double> anchor_w=std::vector<double>(),
-                 double area_scale=1.0, double swy=1.0, double swx=0.01, double cohort=0.0, double shadow=0.0, double span=0.0, int lex=0, double shadoww=0.0, double conw=1.0){
+                 double area_scale=1.0, double swy=1.0, double swx=0.01, double cohort=0.0, double shadow=0.0, double span=0.0, int lex=0, double shadoww=0.0, double conw=1.0, double span2=0.0){
         sw_y=swy; sw_x=swx; coh_floor=cohort; span_lam=span; lex_on=(lex!=0);
         if(lex_on){
             int nb_=(int)areas.size();
@@ -1376,7 +1421,7 @@ struct Engine {
             _issmall.assign(nb_,0);
             for(int r=0;r<nb_;r++)
                 if((double)r/std::max(1,nb_-1) >= lex_thr) _issmall[ord_[r]]=1;
-        } shad_lam=shadow; shadw_lam=shadoww; con_w=conw;
+        } shad_lam=shadow; shadw_lam=shadoww; con_w=conw; span2_lam=span2;
         cb_anchor=std::move(anchor); cb_anchor_w=std::move(anchor_w);
         wl_total=0.0; for(double v: workloads) wl_total+=v;
         int nb=(int)shapes.size();
@@ -1816,7 +1861,11 @@ struct Engine {
     // then pick up to K positions spread across the bay (diverse, no leftbottom bias):
     // sort by (iy,ix) and take K evenly-spaced.  Timeline must already hold the state.
     // ---- footprint cache: union of a block-orient's layer touch-rasters (for contact) ----
-    struct FP { int cx0,cy0,cw,ch; std::vector<char> g; };
+    // rx0/rx1: for each row of the footprint, the first and last column that is actually
+    // occupied (-1 if the row is empty).  The footprint is a bitmap, not a rectangle, so a
+    // per-row extent is what a row-wise free-run test needs; computing it once per
+    // (block, orientation) keeps the candidate loop at O(rows).
+    struct FP { int cx0,cy0,cw,ch; std::vector<char> g; std::vector<int> rx0,rx1; };
     std::map<int,FP> _fpcache;
     const FP& footprint(int bid,int oi){
         int key=bid*64+oi; auto it=_fpcache.find(key); if(it!=_fpcache.end()) return it->second;
@@ -1833,6 +1882,11 @@ struct Engine {
                 if(L.bits[(size_t)r*L.wpr+(c>>6)] & (1ULL<<(c&63))){
                     int gc=(L.cx0+c)-cx0, gr=(L.cy0+r)-cy0;
                     if(gc>=0&&gc<fp.cw&&gr>=0&&gr<fp.ch) fp.g[(size_t)gr*fp.cw+gc]=1; }
+        }
+        fp.rx0.assign(fp.ch,-1); fp.rx1.assign(fp.ch,-1);
+        for(int r=0;r<fp.ch;r++){
+            for(int c=0;c<fp.cw;c++) if(fp.g[(size_t)r*fp.cw+c]){ fp.rx0[r]=c; break; }
+            for(int c=fp.cw-1;c>=0;c--) if(fp.g[(size_t)r*fp.cw+c]){ fp.rx1[r]=c; break; }
         }
         return _fpcache.emplace(key,std::move(fp)).first->second;
     }
@@ -1916,6 +1970,42 @@ struct Engine {
         int after=std::max(other,std::max(x0-L,R-(x1-1)));
         int drop=mx1-after;
         return drop>0 ? (double)drop/(double)std::max(1,bayW) : 0.0;
+    }
+    // span2: the row-wise extension of span_drop.
+    //
+    // span_drop reads ONE line -- occ[x], the floor -- so it can only say whether a placement
+    // splits the bay's bottom row.  What a later block actually needs is a two-dimensional
+    // region: h consecutive rows whose free runs overlap.  A placement that shaves the edge of
+    // every row it touches leaves that intact; one that splits each row down the middle destroys
+    // it, and on the floor line alone the two can look identical.
+    //
+    // Same rule, applied to every row the footprint occupies and summed: how much shorter does
+    // the longest free run in that row become.  The footprint is a bitmap, so each row uses its
+    // own x-extent (fp.rx0/rx1) rather than the bounding box.
+    //
+    // Cost: the run tables are O(bayW*bayH) once per (bay, window), the same order as buildOcc
+    // which already runs there; per candidate it is O(rows), against contact_at's O(w*h).
+    static double span2_drop(const std::vector<int>& rL,const std::vector<int>& rR,
+                             const std::vector<int>& mx1,const std::vector<int>& mx2,
+                             const FP& fp,int ix,int iy,int bayW,int bayH){
+        double tot=0.0; int rows=0;
+        for(int r=0;r<fp.ch;r++){
+            if(fp.rx0[r]<0) continue;
+            int y=iy+fp.cy0+r; if(y<0||y>=bayH) continue;
+            int x0=ix+fp.cx0+fp.rx0[r], x1=ix+fp.cx0+fp.rx1[r]+1;
+            if(x0<0||x1>bayW||x1<=x0) continue;
+            int m1=mx1[y]; if(m1<=0) continue;
+            const int* L=&rL[(size_t)y*bayW]; const int* R=&rR[(size_t)y*bayW];
+            int a=L[x0], b=L[x1-1];
+            if(a<0||b<0||a!=b) continue;      // straddles occupied floor: no clean read
+            int lo=a, hi=R[x0];
+            int other=((hi-lo+1)==m1)? mx2[y] : m1;
+            int after=std::max(other,std::max(x0-lo,hi-(x1-1)));
+            int drop=m1-after;
+            if(drop>0) tot += (double)drop/(double)std::max(1,bayW);
+            rows++;
+        }
+        return rows? tot/(double)rows : 0.0;    // mean over rows, so it stays dimensionless
     }
     int contact_at(const FP& fp,int ix,int iy,const std::vector<int16_t>& occ,int bayW,int bayH,
                    const float* wgt=nullptr){
@@ -3005,7 +3095,7 @@ PYBIND11_MODULE(ogc_fast,m){
              py::arg("w1"),py::arg("w2"),py::arg("w3"),py::arg("fut_beta"),
              py::arg("mean_proc"),py::arg("time_budget_s"),
              py::arg("anchor")=std::vector<int>(),py::arg("anchor_w")=std::vector<double>(),
-             py::arg("area_scale")=1.0,py::arg("swy")=1.0,py::arg("swx")=0.01,py::arg("cohort")=0.0,py::arg("shadow")=0.0,py::arg("span")=0.0,py::arg("lex")=0,py::arg("shadoww")=0.0,py::arg("conw")=1.0)
+             py::arg("area_scale")=1.0,py::arg("swy")=1.0,py::arg("swx")=0.01,py::arg("cohort")=0.0,py::arg("shadow")=0.0,py::arg("span")=0.0,py::arg("lex")=0,py::arg("shadoww")=0.0,py::arg("conw")=1.0,py::arg("span2")=0.0)
         .def("set_bcl_prefw",&Engine::set_bcl_prefw)
         .def("wide_beam",&Engine::wide_beam,
              py::arg("order"),py::arg("areas"),py::arg("workloads"),py::arg("B"),py::arg("K"),

@@ -77,6 +77,11 @@ W3M    = sys.argv[11] if len(sys.argv) > 11 else ""
 RELGAIN = os.environ.get("OGC_RELGAIN", "")
 SWY    = sys.argv[12] if len(sys.argv) > 12 else ""
 SWX    = sys.argv[13] if len(sys.argv) > 13 else ""
+# SPAN2: the row-wise (2-D) version of span.  span reads the floor line only, so it cannot tell a
+# placement that shaves the edge of every row from one that splits each row down the middle --
+# on the bottom row alone those can look the same, while only the first leaves a region a later
+# block can descend into.
+SPAN2  = sys.argv[14] if len(sys.argv) > 14 else ""
 # SHADOWW: the position-dependent overhang penalty.  shad_lam (SHADOW) scores a SHAPE -- its
 # shadow_excess is cached on (block, orientation) and takes no position, so it can only pick
 # orientations, and a P5 sweep of it returned identical objectives at 0.0 and 0.5.  This one
@@ -101,20 +106,20 @@ assert '"rel"' not in s, "myalg_orig.py already has the rel axis -- wrong commit
 s = s.replace(
     'def _contact_beam(prob_info, deadline_s, B=24, K=4, pos_lam=0.1, prefw=0.0, order="edd", mum=1.0,',
     'def _contact_beam(prob_info, deadline_s, B=24, K=4, pos_lam=0.1, prefw=0.0, order="edd", mum=1.0,\n'
-    '                  cohort=0.0, shadow=0.0, span=0.0, lex=0, shadoww=0.0, conw=1.0, swy=1.0, swx=0.01,', 1)
+    '                  cohort=0.0, shadow=0.0, span=0.0, lex=0, shadoww=0.0, conw=1.0, swy=1.0, swx=0.01, span2=0.0,', 1)
 # contact_beam(..., area_scale, swy, swx, cohort); 1.0/0.01 are the defaults the orig relied on
 n = s.count("float(_sc))")
 assert n == 2, "expected two E.contact_beam call sites, found %d" % n
 s = s.replace("float(_sc))",
               "float(_sc), float(swy), float(swx), float(cohort), float(shadow), float(span), int(lex),"
-              " float(shadoww), float(conw))")
+              " float(shadoww), float(conw), float(span2))")
 
 # Every knob has to reach _contact_beam from the axis dict, and each one used to be threaded by
 # its own chained replace against a string the previous replace had already rewritten.  span and
 # lex silently missed: the axes carried span=4.0 and _contact_beam still got its 0.0 default, so
 # a whole 300s sweep measured the control four times over and read as "the term does nothing".
 # One list, asserted, so a knob that fails to thread stops the build instead of the experiment.
-_KNOBS = ["cohort", "shadow", "span", "lex", "shadoww"]
+_KNOBS = ["cohort", "shadow", "span", "lex", "shadoww", "span2"]
 _FWD = ", ".join('%s=cfg.get("%s", 0.0)' % (k, k) for k in _KNOBS)
 # conw is the one knob whose neutral value is 1.0 rather than 0.0 -- it SCALES contact rather
 # than adding a penalty -- so it cannot ride the shared default above.
@@ -277,6 +282,8 @@ if SWY:
     AXES = re.sub(r"cohort=[0-9.]+", lambda m: m.group(0) + ", swy=" + repr(float(SWY)), AXES)
 if SWX:
     AXES = re.sub(r"cohort=[0-9.]+", lambda m: m.group(0) + ", swx=" + repr(float(SWX)), AXES)
+if SPAN2:
+    AXES = re.sub(r"cohort=[0-9.]+", lambda m: m.group(0) + ", span2=" + repr(float(SPAN2)), AXES)
 if ORDER:
     AXES = AXES.replace('order="defer_big", fut_beta=1.0, prefw=0.0, w3mul=3.0',
                         'order="%s", fut_beta=1.0, prefw=0.0, w3mul=3.0' % ORDER)
