@@ -27,7 +27,14 @@ What it buys, beyond the number:
   * a target schedule.  The solution is an (assignment, entry time) pair per block that the packer
     can be anchored on, the same way the P3 assignment anchors the beam there.
 
-    python3.12 harness/z1bound.py PROB [SECONDS] [OUT.json]
+CAPMUL shrinks every bay to a fraction of its area.  At 1.0 the model is the relaxation and its
+answer is a bound.  Below 1.0 it is a MODEL of packing inefficiency: a yard that can only ever
+use that fraction of its floor.  P5 comes back with Z1 = 8 at 1.0 against our actual Z1 of about
+678, so essentially all of P5's tardiness is geometry -- crane sweep and layer overhang -- and
+none of it is capacity.  Sweeping CAPMUL finds the utilisation that reproduces our real Z1, which
+both confirms the diagnosis and prices what one point of packing density is worth.
+
+    python3.12 harness/z1bound.py PROB [SECONDS] [OUT.json] [CAPMUL]
 """
 import json
 import os
@@ -42,6 +49,7 @@ import myalg_orig as M          # noqa: E402
 PROB = int(sys.argv[1]) if len(sys.argv) > 1 else 4
 SECS = float(sys.argv[2]) if len(sys.argv) > 2 else 120.0
 OUT = sys.argv[3] if len(sys.argv) > 3 else os.path.join(HERE, "results/sched_p%d.json" % PROB)
+CAPMUL = float(sys.argv[4]) if len(sys.argv) > 4 else 1.0
 
 d = json.load(open(os.path.join(HERE, "data/hidden/prob_%d.json" % PROB)))
 B, bays, w = d["blocks"], d["bays"], d["weights"]
@@ -50,7 +58,7 @@ w1, w2, w3 = float(w["w1"]), float(w["w2"]), float(w["w3"])
 
 ar, _bc, sc = M._footprint_areas(d)
 area = [int(round(ar[b])) for b in range(n)]
-cap = [int(float(bays[j]["width"]) * float(bays[j]["height"]) * sc) for j in range(m)]
+cap = [int(float(bays[j]["width"]) * float(bays[j]["height"]) * sc * CAPMUL) for j in range(m)]
 
 rel = [int(B[b]["release_time"]) for b in range(n)]
 pt = [int(B[b]["processing_time"]) for b in range(n)]
@@ -118,8 +126,10 @@ if status not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
 
 bound = slv.BestObjectiveBound() / SCALE
 got = slv.ObjectiveValue() / SCALE
-print("P%d  cumulative-relaxation lower bound on the FULL objective: %.0f   %s"
-      % (PROB, bound, "(closed)" if status == cp_model.OPTIMAL else "(not closed)"))
+print("P%d  capmul=%.2f  %s: %.0f   %s"
+      % (PROB, CAPMUL,
+         "lower bound on the FULL objective" if CAPMUL >= 1.0 else "value at this utilisation",
+         bound, "(closed)" if status == cp_model.OPTIMAL else "(not closed)"))
 print("   best relaxed schedule found: Z1 = %d  Z2 = %.0f  Z3 = %d  ->  %.0f"
       % (slv.Value(z1), slv.Value(spread) / float(SCALE), slv.Value(z3), got))
 
