@@ -42,6 +42,10 @@ PLMUL  = float(sys.argv[6]) if len(sys.argv) > 6 else 1.0
 # Diversity comes from the dispatch order, exactly as the deployed build does it: pure order
 # changes leave feasibility alone and best-of keeps the minimum, so the axes are never-worse.
 LEX    = sys.argv[7] if len(sys.argv) > 7 else ""
+# CONW: scales the CANDIDATE-level contact term.  1.0 is current behaviour, 0.0 drops contact
+# from candidate choice entirely and lets the position term decide -- a flat, loose packing that
+# keeps the crane's vertical columns intact.
+CONW   = sys.argv[9] if len(sys.argv) > 9 else ""
 # SHADOWW: the position-dependent overhang penalty.  shad_lam (SHADOW) scores a SHAPE -- its
 # shadow_excess is cached on (block, orientation) and takes no position, so it can only pick
 # orientations, and a P5 sweep of it returned identical objectives at 0.0 and 0.5.  This one
@@ -66,13 +70,13 @@ assert '"rel"' not in s, "myalg_orig.py already has the rel axis -- wrong commit
 s = s.replace(
     'def _contact_beam(prob_info, deadline_s, B=24, K=4, pos_lam=0.1, prefw=0.0, order="edd", mum=1.0,',
     'def _contact_beam(prob_info, deadline_s, B=24, K=4, pos_lam=0.1, prefw=0.0, order="edd", mum=1.0,\n'
-    '                  cohort=0.0, shadow=0.0, span=0.0, lex=0, shadoww=0.0,', 1)
+    '                  cohort=0.0, shadow=0.0, span=0.0, lex=0, shadoww=0.0, conw=1.0,', 1)
 # contact_beam(..., area_scale, swy, swx, cohort); 1.0/0.01 are the defaults the orig relied on
 n = s.count("float(_sc))")
 assert n == 2, "expected two E.contact_beam call sites, found %d" % n
 s = s.replace("float(_sc))",
               "float(_sc), 1.0, 0.01, float(cohort), float(shadow), float(span), int(lex),"
-              " float(shadoww))")
+              " float(shadoww), float(conw))")
 
 # Every knob has to reach _contact_beam from the axis dict, and each one used to be threaded by
 # its own chained replace against a string the previous replace had already rewritten.  span and
@@ -81,6 +85,9 @@ s = s.replace("float(_sc))",
 # One list, asserted, so a knob that fails to thread stops the build instead of the experiment.
 _KNOBS = ["cohort", "shadow", "span", "lex", "shadoww"]
 _FWD = ", ".join('%s=cfg.get("%s", 0.0)' % (k, k) for k in _KNOBS)
+# conw is the one knob whose neutral value is 1.0 rather than 0.0 -- it SCALES contact rather
+# than adding a penalty -- so it cannot ride the shared default above.
+_FWD += ', conw=cfg.get("conw", 1.0)'
 for _old, _new in ((' w3mul=cfg["w3mul"], step=step)',
                     ' w3mul=cfg["w3mul"], ' + _FWD + ', step=step)'),
                    ('                          mum=mum)',
@@ -207,6 +214,8 @@ if SHADOW:
 if SHADOWW:
     AXES = AXES.replace("cohort=" + repr(FLOOR),
                         "cohort=%s, shadoww=%s" % (repr(FLOOR), repr(SHADOWW)))
+if CONW:
+    AXES = re.sub(r"cohort=[0-9.]+", lambda m: m.group(0) + ", conw=" + repr(float(CONW)), AXES)
 if ORDER:
     AXES = AXES.replace('order="defer_big", fut_beta=1.0, prefw=0.0, w3mul=3.0',
                         'order="%s", fut_beta=1.0, prefw=0.0, w3mul=3.0' % ORDER)

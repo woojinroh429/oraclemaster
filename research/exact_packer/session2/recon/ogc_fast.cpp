@@ -687,7 +687,7 @@ struct Engine {
                                 sc = -after*1e6 + (double)iy*1e3 + (double)ix;
                             }
                         } else {
-                            sc = -(double)ct + ((double)iy+od.y1)*pos_lam*sw_y + (double)ix*pos_lam*sw_x + prefw*pen;
+                            sc = -con_w*(double)ct + ((double)iy+od.y1)*pos_lam*sw_y + (double)ix*pos_lam*sw_x + prefw*pen;
                         }
                         if(span_lam>0.0&&l0w>0)
                             sc += span_lam*span_drop(runL,runR,runMx1,runMx2,
@@ -1107,7 +1107,7 @@ struct Engine {
                                 sc = -after*1e6 + (double)iy*1e3 + (double)ix;
                             }
                         } else {
-                            sc = -(double)ct + ((double)iy+od.y1)*pos_lam*sw_y + (double)ix*pos_lam*sw_x + prefw*pen;
+                            sc = -con_w*(double)ct + ((double)iy+od.y1)*pos_lam*sw_y + (double)ix*pos_lam*sw_x + prefw*pen;
                         }
                         if(span_lam>0.0&&l0w>0)
                             sc += span_lam*span_drop(runL,runR,runMx1,runMx2,
@@ -1258,6 +1258,25 @@ struct Engine {
     // layer-0 area, paid for the whole stay, and charged nowhere in sc -- so an orientation
     // that overhangs has been free.  (union/layer0 - 1) is exactly that excess, dimensionless,
     // and it is owed for as long as the block stays.
+    // con_w: how much CONTACT is worth against position, at candidate level.
+    //
+    // The score is -ct + (iy+top)*pos_lam*sw_y + ix*pos_lam*sw_x, and pos_lam is ~0.1, so
+    // contact outweighs position by an order of magnitude and the beam always prefers to press
+    // blocks against each other.  On P5 and P6 (demand ratio 0.73 and 1.14) that is right.
+    //
+    // On P3 it may be exactly wrong.  Bay 0 is 43x23, peak occupancy 54%, and it refuses 23 of
+    // the 25 blocks whose entry would help most -- a half-empty yard turning everything away.
+    // The crane travels purely vertically, so what a later block needs is a clear COLUMN above
+    // its resting place.  Contact-maximising interlocks blocks into each other's notches and
+    // leaves a jagged skyline, which fragments those columns; a looser, flatter arrangement
+    // wastes floor but keeps them whole.  Competitors who lose to us on P4/P5/P6 beat us on P3,
+    // which is the shape of a packer whose strength on dense instances is its weakness on a
+    // sparse one.
+    //
+    // con_w = 1.0 reproduces current behaviour exactly, so this is a relaxation and not a new
+    // rule; 0.0 removes contact from candidate choice entirely and lets position decide.
+    // (mum already scales the STATE-level contact term, so the two levels are separable.)
+    double con_w=1.0;
     double shad_lam=0.0;
     // shadw_lam: the POSITION-dependent companion to shad_lam.  shad_lam scores a shape, this
     // scores a placement -- how many otherwise-free cells this placement's overhang sterilises.
@@ -1348,7 +1367,7 @@ struct Engine {
                  int B, int K, int step, double pos_lam, double prefw, double mu,
                  double w1, double w2, double w3, double fut_beta, double mean_proc, double time_budget_s,
                  std::vector<int> anchor=std::vector<int>(), std::vector<double> anchor_w=std::vector<double>(),
-                 double area_scale=1.0, double swy=1.0, double swx=0.01, double cohort=0.0, double shadow=0.0, double span=0.0, int lex=0, double shadoww=0.0){
+                 double area_scale=1.0, double swy=1.0, double swx=0.01, double cohort=0.0, double shadow=0.0, double span=0.0, int lex=0, double shadoww=0.0, double conw=1.0){
         sw_y=swy; sw_x=swx; coh_floor=cohort; span_lam=span; lex_on=(lex!=0);
         if(lex_on){
             int nb_=(int)areas.size();
@@ -1357,7 +1376,7 @@ struct Engine {
             _issmall.assign(nb_,0);
             for(int r=0;r<nb_;r++)
                 if((double)r/std::max(1,nb_-1) >= lex_thr) _issmall[ord_[r]]=1;
-        } shad_lam=shadow; shadw_lam=shadoww;
+        } shad_lam=shadow; shadw_lam=shadoww; con_w=conw;
         cb_anchor=std::move(anchor); cb_anchor_w=std::move(anchor_w);
         wl_total=0.0; for(double v: workloads) wl_total+=v;
         int nb=(int)shapes.size();
@@ -2986,7 +3005,7 @@ PYBIND11_MODULE(ogc_fast,m){
              py::arg("w1"),py::arg("w2"),py::arg("w3"),py::arg("fut_beta"),
              py::arg("mean_proc"),py::arg("time_budget_s"),
              py::arg("anchor")=std::vector<int>(),py::arg("anchor_w")=std::vector<double>(),
-             py::arg("area_scale")=1.0,py::arg("swy")=1.0,py::arg("swx")=0.01,py::arg("cohort")=0.0,py::arg("shadow")=0.0,py::arg("span")=0.0,py::arg("lex")=0,py::arg("shadoww")=0.0)
+             py::arg("area_scale")=1.0,py::arg("swy")=1.0,py::arg("swx")=0.01,py::arg("cohort")=0.0,py::arg("shadow")=0.0,py::arg("span")=0.0,py::arg("lex")=0,py::arg("shadoww")=0.0,py::arg("conw")=1.0)
         .def("set_bcl_prefw",&Engine::set_bcl_prefw)
         .def("wide_beam",&Engine::wide_beam,
              py::arg("order"),py::arg("areas"),py::arg("workloads"),py::arg("B"),py::arg("K"),
