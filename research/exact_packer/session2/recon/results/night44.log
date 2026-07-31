@@ -3,3 +3,5 @@ arms verified: shadow 0.0 vs 1.5, dk off in both
 === P3 shadow=0.0 (240s)  11:13:32
 P3  clean sh=0.0   240s  obj=96990       Z1=0.0      Z2=3108   Z3=543.0     ran 239s
 === P3 shadow=1.5 (240s)  11:17:31
+P3  clean sh=1.5   240s  obj=96990       Z1=0.0      Z2=3108   Z3=543.0     ran 239s
+=== P5 shadow=0.0 (600s)  11:21:31
