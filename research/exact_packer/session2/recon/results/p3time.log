@@ -1,0 +1,34 @@
+myalgorithm on P3: obj=90545, contested bay is 0 (43x23, u=2.078)
+   147 blocks outside bay 0; the 25 whose move in is worth most:
+      delta    blk   at its own time   anywhere tardiness-free    window
+         -7170  100   no                no -> blocked everywhere   [40,41] now 40
+         -7055  164   no                no -> blocked everywhere   [54,55] now 55
+         -7010  105   no                no -> blocked everywhere   [50,50] now 50
+         -6135  53    no                no -> blocked everywhere   [48,52] now 48
+         -4525  172   no                no -> blocked everywhere   [24,27] now 24
+         -4520  162   no                no -> blocked everywhere   [30,30] now 30
+         -3910  191   no                no -> blocked everywhere   [45,46] now 45
+         -2745  187   no                no -> blocked everywhere   [52,53] now 52
+         -2470  6     no                no -> blocked everywhere   [42,44] now 42
+         -2305  165   no                no -> blocked everywhere   [44,46] now 44
+         -2280  32    no                no -> blocked everywhere   [18,21] now 18
+         -1205  196   no                no -> blocked everywhere   [28,29] now 28
+         -1025  133   no                no -> blocked everywhere   [66,66] now 66
+         -1000  42    no                no -> blocked everywhere   [56,56] now 56
+          -320  160   no                no -> blocked everywhere   [4,6] now 4
+           -90  115   no                no -> blocked everywhere   [6,10] now 6
+            +0  123   no                no -> blocked everywhere   [8,11] now 8
+           +45  68    no                no -> blocked everywhere   [69,72] now 70
+          +275  194   no                no -> blocked everywhere   [66,68] now 66
+          +595  168   no                no -> blocked everywhere   [60,61] now 60
+         +1065  124   yes               yes (12 cells)             [6,7] now 6
+         +1180  136   no                no -> blocked everywhere   [60,60] now 60
+         +1445  16    yes               yes (2 cells)              [40,40] now 40
+         +1660  76    no                no -> blocked everywhere   [18,20] now 18
+         +1895  141   no                no -> blocked everywhere   [68,68] now 68
+
+   of the 25 most valuable would-be entrants to bay 0:
+       2 fit at their own entry time
+       0 fit only at some OTHER tardiness-free time (worth 0 of objective)
+      23 fit nowhere in their window
+   -> the wall is GEOMETRIC: bay 0 cannot take them at any time, so the fix is packing it so descent paths survive
