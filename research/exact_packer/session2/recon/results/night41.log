@@ -9,3 +9,7 @@ P5  shadoww=2.0    600s  obj=8890654     Z1=632.0    Z2=954    Z3=3440.0    ran 
 === P5 shadoww=8.0 (600s)  10:11:25
 P5  shadoww=8.0    600s  obj=10152335    Z1=719.0    Z2=2735   Z3=4111.0    ran 599s
 === P4 shadoww=0.0 (480s)  10:21:24
+P4  shadoww=0.0    480s  obj=1780253     Z1=88.0     Z2=2707   Z3=3920.0    ran 454s
+=== P4 shadoww=0.5 (480s)  10:28:59
+P4  shadoww=0.5    480s  obj=2484598     Z1=141.0    Z2=2335   Z3=3922.0    ran 450s
+=== P4 shadoww=2.0 (480s)  10:36:29
