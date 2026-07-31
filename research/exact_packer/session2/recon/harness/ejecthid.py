@@ -53,6 +53,44 @@ ej = ejectpipe.Ejector(d, sol)
 print("   %d blocks out of their preferred bay, %d of Z3 conceded"
       % (len(ej.outsiders()), ej.z3()), flush=True)
 
+# WHERE the attempts die.  attempt() returns None both when the move lands but does not pay and
+# when it never lands at all, and those two call for opposite conclusions: the first says the
+# preference arithmetic is wrong, the second says the bay is geometrically full and the
+# concession is forced.  "0 accepted" alone cannot tell them apart -- the same ambiguity that
+# made an earlier perturbation experiment unreadable.  Count the bail-out points instead.
+TALLY = {"noseat": 0, "novictim": 0, "landed": 0}
+DELTAS = []
+_fw, _fa = ej._fit_window, ej._fit_any
+
+
+def _fit_window_c(b, j, victims):
+    r = _fw(b, j, victims)
+    if r is None:
+        TALLY["noseat"] += 1
+    return r
+
+
+def _fit_any_c(c, bays, allow_shift=True):
+    r = _fa(c, bays, allow_shift)
+    if r is None:
+        TALLY["novictim"] += 1
+    return r
+
+
+ej._fit_window, ej._fit_any = _fit_window_c, _fit_any_c
+_att = ej.attempt
+
+
+def _attempt_c(b, victims):
+    r = _att(b, victims)
+    if r is not None:
+        TALLY["landed"] += 1
+        DELTAS.append(r[0])
+    return r
+
+
+ej.attempt = _attempt_c
+
 best_s = ej.snapshot()
 best_score = ej.score()
 cur = best_score
@@ -91,6 +129,13 @@ while improved and time.time() < sweep_dl:
 print("   sweep done at %.0fs: %d accepted of %s attempts, %s scans"
       % (time.time() - t0, ej.accepted, format(ej.attempts, ","), format(ej.scans, ",")),
       flush=True)
+print("      outsider never seated in its bay even with the victims gone : %s" % format(TALLY["noseat"], ","))
+print("      seated, but a victim had nowhere to go                      : %s" % format(TALLY["novictim"], ","))
+print("      landed (whole chain re-seated, delta was computed)          : %s" % format(TALLY["landed"], ","))
+if DELTAS:
+    DELTAS.sort()
+    print("      landed deltas: best %+.0f  median %+.0f  worst %+.0f  (negative = improvement)"
+          % (DELTAS[0], DELTAS[len(DELTAS) // 2], DELTAS[-1]), flush=True)
 
 ej.restore(best_s)
 cur = best_score
