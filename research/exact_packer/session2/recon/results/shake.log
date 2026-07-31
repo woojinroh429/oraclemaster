@@ -2,3 +2,4 @@ P3 myalg_base start obj=100685 Z1=0.0 Z2=3157 Z3=566.0
 P3 shake=random frac=0.15  4 rounds in 410s  obj=100685     Z1=0.0 Z2=3157 Z3=566.0  (+0.00%)
 P3 myalg_base start obj=100685 Z1=0.0 Z2=3157 Z3=566.0
 P3 shake=balance frac=0.15  4 rounds in 410s  obj=100685     Z1=0.0 Z2=3157 Z3=566.0  (+0.00%)
+P3 myalg_base start obj=100685 Z1=0.0 Z2=3157 Z3=566.0
