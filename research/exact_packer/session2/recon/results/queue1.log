@@ -38,3 +38,5 @@ P3  budget=480 r1   480s  obj=96860       Z1=0.0      Z2=3112   Z3=542.0     ran
 === bud_480_r2.log  (budget=480 r2)  15:52:51
 P3  budget=480 r2   480s  obj=97020       Z1=0.0      Z2=3174   Z3=541.0     ran 479s
 === bud_480_r3.log  (budget=480 r3)  16:00:50
+P3  budget=480 r3   480s  obj=97020       Z1=0.0      Z2=3174   Z3=541.0     ran 479s
+=== gate_p4_1.0.log  (conw=1.0)  16:08:50
