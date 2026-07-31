@@ -284,6 +284,42 @@ if SWX:
     AXES = re.sub(r"cohort=[0-9.]+", lambda m: m.group(0) + ", swx=" + repr(float(SWX)), AXES)
 if SPAN2:
     AXES = re.sub(r"cohort=[0-9.]+", lambda m: m.group(0) + ", span2=" + repr(float(SPAN2)), AXES)
+
+# OGC_DIV -- give a knob a DIFFERENT value on each axis instead of one value everywhere.
+#
+#   OGC_DIV="conw:0.0,1.0,0.25,0.0,1.0,0.25"        (semicolons separate several knobs)
+#
+# This is the difference between a constant and a diversification dimension, and on conw it
+# is the whole argument.  conw=0.0 is the best P3 result anything has produced (87,560, on
+# three runs of four) and simultaneously the worst P4 regression of the session (+25.9%):
+# a saturated instance needs every cell pressed together, a 0.327-ratio one needs the crane's
+# descent columns left whole.  As a constant it can only be right about one of them, and
+# picking which by density would be the gate the user has ruled out.
+#
+# But _AXES is not a constant.  Its whole contract is that "every one runs the identical beam
+# and min() over the full objective decides" -- so an axis carrying conw=0.0 costs a saturated
+# instance nothing beyond the slice it used (best-of discards it) while giving a sparse one
+# the flat packing it wants.  The instance selects, by its own objective, with no threshold
+# anywhere.  Worker w starts at axis w, so the six values are spread across the pool from the
+# first generation rather than all four workers repeating axis 0.
+DIV = os.environ.get("OGC_DIV", "").strip()
+if DIV:
+    _n_ax = len(re.findall(r"cohort=[0-9.]+", AXES))
+    for _spec in DIV.split(";"):
+        _spec = _spec.strip()
+        if not _spec:
+            continue
+        _k, _vs = _spec.split(":", 1)
+        _vals = [float(x) for x in _vs.split(",") if x.strip()]
+        assert _vals, "OGC_DIV knob %r has no values" % _k
+        _ctr = [0]
+
+        def _put(m, _k=_k, _vals=_vals, _ctr=_ctr):
+            v = _vals[_ctr[0] % len(_vals)]
+            _ctr[0] += 1
+            return m.group(0) + ", %s=%s" % (_k, repr(v))
+        AXES = re.sub(r"cohort=[0-9.]+", _put, AXES)
+        assert _ctr[0] == _n_ax, "OGC_DIV %s hit %d axes, expected %d" % (_k, _ctr[0], _n_ax)
 if ORDER:
     AXES = AXES.replace('order="defer_big", fut_beta=1.0, prefw=0.0, w3mul=3.0',
                         'order="%s", fut_beta=1.0, prefw=0.0, w3mul=3.0' % ORDER)
