@@ -4,3 +4,4 @@ P3  myalg_orig    240s  obj=101535       Z1=0.0      Z2=4377   Z3=531.0    feasi
 [00:57:03] START base-3-myalg_base
 [01:00:01] START bg-5-k3
    draw 1   obj=11056288      at 67s
+   draw 2   obj=10258221      at 132s
