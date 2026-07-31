@@ -1,2 +1,6 @@
 engine pinned to the control build  06:37:42
 === rep1 P4 myalgorithm (480s)  06:37:42
+P4  myalgorithm    480s  obj=3273791     Z1=201.0    Z2=1244   Z3=3901.0    ran 385s
+=== rep1 P4 myalg_base (480s)  06:44:17
+P4  myalg_base     480s  obj=1780253     Z1=88.0     Z2=2707   Z3=3920.0    ran 453s
+=== rep1 P4 myalg_orig (480s)  06:51:51
