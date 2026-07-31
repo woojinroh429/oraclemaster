@@ -105,10 +105,18 @@ while time.time() - t0 < BUDGET:
     if s is None:
         continue
     o, c = SC._total(d, s)
+    # Print EVERY round, not only improvements.  The first cut logged improvements alone, so a
+    # run that never improved could not be told apart from a run whose perturbation did nothing
+    # -- and those call for opposite conclusions.  moved counts how many blocks the regrow
+    # actually left in a different bay from the incumbent, which is the direct check that the
+    # anchor is being felt at all.
+    nb, _ = SC._anchor_of(d, s)
+    moved = sum(1 for b in range(n) if nb[b] != ab[b])
+    print("   round %-3d obj=%-10d Z2=%-6s Z3=%-7s  %3d blocks moved  %s  at %.0fs"
+          % (rounds, int(o), c.get("obj2"), c.get("obj3"), moved,
+             "BEST" if o < best_o else "", time.time() - t0), flush=True)
     if o < best_o:
         best_o, best_s = o, s
-        print("   round %-3d obj=%-10d Z2=%-6s Z3=%-7s  at %.0fs"
-              % (rounds, int(o), c.get("obj2"), c.get("obj3"), time.time() - t0), flush=True)
 o1, c1 = SC._total(d, best_s)
 print("P%d shake=%s frac=%.2f  %d rounds in %.0fs  obj=%-10d Z1=%s Z2=%s Z3=%s  (%+.2f%%)"
       % (PROB, KIND, FRAC, rounds, time.time() - t0, int(o1), c1.get("obj1"), c1.get("obj2"),
