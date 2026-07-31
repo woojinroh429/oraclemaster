@@ -302,6 +302,42 @@ if SPAN2:
 # the flat packing it wants.  The instance selects, by its own objective, with no threshold
 # anywhere.  Worker w starts at axis w, so the six values are spread across the pool from the
 # first generation rather than all four workers repeating axis 0.
+# OGC_WDIV -- give a knob a different value per WORKER, holding it fixed across that worker's
+# whole search.
+#
+#   OGC_WDIV="conw:0.0,0.0,1.0,1.0"     workers 0,1 flat; workers 2,3 contact-packing
+#
+# OGC_DIV (per axis) was tried first and failed on P3: 96,235 against a 96,990 base, while the
+# same knob held at 0.0 everywhere reaches 87,560.  Two of the six axes carried conw=0.0, so if
+# a single flat beam produced 87,560 then best-of would have returned it.  It did not.
+#
+# That is the finding, and it changes what the knob IS.  conw=0.0 is not a candidate score that
+# happens to pay off on one beam -- it is a REGIME the whole search has to stay in.  A beam
+# builds a flat layout, _grow breeds from the pool and repairs it, and an axis carrying
+# conw=1.0 pulls that layout straight back toward contact packing.  Axes rotate within a worker
+# by design, so they are the one unit that cannot hold a regime steady.
+#
+# Workers can.  Each keeps its own pool for the entire budget and they meet only at the closing
+# best-of over the true objective, so worker 0 can spend 240s being flat while worker 2 spends
+# it packing tight, and the instance keeps whichever won.  Same argument as before -- no
+# threshold, no density test, the objective decides -- but applied at the level the effect
+# actually lives on.  The cost is real and bounded: half the pool on a saturated instance is
+# spent in the losing regime.
+WDIV = os.environ.get("OGC_WDIV", "").strip()
+if WDIV:
+    _anch = "    axes = [_AXES[(wid + i) % len(_AXES)] for i in range(len(_AXES))]"
+    assert s.count(_anch) == 1, "worker axis-rotation site not found -- refusing to guess"
+    _ov = []
+    for _spec in WDIV.split(";"):
+        _spec = _spec.strip()
+        if not _spec:
+            continue
+        _k, _vs = _spec.split(":", 1)
+        _ov.append((_k, [float(x) for x in _vs.split(",") if x.strip()]))
+    _lines = [_anch, "    _wov = %r" % (_ov,)]
+    _lines.append("    axes = [dict(a, **{k: v[wid % len(v)] for k, v in _wov}) for a in axes]")
+    s = s.replace(_anch, "\n".join(_lines), 1)
+
 DIV = os.environ.get("OGC_DIV", "").strip()
 if DIV:
     _n_ax = len(re.findall(r"cohort=[0-9.]+", AXES))
