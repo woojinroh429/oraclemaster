@@ -1,0 +1,4 @@
+axis dk = 3
+  visit 1  obj=10513332     order-was-drawn=False
+  visit 2  obj=11436963     order-was-drawn=True
+  visit 3  obj=11495356     order-was-drawn=True
