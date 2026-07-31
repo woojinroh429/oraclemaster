@@ -1,2 +1,12 @@
 w3mul arms verified at conw=0.25: 1 .. 24
 === w3m_1_r1.log  (w3mul=1 r1)  14:42:57
+P3  w3mul=1 r1     240s  obj=96235       Z1=0.0      Z2=3767   Z3=516.0     ran 239s
+=== w3m_3_r1.log  (w3mul=3 r1)  14:46:57
+P3  w3mul=3 r1     240s  obj=92930       Z1=0.0      Z2=3496   Z3=503.0     ran 239s
+=== w3m_6_r1.log  (w3mul=6 r1)  14:50:57
+P3  w3mul=6 r1     240s  obj=90900       Z1=0.0      Z2=3630   Z3=485.0     ran 239s
+=== w3m_12_r1.log  (w3mul=12 r1)  14:54:56
+P3  w3mul=12 r1    240s  obj=90900       Z1=0.0      Z2=3630   Z3=485.0     ran 239s
+=== w3m_24_r1.log  (w3mul=24 r1)  14:58:56
+P3  w3mul=24 r1    240s  obj=90900       Z1=0.0      Z2=3630   Z3=485.0     ran 239s
+=== w3m_1_r2.log  (w3mul=1 r2)  15:02:56
