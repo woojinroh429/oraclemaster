@@ -1,0 +1,13 @@
+P3 myalg_base  obj=97570  Z1=0.0 Z2=3134 Z3=546.0
+   bay      area      u       workload     u*load
+   0         989  2.078         3647       7578
+   1        2492  0.825         6809       5615
+   2        2684  0.766         5804       4444
+   Z2 = floor(max - min) = 3134, worth 15671 of the objective (16.1%)
+   a perfectly balanced assignment gives u*load = 5420 everywhere, Z2 = 0
+   moves that cannot raise Z3 (destination valued >= current):
+      bay 1 -> 0 :  15 blocks, 1734 workload
+      bay 1 -> 2 :   2 blocks, 154 workload
+      bay 2 -> 0 :   9 blocks, 991 workload
+      bay 2 -> 1 :   2 blocks, 263 workload
+   28 such moves exist in total -- whether they PACK is the open question, but no one of them can cost preference
