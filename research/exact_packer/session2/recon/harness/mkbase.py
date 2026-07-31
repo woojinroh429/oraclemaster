@@ -57,6 +57,8 @@ MUM    = sys.argv[10] if len(sys.argv) > 10 else ""
 # 2.0 and 8.0 returned byte-identical objectives on P3 to prove it.  The state rank is where the
 # bay is really chosen, and w3mul is its Z3 dial; it has never been swept on P3.
 W3M    = sys.argv[11] if len(sys.argv) > 11 else ""
+SWY    = sys.argv[12] if len(sys.argv) > 12 else ""
+SWX    = sys.argv[13] if len(sys.argv) > 13 else ""
 # SHADOWW: the position-dependent overhang penalty.  shad_lam (SHADOW) scores a SHAPE -- its
 # shadow_excess is cached on (block, orientation) and takes no position, so it can only pick
 # orientations, and a P5 sweep of it returned identical objectives at 0.0 and 0.5.  This one
@@ -81,12 +83,12 @@ assert '"rel"' not in s, "myalg_orig.py already has the rel axis -- wrong commit
 s = s.replace(
     'def _contact_beam(prob_info, deadline_s, B=24, K=4, pos_lam=0.1, prefw=0.0, order="edd", mum=1.0,',
     'def _contact_beam(prob_info, deadline_s, B=24, K=4, pos_lam=0.1, prefw=0.0, order="edd", mum=1.0,\n'
-    '                  cohort=0.0, shadow=0.0, span=0.0, lex=0, shadoww=0.0, conw=1.0,', 1)
+    '                  cohort=0.0, shadow=0.0, span=0.0, lex=0, shadoww=0.0, conw=1.0, swy=1.0, swx=0.01,', 1)
 # contact_beam(..., area_scale, swy, swx, cohort); 1.0/0.01 are the defaults the orig relied on
 n = s.count("float(_sc))")
 assert n == 2, "expected two E.contact_beam call sites, found %d" % n
 s = s.replace("float(_sc))",
-              "float(_sc), 1.0, 0.01, float(cohort), float(shadow), float(span), int(lex),"
+              "float(_sc), float(swy), float(swx), float(cohort), float(shadow), float(span), int(lex),"
               " float(shadoww), float(conw))")
 
 # Every knob has to reach _contact_beam from the axis dict, and each one used to be threaded by
@@ -99,6 +101,10 @@ _FWD = ", ".join('%s=cfg.get("%s", 0.0)' % (k, k) for k in _KNOBS)
 # conw is the one knob whose neutral value is 1.0 rather than 0.0 -- it SCALES contact rather
 # than adding a penalty -- so it cannot ride the shared default above.
 _FWD += ', conw=cfg.get("conw", 1.0)'
+# The sweep direction was 1.0 / 0.01 written straight into the call.  With contact turned down
+# the position term is what ranks cells, so the direction IS the packing rule -- and it has never
+# been a variable.  Neutral values reproduce the old call exactly.
+_FWD += ', swy=cfg.get("swy", 1.0), swx=cfg.get("swx", 0.01)'
 # mum scales the STATE-level contact term (mu = 1e-3*min(w1,w3)*mum), where conw scales the
 # CANDIDATE-level one.  Turning conw to 0 leaves the beam still ranking states by
 # -mu*gcontact, so it keeps chasing something the objective does not score.  With both at their
@@ -240,6 +246,10 @@ if MUM:
     AXES = re.sub(r"cohort=[0-9.]+", lambda m: m.group(0) + ", mum=" + repr(float(MUM)), AXES)
 if W3M:
     AXES = re.sub(r"w3mul=[0-9.]+", "w3mul=" + repr(float(W3M)), AXES)
+if SWY:
+    AXES = re.sub(r"cohort=[0-9.]+", lambda m: m.group(0) + ", swy=" + repr(float(SWY)), AXES)
+if SWX:
+    AXES = re.sub(r"cohort=[0-9.]+", lambda m: m.group(0) + ", swx=" + repr(float(SWX)), AXES)
 if ORDER:
     AXES = AXES.replace('order="defer_big", fut_beta=1.0, prefw=0.0, w3mul=3.0',
                         'order="%s", fut_beta=1.0, prefw=0.0, w3mul=3.0' % ORDER)
