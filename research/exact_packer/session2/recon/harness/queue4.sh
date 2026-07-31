@@ -15,6 +15,13 @@
 set -u
 cd "$(dirname "$0")/.." || exit 1
 mkdir -p results
+# EXCLUSIVE LOCK.  Three times this session two experiment runners overlapped and both sets of
+# numbers had to be thrown away -- most recently because a chained script had exec'd into another
+# name, so killing by process name missed it.  Naming is not a mechanism.  Any runner that takes
+# this lock is guaranteed to be the only one; a second one waits instead of corrupting both.
+exec 9>/tmp/ogc_experiment.lock
+flock 9 || { echo "could not take the experiment lock"; exit 1; }
+echo "experiment lock held by $$"
 EXT="cpython-312-x86_64-linux-gnu.so"
 cp "/tmp/ogc_span2.$EXT" "/tmp/stg.$EXT" && mv "/tmp/stg.$EXT" "ogc_fast.$EXT"
 echo "span2 engine installed  $(date -u +%H:%M:%S)"

@@ -33,6 +33,8 @@
 set -u
 cd "$(dirname "$0")/.." || exit 1
 mkdir -p results
+exec 9>/tmp/ogc_experiment.lock
+flock 9 || exit 1
 BASE="0 \"\" 0 1.0 \"\" 0 0.25"      # dk off, conw 0.25
 run () {  # module tag outfile
     [ -s "results/$3" ] && return

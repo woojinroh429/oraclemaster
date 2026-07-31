@@ -17,6 +17,8 @@
 set -u
 cd "$(dirname "$0")/.." || exit 1
 mkdir -p results
+exec 9>/tmp/ogc_experiment.lock
+flock 9 || exit 1
 for G in 0 1; do
     env $( [ "$G" = 1 ] && echo OGC_RELGAIN=1 ) OGC_DK=0 \
         python3.12 harness/mkbase.py 0.3 "myalg_rg${G}.py" 0 "" 0 1.0 "" 0 0.25 "" 6 >/dev/null || exit 1
