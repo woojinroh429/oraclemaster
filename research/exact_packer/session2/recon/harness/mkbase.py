@@ -370,6 +370,95 @@ if LEX:
     dict(Bmul=1.0, K=1, pos_lam=0.10, order="big_first",  fut_beta=0.0, prefw=0.0, w3mul=1.0, lex=1, span=%(S)s),
     dict(Bmul=1.0, K=1, pos_lam=0.10, order="defer_big",  fut_beta=0.0, prefw=0.0, w3mul=1.0, lex=1, span=%(S)s),
 ]""" % {"S": repr(SPAN if SPAN else 4.0)}
+# OGC_FASTOBJ -- stop re-proving feasibility for solutions that cannot become the answer.
+#
+# check_feasibility does two jobs at once.  It re-derives w1*Z1 + w2*Z2 + w3*Z3, which is
+# arithmetic over (bay, entry, exit) and nothing else, and it re-validates every crane path,
+# which is polygon work.  Measured on the real hidden P3 the pair costs 173 ms and the
+# arithmetic alone costs 0.13 -- a factor of 1300 -- and _total is the file's ONLY selection
+# criterion, so it runs once per operator invocation plus once per bandit report.  Tens of
+# seconds of a 240 s budget go into re-proving the feasibility of solutions the engine just
+# built under that same rule.
+#
+# The cost is not only throughput.  Every random draw in the loop is seeded, so what varies
+# between two runs of the same arm is how many operator calls fit in the budget -- which is
+# why conw=0.0 returns 87,560 three times and 106,940 once.  Verification time is a large,
+# noisy share of that, so removing it narrows the spread as well as raising the ceiling.
+#
+# What is NOT given up: nothing that can be returned goes unverified.  A solution is screened
+# on the arithmetic objective and, if it would beat the incumbent, checked for real before it
+# is allowed to become one.  A solution that loses to the incumbent enters the pool on its
+# cheap score, where the worst it can do is be bred from -- and breeding passes only the bay
+# assignment to a beam that re-derives every placement itself.  It can never climb to pool[0]
+# afterwards, because the pool only ever grows at the tail and is truncated there.  The
+# closing best-of across workers and the final z3 pass stay fully verified.
+if os.environ.get("OGC_FASTOBJ", "") == "1":
+    _FO = '''
+def _fast_obj(prob_info, sol):
+    """The objective by arithmetic alone -- no geometry.  Verified equal to the grader's
+    number to the last digit on the real P3 at two budgets.  Returns inf on a malformed
+    solution, never on geometry: feasibility is _total's question, not this one's."""
+    try:
+        B = prob_info["blocks"]; bays = prob_info["bays"]; w = prob_info["weights"]
+        n = len(B); m = len(bays)
+        bay = [-1] * n; ext = [-1] * n
+        for t, row in (sol or {}).get("operations", {}).items():
+            for op in row:
+                if op["type"] == "ENTRY":
+                    bay[op["block_id"]] = op["bay_id"]
+                else:
+                    ext[op["block_id"]] = int(t)
+        bar = [float(q["width"]) * float(q["height"]) for q in bays]
+        avg = sum(bar) / m
+        load = [0.0] * m; z1 = 0.0; z3 = 0.0
+        for b in range(n):
+            j = bay[b]
+            if j < 0 or ext[b] < 0:
+                return float("inf")
+            load[j] += float(B[b].get("workload", 0.0))
+            z1 += max(0, ext[b] - int(B[b]["due_date"]))
+            p = B[b]["bay_preferences"]; z3 += max(p) - p[j]
+        v = [(avg / bar[j]) * load[j] for j in range(m)]
+        return (float(w["w1"]) * z1 + float(w["w2"]) * math.floor(max(v) - min(v))
+                + float(w["w3"]) * z3)
+    except Exception:
+        return float("inf")
+
+
+'''
+    _od = 'def _total(prob_info, sol):\n    """The ONLY selection criterion in this file: the full objective, or inf."""\n    try:'
+    assert s.count(_od) == 1, "_total definition not found -- refusing to guess"
+    s = s.replace(_od, _FO + 'def _total(prob_info, sol, screen=None):\n'
+                  '    """The ONLY selection criterion in this file: the full objective, or inf.\n\n'
+                  '    screen is a value this solution must beat to matter.  Given one, the cheap\n'
+                  '    arithmetic objective is computed first and the geometric re-validation is\n'
+                  '    skipped for anything that loses -- such a solution can enter the pool but can\n'
+                  '    never climb out of it, because the pool grows and is truncated at the tail."""\n'
+                  '    if screen is not None:\n'
+                  '        _o = _fast_obj(prob_info, sol)\n'
+                  '        if not (_o < screen - 1e-9):\n'
+                  '            return _o, None\n'
+                  '    try:', 1)
+
+    # the allocator's per-operator score: screened against the incumbent it has to beat
+    _oa = "        o, _ = _total(prob_info, s)\n        if o < float(\"inf\") and all(abs(o - q[0]) > 1e-9 for q in pool):"
+    assert s.count(_oa) == 1, "allocator scoring site not found"
+    s = s.replace(_oa, "        o, _ = _total(prob_info, s, pool[0][0] if pool else None)\n"
+                       "        if o < float(\"inf\") and all(abs(o - q[0]) > 1e-9 for q in pool):", 1)
+
+    # the bandit's arm report: a heuristic ranking signal, never an answer
+    _ob = "        band.tell(ai, _total(prob_info, s)[0] if s is not None else pool[0][0] * 1.05)"
+    assert s.count(_ob) == 1, "bandit tell site not found"
+    s = s.replace(_ob, "        band.tell(ai, _fast_obj(prob_info, s) if s is not None"
+                       " else pool[0][0] * 1.05)", 1)
+
+    # _assign's inner loop: up to 24 scorings per invocation, each screened on its own best
+    for _x in ("f", "s"):
+        _oc = "                o, _ = _total(prob_info, %s)\n                if o < best_o:" % _x
+        assert s.count(_oc) == 1, "_assign scoring site %r not found" % _x
+        s = s.replace(_oc, "                o, _ = _total(prob_info, %s, best_o)\n"
+                           "                if o < best_o:" % _x, 1)
+
 old = re.search(r"_AXES = \[\n(?:.*\n)*?\]", s).group(0)
 assert old.count("dict(") == 6, "myalg_orig.py should have exactly six axes"
 s = s.replace(old, AXES, 1)

@@ -15,6 +15,11 @@ try:
 except AttributeError:
     import myalg_orig as _SC
     o, c = _SC._total(d, s)
-print("P%-2d %-12s %5.0fs  obj=%-11d Z1=%-8s Z2=%-6s Z3=%-8s  ran %.0fs"
-      % (p, tag or sys.argv[1], T, int(o), c.get("obj1"), c.get("obj2"), c.get("obj3"), el),
+# FEAS is printed, not assumed.  _total returns inf for an infeasible solution, which reads as
+# a huge objective and could be mistaken for a bad-but-legal run; and arms that screen the
+# objective for speed need the geometric verdict stated out loud rather than inferred.
+_feas = "?" if c is None else ("y" if c.get("feasible") else "NO")
+print("P%-2d %-12s %5.0fs  obj=%-11d Z1=%-8s Z2=%-6s Z3=%-8s  feas=%-3s ran %.0fs"
+      % (p, tag or sys.argv[1], T, int(o), c.get("obj1") if c else "-",
+         c.get("obj2") if c else "-", c.get("obj3") if c else "-", _feas, el),
       flush=True)
