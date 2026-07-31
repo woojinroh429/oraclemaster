@@ -32,9 +32,12 @@ run () {  # prob limit shadow
     tail -1 "$out"
     ( cd .. && git add -f "session2/recon/$out" >/dev/null 2>&1 )
 }
+# P3 first: it is the cheapest pair (240s each) and the instance that is most stuck, so it is
+# the fastest read on whether shadow generalises at all.  Its Z1 is 0, so it also isolates what
+# the term does to Z2/Z3 with tardiness out of the way.
+run 3 240 0.0
+run 3 240 1.5
 run 4 480 0.0        # P4 control on this engine
 run 4 480 1.5        # the overfitting check that decides adoption
 run 5 600 4.0        # where the term turns
-run 3 240 0.0
-run 3 240 1.5
 echo "done  $(date -u +%H:%M:%S)"
