@@ -321,7 +321,7 @@ def _footprint_areas(prob):
     return out
 
 def _contact_beam(prob_info, deadline_s, B=24, K=4, pos_lam=0.1, prefw=0.0, order="edd", mum=1.0,
-                  cohort=0.0, shadow=0.0, span=0.0, lex=0, shadoww=0.0, conw=1.0,
+                  cohort=0.0, shadow=0.0, span=0.0, lex=0, shadoww=0.0, conw=1.0, swy=1.0, swx=0.01,
                   fut_beta=0.0, step=1, anchor_bays=None, anchor_order=None, stay_w=0.0, w3mul=None):
     """CONTACT-MAXIMISING beam.  Fixed dispatch
     order; per state each dispatched block takes its cross-bay best CONTACT position
@@ -424,13 +424,13 @@ def _contact_beam(prob_info, deadline_s, B=24, K=4, pos_lam=0.1, prefw=0.0, orde
                                                 float(pos_lam), float(prefw), float(mu),
                                                 float(w1), float(w2), float(w3_route), float(fut_beta),
                                                 float(_meanp), float(deadline_s), _anchor, _anchor_w,
-                                                float(_sc), 1.0, 0.01, float(cohort), float(shadow), float(span), int(lex), float(shadoww), float(conw))
+                                                float(_sc), float(swy), float(swx), float(cohort), float(shadow), float(span), int(lex), float(shadoww), float(conw))
                 else:
                     _ob, _flat = E.contact_beam(order_ids, areas_l, wl, int(B), int(K), int(step),
                                                 float(pos_lam), float(prefw), float(mu),
                                                 float(w1), float(w2), float(w3_route), float(fut_beta),
                                                 float(_meanp), float(deadline_s), [], [],
-                                                float(_sc), 1.0, 0.01, float(cohort), float(shadow), float(span), int(lex), float(shadoww), float(conw))
+                                                float(_sc), float(swy), float(swx), float(cohort), float(shadow), float(span), int(lex), float(shadoww), float(conw))
                 if _flat and len(_flat) == 7 * n:
                     return {int(_flat[i]): {"block_id": int(_flat[i]), "bay_id": int(_flat[i + 1]),
                                             "orient_idx": int(_flat[i + 2]), "x": int(_flat[i + 3]),
@@ -719,7 +719,7 @@ def _beam_once(prob_info, budget, cfg, share=1.0):
                               K=(1 if cfg.get("lex") else cfg["K"]),
                               pos_lam=cfg["pos_lam"], order=cfg["order"],
                               fut_beta=cfg["fut_beta"], prefw=cfg["prefw"],
-                              w3mul=cfg["w3mul"], cohort=cfg.get("cohort", 0.0), shadow=cfg.get("shadow", 0.0), span=cfg.get("span", 0.0), lex=cfg.get("lex", 0.0), shadoww=cfg.get("shadoww", 0.0), conw=cfg.get("conw", 1.0), step=step)
+                              w3mul=cfg["w3mul"], mum=cfg.get("mum", 1.0), cohort=cfg.get("cohort", 0.0), shadow=cfg.get("shadow", 0.0), span=cfg.get("span", 0.0), lex=cfg.get("lex", 0.0), shadoww=cfg.get("shadoww", 0.0), conw=cfg.get("conw", 1.0), swy=cfg.get("swy", 1.0), swx=cfg.get("swx", 0.01), step=step)
         except Exception:
             r = None
         if r:
@@ -837,7 +837,7 @@ def _regrow(prob_info, sol, budget, cfg, stay, share=1.0, anchor=None, mum=1.0):
         r = _contact_beam(prob_info, budget, B=B, K=cfg["K"], pos_lam=cfg["pos_lam"],
                           order=cfg["order"], fut_beta=cfg["fut_beta"], prefw=cfg["prefw"],
                           w3mul=cfg["w3mul"], anchor_bays=ab, anchor_order=ao, stay_w=stay,
-                          mum=mum, cohort=cfg.get("cohort", 0.0), shadow=cfg.get("shadow", 0.0), span=cfg.get("span", 0.0), lex=cfg.get("lex", 0.0), shadoww=cfg.get("shadoww", 0.0), conw=cfg.get("conw", 1.0))
+                          mum=mum, cohort=cfg.get("cohort", 0.0), shadow=cfg.get("shadow", 0.0), span=cfg.get("span", 0.0), lex=cfg.get("lex", 0.0), shadoww=cfg.get("shadoww", 0.0), conw=cfg.get("conw", 1.0), swy=cfg.get("swy", 1.0), swx=cfg.get("swx", 0.01))
     except Exception:
         return None
     return _recs_to_ops(r, n) if r else None
