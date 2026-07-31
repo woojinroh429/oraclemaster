@@ -65,9 +65,15 @@ print("   %d of %d blocks are not in their preferred bay, costing %.0f of Z3"
 
 
 def fits(E, b, bay, en, ex):
-    """Any feasible (orient, x, y) for b in bay over [en, ex), against the current timeline."""
+    """Any feasible (orient, x, y) for b in bay over [en, ex), against the current timeline.
+
+    feasible_scan, not feasible_scan_win.  The windowed variant restricts the scan to a list of
+    rectangles and loops `for r in 0..R`, so an EMPTY rect list scans nothing and returns an empty
+    array for every input -- which is what the first cut of this file passed.  Every block came
+    back "blocked" because the question was never asked.
+    """
     try:
-        out = E.feasible_scan_win(int(b), int(bay), int(en), int(ex), 1, [])
+        out = E.feasible_scan(int(b), [int(bay)], int(en), int(ex), 1)
         return len(out) > 0
     except Exception:
         return False
