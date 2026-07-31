@@ -14,3 +14,4 @@ P5  BGRASP k=3 axis=1 10 draws in 586s  obj=9842614      Z1=708.0   Z2=3001   Z3
 P5  BGRASP k=5 axis=1 10 draws in 586s  obj=9968884      Z1=713.0   Z2=800    Z3=3435.0   feasible=True
 [01:19:34] END   bg-5-k5
 [01:19:34] START bg-4-k3
+   draw 1   obj=3604475       at 47s
