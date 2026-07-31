@@ -694,6 +694,10 @@ struct Engine {
                                                      ix+l0x,ix+l0x+l0w,bayW);
                         if(shad_lam>0.0) sc += shad_lam*shadow_excess(bid,oi)
                                                *((double)(ex-cur)/std::max(1.0,mean_proc));
+                        // A long stay holds the sterilised cells for longer, so the waste is
+                        // charged in space-TIME, matching how shad_lam already scales.
+                        if(shadw_lam>0.0) sc += shadw_lam*shadow_waste(bid,oi,ix,iy,occ,bayW,bayH)
+                                               *((double)(ex-cur)/std::max(1.0,mean_proc));
                     }
                     if(fut_beta>0.0){
                         // FUTURE-VALUE (reference fut_beta): push blocks toward walls so the bay
@@ -1110,6 +1114,10 @@ struct Engine {
                                                      ix+l0x,ix+l0x+l0w,bayW);
                         if(shad_lam>0.0) sc += shad_lam*shadow_excess(bid,oi)
                                                *((double)(ex-cur)/std::max(1.0,mean_proc));
+                        // A long stay holds the sterilised cells for longer, so the waste is
+                        // charged in space-TIME, matching how shad_lam already scales.
+                        if(shadw_lam>0.0) sc += shadw_lam*shadow_waste(bid,oi,ix,iy,occ,bayW,bayH)
+                                               *((double)(ex-cur)/std::max(1.0,mean_proc));
                     }
                     if(fut_beta>0.0){ double dl=(double)ix+od.x0,dr=bw_j-((double)ix+od.x1);
                         double db=(double)iy+od.y0,dt=bh_j-((double)iy+od.y1);
@@ -1251,6 +1259,9 @@ struct Engine {
     // that overhangs has been free.  (union/layer0 - 1) is exactly that excess, dimensionless,
     // and it is owed for as long as the block stays.
     double shad_lam=0.0;
+    // shadw_lam: the POSITION-dependent companion to shad_lam.  shad_lam scores a shape, this
+    // scores a placement -- how many otherwise-free cells this placement's overhang sterilises.
+    double shadw_lam=0.0;
     std::map<int,double> _shexcache;
     double shadow_excess(int bid,int oi){
         int key=bid*64+oi; auto it=_shexcache.find(key);
@@ -1262,6 +1273,52 @@ struct Engine {
         double v=(l0>0)?((double)un/(double)l0-1.0):0.0;
         _shexcache.emplace(key,v); return v;
     }
+    // OVERHANG MASK: the cells a placement sterilises BEYOND its own layer 0.
+    //
+    // A block descending to its layer 0 is blocked by every layer j >= 0 of what is already
+    // there, so a placed block denies its whole UNION footprint to later arrivals -- not just
+    // the layer 0 it visually occupies.  union minus layer 0 is that surplus.
+    //
+    // shadow_excess already measured the surplus as a RATIO per (block, orientation), which is
+    // why shad_lam could only pick orientations: it has no position and cannot move anything.
+    // Measured on P5, shadow=0.0 and 0.5 returned identical objectives to the digit.
+    //
+    // What decides the surplus's real cost is WHERE it lands.  Over cells that are already
+    // occupied it costs nothing; over free cells it kills them for everyone who comes later.
+    // So the mask is cached once per (block, orientation) as offsets from the placement origin,
+    // and the per-candidate work is only over the overhang, which is small.
+    const std::vector<std::pair<int,int>>& shadow_mask(int bid,int oi){
+        int key=bid*64+oi; auto it=_shmcache.find(key);
+        if(it!=_shmcache.end()) return it->second;
+        const FP& u=footprint(bid,oi);
+        const FPL& pl=footprintL(bid,oi);
+        std::vector<std::pair<int,int>> m;
+        for(int r=0;r<u.ch;r++) for(int c=0;c<u.cw;c++){
+            if(!u.g[(size_t)r*u.cw+c]) continue;
+            int gx=u.cx0+c, gy=u.cy0+r;                 // offsets from the placement origin
+            bool inL0=false;
+            if(pl.nl>0){
+                int lr=gy-pl.cy0[0], lc=gx-pl.cx0[0];
+                if(lr>=0&&lr<pl.ch[0]&&lc>=0&&lc<pl.cw[0])
+                    inL0 = pl.g[0][(size_t)lr*pl.cw[0]+lc]!=0;
+            }
+            if(!inL0) m.push_back({gx,gy});             // surplus: shadowed but not occupied
+        }
+        return _shmcache.emplace(key,std::move(m)).first->second;
+    }
+    // how much of this placement's overhang falls on space that is currently FREE
+    inline double shadow_waste(int bid,int oi,int ix,int iy,
+                               const std::vector<int16_t>& occ,int bayW,int bayH){
+        const std::vector<std::pair<int,int>>& m=shadow_mask(bid,oi);
+        int n=0;
+        for(const auto& d : m){
+            int gx=ix+d.first, gy=iy+d.second;
+            if(gx<0||gy<0||gx>=bayW||gy>=bayH) continue;
+            if(!occ[(size_t)gy*bayW+gx]) n++;
+        }
+        return (double)n;
+    }
+    std::map<int,std::vector<std::pair<int,int>>> _shmcache;
     bool COHORT_on() const { return coh_floor>0.0; }
     double COHORT_FLOORV() const { return coh_floor; }
     static bool CBPROF_on(){ static const int v=[](){const char*e=getenv("OGC_CBPROF");return(e&&e[0]=='1')?1:0;}(); return v; }
@@ -1283,7 +1340,7 @@ struct Engine {
                  int B, int K, int step, double pos_lam, double prefw, double mu,
                  double w1, double w2, double w3, double fut_beta, double mean_proc, double time_budget_s,
                  std::vector<int> anchor=std::vector<int>(), std::vector<double> anchor_w=std::vector<double>(),
-                 double area_scale=1.0, double swy=1.0, double swx=0.01, double cohort=0.0, double shadow=0.0, double span=0.0, int lex=0){
+                 double area_scale=1.0, double swy=1.0, double swx=0.01, double cohort=0.0, double shadow=0.0, double span=0.0, int lex=0, double shadoww=0.0){
         sw_y=swy; sw_x=swx; coh_floor=cohort; span_lam=span; lex_on=(lex!=0);
         if(lex_on){
             int nb_=(int)areas.size();
@@ -1292,7 +1349,7 @@ struct Engine {
             _issmall.assign(nb_,0);
             for(int r=0;r<nb_;r++)
                 if((double)r/std::max(1,nb_-1) >= lex_thr) _issmall[ord_[r]]=1;
-        } shad_lam=shadow;
+        } shad_lam=shadow; shadw_lam=shadoww;
         cb_anchor=std::move(anchor); cb_anchor_w=std::move(anchor_w);
         wl_total=0.0; for(double v: workloads) wl_total+=v;
         int nb=(int)shapes.size();
@@ -2927,7 +2984,7 @@ PYBIND11_MODULE(ogc_fast,m){
              py::arg("w1"),py::arg("w2"),py::arg("w3"),py::arg("fut_beta"),
              py::arg("mean_proc"),py::arg("time_budget_s"),
              py::arg("anchor")=std::vector<int>(),py::arg("anchor_w")=std::vector<double>(),
-             py::arg("area_scale")=1.0,py::arg("swy")=1.0,py::arg("swx")=0.01,py::arg("cohort")=0.0,py::arg("shadow")=0.0,py::arg("span")=0.0,py::arg("lex")=0)
+             py::arg("area_scale")=1.0,py::arg("swy")=1.0,py::arg("swx")=0.01,py::arg("cohort")=0.0,py::arg("shadow")=0.0,py::arg("span")=0.0,py::arg("lex")=0,py::arg("shadoww")=0.0)
         .def("set_bcl_prefw",&Engine::set_bcl_prefw)
         .def("wide_beam",&Engine::wide_beam,
              py::arg("order"),py::arg("areas"),py::arg("workloads"),py::arg("B"),py::arg("K"),

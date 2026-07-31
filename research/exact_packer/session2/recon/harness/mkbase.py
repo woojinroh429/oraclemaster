@@ -42,6 +42,13 @@ PLMUL  = float(sys.argv[6]) if len(sys.argv) > 6 else 1.0
 # Diversity comes from the dispatch order, exactly as the deployed build does it: pure order
 # changes leave feasibility alone and best-of keeps the minimum, so the axes are never-worse.
 LEX    = sys.argv[7] if len(sys.argv) > 7 else ""
+# SHADOWW: the position-dependent overhang penalty.  shad_lam (SHADOW) scores a SHAPE -- its
+# shadow_excess is cached on (block, orientation) and takes no position, so it can only pick
+# orientations, and a P5 sweep of it returned identical objectives at 0.0 and 0.5.  This one
+# scores a PLACEMENT: how many otherwise-free cells the overhang sterilises where it actually
+# lands.  Justified by measurement -- on a shipped P5 solution, a third of each block's legal
+# positions in its own bay, and half across all bays, are lost to descent shadows.
+SHADOWW = float(sys.argv[8]) if len(sys.argv) > 8 else 0.0
 OUT = os.path.join(HERE, sys.argv[2] if len(sys.argv) > 2 else "myalg_base.py")
 
 if not os.path.exists(ORIG):
@@ -59,19 +66,20 @@ assert '"rel"' not in s, "myalg_orig.py already has the rel axis -- wrong commit
 s = s.replace(
     'def _contact_beam(prob_info, deadline_s, B=24, K=4, pos_lam=0.1, prefw=0.0, order="edd", mum=1.0,',
     'def _contact_beam(prob_info, deadline_s, B=24, K=4, pos_lam=0.1, prefw=0.0, order="edd", mum=1.0,\n'
-    '                  cohort=0.0, shadow=0.0, span=0.0, lex=0,', 1)
+    '                  cohort=0.0, shadow=0.0, span=0.0, lex=0, shadoww=0.0,', 1)
 # contact_beam(..., area_scale, swy, swx, cohort); 1.0/0.01 are the defaults the orig relied on
 n = s.count("float(_sc))")
 assert n == 2, "expected two E.contact_beam call sites, found %d" % n
 s = s.replace("float(_sc))",
-              "float(_sc), 1.0, 0.01, float(cohort), float(shadow), float(span), int(lex))")
+              "float(_sc), 1.0, 0.01, float(cohort), float(shadow), float(span), int(lex),"
+              " float(shadoww))")
 
 # Every knob has to reach _contact_beam from the axis dict, and each one used to be threaded by
 # its own chained replace against a string the previous replace had already rewritten.  span and
 # lex silently missed: the axes carried span=4.0 and _contact_beam still got its 0.0 default, so
 # a whole 300s sweep measured the control four times over and read as "the term does nothing".
 # One list, asserted, so a knob that fails to thread stops the build instead of the experiment.
-_KNOBS = ["cohort", "shadow", "span", "lex"]
+_KNOBS = ["cohort", "shadow", "span", "lex", "shadoww"]
 _FWD = ", ".join('%s=cfg.get("%s", 0.0)' % (k, k) for k in _KNOBS)
 for _old, _new in ((' w3mul=cfg["w3mul"], step=step)',
                     ' w3mul=cfg["w3mul"], ' + _FWD + ', step=step)'),
@@ -196,6 +204,9 @@ if SPAN:
     AXES = AXES.replace('cohort=' + repr(FLOOR), 'cohort=%s, span=%s' % (repr(FLOOR), repr(SPAN)))
 if SHADOW:
     AXES = AXES.replace("cohort=" + repr(FLOOR), "cohort=%s, shadow=%s" % (repr(FLOOR), repr(SHADOW)))
+if SHADOWW:
+    AXES = AXES.replace("cohort=" + repr(FLOOR),
+                        "cohort=%s, shadoww=%s" % (repr(FLOOR), repr(SHADOWW)))
 if ORDER:
     AXES = AXES.replace('order="defer_big", fut_beta=1.0, prefw=0.0, w3mul=3.0',
                         'order="%s", fut_beta=1.0, prefw=0.0, w3mul=3.0' % ORDER)
