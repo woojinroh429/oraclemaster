@@ -106,20 +106,21 @@ assert '"rel"' not in s, "myalg_orig.py already has the rel axis -- wrong commit
 s = s.replace(
     'def _contact_beam(prob_info, deadline_s, B=24, K=4, pos_lam=0.1, prefw=0.0, order="edd", mum=1.0,',
     'def _contact_beam(prob_info, deadline_s, B=24, K=4, pos_lam=0.1, prefw=0.0, order="edd", mum=1.0,\n'
-    '                  cohort=0.0, shadow=0.0, span=0.0, lex=0, shadoww=0.0, conw=1.0, swy=1.0, swx=0.01, span2=0.0,', 1)
+    '                  cohort=0.0, shadow=0.0, span=0.0, lex=0, shadoww=0.0, conw=1.0, swy=1.0, swx=0.01, span2=0.0,\n'
+    '                  hmatch=0.0,', 1)
 # contact_beam(..., area_scale, swy, swx, cohort); 1.0/0.01 are the defaults the orig relied on
 n = s.count("float(_sc))")
 assert n == 2, "expected two E.contact_beam call sites, found %d" % n
 s = s.replace("float(_sc))",
               "float(_sc), float(swy), float(swx), float(cohort), float(shadow), float(span), int(lex),"
-              " float(shadoww), float(conw), float(span2))")
+              " float(shadoww), float(conw), float(span2), float(hmatch))")
 
 # Every knob has to reach _contact_beam from the axis dict, and each one used to be threaded by
 # its own chained replace against a string the previous replace had already rewritten.  span and
 # lex silently missed: the axes carried span=4.0 and _contact_beam still got its 0.0 default, so
 # a whole 300s sweep measured the control four times over and read as "the term does nothing".
 # One list, asserted, so a knob that fails to thread stops the build instead of the experiment.
-_KNOBS = ["cohort", "shadow", "span", "lex", "shadoww", "span2"]
+_KNOBS = ["cohort", "shadow", "span", "lex", "shadoww", "span2", "hmatch"]
 _FWD = ", ".join('%s=cfg.get("%s", 0.0)' % (k, k) for k in _KNOBS)
 # conw is the one knob whose neutral value is 1.0 rather than 0.0 -- it SCALES contact rather
 # than adding a penalty -- so it cannot ride the shared default above.
@@ -143,6 +144,14 @@ for _old, _new in ((' w3mul=cfg["w3mul"], step=step)',
                     '                          mum=mum, ' + _FWD + ')')):
     assert s.count(_old) == 1, "cfg -> _contact_beam forwarding site not found: %r" % _old
     s = s.replace(_old, _new, 1)
+
+# A knob that reaches the CALL but not the SIGNATURE raises TypeError inside _beam_once's bare
+# except, which returns None and reads as "the beam found nothing" -- the silent failure this
+# file already lost a 300s sweep to.  Check both ends of every knob, once.
+_sig = s.split("def _contact_beam(", 1)[1].split("):", 1)[0]
+for _k in _KNOBS + ["conw", "swy", "swx"]:
+    assert ("%s=" % _k) in _sig, \
+        "knob %r reaches the call site but not _contact_beam's signature" % _k
 
 # A lex axis is a single greedy pass: one state, one successor.  No new entry point needed.
 _old = 'B=_beam_width(cfg["Bmul"]), K=cfg["K"],'
@@ -284,6 +293,12 @@ if SWX:
     AXES = re.sub(r"cohort=[0-9.]+", lambda m: m.group(0) + ", swx=" + repr(float(SWX)), AXES)
 if SPAN2:
     AXES = re.sub(r"cohort=[0-9.]+", lambda m: m.group(0) + ", span2=" + repr(float(SPAN2)), AXES)
+# hmatch charges the mean |my height - neighbour height| over the placement's touching boundary
+# cells.  It does not weaken contact -- the block still wants to nestle -- it only decides WHOM
+# it nestles against, which is the thing conw=0.0 fixed by throwing tightness away entirely.
+HMATCH = os.environ.get("OGC_HMATCH", "").strip()
+if HMATCH:
+    AXES = re.sub(r"cohort=[0-9.]+", lambda m: m.group(0) + ", hmatch=" + repr(float(HMATCH)), AXES)
 
 # OGC_DIV -- give a knob a DIFFERENT value on each axis instead of one value everywhere.
 #

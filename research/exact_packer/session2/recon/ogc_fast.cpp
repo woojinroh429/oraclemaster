@@ -628,6 +628,10 @@ struct Engine {
             }
             // Same runs, every row instead of just the floor.  Built here so the candidate loop
             // only indexes them, exactly as the 1-D version is.
+            // per-cell stack height, built here for the same reason the run tables are:
+            // once per window, O(1) per candidate.
+            static thread_local std::vector<int8_t> hgt;
+            if(hmatch_lam>0.0) buildHgt(timeline[bay],cur,ex,bayW,bayH,hgt);
             static thread_local std::vector<int> r2L, r2R, r2M1, r2M2;
             if(span2_lam>0.0){
                 r2L.assign((size_t)bayW*bayH,-1); r2R.assign((size_t)bayW*bayH,-1);
@@ -716,6 +720,8 @@ struct Engine {
                                                *((double)(ex-cur)/std::max(1.0,mean_proc));
                         if(span2_lam>0.0)
                             sc += span2_lam*span2_drop(r2L,r2R,r2M1,r2M2,fp,ix,iy,bayW,bayH);
+                        if(hmatch_lam>0.0)
+                            sc += hmatch_lam*hmatch_at(fp,footprintH(bid,oi),ix,iy,hgt,bayW,bayH);
                         // A long stay holds the sterilised cells for longer, so the waste is
                         // charged in space-TIME, matching how shad_lam already scales.
                         if(shadw_lam>0.0) sc += shadw_lam*shadow_waste(bid,oi,ix,iy,occ,bayW,bayH)
@@ -989,6 +995,10 @@ struct Engine {
             }
             // Same runs, every row instead of just the floor.  Built here so the candidate loop
             // only indexes them, exactly as the 1-D version is.
+            // per-cell stack height, built here for the same reason the run tables are:
+            // once per window, O(1) per candidate.
+            static thread_local std::vector<int8_t> hgt;
+            if(hmatch_lam>0.0) buildHgt(TL[bay],cur,ex,bayW,bayH,hgt);
             static thread_local std::vector<int> r2L, r2R, r2M1, r2M2;
             if(span2_lam>0.0){
                 r2L.assign((size_t)bayW*bayH,-1); r2R.assign((size_t)bayW*bayH,-1);
@@ -1158,6 +1168,8 @@ struct Engine {
                                                *((double)(ex-cur)/std::max(1.0,mean_proc));
                         if(span2_lam>0.0)
                             sc += span2_lam*span2_drop(r2L,r2R,r2M1,r2M2,fp,ix,iy,bayW,bayH);
+                        if(hmatch_lam>0.0)
+                            sc += hmatch_lam*hmatch_at(fp,footprintH(bid,oi),ix,iy,hgt,bayW,bayH);
                         // A long stay holds the sterilised cells for longer, so the waste is
                         // charged in space-TIME, matching how shad_lam already scales.
                         if(shadw_lam>0.0) sc += shadw_lam*shadow_waste(bid,oi,ix,iy,occ,bayW,bayH)
@@ -1321,6 +1333,7 @@ struct Engine {
     // rule; 0.0 removes contact from candidate choice entirely and lets position decide.
     // (mum already scales the STATE-level contact term, so the two levels are separable.)
     double span2_lam=0.0;
+    double hmatch_lam=0.0;
     double con_w=1.0;
     double shad_lam=0.0;
     // shadw_lam: the POSITION-dependent companion to shad_lam.  shad_lam scores a shape, this
@@ -1412,7 +1425,7 @@ struct Engine {
                  int B, int K, int step, double pos_lam, double prefw, double mu,
                  double w1, double w2, double w3, double fut_beta, double mean_proc, double time_budget_s,
                  std::vector<int> anchor=std::vector<int>(), std::vector<double> anchor_w=std::vector<double>(),
-                 double area_scale=1.0, double swy=1.0, double swx=0.01, double cohort=0.0, double shadow=0.0, double span=0.0, int lex=0, double shadoww=0.0, double conw=1.0, double span2=0.0){
+                 double area_scale=1.0, double swy=1.0, double swx=0.01, double cohort=0.0, double shadow=0.0, double span=0.0, int lex=0, double shadoww=0.0, double conw=1.0, double span2=0.0, double hmatch=0.0){
         sw_y=swy; sw_x=swx; coh_floor=cohort; span_lam=span; lex_on=(lex!=0);
         if(lex_on){
             int nb_=(int)areas.size();
@@ -1421,7 +1434,7 @@ struct Engine {
             _issmall.assign(nb_,0);
             for(int r=0;r<nb_;r++)
                 if((double)r/std::max(1,nb_-1) >= lex_thr) _issmall[ord_[r]]=1;
-        } shad_lam=shadow; shadw_lam=shadoww; con_w=conw; span2_lam=span2;
+        } shad_lam=shadow; shadw_lam=shadoww; con_w=conw; span2_lam=span2; hmatch_lam=hmatch;
         cb_anchor=std::move(anchor); cb_anchor_w=std::move(anchor_w);
         wl_total=0.0; for(double v: workloads) wl_total+=v;
         int nb=(int)shapes.size();
@@ -2039,6 +2052,92 @@ struct Engine {
                 if(L.bits[(size_t)r*L.wpr+(c>>6)] & (1ULL<<(c&63))) fp.g[k][(size_t)r*L.cw+c]=1;
         }
         return _fplcache.emplace(key,std::move(fp)).first->second;
+    }
+    // ---- HEIGHT-MATCHED CONTACT ------------------------------------------------------------
+    //
+    // What the descent rule actually rations.  A landing block's layer k is refused by anything
+    // resting at a layer j >= k in the same column, so for a cell whose current stack height is
+    // h, the layer indices still usable there are exactly k >= h.  Occupancy is not the
+    // resource; HEIGHT is.  A one-layer resident is nearly free ground for any overhang, while
+    // a four-layer one sterilises its cells against every layer of everything.
+    //
+    // That matters on this problem because overhangs are the norm, not the exception: on the
+    // real hidden P3, 1,352 of the 1,588 (block, orientation) pairs have an upper layer that
+    // extends past their own layer 0.
+    //
+    // And it explains a result that otherwise makes no sense.  Turning candidate contact off
+    // entirely (conw=0.0) is the best P3 configuration measured -- 87,560 against 96,990 -- and
+    // the worst P4 one, +25.9%.  A block always lands on cells that are completely free, so the
+    // total sterilised volume it creates is the same wherever it goes: position cannot change
+    // how much height is added, only where.  What contact gets wrong is not that it packs
+    // tightly but that it is indifferent about WHOM it packs against -- a four-layer block
+    // pressed against a one-layer block scores exactly as well as against another four-layer
+    // one, and it leaves a height cliff where a broad low plateau could have been.  Overhangs
+    // need those plateaus.  conw=0.0 fixes it by abandoning tightness altogether, which is why
+    // it cannot survive an instance that needs every cell.
+    //
+    // So charge the MISMATCH instead of the contact.  Summed over the placement's boundary
+    // cells that touch something, the difference in stack height between this block and its
+    // neighbour there, averaged so the term is a mean in layers and does not simply scale with
+    // block size.  Tall settles beside tall and short beside short; the packing stays as tight
+    // as contact wants it, and the low ground stays in one piece.
+    std::map<int,std::vector<int8_t>> _fphcache;
+    const std::vector<int8_t>& footprintH(int bid,int oi){
+        int key=bid*64+oi; auto it=_fphcache.find(key); if(it!=_fphcache.end()) return it->second;
+        const FP& fp=footprint(bid,oi); const FPL& fl=footprintL(bid,oi);
+        std::vector<int8_t> h((size_t)std::max(0,fp.cw*fp.ch),0);
+        for(int k=0;k<fl.nl;k++){ if(fl.cw[k]==0) continue;
+            for(int r=0;r<fl.ch[k];r++) for(int c=0;c<fl.cw[k];c++)
+                if(fl.g[k][(size_t)r*fl.cw[k]+c]){
+                    int gc=(fl.cx0[k]+c)-fp.cx0, gr=(fl.cy0[k]+r)-fp.cy0;
+                    if(gc>=0&&gc<fp.cw&&gr>=0&&gr<fp.ch){
+                        int8_t& v=h[(size_t)gr*fp.cw+gc];
+                        if(v<(int8_t)(k+1)) v=(int8_t)(k+1); }
+                }
+        }
+        return _fphcache.emplace(key,std::move(h)).first->second;
+    }
+    // per-cell stack height of everything resting in the bay during [en,ex).  Built once per
+    // (bay, window) beside occ, so the candidate loop only indexes it.
+    void buildHgt(const std::vector<Placed>& btl,int en,int ex,int bayW,int bayH,
+                  std::vector<int8_t>& hgt){
+        hgt.assign((size_t)bayW*bayH,0);
+        for(const Placed& te: btl){
+            if(!(en<te.ex && te.en<ex)) continue;
+            const FP& fp=footprint(te.bid,te.orient);
+            const std::vector<int8_t>& fh=footprintH(te.bid,te.orient);
+            int tox=(int)std::floor(te.ox+0.5), toy=(int)std::floor(te.oy+0.5);
+            for(int r=0;r<fp.ch;r++) for(int c=0;c<fp.cw;c++){
+                if(!fp.g[(size_t)r*fp.cw+c]) continue;
+                int wx=tox+fp.cx0+c, wy=toy+fp.cy0+r;
+                if(wx<0||wx>=bayW||wy<0||wy>=bayH) continue;
+                int8_t& v=hgt[(size_t)wy*bayW+wx];
+                int8_t mine=fh[(size_t)r*fp.cw+c];
+                if(v<mine) v=mine;
+            }
+        }
+    }
+    // mean |my height - neighbour's height| over the boundary cells that touch an occupied
+    // cell.  Walls and free neighbours are skipped: a wall matches anything and free ground has
+    // no height to clash with, so neither should push the block away from it.
+    static double hmatch_at(const FP& fp,const std::vector<int8_t>& fh,int ix,int iy,
+                            const std::vector<int8_t>& hgt,int bayW,int bayH){
+        static const int DX[4]={1,-1,0,0}, DY[4]={0,0,1,-1};
+        double tot=0.0; int nb=0;
+        for(int r=0;r<fp.ch;r++) for(int c=0;c<fp.cw;c++){
+            if(!fp.g[(size_t)r*fp.cw+c]) continue;
+            int mh=fh[(size_t)r*fp.cw+c];
+            for(int q=0;q<4;q++){
+                int nc=c+DX[q], nr=r+DY[q];
+                if(nc>=0&&nc<fp.cw&&nr>=0&&nr<fp.ch && fp.g[(size_t)nr*fp.cw+nc]) continue;
+                int wx=ix+fp.cx0+nc, wy=iy+fp.cy0+nr;
+                if(wx<0||wx>=bayW||wy<0||wy>=bayH) continue;
+                int nh=hgt[(size_t)wy*bayW+wx];
+                if(!nh) continue;
+                tot += (double)std::abs(mh-nh); nb++;
+            }
+        }
+        return nb? tot/(double)nb : 0.0;
     }
     // per-layer occupancy: occL[k] = union of present blocks' layer-k footprints (layer-aligned).
     void buildOccL(const std::vector<Placed>& btl,int en,int ex,int bayW,int bayH,int maxL,
@@ -3095,7 +3194,7 @@ PYBIND11_MODULE(ogc_fast,m){
              py::arg("w1"),py::arg("w2"),py::arg("w3"),py::arg("fut_beta"),
              py::arg("mean_proc"),py::arg("time_budget_s"),
              py::arg("anchor")=std::vector<int>(),py::arg("anchor_w")=std::vector<double>(),
-             py::arg("area_scale")=1.0,py::arg("swy")=1.0,py::arg("swx")=0.01,py::arg("cohort")=0.0,py::arg("shadow")=0.0,py::arg("span")=0.0,py::arg("lex")=0,py::arg("shadoww")=0.0,py::arg("conw")=1.0,py::arg("span2")=0.0)
+             py::arg("area_scale")=1.0,py::arg("swy")=1.0,py::arg("swx")=0.01,py::arg("cohort")=0.0,py::arg("shadow")=0.0,py::arg("span")=0.0,py::arg("lex")=0,py::arg("shadoww")=0.0,py::arg("conw")=1.0,py::arg("span2")=0.0,py::arg("hmatch")=0.0)
         .def("set_bcl_prefw",&Engine::set_bcl_prefw)
         .def("wide_beam",&Engine::wide_beam,
              py::arg("order"),py::arg("areas"),py::arg("workloads"),py::arg("B"),py::arg("K"),
