@@ -15,3 +15,4 @@ P4 myalg_base start obj=1980881 Z1=103.0 Z2=1576 Z3=3977.0
    round 1   obj=2471756    Z2=1698   Z3=3955.0    50 blocks moved    at 47s
    round 2   obj=2471756    Z2=1698   Z3=3955.0    50 blocks moved    at 94s
    round 3   obj=2471756    Z2=1698   Z3=3955.0    50 blocks moved    at 141s
+   round 4   obj=2471756    Z2=1698   Z3=3955.0    50 blocks moved    at 188s
