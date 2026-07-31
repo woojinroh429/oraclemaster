@@ -13,6 +13,7 @@ myalg_prev.py
 !results/*.log
 myalg_c*.py
 myalg_sh*.py
+myalg_sw*.py
 myalg_co.py
 myalg_sp*.py
 myalg_pl*.py
