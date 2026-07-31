@@ -114,18 +114,61 @@ assert s.count(_o) == 1, 'order rule anchor not found'
 s = s.replace(_o, _ORDER_RULES, 1)
 
 
-# The beam takes its dispatch order as a fixed input and never varies it, which is what makes it
-# deterministic wherever it completes -- on P5 both cohort arms were bit-identical across runs,
-# so the budget beyond the first beam buys literally nothing.  That is the same pathology the
-# fixed construction had on P6, and GRASP fixed it there.  Accepting an explicit permutation is
-# all the beam needs to be drawable the same way.
-_o = "        order_ids = sorted(range(n), key=lambda b: ordv[b])"
-assert s.count(_o) == 1, "order_ids anchor not found"
-s = s.replace(_o,
-              "        if isinstance(order, (list, tuple)):\n"
-              "            order_ids = [int(b) for b in order]\n"
-              "        else:\n"
-              "            order_ids = sorted(range(n), key=lambda b: ordv[b])", 1)
+# Per-axis draws.  The worker cycles the axis list -- axes[gen % L] -- so once it has been round
+# once, every further visit re-runs a beam that is deterministic in its dispatch order and
+# returns the identical answer.  On P5 a 600s worker fits about ten beams over six axes, so four
+# of them are exact repeats and their budget is simply discarded.
+#
+# So: an axis's FIRST visit keeps its fixed order, which makes the first pass byte-identical to
+# today and the whole thing never-worse through best-of; every later visit draws its order from
+# the top-k of what remains, the same relaxation that was worth -11.0% on a single P5 axis and
+# the last 2% on P6.  dk=0 disables it and restores exact current behaviour for A/B.
+_DRAW_PATCH = '''
+_DRAWN = {}
+_DRAW_RNG = random.Random(20260731)
+
+
+def _draw_order(prob_info, cfg, k):
+    """A uniform pick from the top-k of what remains, under this axis's own priority."""
+    n = len(prob_info["blocks"])
+    B = prob_info["blocks"]
+    AR, _bc, _sc = _footprint_areas(prob_info)
+    due = [b["due_date"] for b in B]
+    pt = [b["processing_time"] for b in B]
+    rel = [b["release_time"] for b in B]
+    o = cfg.get("order", "edd")
+    if o == "big_first":
+        ma = sum(AR) / n
+        ordv = [(1 if AR[b] >= 2.0 * ma else 0, due[b], AR[b] * 1e-9) for b in range(n)]
+    elif o == "defer_big":
+        ma = sum(AR) / n
+        r0 = (max(rel) * 0.2) if rel else 0
+        ordv = [(1 if (AR[b] >= 2.0 * ma and rel[b] > r0) else 0, due[b], -AR[b]) for b in range(n)]
+    elif o == "lst":
+        ordv = [(due[b] - pt[b], AR[b] * 1e-9) for b in range(n)]
+    else:
+        ordv = [(due[b], AR[b] * 1e-9) for b in range(n)]
+    pool = sorted(range(n), key=lambda b: ordv[b])
+    out = []
+    while pool:
+        out.append(pool.pop(_DRAW_RNG.randrange(min(k, len(pool)))))
+    return out
+'''
+s = s.replace("def _beam_once(", _DRAW_PATCH.strip() + "\n\n\ndef _beam_once(", 1)
+_o = """    n = len(prob_info["blocks"])
+    t0 = time.time()
+    for step, frac in ((1, 0.6), (2, 1.0)):"""
+assert s.count(_o) == 1, "_beam_once body anchor not found"
+s = s.replace(_o, """    n = len(prob_info["blocks"])
+    _dk = int(cfg.get("dk", 0) or 0)
+    if _dk > 1:
+        _key = (id(prob_info), cfg.get("order"), cfg.get("pos_lam"), cfg.get("w3mul"))
+        _seen = _DRAWN.get(_key, 0)
+        _DRAWN[_key] = _seen + 1
+        if _seen:                      # first visit keeps the fixed order; repeats would be
+            cfg = dict(cfg, order=_draw_order(prob_info, cfg, _dk))   # identical, so draw
+    t0 = time.time()
+    for step, frac in ((1, 0.6), (2, 1.0)):""", 1)
 
 AXES = '''_AXES = [
     dict(Bmul=1.0, K=4, pos_lam=0.10, order="defer_big", fut_beta=1.0, prefw=0.0, w3mul=1.0, cohort=0.0),
@@ -135,6 +178,10 @@ AXES = '''_AXES = [
     dict(Bmul=1.4, K=3, pos_lam=0.10, order="big_first", fut_beta=0.5, prefw=0.0, w3mul=6.0, cohort=%(F)s),
     dict(Bmul=0.5, K=6, pos_lam=0.20, order="defer_big", fut_beta=0.0, prefw=0.0, w3mul=1.5, cohort=0.0),
 ]'''
+DK = float(os.environ.get('OGC_DK', '3'))
+AXES = AXES.replace('cohort=%(F)s', 'cohort=%(F)s, dk=' + repr(int(DK)))
+AXES = AXES.replace('w3mul=1.0, cohort=0.0)', 'w3mul=1.0, cohort=0.0, dk=' + repr(int(DK)) + ')')
+AXES = AXES.replace('w3mul=1.5, cohort=0.0)', 'w3mul=1.5, cohort=0.0, dk=' + repr(int(DK)) + ')')
 AXES = AXES % {'F': repr(FLOOR)}
 if PLMUL != 1.0:
     AXES = re.sub(r"pos_lam=([0-9.]+)",
