@@ -133,22 +133,36 @@ print("   %d swaps applied: obj %d -> %d  (%+.2f%%),  Z2 %d -> %d,  Z3 %d -> %d"
 if not applied:
     sys.exit(0)
 
-print("\n[3] CAN THE ENGINE SEAT THE MOVERS?  (new bay, own entry window, everyone else fixed)")
+print("\n[3] CAN THE ENGINE SEAT THE PAIRS?")
+print("    A swap must be tested as a PAIR.  Checking each mover against everyone-else-fixed")
+print("    asks whether it fits while its own partner is still occupying the destination, which")
+print("    is the one thing a swap guarantees is not true.  Both are lifted out, then each is")
+print("    asked for a seat in the other's bay at its own unchanged entry window.")
 E = SC._ogc_fast_engine(d)
-movers = [b for b in range(n) if run[b] != cur[b]]
-ok = 0
-for b in movers:
+
+
+def seat(hold, b, j):
     E.clear_all()
     for q in range(n):
-        if q == b:
+        if q in hold:
             continue
         oi, x, y = place[q]
         E.add(int(cur[q]), int(q), int(oi), float(x), float(y), int(ent[q]), int(ext[q]))
-    got = len(E.feasible_scan(int(b), [int(run[b])], int(ent[b]), int(ext[b]), 1))
-    ok += 1 if got else 0
-    print("      blk %-4d  bay %d -> %d : %s"
-          % (b, cur[b], run[b], ("%d legal cells" % got) if got else "BLOCKED"))
-print("   %d of %d movers can be seated  -> %s"
-      % (ok, len(movers),
-         "the gain is physically available" if ok == len(movers)
+    return len(E.feasible_scan(int(b), [int(j)], int(ent[b]), int(ext[b]), 1))
+
+
+ok = 0
+for (a, b) in applied:
+    ja, jb = cur[a], cur[b]
+    ca = seat({a, b}, a, jb)
+    cb = seat({a, b}, b, ja)
+    good = ca > 0 and cb > 0
+    ok += 1 if good else 0
+    print("      %-4d (bay %d -> %d): %-6s   %-4d (bay %d -> %d): %-6s   %s"
+          % (a, ja, jb, ("%d" % ca) if ca else "BLOCK",
+             b, jb, ja, ("%d" % cb) if cb else "BLOCK",
+             "OK" if good else "swap not seatable"))
+print("   %d of %d swaps are seatable as pairs  -> %s"
+      % (ok, len(applied),
+         "the gain is physically available" if ok == len(applied)
          else "partially blocked; only part of the gain is reachable"), flush=True)
