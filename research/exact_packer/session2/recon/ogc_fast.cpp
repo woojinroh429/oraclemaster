@@ -297,20 +297,28 @@ struct Engine {
     static inline bool bb_ov(double a0,double a1,double a2,double a3,double b0,double b1,double b2,double b3){
         return !(a2<=b0||b2<=a0||a3<=b1||b3<=a1);
     }
-    // DIAGNOSTIC ONLY (env OGC_NOCRANE=1): drop the descent rule and keep everything else --
-    // real shapes, real overlap, real bay containment, real time windows.  P5's tardiness of 639
-    // is currently one number covering two different costs, and the area-only relaxation says
-    // capacity alone would allow Z1 = 8, so 631 units are "geometry" without saying which
-    // geometry.  Running with this on prices the descent rule by itself; whatever is left over
-    // the area bound is the cost of the shapes not tiling.  The two answers point at opposite
-    // fixes -- descent wants a flatter skyline and co-located tall blocks, tiling wants better
-    // orientation and nesting -- so the split decides where the work goes.
-    // Solutions produced under this flag are INFEASIBLE by construction and are never shipped;
-    // it exists to bound, exactly like the cumulative relaxation.
+    // DIAGNOSTIC ONLY (env OGC_NOCRANE=1): keep plain 2D non-overlap, drop only the descent rule.
+    //
+    // P5's tardiness of 639 is one number covering two costs, and the area-only relaxation says
+    // capacity alone would allow Z1 = 8.  So 631 units are "geometry" without saying WHICH
+    // geometry, and the two candidates want opposite fixes: the descent rule wants a flatter
+    // skyline and co-located tall blocks, non-tiling shapes want better orientation and nesting.
+    //
+    // The subtlety that broke the first attempt: there is NO separate overlap test.
+    // placement_feasible_tl does a bounding-box screen and then calls desc_hit, so overlap is
+    // enforced THROUGH desc_hit -- the j == k term is two bodies at the same height in the same
+    // place, i.e. ordinary 2D collision, and only j > k is "my lower layer would pass through
+    // your higher layer" on the way down.  Returning false outright removed collision detection
+    // altogether, blocks were stacked through each other, and P5 came back at Z1 416,541 with an
+    // objective of 5.5 billion.  That number measured a broken packer, not a free crane.
+    //
+    // So the flag now skips only j > k and leaves j == k intact.  Solutions are still infeasible
+    // by construction (the grader enforces the descent rule) and are never shipped; this exists
+    // to bound, exactly like the cumulative relaxation.
     static bool NOCRANE_on(){ static const int v=[](){const char*e=getenv("OGC_NOCRANE");return(e&&e[0]=='1')?1:0;}(); return v!=0; }
     // NEW block (descending body) layer k vs existing te layer j, j>=k.  c==1 => blocked.
     inline bool desc_hit(int bid,int orient,double ox,double oy,const Placed& te){
-        if(NOCRANE_on()) return false;
+        const bool nocr=NOCRANE_on();
         const OrientData& nod=shapes[bid].orients[orient];
         const OrientData& eod=shapes[te.bid].orients[te.orient];
         int nn=(int)nod.layers.size(), ne=(int)eod.layers.size();
@@ -318,13 +326,14 @@ struct Engine {
         int tox=(int)std::floor(te.ox+0.5), toy=(int)std::floor(te.oy+0.5);
         for(int k=0;k<nn;k++){const LayerData&AL=nod.layers[k]; if(AL.npts<3)continue;
             for(int j=k;j<ne;j++){const LayerData&BL=eod.layers[j]; if(BL.npts<3)continue;
+                if(nocr && j>k) continue;          // keep j==k (plain 2D overlap), drop the descent
                 if(RASTER && !bmp_overlap(AL,iox,ioy,BL,tox,toy)) continue;
                 if(classify(AL.pts.data(),AL.npts,ox,oy,BL.pts.data(),BL.npts,te.ox,te.oy)==1) return true;}}
         return false;
     }
     // existing te (descending body) layer k vs NEW block layer j, j>=k.
     inline bool desc_hit_rev(const Placed& te,int bid,int orient,double ox,double oy){
-        if(NOCRANE_on()) return false;     // same diagnostic; both directions or the split is wrong
+        const bool nocr=NOCRANE_on();      // same treatment both directions or the split is wrong
         const OrientData& nod=shapes[bid].orients[orient];
         const OrientData& eod=shapes[te.bid].orients[te.orient];
         int nn=(int)nod.layers.size(), ne=(int)eod.layers.size();
@@ -332,6 +341,7 @@ struct Engine {
         int tox=(int)std::floor(te.ox+0.5), toy=(int)std::floor(te.oy+0.5);
         for(int k=0;k<ne;k++){const LayerData&AL=eod.layers[k]; if(AL.npts<3)continue;
             for(int j=k;j<nn;j++){const LayerData&BL=nod.layers[j]; if(BL.npts<3)continue;
+                if(nocr && j>k) continue;          // keep j==k (plain 2D overlap), drop the descent
                 if(RASTER && !bmp_overlap(AL,tox,toy,BL,iox,ioy)) continue;
                 if(classify(AL.pts.data(),AL.npts,te.ox,te.oy,BL.pts.data(),BL.npts,ox,oy)==1) return true;}}
         return false;
