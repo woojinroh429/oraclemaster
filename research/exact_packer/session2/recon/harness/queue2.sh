@@ -46,6 +46,23 @@ mk () {  # name  extra-args...
     OGC_DK=0 python3.12 harness/mkbase.py 0.3 "$1.py" 0 "" 0 1.0 "" 0 0.25 "${@:2}" >/dev/null || exit 1
 }
 
+# A0. conw=0.0 WITH w3mul=6.  The two knobs fix different halves of the same problem and have
+#     never been combined.  conw=0 flattens the packing -- 87,560 at its best, the lowest P3
+#     value anything has produced -- but swings 22% because with contact gone only the position
+#     term ranks cells and position ties constantly.  w3mul=6 removes ties in the STATE key,
+#     where it made 90,900 repeat six times out of six.  Candidate choice flat, state choice
+#     decisive: if the spread was ties all along, this reaches 87,560 every run instead of
+#     sometimes, and that is the platform for 80,000.
+for W in 0 6; do
+    OGC_DK=0 python3.12 harness/mkbase.py 0.3 "myalg_q0w${W}.py" 0 "" 0 1.0 "" 0 0.0 "" "$W" >/dev/null || exit 1
+done
+python3.12 -c "
+import myalg_q0w0 as A, myalg_q0w6 as B
+assert A._AXES[1]['conw']==0.0 and B._AXES[1]['conw']==0.0
+assert B._AXES[1]['w3mul']==6.0, B._AXES[1]
+print('conw=0 arms verified: w3mul default vs 6')"
+for rep in 1 2 3; do run myalg_q0w6 "conw=0 w3mul=6 r$rep" "q0w6_r${rep}.log"; done
+
 # A. mum -- contact out of the state key too
 for M in 1.0 0.0; do mk "myalg_q2m${M/./_}" "$M" 6; done
 python3.12 -c "
