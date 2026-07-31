@@ -46,6 +46,9 @@ LEX    = sys.argv[7] if len(sys.argv) > 7 else ""
 # from candidate choice entirely and lets the position term decide -- a flat, loose packing that
 # keeps the crane's vertical columns intact.
 CONW   = sys.argv[9] if len(sys.argv) > 9 else ""
+# MUM: the state-level contact multiplier.  1.0 is current behaviour, 0.0 removes contact from
+# state ranking so the beam ranks by the objective it is actually scored on.
+MUM    = sys.argv[10] if len(sys.argv) > 10 else ""
 # SHADOWW: the position-dependent overhang penalty.  shad_lam (SHADOW) scores a SHAPE -- its
 # shadow_excess is cached on (block, orientation) and takes no position, so it can only pick
 # orientations, and a P5 sweep of it returned identical objectives at 0.0 and 0.5.  This one
@@ -88,8 +91,17 @@ _FWD = ", ".join('%s=cfg.get("%s", 0.0)' % (k, k) for k in _KNOBS)
 # conw is the one knob whose neutral value is 1.0 rather than 0.0 -- it SCALES contact rather
 # than adding a penalty -- so it cannot ride the shared default above.
 _FWD += ', conw=cfg.get("conw", 1.0)'
+# mum scales the STATE-level contact term (mu = 1e-3*min(w1,w3)*mum), where conw scales the
+# CANDIDATE-level one.  Turning conw to 0 leaves the beam still ranking states by
+# -mu*gcontact, so it keeps chasing something the objective does not score.  With both at their
+# off values the state key is w1*gt + w3*gz3 + w2*obj2 + w1*hz -- the true objective plus its
+# own lookahead, and nothing else.
+#
+# It is threaded only at the _beam_once site: _regrow already takes mum as its own argument and
+# passing it twice would be a duplicate keyword, which would fail the ast.parse below rather
+# than silently pick one.
 for _old, _new in ((' w3mul=cfg["w3mul"], step=step)',
-                    ' w3mul=cfg["w3mul"], ' + _FWD + ', step=step)'),
+                    ' w3mul=cfg["w3mul"], mum=cfg.get("mum", 1.0), ' + _FWD + ', step=step)'),
                    ('                          mum=mum)',
                     '                          mum=mum, ' + _FWD + ')')):
     assert s.count(_old) == 1, "cfg -> _contact_beam forwarding site not found: %r" % _old
@@ -216,6 +228,8 @@ if SHADOWW:
                         "cohort=%s, shadoww=%s" % (repr(FLOOR), repr(SHADOWW)))
 if CONW:
     AXES = re.sub(r"cohort=[0-9.]+", lambda m: m.group(0) + ", conw=" + repr(float(CONW)), AXES)
+if MUM:
+    AXES = re.sub(r"cohort=[0-9.]+", lambda m: m.group(0) + ", mum=" + repr(float(MUM)), AXES)
 if ORDER:
     AXES = AXES.replace('order="defer_big", fut_beta=1.0, prefw=0.0, w3mul=3.0',
                         'order="%s", fut_beta=1.0, prefw=0.0, w3mul=3.0' % ORDER)
