@@ -34,3 +34,5 @@ P3  budget=120 r2   120s  obj=102615      Z1=0.0      Z2=2943   Z3=586.0     ran
 === bud_120_r3.log  (budget=120 r3)  15:42:51
 P3  budget=120 r3   120s  obj=102615      Z1=0.0      Z2=2943   Z3=586.0     ran 119s
 === bud_480_r1.log  (budget=480 r1)  15:44:51
+P3  budget=480 r1   480s  obj=96860       Z1=0.0      Z2=3112   Z3=542.0     ran 479s
+=== bud_480_r2.log  (budget=480 r2)  15:52:51
