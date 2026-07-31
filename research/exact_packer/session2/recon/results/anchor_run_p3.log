@@ -4,3 +4,5 @@ P3 myalg_base incumbent obj=100685 Z1=0.0 Z2=3157 Z3=566.0   counts [54, 73, 73]
    stay=38      (0.25 x w3) anchored=152485    Z1=0.0    Z2=3797   Z3=890.0   kept 179/200 | control=152485    | anchor +0.00%    215s
    stay=150     (1.00 x w3) anchored=152485    Z1=0.0    Z2=3797   Z3=890.0   kept 179/200 | control=140335    | anchor +8.66%    215s
    stay=600     (4.00 x w3) anchored=149740    Z1=0.0    Z2=2948   Z3=900.0   kept 182/200 | control=115515    | anchor +29.63%    215s
+   stay=6000    (40.00 x w3) anchored=133165    Z1=0.0    Z2=3293   Z3=778.0   kept 185/200 | control=133125    | anchor +0.03%    215s
+P3 anchored best obj=100685    Z1=0.0 Z2=3157 Z3=566.0 feasible=True  (+0.00% vs incumbent)
