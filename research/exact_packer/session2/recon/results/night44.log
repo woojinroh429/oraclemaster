@@ -5,3 +5,7 @@ P3  clean sh=0.0   240s  obj=96990       Z1=0.0      Z2=3108   Z3=543.0     ran 
 === P3 shadow=1.5 (240s)  11:17:31
 P3  clean sh=1.5   240s  obj=96990       Z1=0.0      Z2=3108   Z3=543.0     ran 239s
 === P5 shadow=0.0 (600s)  11:21:31
+P5  clean sh=0.0   600s  obj=9044458     Z1=639.0    Z2=2487   Z3=3814.0    ran 599s
+=== P5 shadow=1.5 (600s)  11:31:30
+P5  clean sh=1.5   600s  obj=8970984     Z1=640.0    Z2=954    Z3=3242.0    ran 600s
+=== P4 shadow=0.0 (480s)  11:41:31
