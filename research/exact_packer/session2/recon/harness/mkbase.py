@@ -49,6 +49,14 @@ CONW   = sys.argv[9] if len(sys.argv) > 9 else ""
 # MUM: the state-level contact multiplier.  1.0 is current behaviour, 0.0 removes contact from
 # state ranking so the beam ranks by the objective it is actually scored on.
 MUM    = sys.argv[10] if len(sys.argv) > 10 else ""
+# W3M: scales w3 in the STATE key (w3_route = w3 * w3mul), which is the only live path to Z3.
+# prefw looks like the preference lever and is not one: it enters the per-cell score, where the
+# bay penalty is constant and cannot change which cell wins, and the per-bay drank, which is
+# sorted and then truncated to top-K -- and K >= the bay count on every instance, so nothing is
+# ever dropped.  Both sites are dead for the same reason the beam's anchor was, and prefw 0.0,
+# 2.0 and 8.0 returned byte-identical objectives on P3 to prove it.  The state rank is where the
+# bay is really chosen, and w3mul is its Z3 dial; it has never been swept on P3.
+W3M    = sys.argv[11] if len(sys.argv) > 11 else ""
 # SHADOWW: the position-dependent overhang penalty.  shad_lam (SHADOW) scores a SHAPE -- its
 # shadow_excess is cached on (block, orientation) and takes no position, so it can only pick
 # orientations, and a P5 sweep of it returned identical objectives at 0.0 and 0.5.  This one
@@ -230,6 +238,8 @@ if CONW:
     AXES = re.sub(r"cohort=[0-9.]+", lambda m: m.group(0) + ", conw=" + repr(float(CONW)), AXES)
 if MUM:
     AXES = re.sub(r"cohort=[0-9.]+", lambda m: m.group(0) + ", mum=" + repr(float(MUM)), AXES)
+if W3M:
+    AXES = re.sub(r"w3mul=[0-9.]+", "w3mul=" + repr(float(W3M)), AXES)
 if ORDER:
     AXES = AXES.replace('order="defer_big", fut_beta=1.0, prefw=0.0, w3mul=3.0',
                         'order="%s", fut_beta=1.0, prefw=0.0, w3mul=3.0' % ORDER)

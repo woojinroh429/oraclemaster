@@ -15,15 +15,30 @@ run () {  # module prob limit tag outfile
     ( cd .. && git add -f "session2/recon/results/$5" >/dev/null 2>&1 )
 }
 
-# A. prefw at conw=0.  The candidate score was -1.0*ct + position*0.1 + prefw*pen, so contact
-#    outweighed preference tenfold and prefw measured "inert" early in the session -- it could
-#    never flip an argmin.  With contact off it competes directly, and it targets Z3, which is
-#    79% of P3's objective at the current best (462*150 = 69,300 of 87,560).
-for P in 0.0 0.5 2.0 8.0; do
-    OGC_PREFW=$P OGC_DK=0 python3.12 harness/mkbase.py 0.3 "myalg_pf${P/./_}.py" 0 "" 0 1.0 "" 0 0.0 >/dev/null || exit 1
+# A. w3mul at conw=0.25 -- the only LIVE path to Z3.
+#
+#    prefw looked like the preference lever and is not one.  It enters the per-cell score, where
+#    the bay penalty is constant across the cells being compared and so cannot change which one
+#    wins; and it enters the per-bay drank, which is sorted and truncated to top-K, with K >= the
+#    bay count on every instance so nothing is ever dropped.  Both sites are dead for exactly the
+#    reason the beam's anchor was, and the file already says so at the drank site.  Measured:
+#    prefw 0.0, 2.0 and 8.0 all returned 100,535 with identical Z2 and Z3 on P3.
+#
+#    The bay is chosen by the STATE rank, w1*gt + w3_route*gz3 - mu*gcontact + w2*obj2, and
+#    w3_route = w3 * w3mul.  That dial is live, sits on Z3 (79% of P3's objective at the current
+#    best), and has never been swept -- the axes carry 1.0 to 6.0 as hand-set values.
+for W in 1 3 6 12 24; do
+    OGC_DK=0 python3.12 harness/mkbase.py 0.3 "myalg_w3m${W}.py" 0 "" 0 1.0 "" 0 0.25 "" "$W" >/dev/null || exit 1
 done
+python3.12 - <<'PY'
+import myalg_w3m1 as A, myalg_w3m24 as B
+assert [x["w3mul"] for x in A._AXES] == [1.0]*6, A._AXES[0]
+assert [x["w3mul"] for x in B._AXES] == [24.0]*6, B._AXES[0]
+assert A._AXES[1]["conw"] == 0.25 and B._AXES[1]["conw"] == 0.25
+print("w3mul arms verified at conw=0.25: 1 .. 24")
+PY
 for rep in 1 2; do
-  for P in 0.0 0.5 2.0 8.0; do run "myalg_pf${P/./_}" 3 240 "pf=$P r$rep" "pf_${P}_r${rep}.log"; done
+  for W in 1 3 6 12 24; do run "myalg_w3m${W}" 3 240 "w3mul=$W r$rep" "w3m_${W}_r${rep}.log"; done
 done
 
 # B. contact off at BOTH levels.  conw kills it in candidate choice; mu = 1e-3*min(w1,w3)*mum
