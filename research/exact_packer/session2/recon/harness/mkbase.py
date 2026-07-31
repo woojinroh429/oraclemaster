@@ -178,10 +178,16 @@ AXES = '''_AXES = [
     dict(Bmul=1.4, K=3, pos_lam=0.10, order="big_first", fut_beta=0.5, prefw=0.0, w3mul=6.0, cohort=%(F)s),
     dict(Bmul=0.5, K=6, pos_lam=0.20, order="defer_big", fut_beta=0.0, prefw=0.0, w3mul=1.5, cohort=0.0),
 ]'''
+# prefw is 0.0 on every axis, so the beam's score never sees bay preference -- fine on a
+# saturated instance, wrong on P3, whose demand ratio is 0.327 and whose objective is 78%
+# preference with zero tardiness.  Env-driven so the sweep needs no new arm per value.
+PREFW = os.environ.get('OGC_PREFW', '')
 DK = float(os.environ.get('OGC_DK', '3'))
 AXES = AXES.replace('cohort=%(F)s', 'cohort=%(F)s, dk=' + repr(int(DK)))
 AXES = AXES.replace('w3mul=1.0, cohort=0.0)', 'w3mul=1.0, cohort=0.0, dk=' + repr(int(DK)) + ')')
 AXES = AXES.replace('w3mul=1.5, cohort=0.0)', 'w3mul=1.5, cohort=0.0, dk=' + repr(int(DK)) + ')')
+if PREFW:
+    AXES = re.sub(r'prefw=[0-9.]+', 'prefw=' + PREFW, AXES)
 AXES = AXES % {'F': repr(FLOOR)}
 if PLMUL != 1.0:
     AXES = re.sub(r"pos_lam=([0-9.]+)",

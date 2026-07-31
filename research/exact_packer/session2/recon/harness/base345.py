@@ -24,6 +24,10 @@ MOD = sys.argv[2]
 T = LIMIT[PROB]
 
 d = json.load(open(os.path.join(HERE, "data/hidden/prob_%d.json" % PROB)))
+if MOD == "myalg_pw":            # rebuilt per run so one arm covers the whole prefw sweep
+    import subprocess
+    subprocess.run(["python3.12", os.path.join(HERE, "harness/mkbase.py"), "0.3", "myalg_pw.py"],
+                   cwd=HERE, check=True, capture_output=True)
 mod = importlib.import_module(MOD)
 t = time.time()
 s = mod.algorithm(d, T)
