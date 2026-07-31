@@ -1,3 +1,4 @@
 P3  myalg_pw      240s  obj=97570        Z1=0.0      Z2=3134   Z3=546.0    feasible=True  ran 239s
 P3  myalg_pw      240s  obj=106700       Z1=0.0      Z2=2680   Z3=622.0    feasible=True  ran 239s
 P3  myalg_pw      240s  obj=97570        Z1=0.0      Z2=3134   Z3=546.0    feasible=True  ran 239s
+P3  myalg_pw      240s  obj=99910        Z1=0.0      Z2=2522   Z3=582.0    feasible=True  ran 239s
