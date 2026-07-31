@@ -44,5 +44,10 @@ run () {  # module prob limit tag outfile
     ( cd .. && git add -f "session2/recon/results/$5" >/dev/null 2>&1 )
 }
 for S in 0.0 1.0 4.0 16.0; do run "myalg_sp2_${S/./_}" 3 240 "span2=$S" "s2_p3_${S}.log"; done
+# 1.0 is the only value outside this setting's known noise band (96,990-106,700): 91,110 against
+# a 106,700 control.  4.0's 105,045 sits inside that band, so it may be a bad draw rather than a
+# real collapse -- unresolvable without repeats, and not worth resolving.  What matters is
+# whether 91,110 comes back, so 1.0 gets two more runs.
+for rep in 2 3; do run myalg_sp2_1_0 3 240 "span2=1.0 r$rep" "s2_p3_1.0_r${rep}.log"; done
 for S in 0.0 4.0;          do run "myalg_sp2_${S/./_}" 4 480 "span2=$S" "s2_p4_${S}.log"; done
 echo "queue4done  $(date -u +%H:%M:%S)"
