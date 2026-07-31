@@ -297,8 +297,20 @@ struct Engine {
     static inline bool bb_ov(double a0,double a1,double a2,double a3,double b0,double b1,double b2,double b3){
         return !(a2<=b0||b2<=a0||a3<=b1||b3<=a1);
     }
+    // DIAGNOSTIC ONLY (env OGC_NOCRANE=1): drop the descent rule and keep everything else --
+    // real shapes, real overlap, real bay containment, real time windows.  P5's tardiness of 639
+    // is currently one number covering two different costs, and the area-only relaxation says
+    // capacity alone would allow Z1 = 8, so 631 units are "geometry" without saying which
+    // geometry.  Running with this on prices the descent rule by itself; whatever is left over
+    // the area bound is the cost of the shapes not tiling.  The two answers point at opposite
+    // fixes -- descent wants a flatter skyline and co-located tall blocks, tiling wants better
+    // orientation and nesting -- so the split decides where the work goes.
+    // Solutions produced under this flag are INFEASIBLE by construction and are never shipped;
+    // it exists to bound, exactly like the cumulative relaxation.
+    static bool NOCRANE_on(){ static const int v=[](){const char*e=getenv("OGC_NOCRANE");return(e&&e[0]=='1')?1:0;}(); return v!=0; }
     // NEW block (descending body) layer k vs existing te layer j, j>=k.  c==1 => blocked.
     inline bool desc_hit(int bid,int orient,double ox,double oy,const Placed& te){
+        if(NOCRANE_on()) return false;
         const OrientData& nod=shapes[bid].orients[orient];
         const OrientData& eod=shapes[te.bid].orients[te.orient];
         int nn=(int)nod.layers.size(), ne=(int)eod.layers.size();
@@ -312,6 +324,7 @@ struct Engine {
     }
     // existing te (descending body) layer k vs NEW block layer j, j>=k.
     inline bool desc_hit_rev(const Placed& te,int bid,int orient,double ox,double oy){
+        if(NOCRANE_on()) return false;     // same diagnostic; both directions or the split is wrong
         const OrientData& nod=shapes[bid].orients[orient];
         const OrientData& eod=shapes[te.bid].orients[te.orient];
         int nn=(int)nod.layers.size(), ne=(int)eod.layers.size();
