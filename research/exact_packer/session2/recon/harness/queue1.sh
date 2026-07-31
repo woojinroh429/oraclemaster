@@ -36,6 +36,24 @@ for rep in 1 2; do
   for M in 1.0 0.0; do run "myalg_mm${M/./_}" 3 240 "mum=$M r$rep" "mum_${M}_r${rep}.log"; done
 done
 
+# D. Where the spread comes from.  P3 swings 9% at conw=1.0 and 0% at conw=0.25, and the worker
+#    allocates its budget by probing each operator for a rate then backing the best -- so a
+#    probe decided by timing noise redirects everything after it.  If the spread is convergence,
+#    a longer budget collapses it and speed work pays twice; if it survives 480s, the allocator
+#    is the cause and speed will not touch it.  The finals may give LESS time, so this matters.
+for T in 120 480; do
+  for rep in 1 2 3; do run myalg_cw1_0 3 $T "budget=$T r$rep" "bud_${T}_r${rep}.log"; done
+done
+# C. THE GATE -- LAST, and deliberately not a tuning step.
+#
+#    Picking conw by what keeps P4/P5/P6 intact would fit a constant to the six instances we can
+#    see, and if the finals use different ones that is overfitting with extra steps.  So this
+#    runs only to learn WHERE contact stops paying, not to choose a number to ship.
+#
+#    What should ship is not a constant at all.  Contact earns its place when free space is
+#    scarce and costs when it is not -- that is a statement about congestion, not about which
+#    instance is which -- so the weight belongs downstream of a measured occupancy, where there
+#    is nothing left to fit.  These runs say what that function has to reproduce at the two ends.
 # C. THE GATE.  conw=0.25 is the P3 winner (92,930 three times out of three, zero spread).
 #    Contact is the right instinct at P4/P5/P6 densities, so this is where it is expected to
 #    cost.  The arithmetic is brutal: P3 gains ~4,000, but 0.1% of P5 is 9,000 and 0.03% of P6
@@ -48,12 +66,4 @@ for p in 4 5 6; do
     run myalg_cw0_25 $p $L "conw=0.25" "gate_p${p}_0.25.log"
 done
 
-# D. Where the spread comes from.  P3 swings 9% at conw=1.0 and 0% at conw=0.25, and the worker
-#    allocates its budget by probing each operator for a rate then backing the best -- so a
-#    probe decided by timing noise redirects everything after it.  If the spread is convergence,
-#    a longer budget collapses it and speed work pays twice; if it survives 480s, the allocator
-#    is the cause and speed will not touch it.  The finals may give LESS time, so this matters.
-for T in 120 480; do
-  for rep in 1 2 3; do run myalg_cw1_0 3 $T "budget=$T r$rep" "bud_${T}_r${rep}.log"; done
-done
 echo "queue1done  $(date -u +%H:%M:%S)"
