@@ -1,0 +1,2 @@
+=== 갈림 실험: 옛 myalg_base 를 지금(되돌린) 엔진으로 P4에 ===
+P4  old-arm clean-engine   480s  obj=1781181     Z1=88.0     Z2=2561   Z3=3933.0    ran 458s

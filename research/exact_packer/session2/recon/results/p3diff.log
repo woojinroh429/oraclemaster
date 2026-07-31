@@ -1,1 +1,21 @@
 === P3 성분 대조: 배포본 vs 우리 기반 ===
+myalgorithm  obj=90545     Z2=2299   Z3=527.0  
+myalg_base   obj=96990     Z2=3108   Z3=543.0  
+   difference: 6445  (7.12%)
+
+ASSIGNMENT
+   the two agree on 193 of 200 blocks (96%)
+   myalgorithm  counts=[53, 74, 73]  u*load=['7002', '5565', '4703']  range=2300
+   myalg_base   counts=[53, 76, 71]  u*load=['7578', '5587', '4470']  range=3108
+
+PREFERENCE  (Z3 is the sum of what each block gave up)
+   myalgorithm   24 blocks concede, total  527, worst five [57, 55, 53, 50, 49]
+   myalg_base    24 blocks concede, total  543, worst five [74, 70, 55, 48, 46]
+   both concede      :  21 blocks
+   only myalgorithm :   3 blocks, worth 159
+   only myalg_base  :   3 blocks, worth 177
+
+DISAGREEMENTS  (7 blocks)
+   myalgorithm  puts 3 of them in their preferred bay
+   myalg_base   puts 3 of them in their preferred bay
+   Z3 carried by the disagreements: +16 in myalgorithm's favour, worth 2400 of objective
