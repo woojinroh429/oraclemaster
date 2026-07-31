@@ -1,2 +1,8 @@
 both engines built  05:05:15
 === rep1 new P3 (240s)  05:05:15
+P3  myalg_base     240s  obj=96990       Z1=0.0      Z2=3108   Z3=543.0     ran 239s
+=== rep1 new P4 (480s)  05:09:15
+P4  myalg_base     480s  obj=1981906     Z1=99.0     Z2=1627   Z3=4337.0    ran 454s
+=== rep1 new P5 (600s)  05:16:51
+P5  myalg_base     600s  obj=9044458     Z1=639.0    Z2=2487   Z3=3814.0    ran 599s
+=== rep1 old P3 (240s)  05:26:51
