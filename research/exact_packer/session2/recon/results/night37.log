@@ -4,3 +4,5 @@ P4  myalg_base     480s  obj=1780253     Z1=88.0     Z2=2707   Z3=3920.0    ran 
 === rep1 old P3 (240s)  06:21:52
 P3  myalg_base     240s  obj=96990       Z1=0.0      Z2=3108   Z3=543.0     ran 239s
 === rep1 old P5 (600s)  06:25:52
+P5  myalg_base     600s  obj=9044458     Z1=639.0    Z2=2487   Z3=3814.0    ran 599s
+=== rep2 old P4 (480s)  06:35:52
