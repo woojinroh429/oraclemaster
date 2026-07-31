@@ -17,3 +17,4 @@ P5  BGRASP k=5 axis=1 10 draws in 586s  obj=9968884      Z1=713.0   Z2=800    Z3
    draw 1   obj=3604475       at 47s
    draw 3   obj=3460100       at 146s
    draw 4   obj=3355270       at 194s
+   draw 9   obj=3267773       at 423s
