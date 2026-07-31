@@ -65,9 +65,20 @@ print("   the anchor moves %d of %d blocks to a different bay"
 cfg = dict(M._AXES[1])
 w3v = float(d["weights"]["w3"])
 best_o, best_s = o0, sol
+
+# The incumbent is the FULL pipeline -- beam, balance, z3_improve, several regrows, best-of.
+# A single anchored _regrow is one beam.  Scoring one against the other measures the missing
+# polish, not the anchor, so each stay is run twice: once on the CP-SAT assignment and once on
+# the incumbent's own assignment, same budget, same everything else.  The control is the
+# baseline; the incumbent is only there for scale.
 for mult in MULTS:
     stay = w3v * mult
     t0 = time.time()
+    try:
+        ctl = M._regrow(d, sol, BUDGET, cfg, stay=stay, anchor=(list(bay0), order0))
+        oc = SC._total(d, ctl)[0] if ctl is not None else float("inf")
+    except Exception:
+        oc = float("inf")
     try:
         s = M._regrow(d, sol, BUDGET, cfg, stay=stay, anchor=(asg, order0))
     except Exception as e:
@@ -79,8 +90,11 @@ for mult in MULTS:
     o, c = SC._total(d, s)
     nb, _ = SC._anchor_of(d, s)
     kept = sum(1 for b in range(n) if nb[b] == asg[b])
-    print("   stay=%-7.0f (%.2f x w3) obj=%-9d Z1=%-6s Z2=%-6s Z3=%-7s  kept %d/%d  %s  %.0fs"
+    print("   stay=%-7.0f (%4.2f x w3) anchored=%-9d Z1=%-6s Z2=%-6s Z3=%-7s kept %3d/%d |"
+          " control=%-9d | anchor %+.2f%%  %s  %.0fs"
           % (stay, mult, int(o), c.get("obj1"), c.get("obj2"), c.get("obj3"), kept, n,
+             int(oc) if oc < float("inf") else -1,
+             100.0 * (o - oc) / oc if oc < float("inf") else 0.0,
              "BEST" if o < best_o else "", time.time() - t0), flush=True)
     if o < best_o:
         best_o, best_s = o, s
