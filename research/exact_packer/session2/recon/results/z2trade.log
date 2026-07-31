@@ -1,0 +1,26 @@
+start obj=97570  Z2=3134  Z3=546.0   u*load=['7578', '5615', '4444']
+bay 0 -> 2 ; 53 blocks available
+  move  1 blocks: workload    138  Z2   2742  Z3 cost    20  net     -1038
+  move  2 blocks: workload    337  Z2   2176  Z3 cost    69  net     -5559
+  move  3 blocks: workload    455  Z2   1840  Z3 cost   100  net     -8531
+  move  4 blocks: workload    686  Z2   1183  Z3 cost   186  net    -18147
+  move  5 blocks: workload    831  Z2    771  Z3 cost   242  net    -24485
+  move  6 blocks: workload    988  Z2    415  Z3 cost   307  net    -32453
+  move  7 blocks: workload   1159  Z2    445  Z3 cost   384  net    -44156
+  move  8 blocks: workload   1371  Z2    886  Z3 cost   482  net    -61058
+  move  9 blocks: workload   1433  Z2   1015  Z3 cost   513  net    -66352
+  move 10 blocks: workload   1584  Z2   1370  Z3 cost   592  net    -79979
+  move 11 blocks: workload   1726  Z2   1774  Z3 cost   667  net    -93248
+  move 12 blocks: workload   1870  Z2   2183  Z3 cost   744  net   -106846
+  move 13 blocks: workload   1976  Z2   2485  Z3 cost   805  net   -117503
+  move 14 blocks: workload   2058  Z2   2718  Z3 cost   853  net   -125868
+  move 15 blocks: workload   2225  Z2   3193  Z3 cost   951  net   -142943
+  move 16 blocks: workload   2280  Z2   3349  Z3 cost   987  net   -149125
+  move 17 blocks: workload   2389  Z2   3659  Z3 cost  1063  net   -162074
+  move 18 blocks: workload   2479  Z2   3915  Z3 cost  1130  net   -173404
+  move 19 blocks: workload   2573  Z2   4182  Z3 cost  1200  net   -185240
+  move 20 blocks: workload   2639  Z2   4370  Z3 cost  1253  net   -194129
+  move 30 blocks: workload   3082  Z2   5630  Z3 cost  1784  net   -280077
+  move 40 blocks: workload   3464  Z2   6716  Z3 cost  2512  net   -394708
+  move 50 blocks: workload   3621  Z2   7162  Z3 cost  3097  net   -484690
+BEST: 0 blocks, Z3 cost 0, Z2 0, net +0  -> obj 97570
