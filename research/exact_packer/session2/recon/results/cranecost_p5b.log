@@ -1,0 +1,14 @@
+P5 myalg_base  obj=9456639 Z1=674.0 Z2=2685 Z3=3394.0   (OGC_NOCRANE=0)
+   cells available to each block against the real timeline, at its own entry window:
+      in its OWN bay : 878  (mean 4.4 per block, 0 blocks had none)
+      across ALL bays: 1,120  (mean 5.6 per block)
+   per bay (own-bay residents): [309, 175, 227, 167]
+PAIRME P5 nocrane=0 own=878 all=1120 zero=0
+   counting on the solution in sol_p5.json
+P5 myalg_base  obj=9456639 Z1=674.0 Z2=2685 Z3=3394.0   (OGC_NOCRANE=1)
+   cells available to each block against the real timeline, at its own entry window:
+      in its OWN bay : 1,312  (mean 6.6 per block, 0 blocks had none)
+      across ALL bays: 2,332  (mean 11.7 per block)
+   per bay (own-bay residents): [566, 271, 289, 186]
+PAIRME P5 nocrane=1 own=1312 all=2332 zero=0
+ENGINE RESTORED
