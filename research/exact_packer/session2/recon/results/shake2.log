@@ -3,3 +3,4 @@ P3 myalg_base start obj=99405 Z1=0.0 Z2=3141 Z3=558.0
    round 2   obj=140305     Z2=4091   Z3=799.0     18 blocks moved    at 215s
    round 3   obj=134320     Z2=4184   Z3=756.0     18 blocks moved    at 291s
 P3 shake=random frac=0.30  3 rounds in 291s  obj=99405      Z1=0.0 Z2=3141 Z3=558.0  (+0.00%)
+P3 myalg_base start obj=93925 Z1=0.0 Z2=3335 Z3=515.0
