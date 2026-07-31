@@ -57,6 +57,24 @@ MUM    = sys.argv[10] if len(sys.argv) > 10 else ""
 # 2.0 and 8.0 returned byte-identical objectives on P3 to prove it.  The state rank is where the
 # bay is really chosen, and w3mul is its Z3 dial; it has never been swept on P3.
 W3M    = sys.argv[11] if len(sys.argv) > 11 else ""
+# RELGAIN: how the operator allocator scores an operator.
+#
+# Shipped:  gain[k] += before - pool[0][0]      -- ABSOLUTE improvement over the incumbent
+#           k = max(elig, key=lambda i: gain[i] / spent[i])
+#
+# The incumbent starts at the _safe_sequential floor, which scores 2,488,362,823 on P3 against a
+# final answer near 90,000.  So whichever operator first returns a real solution banks ~2.49e9,
+# while every operator after it faces a good incumbent and can earn thousands.  That is a
+# millionfold head start, and apart from the 15% random pick the leader is never displaced.  The
+# rate therefore measures which operator ran FIRST, not which one is best -- and the ordering
+# moves with timing, which is where P3's spread comes from.
+#
+# RELGAIN=1 makes the credit relative, (before - after) / before, so the floor jump is worth
+# about 1.0 and a later 1% improvement 0.01: a hundredfold range instead of a millionfold one.
+# The floor jump itself still counts, but as ~1.0 rather than 2.49e9, which is the whole point --
+# it stops being an unassailable head start and becomes one good result among others.  The
+# 1e17 guard is only there because before is inf when the pool is empty, and inf/inf is nan.
+RELGAIN = os.environ.get("OGC_RELGAIN", "")
 SWY    = sys.argv[12] if len(sys.argv) > 12 else ""
 SWX    = sys.argv[13] if len(sys.argv) > 13 else ""
 # SHADOWW: the position-dependent overhang penalty.  shad_lam (SHADOW) scores a SHAPE -- its
@@ -246,6 +264,15 @@ if MUM:
     AXES = re.sub(r"cohort=[0-9.]+", lambda m: m.group(0) + ", mum=" + repr(float(MUM)), AXES)
 if W3M:
     AXES = re.sub(r"w3mul=[0-9.]+", "w3mul=" + repr(float(W3M)), AXES)
+if RELGAIN:
+    _og = "            gain[k] += before - pool[0][0]"
+    assert s.count(_og) == 1, "allocator gain site not found -- refusing to guess"
+    s = s.replace(_og,
+                  "            _d = before - pool[0][0]\n"
+                  "            if before < 1e17:      # before is inf on an empty pool; inf/inf\n"
+                  "                                   # would be nan and poison the rate forever\n"
+                  "                gain[k] += _d / max(1e-9, abs(before))", 1)
+
 if SWY:
     AXES = re.sub(r"cohort=[0-9.]+", lambda m: m.group(0) + ", swy=" + repr(float(SWY)), AXES)
 if SWX:
