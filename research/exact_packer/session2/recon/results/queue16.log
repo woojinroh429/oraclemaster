@@ -1,2 +1,4 @@
 stack arm and its brk-only control verified
 === q16_stack_r1.log  (brk+hmatch2 r1)  02:20:43
+P3  brk+hmatch2 r1   240s  obj=84555       Z1=0.0      Z2=3261   Z3=455.0     feas=y   ran 239s
+=== q16_brkonly_r1.log  (brk only r1)  02:24:43
