@@ -1,2 +1,4 @@
 brk arm verified, contact at full
 === q15_solo_r1.log  (brk alone r1)  03:14:32
+P3  brk alone r1   240s  obj=87890       Z1=0.0      Z2=2758   Z3=494.0     feas=y   ran 240s
+=== q15_grow_r1.log  (brk+grow r1)  03:18:32
