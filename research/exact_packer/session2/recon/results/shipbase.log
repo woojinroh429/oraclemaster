@@ -1,2 +1,6 @@
 shipped myalgorithm.py verified: no bayrepack
-=== ship_p3_r1.log  (SHIPPED P3 r1)  11:38:33
+=== ship_p3_r1.log  (SHIPPED P3 r1)  12:48:43
+P3  SHIPPED P3 r1   240s  obj=90545       Z1=0.0      Z2=2299   Z3=527.0     feas=y   ran 239s
+=== ship_p3_r2.log  (SHIPPED P3 r2)  12:52:45
+P3  SHIPPED P3 r2   240s  obj=90545       Z1=0.0      Z2=2299   Z3=527.0     feas=y   ran 239s
+=== ship_p4_r1.log  (SHIPPED P4 r1)  12:56:46
