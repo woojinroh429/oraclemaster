@@ -1,0 +1,4 @@
+myalg_base on P3: obj=106700
+
+   slice   step nout nent      took   ratio        obj   gain
+       8s   auto        20.3s    2.5x       105430   -1.19%
