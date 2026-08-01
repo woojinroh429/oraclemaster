@@ -421,6 +421,13 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
                     return None
                 _pick = (_ti, _st, _no, _ne, _nc)
             _tier, STEP, NOUT, NENT, _NCOL = _pick
+            if os.environ.get("BRK_DEBUG") == "1":
+                print("    brk tier: room=%.0fs rate=%s -> tier %d (step %d nout %d nent %d)"
+                      " ncol~%.0f pred=%.1fs  [hard=%s slice=%.0fs]"
+                      % (_room, ("%.3g" % _PAIRRATE[0]) if _PAIRRATE[0] is not None else "-",
+                         _tier, STEP, NOUT, NENT, _NCOL,
+                         (_PAIRRATE[0] * _NCOL * _NCOL) if _PAIRRATE[0] is not None else -1.0,
+                         ("%.0f" % hard) if hard is not None else "-", SL), flush=True)
         else:
             _NCOL = 0.0
         outs = outs[:NOUT]
@@ -532,6 +539,10 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
             _build = float(r[4]) / 1000.0 if len(r) > 4 else _el
             _r = _build / (_NCOL * _NCOL)
             _PAIRRATE[0] = _r if _PAIRRATE[0] is None else 0.5 * _PAIRRATE[0] + 0.5 * _r
+            if os.environ.get("BRK_DEBUG") == "1":
+                print("    brk cost: tier %d ncol~%.0f real_ncol=%s build=%.1fs total=%.1fs"
+                      "  -> rate %.4g s/col^2"
+                      % (_tier, _NCOL, (r[2] if len(r) > 2 else "?"), _build, _el, _r), flush=True)
         got = {loc: (o, x, y, en, ex) for (loc, o, x, y, en, ex) in r[1]}
 
         # WHERE IT STOPS.  repack has seven exits that all look like None to the caller, and a
