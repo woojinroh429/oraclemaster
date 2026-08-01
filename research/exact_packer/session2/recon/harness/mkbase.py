@@ -537,6 +537,38 @@ if RESERVE:
     s = s.replace(_ro, "    reserve = max(2.0, min(%s * timelimit, %s))     # for the final polish"
                   % (repr(float(RESERVE)), repr(float(RESERVE) * 200.0)), 1)
 
+# OGC_WARMUP: throw one short beam away before the timed search starts.
+#
+# Measured, not guessed.  harness/brknoise.py evaluated the SAME dispatch order six times with
+# nothing changed:
+#
+#     edd   [191128, 165295, 165295, 165295, 165295, 165295]
+#
+# The first call is 15.6% worse than the five after it, and lst and big_first show the same
+# shape.  The beam sizes its width from MEASURED cost, so a cold first call over-estimates what
+# a level costs, narrows the width, and returns a worse solution.  Every warm call after it
+# agrees to the digit.
+#
+# In a 240 s run each worker's opening beam IS that cold call, and whatever it returns becomes
+# the pool the whole rest of the run builds on.  That is a mechanism for the run-to-run spread
+# with a measurement behind it, unlike the throughput story, which was measured and did nothing.
+#
+# The cost is one short beam per worker.  The value, if the mechanism is right, is that the
+# opening solution stops being a coin flip -- which matters more than the mean here, because a
+# small objective difference moves the ranking a lot on this instance.
+WARMUP = os.environ.get("OGC_WARMUP", "").strip()
+if WARMUP:
+    _wa = "    rng = random.Random(1234 + wid)"
+    assert s.count(_wa) == 1, "worker rng site not found -- refusing to guess"
+    s = s.replace(_wa,
+                  "    try:                       # WARM-UP: see OGC_WARMUP above\n"
+                  "        _wu = _ogc_fast_engine(prob_info)\n"
+                  "        if hasattr(_wu, 'contact_beam'):\n"
+                  "            _beam_once(prob_info, %s, _AXES[wid %% len(_AXES)], share)\n"
+                  "    except Exception:\n"
+                  "        pass\n"
+                  "%s" % (repr(float(WARMUP)), _wa), 1)
+
 old = re.search(r"_AXES = \[\n(?:.*\n)*?\]", s).group(0)
 assert old.count("dict(") == 6, "myalg_orig.py should have exactly six axes"
 s = s.replace(old, AXES, 1)
