@@ -13,3 +13,5 @@ P3: 200 blocks.  beam 10s per evaluation, 4 trials per perturbation strength
       swaps   trials   best        vs seed    wins
           1        4   148650             +0   0/4
           2        4   148650             +0   0/4
+          4        4   133180         -15470   1/4
+          8        4   135050         -13600   1/4
