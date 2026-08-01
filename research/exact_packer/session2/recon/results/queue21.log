@@ -2,3 +2,7 @@ both tier rules reachable; costs seeded at [80.0, 21.0, 21.0]
 === q21_new_r1.log  (tier NEW r1)  04:15:56
 P3  tier NEW r1    240s  obj=87070       Z1=0.0      Z2=3134   Z3=476.0     feas=y   ran 239s
 === q21_old_r1.log  (tier OLD r1)  04:19:56
+P3  tier OLD r1    240s  obj=88720       Z1=0.0      Z2=2744   Z3=500.0     feas=y   ran 239s
+=== q21_new_r2.log  (tier NEW r2)  04:23:56
+P3  tier NEW r2    240s  obj=90365       Z1=0.0      Z2=3523   Z3=485.0     feas=y   ran 239s
+=== q21_old_r2.log  (tier OLD r2)  04:27:56
