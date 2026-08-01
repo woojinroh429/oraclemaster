@@ -501,6 +501,30 @@ if os.environ.get("OGC_BRK") == "1":
     except Exception:
         pass''', 1)
 
+# THE ENGINE HAS A SIGNATURE TOO, and it is a separate artifact from this file.
+#
+# This cost a night.  A container restart reverted ogc_fast.so to its committed build while
+# mkbase.py stayed current, so every arm it generated passed one more argument to
+# E.contact_beam than the installed engine accepted.  pybind raised TypeError, _beam_once caught
+# it in a bare except and returned None, the worker fell through to _safe_sequential, and the
+# run reported 2,488,352,313 -- the greedy floor -- as an ordinary result with feas=y.  Four
+# queues produced that number before anyone noticed it was not a bad answer but no answer.
+#
+# The Python-side guard below catches a knob that misses _contact_beam's signature.  This one
+# catches the same mistake one layer down, where the .so and the .py can drift independently.
+try:
+    import ogc_fast as _E
+    _doc = (_E.Engine.contact_beam.__doc__ or "")
+    for _k in _KNOBS + ["conw", "swy", "swx"]:
+        assert ("%s:" % _k) in _doc, (
+            "the installed ogc_fast engine does not accept %r -- it is older than this builder. "
+            "Rebuild it (g++ -O3 -shared -std=c++17 -fPIC -w -fopenmp $(python3.12 -m pybind11 "
+            "--includes) ogc_fast.cpp -o ogc_fast.cpython-312-x86_64-linux-gnu.so) before "
+            "generating arms, or every beam call will raise TypeError into a bare except and the "
+            "run will silently return the greedy floor." % _k)
+except ImportError:
+    pass          # no engine at all is a different failure, and one the pipeline reports itself
+
 old = re.search(r"_AXES = \[\n(?:.*\n)*?\]", s).group(0)
 assert old.count("dict(") == 6, "myalg_orig.py should have exactly six axes"
 s = s.replace(old, AXES, 1)
