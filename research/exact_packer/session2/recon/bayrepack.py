@@ -85,6 +85,79 @@ _TIERS = [(4, 40, 3), (4, 20, 2), (6, 10, 1)]
 _TIERCOST = [80.0, 21.0, 21.0]
 
 
+_WISH_CACHE = {}
+
+
+def _wish(cur, wl, pref, mxp, u, m, n, K, tl, w2, w3):
+    """Which blocks would an EXACT reassignment move, if geometry were free?
+
+    WHY THE OPERATOR NEEDS ASKING.  Outsiders are ranked below by their own SINGLE-move gain --
+    move b to the target bay, keep everything else, see if the objective drops.  That is the
+    right price for one block and the wrong price for a SET, because Z2 is a RANGE: moving one
+    block off the extreme bay only helps until another bay becomes the extreme, so
+    individually-profitable moves stop paying together, and jointly-profitable ones can each
+    look worthless alone.  A greedy ranking cannot see either case.
+
+    Measured on P3 (harness/masterprobe3.py) -- best assignment within a Hamming ball of the
+    incumbent, geometry ignored, entry times pinned:
+
+        K=1  79,492      K=2  72,438      K=3  65,426      K=4  59,292      K=16  36,759
+
+    From 86,665 a single move is worth 8.3% and three are worth 24.5%, and K=16 lands on the
+    capacity-aware bound to six digits.  So the moves worth making are few, they are nameable,
+    and masterprobe2 showed they are refused by the PACKER rather than missed by the model --
+    which is this operator's entire job description.
+
+    Returns the wished ASSIGNMENT; the caller prices it with its own obj_of, so this module
+    still never decides what "better" means.  Geometry is deliberately absent: a wish the packer
+    cannot seat costs one refused column, while a wish suppressed in advance cannot be tried at
+    all.  None if OR-Tools is missing or the solve does not land, and the caller then falls back
+    to the single-move ranking it has always used.
+
+    Cached on the assignment, because the allocator calls the operator repeatedly and the wish
+    only changes when the incumbent does.
+    """
+    key = (tuple(cur), K)
+    if key in _WISH_CACHE:
+        return _WISH_CACHE[key]
+    try:
+        from ortools.sat.python import cp_model
+    except Exception:
+        return None
+    SC = 1000
+    U = [int(round(SC * u[j])) for j in range(m)]
+    mdl = cp_model.CpModel()
+    x = [[mdl.NewBoolVar("x%d_%d" % (b, j)) for j in range(m)] for b in range(n)]
+    for b in range(n):
+        mdl.Add(sum(x[b]) == 1)
+    mdl.Add(sum(1 - x[b][cur[b]] for b in range(n)) <= K)
+    ld = [mdl.NewIntVar(0, 10 ** 9, "l%d" % j) for j in range(m)]
+    for j in range(m):
+        mdl.Add(ld[j] == sum(x[b][j] * int(round(wl[b])) for b in range(n)))
+    Mv = mdl.NewIntVar(0, 10 ** 12, "M")
+    for j in range(m):
+        for j2 in range(m):
+            if j != j2:
+                mdl.Add(Mv >= U[j] * ld[j] - U[j2] * ld[j2])
+    # Mv/SC is the load range Z2 floors, so this is SC times w2*Z2 + w3*Z3 -- the objective
+    # obj_of computes, minus the w1*Z1 term that the pinned entry times hold constant.
+    mdl.Minimize(w2 * Mv + w3 * SC * sum(x[b][j] * (mxp[b] - pref[b][j])
+                                         for b in range(n) for j in range(m)))
+    for b in range(n):
+        for j in range(m):
+            mdl.AddHint(x[b][j], 1 if cur[b] == j else 0)
+    slv = cp_model.CpSolver()
+    slv.parameters.max_time_in_seconds = max(0.5, float(tl))
+    slv.parameters.num_search_workers = 1
+    st = slv.Solve(mdl)
+    if st not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
+        _WISH_CACHE[key] = None
+        return None
+    want = [next(j for j in range(m) if slv.Value(x[b][j]) == 1) for b in range(n)]
+    _WISH_CACHE[key] = want
+    return want
+
+
 def _layers_bbox(B, bid):
     """Per-orientation (layer rasters, bbox) in cranepack's format.  Cached: a block's shape
     never changes and building the numpy layer list is the dominant cost of a call."""
@@ -269,9 +342,40 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
                 got_outs.sort(reverse=True)
                 cands.append((j, got_outs[:NOUT]))
                 break
-        if not cands:
+        # DIRECTED VARIANT.  With BRK_WISH the target bay and the outsider list come from an
+        # exact reassignment rather than from pressure and single-move gain -- see _wish for why
+        # a single-move ranking cannot price a set when Z2 is a range.  Wished blocks are priced
+        # by leave-one-out INSIDE the wish, so an outsider's weight and a resident's eviction
+        # cost stay the same currency.  The single-move list for the same bay is appended after
+        # them, so the candidate pool is never smaller than the undirected operator's.  If the
+        # solve does not land, or wants nothing, this falls through untouched.
+        wcands = []
+        if os.environ.get("BRK_WISH") == "1":
+            _want = _wish(cur, wl, pref, mxp, u, m, n, NOUT,
+                          min(3.0, max(0.5, SL * 0.10)), w2, w3)
+            if _want is not None:
+                _wo = obj_of(_want, ent, ext)
+                if _wo < base - 1e-9:
+                    byb = {}
+                    for b in range(n):
+                        if _want[b] != cur[b]:
+                            alt = list(_want); alt[b] = cur[b]
+                            byb.setdefault(_want[b], []).append(
+                                (max(1.0, obj_of(alt, ent, ext) - _wo), b))
+                    for j in sorted(byb, key=lambda j: -sum(g for g, _ in byb[j])):
+                        if any(cur[b] == j for b in range(n)):
+                            wcands.append((j, sorted(byb[j], reverse=True)))
+        if wcands:
+            TGT, outs = wcands[0]
+            _have = {b for _, b in outs}
+            for _j, _lst in cands:            # top up from the single-move ranking, same bay
+                if _j == TGT:
+                    outs = outs + [(g, b) for g, b in _lst if b not in _have]
+            outs = outs[:NOUT]
+        elif cands:
+            TGT, outs = cands[0]
+        else:
             return None                       # no bay has a profitable entrant anywhere
-        TGT, outs = cands[0]
         res = [b for b in range(n) if cur[b] == TGT]
 
         W, H = float(bays[TGT]["width"]), float(bays[TGT]["height"])
