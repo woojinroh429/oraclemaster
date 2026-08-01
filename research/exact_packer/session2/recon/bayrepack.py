@@ -171,8 +171,13 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
         # it is not 1.  Dividing the slice by the running ratio makes the next call pick a tier
         # that fits the time actually available on THIS machine and THIS instance, and the
         # estimate is blended rather than replaced so one slow call does not collapse it.
+        # An explicit argument or env override wins over the tiers, so a sweep can ask for a
+        # size the tier table would never pick.  Without this the env vars read as live knobs
+        # and are silently ignored, which is the same class of quiet failure as a knob that
+        # reaches the call site but not the signature.
+        _ev = (os.environ.get("BRK_STEP"), os.environ.get("BRK_NOUT"), os.environ.get("BRK_NENT"))
         SL = float(budget)
-        if step is None and nout is None and nent is None:
+        if step is None and nout is None and nent is None and not any(_ev):
             eff = SL / max(1.0, _RATIO[0])
             if eff < 15.0:
                 STEP, NOUT, NENT = 6, 10, 1
@@ -181,9 +186,9 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
             else:
                 STEP, NOUT, NENT = 4, 40, 3
         else:
-            STEP = int(step if step is not None else os.environ.get("BRK_STEP", "4"))
-            NOUT = int(nout if nout is not None else os.environ.get("BRK_NOUT", "40"))
-            NENT = int(nent if nent is not None else os.environ.get("BRK_NENT", "3"))
+            STEP = int(step if step is not None else (_ev[0] or 4))
+            NOUT = int(nout if nout is not None else (_ev[1] or 40))
+            NENT = int(nent if nent is not None else (_ev[2] or 3))
 
         # THE CONTESTED BAY: the most-pressed bay THAT ANYTHING WANTS TO ENTER.
         #
