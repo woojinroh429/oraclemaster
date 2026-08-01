@@ -167,11 +167,22 @@ Paired against its own control, same base and same build, three reps against thr
     brk  82,180 - 86,550     width  4,370
     ctl  96,990 - 106,700    width  9,710
 
-The bands do not overlap. brk's worst run is 10,440 under the control's best, and all three are
-under the 87,560 that every scoring knob in this session reached only at its luckiest. r2 and r3
-agree to the digit on Z2 and Z3, so the operator converges on a small set of discrete solutions
-rather than drifting. It lowers the mean by 17.75% and halves the spread -- the second half
-matters for a finals budget that may be shorter than the heats.
+> RETRACTED, on more data: **brk does not halve the spread.** A later queue ran the same arm
+> twice more and got 90,545 and 88,720, so over five samples the band is 82,180-90,545, width
+> 8,365 -- effectively the control's own 9,710. Checked the obvious explanations and neither
+> holds: `bayrepack`'s only change in between was the env override, a no-op when `BRK_*` are
+> unset, and there was no contention (one run family, load 4.19 on 4 cores). It is variance, and
+> three samples were not enough to see it. This matters more than a usual retraction, because
+> narrowing the band for a shorter finals budget was one of the reasons to want the operator.
+
+What survives on five samples against three:
+
+    brk mean  86,909      ctl mean 103,463      -16.0%
+    bands still disjoint -- brk's worst (90,545) is 6,445 under the control's best (96,990)
+
+Every one of the five is under the 87,560 that every scoring knob in this session reached only
+at its luckiest... except the two above it, so more precisely: the median is, and the mean is by
+a wide margin.
 
 Z3 = 443 on the best run, at Z2 = 3146. Nothing else this session got Z3 under 462, and that
 only by paying Z2 up to 3652. Improving both terms at once is exactly what p3max proved no
