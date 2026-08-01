@@ -12,3 +12,5 @@ P3  SHIP P3        240s  obj=90545       Z1=0.0      Z2=2299   Z3=527.0     feas
 === six_arm_p3.log  (ARM  P3)  14:37:05
 P3  ARM  P3        240s  obj=96990       Z1=0.0      Z2=3108   Z3=543.0     feas=y   ran 239s
 === six_ship_p4.log  (SHIP P4)  14:41:05
+P4  SHIP P4        480s  obj=3273791     Z1=201.0    Z2=1244   Z3=3901.0    feas=y   ran 385s
+=== six_arm_p4.log  (ARM  P4)  14:47:32

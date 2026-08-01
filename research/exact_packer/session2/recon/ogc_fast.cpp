@@ -1469,6 +1469,48 @@ struct Engine {
         //     over-penalising an even spread costs more than the blindness it cures.
         //
         // So ranking uses the exact objective, as it did before either attempt.
+        //
+        // Z2 LOOKAHEAD (env OGC_Z2LA=1, default off).  A THIRD form, and the note above does
+        // not cover it.  Put the three objective terms side by side as this beam treats them:
+        //
+        //     Z1  additive        exact over placed + wb_hz1 for the unplaced remainder
+        //     Z3  additive        exact over placed; a prefix sum IS a partial answer
+        //     Z2  RANGE of FINAL  partial loads, with no estimate of the remainder at all
+        //
+        // Z1 has exactly Z2's problem and was given a lookahead to solve it.  Z2 never got one,
+        // so early states all carry small similar loads, the term behaves like a constant, and
+        // by the time loads mean anything the bays are committed.
+        //
+        // The first failed attempt projected the remainder PROPORTIONALLY, and its no-op proof
+        // is correct: share_j ~ 1/u_j makes u_j*share_j the same constant for every bay, and a
+        // constant added to every value leaves max-min alone.  This projects each remaining
+        // block into ITS OWN PREFERRED BAY instead, which adds a different amount to each bay
+        // and is not cancelled.  Unlike the RMS attempt it does not change the objective --
+        // still the exact range, evaluated at a better point.
+        //
+        // Cheap, because the dispatch order is fixed: every state at a level has the SAME
+        // unplaced set, so the projection is one vector per level, computed once.
+        static const bool Z2LA=[](){const char*e=getenv("OGC_Z2LA");return (e&&e[0]=='1');}();
+        std::vector<std::vector<double>> z2rem;
+        if(Z2LA){
+            z2rem.assign(nord+1, std::vector<double>(n_bays,0.0));
+            for(int t=nord-1;t>=0;t--){
+                z2rem[t]=z2rem[t+1];
+                int bid=order[t];
+                if(bid<0||bid>=(int)shapes.size()||bid>=(int)workloads.size()) continue;
+                const auto& pr=shapes[bid].prefs;
+                if(pr.empty()) continue;
+                int bb=0;
+                for(int j=1;j<(int)pr.size()&&j<n_bays;j++) if(pr[j]>pr[bb]) bb=j;
+                if(bb<n_bays) z2rem[t][bb]+=workloads[bid];
+            }
+        }
+        auto obj2la=[&](const std::vector<double>& loads,int lv)->double{
+            if(!Z2LA || lv+1>nord) return obj2f(loads);
+            double mn=1e18,mx=-1e18;
+            for(int j=0;j<n_bays;j++){ double v=u[j]*(loads[j]+z2rem[lv+1][j]); if(v<mn)mn=v; if(v>mx)mx=v; }
+            return n_bays>1?(mx-mn):0.0;
+        };
         double inc_obj=1e18;      // best COMPLETE objective seen -- the pruning threshold
         static const bool ADMP_LIVE=[](){const char*e=getenv("OGC_ADMP");return (e&&e[0]=='1');}();
         CBState init; init.placed.assign(nb,0); init.loads.assign(n_bays,0.0); init.gt=0;init.gz3=0;init.gcontact=0;init.nplaced=0;
@@ -1692,9 +1734,9 @@ struct Engine {
                 if(THRUBEAM)
                     // KEEP Z3 (dropping it blew up Z3 for a tiny Z1 gain -> net worse); only AMPLIFY
                     // the future-tardiness lookahead so the search still steers away from congestion.
-                    keyed[i]={ w1*(c.gt + THRUHZ*hz) + w3*c.gz3 - mu*c.gcontact + w2*obj2f(c.loads), i };
+                    keyed[i]={ w1*(c.gt + THRUHZ*hz) + w3*c.gz3 - mu*c.gcontact + w2*obj2la(c.loads,level), i };
                 else
-                    keyed[i]={ w1*c.gt + w3*c.gz3 - mu*c.gcontact + w2*obj2f(c.loads) + w1*hz, i };
+                    keyed[i]={ w1*c.gt + w3*c.gz3 - mu*c.gcontact + w2*obj2la(c.loads,level) + w1*hz, i };
             }
             std::sort(keyed.begin(),keyed.end(),[](const std::pair<double,int>&a,const std::pair<double,int>&b){return a.first<b.first;});
             // CANONICAL DEDUP: two states that placed the SAME blocks in the same bays at the
