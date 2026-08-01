@@ -79,7 +79,26 @@ _RATIO = [1.0]
 # the PROBLEM rather than of the deadline it is given: on P3 every large-tier call took 77-81 s
 # whether it was asked for 35 s or 100 s.  So the operator takes the largest tier the remaining
 # run can absorb, and predicts the cost rather than reading it off a table -- see below.
-_TIERS = [(4, 40, 3), (4, 20, 2), (6, 10, 1)]
+#
+# nent=6 IS THE TOP TIER, and it lives here rather than in a constant because the same setting
+# is a 7.2% gain on P3 and a disqualification on P4:
+#
+#     P3, three paired reps      nent 6: 80,795 / 80,795 / 84,990   mean 82,193
+#                                nent 3: 88,695 / 86,085 / 90,970   mean 88,583
+#     P4, forced, 480 s budget   nent 6: killed after 28 minutes
+#
+# P3's bay 0 is 43x23 and generates ~28,800 columns at this tier; P4's largest is 115x23 and
+# generates 49,000-54,000, and the build is O(ncol^2).  The P4 run that ran away used FORCED
+# knobs, which bypass the predictor -- unforced, the predictor already drops to a smaller tier
+# on P4 by itself (traced).  So this belongs in the table where the cost model can refuse it,
+# and never in a constant.
+#
+# WHY nent PAYS AT ALL.  It is how many entry times each block is offered when brk lifts a bay
+# and repacks it.  A block's preferred bay is not full in the abstract, it is full AT THAT
+# MOMENT, and more candidate times let the packer find the moment it fits.  P3 shows precisely
+# that: Z3 502 -> 423, blocks reaching the bays they want, bought with Z2 2679 -> 3469 on an
+# instance where a unit of preference is worth thirty of balance.
+_TIERS = [(4, 40, 6), (4, 40, 3), (4, 20, 2), (6, 10, 1)]
 # SECONDS PER SQUARED COLUMN.  The tier costs above were measured on P3 and do not transfer:
 # the same table sent a P4 run 240 seconds past a 480-second budget, which at the grader's hard
 # limit is a missing answer rather than a worse one.
