@@ -1,2 +1,4 @@
 arm and size-predicted packer budget verified
 === fit_p3_r1.log  (FIT P3 r1)  13:43:28
+P3  FIT P3 r1      240s  obj=95255       Z1=0.0      Z2=3121   Z3=531.0     feas=y   ran 239s
+=== fit_p4_r1.log  (FIT P4 r1)  13:47:27
