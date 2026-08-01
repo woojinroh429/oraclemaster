@@ -2,3 +2,6 @@ P3: 200 blocks.  beam 10s per evaluation, 4 trials per perturbation strength
 
 === edd        seed obj = 165295   (8.7s)
       swaps   trials   best        vs seed    wins
+          1        4   165295             +0   0/4
+          2        4   165295             +0   0/4
+          4        4   164270          -1025   1/4
