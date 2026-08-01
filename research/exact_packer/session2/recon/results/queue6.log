@@ -4,3 +4,10 @@
    objective 96990 -> 82175  (-15.27%),  Z2 3108 -> 3055,  Z3 543 -> 446
    -> bay 0 was BADLY PACKED, not full: 6 more blocks fit once the residents may move, worth 15.27% of the objective
 === p3bay0_s2.log  (step 2, 40 outsiders)  00:34:42
+   residents displaced : 164
+
+   objective 106700 -> 90120  (-15.54%),  Z2 2680 -> 3324,  Z3 622 -> 490
+   -> bay 0 was BADLY PACKED, not full: 4 more blocks fit once the residents may move, worth 15.54% of the objective
+=== p3bay0_s2n80.log  (step 2, 80 outsiders)  00:52:22
+Terminated
+queue6done  00:52:45
