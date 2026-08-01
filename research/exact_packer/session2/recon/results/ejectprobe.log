@@ -1,0 +1,7 @@
+incumbent  obj=86665
+    brk[pressure] tgt=0 res=55 outs=15 admitted 2, displaced 3, obj 99090 vs base 86665 -> reject
+  wish=0 call 1  None            (124s)
+  wish=0 total 124s
+    brk[wish] tgt=0 res=55 outs=15 admitted 2, displaced 3, obj 99090 vs base 86665 -> reject
+  wish=1 call 1  None            (99s)
+  wish=1 total 99s

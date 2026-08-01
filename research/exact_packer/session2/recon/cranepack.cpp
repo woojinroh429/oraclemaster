@@ -12,6 +12,7 @@
 #include <cmath>
 #include <algorithm>
 #include <chrono>
+#include <cstdlib>
 namespace py = pybind11;
 typedef std::vector<std::pair<double,double>> Poly;
 
@@ -306,7 +307,55 @@ py::tuple pack(py::list blocks, double W, double H, int step,
         }
         return false;
     };
-    auto local_opt=[&](){ while(try_swap()){} };
+    // (k,1) GUIDED EJECTION.  Every move in try_swap removes exactly ONE selected column, and
+    // the candidates it will even look at are restricted to blocked[c]==1 -- columns blocked by
+    // that single column alone.  A column blocked by TWO selected columns is unreachable from
+    // either of them, so wherever seating a block needs two or more evictions the entire
+    // neighbourhood is empty, whatever the weights say.
+    //
+    // Measured on P3: the same 55 residents seated and ZERO outsiders admitted under three
+    // different weightings (single-move deltas, directed-wish deltas, and exact linearised
+    // coefficients), while the single-eviction neighbourhood had separately been found
+    // exhausted.  Three weightings agreeing to the block is not a weighting problem.
+    //
+    // The force loop below does eject-all-conflicts, so this is not a new capability -- but it
+    // picks the block and the column at RANDOM, which is a lottery over hundreds of columns
+    // rather than a move.  This is the same thing guided: for each unplaced block, for each of
+    // its columns, eject every selected column conflicting with it and accept only if the block
+    // outweighs everything it displaced.  The weight test bounds the work, since accumulation
+    // stops the moment it exceeds the gain, and it also guarantees termination: every accepted
+    // move strictly increases the selected weight, which is bounded above.
+    //
+    // Refilling afterwards can only add weight, never remove it, so acceptance stays monotone.
+    std::vector<int> ejbuf;
+    const bool EJECT = [](){ const char* e=std::getenv("CRANEPACK_EJECT"); return e && e[0]=='1'; }();
+    auto try_eject=[&]()->bool{
+        for(int b=0;b<nblk;b++){
+            if(sel[b]>=0) continue;
+            double wb=wt[b];
+            if(wb<=1e-9) continue;
+            for(int c:colsOfBlock[b]){
+                if(blocked[c]==0) continue;       // greedy_extend already seats these
+                double cost=0.0; bool ok=true;
+                ejbuf.clear();
+                for(int d:adj[c]){
+                    if(!selflag[d]) continue;
+                    ejbuf.push_back(d);
+                    cost+=wt[cols[d].block];
+                    if(cost>=wb-1e-9){ ok=false; break; }
+                }
+                if(!ok||ejbuf.empty()) continue;
+                for(int d:ejbuf) rem_col(d);
+                add_col(c);
+                greedy_extend(worder);            // the eviction may have freed room for others
+                return true;
+            }
+        }
+        return false;
+    };
+    auto local_opt=[&](){ for(;;){ if(try_swap()) continue;
+                                   if(EJECT && try_eject()) continue;
+                                   break; } };
 
     // best (tracked by total WEIGHT; `best` reports the block count of that selection)
     std::vector<int> best_sel(nblk,-1); int best=0; double bestw=-1e18;
