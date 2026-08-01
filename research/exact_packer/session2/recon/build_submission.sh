@@ -10,7 +10,9 @@ rm -rf "$OUT"; mkdir -p "$OUT"
 
 INC="$(python3.12 -m pybind11 --includes)"
 EXT="cpython-312-x86_64-linux-gnu.so"
-CXXFLAGS="-O3 -shared -std=c++17 -fPIC -w"
+# -fopenmp: cranepack's conflict-graph build is the uninterruptible half of a pack and was
+# running on one of four cores.  ogc_fast already needs it too.
+CXXFLAGS="-O3 -shared -std=c++17 -fPIC -w -fopenmp"
 
 echo "== compiling 5 engine modules =="
 for m in ogc_fast ogc_geom ogc_state cranepack st3dtcs; do

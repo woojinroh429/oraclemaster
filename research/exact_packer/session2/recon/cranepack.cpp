@@ -13,6 +13,12 @@
 #include <algorithm>
 #include <chrono>
 #include <cstdlib>
+#ifdef _OPENMP
+#include <omp.h>
+#else
+static inline int omp_get_num_threads(){return 1;}
+static inline int omp_get_thread_num(){return 0;}
+#endif
 namespace py = pybind11;
 typedef std::vector<std::pair<double,double>> Poly;
 
@@ -219,16 +225,74 @@ py::tuple pack(py::list blocks, double W, double H, int step,
     int ncol=(int)cols.size();
 
     // ---- pairwise conflict graph (only across different blocks) ----
+    //
+    // THIS LOOP IS THE BUILD.  Measured on P3: 28,370 columns, 56.5 s, and the build is the
+    // part of a pack that cannot be interrupted -- the search honours its deadline, this does
+    // not.  So it is what decides which tier the operator can afford, and a bigger tier is
+    // worth real objective (nent 3 -> 6 took P3 from 88,695 to 80,795).
+    //
+    // The original visited all ncol*(ncol-1)/2 pairs -- 400 million at 28,000 columns -- and
+    // then rejected most of them on the time test.  Two changes, neither of which can alter
+    // the edge set:
+    //
+    //   SWEEP.  Columns are visited in ENTRY order, so for a fixed a every later b has
+    //   cb.entry >= ca.entry.  Overlap needs ca.entry < cb.exit && cb.entry < ca.exit; the
+    //   first is then automatic (cb.exit > cb.entry >= ca.entry) and the second fails for
+    //   every remaining b once it fails for one.  So the inner loop BREAKS instead of
+    //   continuing, and the pairs it skips are exactly the ones the old time test discarded.
+    //   Measured on P3: processing times 3/7/12 against a horizon of 82, so two columns
+    //   overlap in time about 17% of the time -- roughly a 6x cut in pairs visited.
+    //
+    //   THREADS.  The loop is pure computation.  adj[a] is safe to write (a is partitioned)
+    //   but adj[b] is not, so edges go to per-thread buffers and adj is filled serially
+    //   afterwards -- O(edges), tens of thousands, against hundreds of millions of tests.
+    //   schedule(dynamic) because the work per a is triangular AND now varies with the time
+    //   window, so a static split would be badly unbalanced.
+    //
+    // adj is sorted at the end exactly as before, so the graph handed to the search is
+    // identical and the packer stays deterministic.  CRANEPACK_SLOW=1 restores the original
+    // loop for A/B, and that is how this was checked rather than asserted.
     std::vector<std::vector<int>> adj(ncol);
     long nedge=0;
-    for(int a=0;a<ncol;a++){
-        const Col& ca=cols[a];
-        for(int b=a+1;b<ncol;b++){
-            const Col& cb=cols[b];
-            if(ca.block==cb.block) continue;                 // same-block handled by blockUsed
-            if(ca.bx1<=cb.bx0||cb.bx1<=ca.bx0||ca.by1<=cb.by0||cb.by1<=ca.by0) continue;
-            if(!(ca.entry<cb.exit&&cb.entry<ca.exit)) continue;
-            if(crane_conflict(ca,cb)){ adj[a].push_back(b); adj[b].push_back(a); nedge++; }
+    const bool SLOWPATH=[](){const char*e=getenv("CRANEPACK_SLOW");return e&&e[0]=='1';}();
+    if(SLOWPATH){
+        for(int a=0;a<ncol;a++){
+            const Col& ca=cols[a];
+            for(int b=a+1;b<ncol;b++){
+                const Col& cb=cols[b];
+                if(ca.block==cb.block) continue;             // same-block handled by blockUsed
+                if(ca.bx1<=cb.bx0||cb.bx1<=ca.bx0||ca.by1<=cb.by0||cb.by1<=ca.by0) continue;
+                if(!(ca.entry<cb.exit&&cb.entry<ca.exit)) continue;
+                if(crane_conflict(ca,cb)){ adj[a].push_back(b); adj[b].push_back(a); nedge++; }
+            }
+        }
+    } else {
+        std::vector<int> ord(ncol);
+        for(int i=0;i<ncol;i++) ord[i]=i;
+        std::sort(ord.begin(),ord.end(),[&](int p,int q){
+            if(cols[p].entry!=cols[q].entry) return cols[p].entry<cols[q].entry;
+            return p<q;                                      // stable, so the sweep is fixed
+        });
+        std::vector<std::vector<std::pair<int,int>>> tls;
+        #pragma omp parallel
+        {
+            #pragma omp single
+            tls.resize(omp_get_num_threads());
+            std::vector<std::pair<int,int>>& loc=tls[omp_get_thread_num()];
+            #pragma omp for schedule(dynamic,32)
+            for(int i=0;i<ncol;i++){
+                int a=ord[i]; const Col& ca=cols[a];
+                for(int j=i+1;j<ncol;j++){
+                    int b=ord[j]; const Col& cb=cols[b];
+                    if(cb.entry>=ca.exit) break;             // and so does every later j
+                    if(ca.block==cb.block) continue;
+                    if(ca.bx1<=cb.bx0||cb.bx1<=ca.bx0||ca.by1<=cb.by0||cb.by1<=ca.by0) continue;
+                    if(crane_conflict(ca,cb)) loc.push_back({a,b});
+                }
+            }
+        }
+        for(auto& v:tls) for(auto& e:v){
+            adj[e.first].push_back(e.second); adj[e.second].push_back(e.first); nedge++;
         }
     }
     for(auto& v:adj) std::sort(v.begin(),v.end());
