@@ -258,3 +258,37 @@ three, paired inside a single queue, with disjoint bands.
 only selection criterion, so screening it looked like free throughput. Over three runs it moves
 the mean by 273 points -- 0.26% -- and the width claim did not survive either. Whatever governs
 the spread on this instance, verification time is not a large part of it.
+
+## The BRKGA line, closed for a new reason
+
+The old reason it was removed -- `st3dtcs.st_best` at 5-7 s per decode, so about two generations
+in a 15 s budget -- is genuinely fixed. `ogc_fast.Engine.greedy_rollout` takes `prio`, a float
+per block, which is already a BRKGA chromosome, and decodes in **42.7 ms**: 5,625 decodes in a
+240 s run single-core, 22,500 across four workers.
+
+Two measurements then closed it again.
+
+**Random keys are the wrong space.** Spearman rho between the cheap decoder's ranking and the
+beam's was **+0.220** over twenty chromosomes, under the 0.5 bar set before the data arrived.
+And a 10 s beam on a random order returns 136,340 at its best over twenty tries, against 96,990
+for the base and 87,703 for brk -- random order space is 55% worse than where we already stand.
+
+**The local gradient is not measurable with this instrument.** `brklocal` perturbed each designed
+order by 1-32 adjacent swaps and reported 22 wins in 96, best -9.34%. Then the control:
+
+    the SAME order, six evaluations, nothing changed
+    edd        [191128, 165295, 165295, 165295, 165295, 165295]   spread 25,833
+    lst        [148650, 148650, 148650, 160775, 157315, 166500]   spread 17,850
+    big_first  [188260, 188260, 188260, 166605, 188260, 188260]   spread 21,655
+    defer_big  [164970 x 6]                                       spread      0
+
+Every gain brklocal reported is inside that floor.
+
+The shape is explained too. `defer_big` is perfectly deterministic; `edd`'s FIRST call is 191,128
+and the next five are 165,295 -- a cold first call getting a narrower adaptive width. `brklocal`
+evaluated each seed once, so a cold seed inflates the baseline and everything after it looks
+like a win. `defer_big`'s 3-of-4 at ONE swap, its best cell anywhere, is exactly that: seed
+175,200 against a repeated 164,970, so 10,230 of that "13,185 improvement" was warm-up.
+
+**Carry this forward:** a single evaluation of a fixed order carries up to 15.6% of noise on this
+instance. Nothing may be compared on one beam call.
