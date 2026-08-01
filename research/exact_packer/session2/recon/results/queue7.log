@@ -1,2 +1,4 @@
 per-worker conw arms verified: half / three / four
 === q7_half_r1.log  (wconw=half r1)  01:28:44
+P3  wconw=half r1   240s  obj=100535      Z1=0.0      Z2=3187   Z3=564.0     feas=y   ran 239s
+=== q7_three_r1.log  (wconw=three r1)  01:32:44
