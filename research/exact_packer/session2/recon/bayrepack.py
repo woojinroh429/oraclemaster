@@ -375,7 +375,9 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
         elif cands:
             TGT, outs = cands[0]
         else:
-            return None                       # no bay has a profitable entrant anywhere
+            if os.environ.get("BRK_DEBUG") == "1":
+                print("    brk: no bay has a profitable entrant anywhere", flush=True)
+            return None
         res = [b for b in range(n) if cur[b] == TGT]
 
         W, H = float(bays[TGT]["width"]), float(bays[TGT]["height"])
@@ -434,8 +436,22 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
             _TIERCOST[_tier] = 0.5 * _TIERCOST[_tier] + 0.5 * _el
         got = {loc: (o, x, y, en, ex) for (loc, o, x, y, en, ex) in r[1]}
 
+        # WHERE IT STOPS.  repack has seven exits that all look like None to the caller, and a
+        # None tells you nothing about which one fired -- the directed and undirected variants
+        # both returned None on a converged incumbent and the reason mattered more than the
+        # result.  BRK_DEBUG names the exit.  Off by default and it changes no decision.
+        _dbg = os.environ.get("BRK_DEBUG") == "1"
+
+        def _say(msg):
+            if _dbg:
+                print("    brk[%s] tgt=%d res=%d outs=%d %s"
+                      % ("wish" if wcands else "pressure", TGT, len(res), len(outs), msg),
+                      flush=True)
+
         admitted = [i for i in range(len(cand)) if not isres[i] and i in got]
         if not admitted:
+            _say("packer admitted NO outsider (seated %d of %d columns offered)"
+                 % (len(got), len(cand)))
             return None
         # DISPLACED RESIDENTS.  An earlier version of this rejected any repack that failed to
         # re-seat every resident, on the reasoning that a partial repack needs somewhere to put
@@ -477,14 +493,25 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
                         seated = True
                         break
                 if not seated:
+                    _say("displaced b%d could not be rehomed in any other bay" % b)
                     return None
         if len(keep) != n:
+            _say("rebuilt %d of %d blocks" % (len(keep), n))
             return None
         recs = [{"block_id": b, "bay_id": j, "orient_idx": o, "x": x, "y": y,
                  "entry_time": en, "exit_time": ex}
                 for b, (j, o, x, y, en, ex) in sorted(keep.items())]
         out = build_fn(recs)
         o, _c = total_fn(prob_info, out)
+        _say("admitted %d, displaced %d, obj %d vs base %d -> %s"
+             % (len(admitted), len(displaced), int(o), int(base),
+                "KEEP" if o < base - 1e-9 else "reject"))
         return out if o < base - 1e-9 else None
     except Exception:
+        # The blanket catch is deliberate -- an operator must never take the run down -- but it
+        # has hidden a real fault once already this session (an engine signature change raised
+        # TypeError in here and four queues reported the greedy floor as an ordinary result).
+        if os.environ.get("BRK_DEBUG") == "1":
+            import traceback
+            traceback.print_exc()
         return None
