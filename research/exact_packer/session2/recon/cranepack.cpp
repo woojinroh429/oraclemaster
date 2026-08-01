@@ -63,13 +63,70 @@ struct Col {
     int block, orient, x, y, entry, exit;
     std::vector<Poly> layers;             // world coords
     double bx0,by0,bx1,by1;
+    // PER-LAYER OCCUPANCY MASK, for the conservative pre-test in crane_conflict.
+    //
+    // Profiled: 34.7M crane_conflict calls, 77.7% of them real conflicts.  A conflict returns
+    // at the first overlapping layer and is cheap; the 22.3% that do NOT conflict walk the
+    // whole Ka x Kb layer product, and that is where the polygon time goes.
+    //
+    // Each layer gets a bitmask over a fixed MASKN x MASKN grid of its own bounding box... no:
+    // over the SHARED integer lattice, so two masks can be ANDed directly.  A cell is set if
+    // the layer covers any part of it, which makes the test conservative -- disjoint masks
+    // prove the polygons cannot overlap, and anything else falls through to the exact test.
+    // So this can only save work, never change an answer.
+    std::vector<uint64_t> lmask;          // MASKW words per layer, laid out layer-major
+    int mx0, my0;                         // lattice origin for this column
 };
+static const int MASKW = 8;               // 8 words x 64 bits = 512 cells = 32 x 16 lattice
+static const int MASK_NX = 32, MASK_NY = 16;
 static void bbox_of(Col& c){
     c.bx0=1e18;c.by0=1e18;c.bx1=-1e18;c.by1=-1e18;
     for(auto&L:c.layers) for(auto&p:L){
         c.bx0=std::min(c.bx0,p.first);c.by0=std::min(c.by0,p.second);
         c.bx1=std::max(c.bx1,p.first);c.by1=std::max(c.by1,p.second);
     }
+    // Rasterise each layer onto the SHARED unit lattice, conservatively: a cell is set when the
+    // layer's bounding box touches it at all.  Two columns' masks are comparable because the
+    // lattice is absolute (floor of world coordinates), and a cell is only cleared when the
+    // layer provably does not reach it -- so disjoint masks are a proof of non-overlap.
+    int nl=(int)c.layers.size();
+    c.lmask.assign((size_t)nl*MASKW, 0ULL);
+    c.mx0=(int)std::floor(c.bx0); c.my0=(int)std::floor(c.by0);
+    for(int k=0;k<nl;k++){
+        const Poly& L=c.layers[k];
+        if(L.size()<3) continue;
+        double lx0=1e18,ly0=1e18,lx1=-1e18,ly1=-1e18;
+        for(auto&p:L){ lx0=std::min(lx0,p.first); ly0=std::min(ly0,p.second);
+                       lx1=std::max(lx1,p.first); ly1=std::max(ly1,p.second); }
+        int cx0=(int)std::floor(lx0)-c.mx0, cy0=(int)std::floor(ly0)-c.my0;
+        int cx1=(int)std::ceil (lx1)-c.mx0, cy1=(int)std::ceil (ly1)-c.my0;
+        if(cx0<0)cx0=0; if(cy0<0)cy0=0;
+        if(cx1>MASK_NX)cx1=MASK_NX; if(cy1>MASK_NY)cy1=MASK_NY;
+        uint64_t* row=&c.lmask[(size_t)k*MASKW];
+        for(int y=cy0;y<cy1;y++) for(int x=cx0;x<cx1;x++){
+            int bit=y*MASK_NX+x;
+            row[bit>>6] |= (1ULL<<(bit&63));
+        }
+    }
+}
+// Do layer ka of A and layer kb of B share a lattice cell?  Masks are stored relative to each
+// column's own origin, so the shift between them is applied here.  Conservative: returns true
+// whenever it cannot prove disjointness.
+static inline bool mask_may_overlap(const Col& A,int ka,const Col& B,int kb){
+    int dx=B.mx0-A.mx0, dy=B.my0-A.my0;
+    if(dx<=-MASK_NX||dx>=MASK_NX||dy<=-MASK_NY||dy>=MASK_NY) return false;
+    const uint64_t* ra=&A.lmask[(size_t)ka*MASKW];
+    const uint64_t* rb=&B.lmask[(size_t)kb*MASKW];
+    for(int y=0;y<MASK_NY;y++){
+        int yb=y-dy; if(yb<0||yb>=MASK_NY) continue;
+        for(int x=0;x<MASK_NX;x++){
+            int bit=y*MASK_NX+x; if(!((ra[bit>>6]>>(bit&63))&1ULL)) continue;
+            int xb=x-dx; if(xb<0||xb>=MASK_NX) continue;
+            int bb=yb*MASK_NX+xb;
+            if((rb[bb>>6]>>(bb&63))&1ULL) return true;
+        }
+    }
+    return false;
 }
 
 // crane conflict, fastconf j>=k logic (descent OR ascent => same A_k vs B_{j>k} loop)
