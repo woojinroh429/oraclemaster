@@ -61,7 +61,37 @@ def _rank(v, rev):
 
 
 rd, ra = _rank(due, False), _rank(ar, True)
-if BASE.startswith("sac"):
+# PREFERENCE STAKE.  The keys below are built from due date and area alone, which is right
+# where tardiness owns the objective and wrong where preference does.  On P3 Z1 is zero and
+# w3*Z3 is 87% of the score, and GRASP's first run there showed the consequence in the extreme:
+# Z2 456 -- seven times better balanced than our beam -- against Z3 7044, thirteen times worse,
+# for an objective of 1,058,880 against 96,990.
+#
+# Stake is what a block LOSES by not reaching its top bay: max(pref) - mean(the rest).  A block
+# whose preferences are flat does not care where it lands; one with a wide spread pays w3*spread
+# if it is dispatched late and its bay has filled.  So high-stake blocks move earlier, while
+# they can still reach the bay they care about, and the indifferent ones drift back and absorb
+# the packing pressure.  The same idea the construction's own prio<N> order uses -- reused here
+# because GRASP supplies an explicit permutation and bypasses that path entirely.
+#
+# Weighted by w3/(w1+w3) so it is self-scaling: near 1 on P3 (w3 150, and Z1 is zero anyway),
+# small on P6 where w1 is 6,667 and tardiness dominates.  No instance test, no gate.
+_pv = [b["bay_preferences"] for b in B]
+_stake = [0.0] * n
+for _b in range(n):
+    _p = _pv[_b]
+    if len(_p) > 1:
+        _mx = max(_p)
+        _rest = [v for v in _p if v is not _mx] or [_mx]
+        _stake[_b] = _mx - (sum(_p) - _mx) / max(1, len(_p) - 1)
+rs = _rank(_stake, True)
+_w1f = float(d["weights"].get("w1", 0.0)); _w3f = float(d["weights"].get("w3", 0.0))
+_pw = (_w3f / (_w1f + _w3f)) if (_w1f + _w3f) > 0 else 0.0
+if BASE.startswith("pref"):
+    _bb = ''.join(c for c in BASE[4:] if c.isdigit())
+    _beta = (int(_bb) / 10.0) if _bb else _pw
+    key = [(_beta * rs[b] + (1.0 - _beta) * (rd[b] + ra[b]) / 2.0, due[b]) for b in range(n)]
+elif BASE.startswith("sac"):
     _kk = ''.join(c for c in BASE[3:] if c.isdigit())
     vic = set(sorted(range(n), key=lambda b: -(ar[b] * pt[b]))[:(int(_kk) if _kk else 3)])
     key = [(1 if b in vic else 0, rd[b] + ra[b], due[b]) for b in range(n)]

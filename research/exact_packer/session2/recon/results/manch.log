@@ -1,2 +1,4 @@
 anchored arm and control verified
 === mn_on_r1.log  (manch r1)  15:35:04
+P3  manch r1       240s  obj=99910       Z1=0.0      Z2=2522   Z3=582.0     feas=y   ran 239s
+=== mn_off_r1.log  (ctl   r1)  15:39:03
