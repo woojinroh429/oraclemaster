@@ -76,7 +76,8 @@ run () {  # module tag outfile
     echo "=== $3  ($2)  $(date -u +%H:%M:%S)"
     python3.12 harness/run1.py "$1" 3 240 "$2" > "results/$3" 2>&1
     tail -1 "results/$3"
-    ( cd .. && git add -f "session2/recon/results/$3" >/dev/null 2>&1 )
+    ( cd ../../.. && git add -f "research/exact_packer/session2/recon/results/$3" >/dev/null 2>&1 \
+      && git commit -q -m "result: $2" >/dev/null 2>&1 )
 }
 
 # The sweep runs on the FASTOBJ base, because that is where the rest of the night lives and a

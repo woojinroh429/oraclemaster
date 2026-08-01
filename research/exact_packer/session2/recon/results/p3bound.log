@@ -1,0 +1,22 @@
+P3: 200 blocks, 3 bays, horizon 82 (releases 0..70, dues 5..82)
+   bay   cells   capacity(cells x horizon)   first-choice demand   ratio
+     0     989                      81098                 39153   0.48  (77 blocks)
+     1    2492                     204344                 24221   0.12  (60 blocks)
+     2    2684                     220088                 31924   0.15  (63 blocks)
+   total demand 95298 against total capacity 505530  -> 0.19 overall
+
+[BOUND]  OPTIMAL in 0.1s
+   best found  obj=36765   Z2=6633  Z3=24   blocks per bay [70, 63, 67]
+   proven lower bound on the area-relaxed problem: 36765
+      (a valid lower bound on the REAL objective too: every real solution satisfies
+       these capacities, since the crane rule and imperfect tiling only remove room)
+
+[WHAT IT MEANS]  our best P3 result is 87560.
+   gap to this bound: 50795  (138.2% of the bound)
+   80000 is above the bound, so not excluded by area alone
+   70000 is above the bound, so not excluded by area alone
+
+   the earlier assignment bound (47,954) ignored capacity entirely.  the difference
+   between it and this one is what bay 0's overflow costs before any packing happens.
+   what remains between this bound and 87560 is packing efficiency: bay 0 currently runs
+   at 54%% peak area occupancy, and this bound assumed 100%%.
