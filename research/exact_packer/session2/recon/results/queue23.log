@@ -1,2 +1,4 @@
 warm-up arm and its control verified
 === q23_cold_r2.log  (nowarm r2)  07:16:07
+P3  nowarm r2      240s  obj=86665       Z1=0.0      Z2=3023   Z3=477.0     feas=y   ran 239s
+=== q23_warm_r3.log  (warmup r3)  07:20:06
