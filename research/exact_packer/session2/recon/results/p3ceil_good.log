@@ -1,0 +1,7 @@
+myalg_brk on P3: obj=90365  Z1=0.0 Z2=3523 Z3=485.0  feasible=True
+
+   sweeping every bay until a full pass improves nothing; 120s per repack, no overall time limit
+
+   round  bay      obj        delta   cumulative     secs
+       1    0          --            --        90365      172
+       1    1          --            --        90365        0
