@@ -1,2 +1,4 @@
 fastobj arms verified: fo (conw default) / foc0 (conw 0) / c0ctl (control, no patch)
 === q8_fo_r1.log  (fastobj base r1)  03:39:31
+P3  fastobj base r1   240s  obj=101935      Z1=0.0      Z2=2537   Z3=595.0     feas=y   ran 239s
+=== q8_fo_r2.log  (fastobj base r2)  03:43:31
