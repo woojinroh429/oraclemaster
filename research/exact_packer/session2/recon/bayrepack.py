@@ -206,12 +206,26 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
             # of slice with 190 s left from 40 s of slice with 45 s left, and those want
             # opposite tiers.  0.85 leaves room for the rehoming scans and the grader check that
             # follow the pack.
-            _cap = (float(hard) if hard is not None else SL) * 0.85
-            for _ti, (_st, _no, _ne) in enumerate(_TIERS):
-                if _TIERCOST[_ti] <= _cap or _ti == len(_TIERS) - 1:
-                    STEP, NOUT, NENT = _st, _no, _ne
-                    _tier = _ti
-                    break
+            if os.environ.get("BRK_OLDTIER") == "1":
+                # The rule this replaced, kept switchable so the two can be measured against
+                # each other INSIDE ONE QUEUE.  Arm levels have drifted between queues twice
+                # tonight, so a fix cannot be scored against numbers from an earlier queue --
+                # which is the only comparison available otherwise, and it is not a comparison.
+                _eff = SL / max(1.0, _RATIO[0])
+                if _eff < 15.0:
+                    STEP, NOUT, NENT = 6, 10, 1
+                elif _eff < 40.0:
+                    STEP, NOUT, NENT = 4, 20, 2
+                else:
+                    STEP, NOUT, NENT = 4, 40, 3
+                _tier = -1
+            else:
+                _cap = (float(hard) if hard is not None else SL) * 0.85
+                for _ti, (_st, _no, _ne) in enumerate(_TIERS):
+                    if _TIERCOST[_ti] <= _cap or _ti == len(_TIERS) - 1:
+                        STEP, NOUT, NENT = _st, _no, _ne
+                        _tier = _ti
+                        break
         else:
             STEP = int(step if step is not None else (_ev[0] or 4))
             NOUT = int(nout if nout is not None else (_ev[1] or 40))
