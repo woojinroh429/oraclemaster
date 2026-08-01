@@ -639,6 +639,90 @@ if BRKPOOL and os.environ.get("OGC_BRK") == "1":
     s = s.replace(_bp, "_brk.repack(prob_info, pool[min(_brk._CALLS[0] %% %d, len(pool) - 1)][1],"
                        " t, _total," % int(BRKPOOL), 1)
 
+# OGC_CUT: replace the area tightening in the Benders loop with a crane-rule no-good cut.
+#
+# THE DEFECT.  _assign is already a Benders/LBBD loop -- CP-SAT proposes an assignment,
+# _realise tries to pack it, and where it spills the loop multiplies that bay's capacity factor
+# by 0.90.  The row CP-SAT solves under is
+#
+#     sum(x[b][k] * area[b] for b in present at t) <= cap[k] * capf[k]
+#
+# which is AREA, and area does not bind on P3: first-choice demand over capacity is 0.48 / 0.12
+# / 0.15.  So the master optimises under a constraint that forbids nothing, proposes an
+# assignment near the 36,765 bound, _realise fails on the CRANE rule, and the loop tightens
+# area -- which was never the reason.  The capacity-aware bound is 36,765 and we sit at 86,665;
+# the whole of that gap is this.
+#
+# THE CUT, AND WHY IT IS FREE.  _realise already knows exactly which block failed which bay --
+# it does `hot[want[b]] += 1` at the moment feasible_scan comes back empty under the descent
+# rule.  It simply throws the identity away.  Recording it costs no oracle call at all:
+#
+#     S = {b} + the blocks the plan put in bay k whose [ent,ext) overlaps b's window
+#     sum(x[q][k] for q in S) <= |S| - 1
+#
+# "not all of S can be in bay k at once", which is a statement about the crane rule rather than
+# about area, and it came from the packer itself.
+#
+# HONEST LIMIT.  _realise packs greedily in a fixed order, so its failure is evidence and not a
+# proof -- some S it rejects may be packable in another order, and the cut would then exclude a
+# feasible assignment.  Two things bound the damage: the cut forbids only the EXACT full set, so
+# every near-identical assignment survives it, and every candidate is still scored on the true
+# objective inside best-of, so a wrong cut costs search quality and never correctness.
+CUT = os.environ.get("OGC_CUT", "").strip()
+if CUT:
+    # 1. _realise reports WHICH blocks failed their wanted bay, not just how many
+    _r1 = "    out = {}; spill = 0; hot = [0] * m"
+    assert s.count(_r1) == 1, "_realise state init not found"
+    s = s.replace(_r1, _r1 + "\n    badsets = []          # OGC_CUT: (bay, frozenset) per failure", 1)
+    # The two spill sites sit at DIFFERENT indent levels -- one in the alt-bay branch, one in
+    # the last-resort wait loop.  Matching on the bare text patches the deep site TWICE, because
+    # the shallow pattern is a SUBSTRING of the deep line; including the preceding newline makes
+    # the indentation exact.  That is what the first attempt got wrong.
+    _n2 = 0
+    for _ind in ("                        ", "                "):
+        _r2 = "\n" + _ind + "spill += 1; hot[want[b]] += 1"
+        if _r2 not in s:
+            continue
+        _rec = ("\n" + _ind + "_k = want[b]\n"
+                + _ind + "badsets.append((_k, frozenset(\n"
+                + _ind + "    [b] + [q for q in range(n) if want[q] == _k and q != b\n"
+                + _ind + "           and ent[q] < ext[b] and ent[b] < ext[q]])))")
+        s = s.replace(_r2, _r2 + _rec, 1)
+        _n2 += 1
+    assert _n2 == 2, "expected two spill sites at two indents, patched %d" % _n2
+
+    for _old, _new in (("    return _build_operations([out[b] for b in range(n)]), spill, hot",
+                        "    return _build_operations([out[b] for b in range(n)]), spill, hot, badsets"),
+                       ("                    return None, -1, hot",
+                        "                    return None, -1, hot, badsets")):
+        assert s.count(_old) == 1, _old
+        s = s.replace(_old, _new, 1)
+
+    # 2. the master accepts cuts
+    _a1 = "def _assign_once(prob_info, ent, ext, bay, capf, tl):"
+    assert s.count(_a1) == 1
+    s = s.replace(_a1, "def _assign_once(prob_info, ent, ext, bay, capf, tl, cuts=()):", 1)
+    _a2 = "    mdl.Minimize(w2 * Mv + w3 * SC * sum(x[b][k] * (mxp[b] - pref[b][k])"
+    assert s.count(_a2) == 1
+    s = s.replace(_a2, "    for _ck, _cs in cuts:      # OGC_CUT: this set cannot share that bay\n"
+                       "        if len(_cs) > 1:\n"
+                       "            mdl.Add(sum(x[q][_ck] for q in _cs) <= len(_cs) - 1)\n" + _a2, 1)
+
+    # 3. the loop accumulates cuts instead of shrinking area
+    _l1 = "            s, spill, hot = _realise(prob_info, want, ent, ext, wait)"
+    assert s.count(_l1) == 1
+    s = s.replace(_l1, "            s, spill, hot, _bad = _realise(prob_info, want, ent, ext, wait)\n"
+                       "            for _c in _bad:\n"
+                       "                if _c not in _cuts:\n"
+                       "                    _cuts.append(_c)", 1)
+    _l2 = "            want = _assign_once(prob_info, ent, ext, bay, capf, min(left * 0.4, 8.0))"
+    assert s.count(_l2) == 1
+    s = s.replace(_l2, "            want = _assign_once(prob_info, ent, ext, bay, capf,"
+                       " min(left * 0.4, 8.0), _cuts)", 1)
+    _l3 = "        capf = [cap0] * m"
+    assert s.count(_l3) == 1
+    s = s.replace(_l3, _l3 + "\n        _cuts = []           # OGC_CUT: carried across rounds of this start point", 1)
+
 old = re.search(r"_AXES = \[\n(?:.*\n)*?\]", s).group(0)
 assert old.count("dict(") == 6, "myalg_orig.py should have exactly six axes"
 s = s.replace(old, AXES, 1)
