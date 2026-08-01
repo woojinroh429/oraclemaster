@@ -403,12 +403,52 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
             ol, ob = _layers_bbox(B, b)
             blocks_in.append((ol, ob, windows(b)))
 
+        # WEIGHTS.  cranepack maximises the total weight it can seat, so a weight has to mean
+        # "what seating this block is worth" in objective units.
+        #
+        # WHY THE OBVIOUS WEIGHT IS WRONG FOR A SET.  The weights below the switch are
+        # SINGLE-MOVE deltas: move this one block, keep everything else, read the objective.
+        # That is exact for one block and wrong for the twenty the packer decides at once,
+        # because Z2 is a RANGE -- w2 * (max_j u_j*load_j - min_j u_j*load_j).  A range is
+        # neither linear nor separable, so a sum of single-move deltas is not the delta of the
+        # sum.  Two blocks that each look worth having can be worthless together (the first one
+        # takes the extreme bay off its peak and the second buys nothing), and two that each
+        # look worthless can pay together.  The packer has no way to know either.
+        #
+        # THE FIX, AND WHY IT IS NOT AN APPROXIMATION IN DISGUISE.  The range is PIECEWISE
+        # LINEAR: hold which bay is the argmax and which is the argmin, and inside that regime
+        # the objective is exactly linear in the loads, with a closed-form coefficient per
+        # block.  So price each candidate by the difference between its two possible fates --
+        # seated in TGT, or its fallback (stay where it is, for an outsider; the next-best bay,
+        # for a resident) -- under the current regime.  That is the true derivative rather than
+        # a first difference, and derivatives DO sum.  If the repack moves enough load that the
+        # extreme bays change hands the pricing degrades, and that costs search quality only:
+        # the rebuilt solution is still scored by the real grader at the end and a repack that
+        # does not actually pay is still thrown away.
+        _hi = max(range(m), key=lambda j: u[j] * sum(wl[q] for q in range(n) if cur[q] == j))
+        _lo = min(range(m), key=lambda j: u[j] * sum(wl[q] for q in range(n) if cur[q] == j))
+
+        def _z2c(b, j):
+            """d(w2*Z2)/d(putting b in bay j), under the current argmax/argmin regime."""
+            if j == _hi:
+                return w2 * u[j] * wl[b]
+            if j == _lo:
+                return -w2 * u[j] * wl[b]
+            return 0.0
+
+        def _z3c(b, j):
+            return w3 * (mxp[b] - pref[b][j])
+
         wts = []
         for i, b in enumerate(cand):
-            if isres[i]:
-                alt = list(cur)
-                alt[b] = min((j for j in range(m) if j != TGT),
-                             key=lambda j: pref[b][TGT] - pref[b][j])
+            fall = (min((j for j in range(m) if j != TGT),
+                        key=lambda j: pref[b][TGT] - pref[b][j]) if isres[i] else cur[b])
+            if os.environ.get("BRK_LINW") == "1":
+                # value of seating = what the fallback would cost - what TGT costs
+                wts.append(max(0.0, (_z3c(b, fall) + _z2c(b, fall))
+                               - (_z3c(b, TGT) + _z2c(b, TGT))))
+            elif isres[i]:
+                alt = list(cur); alt[b] = fall
                 wts.append(max(1.0, obj_of(alt, ent, ext) - base))
             else:
                 wts.append(float(outs[i - len(res)][0]))
