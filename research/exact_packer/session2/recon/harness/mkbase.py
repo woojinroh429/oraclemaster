@@ -496,7 +496,8 @@ if os.environ.get("OGC_BRK") == "1":
     try:
         import bayrepack as _brk
         ops.append(("brk", lambda t: _brk.repack(prob_info, pool[0][1], t, _total,
-                                                 _build_operations, _ogc_fast_engine),
+                                                 _build_operations, _ogc_fast_engine,
+                                                 hard=budget - (time.time() - t0)),
                     True, True, float(os.environ.get("OGC_BRKFLOOR", "8.0"))))
     except Exception:
         pass''', 1)

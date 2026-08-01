@@ -75,6 +75,14 @@ _CALLS = [0]
 # not stop when its budget runs out, so this is the only honest input to how big a problem it
 # is safe to hand over -- and it is measured on the machine actually running, not assumed.
 _RATIO = [1.0]
+# The packer's runtime is a property of the PROBLEM, not of the deadline it is given -- measured
+# on P3, every large-tier call took 77-81 s whether it was asked for 35 s or 100 s, and every
+# small-tier call about 20 s.  So the tiers are listed largest-first with their measured cost,
+# and the operator takes the largest one the remaining time can absorb.  Costs are updated from
+# what actually happens, so a different machine or instance corrects the seed rather than
+# inheriting it.
+_TIERS = [(4, 40, 3), (4, 20, 2), (6, 10, 1)]
+_TIERCOST = [80.0, 21.0, 21.0]
 
 
 def _layers_bbox(B, bid):
@@ -99,13 +107,17 @@ def _layers_bbox(B, bid):
 
 
 def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
-           nout=None, step=None, nent=None):
+           nout=None, step=None, nent=None, hard=None):
     """One repack of the most contested bay.  Returns a better operations dict, or None.
 
     total_fn(prob_info, sol) -> (objective, checkdict)   the caller's own scorer, so this
     module never decides what "better" means.
     build_fn(list of assignment records) -> operations dict
     engine_fn(prob_info) -> ogc_fast Engine, used to rehome blocks the repack displaces.
+    hard is the RUN's remaining seconds, not the slice.  The two differ by a lot -- the slice is
+    the allocator's advisory share and the packer ignores deadlines anyway -- and the tier
+    choice needs the run-level number, because a tier that costs 80 s is right with 190 s left
+    and ruinous with 45.
     """
     CP = _load()
     if CP is None:
@@ -151,44 +163,60 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
         _CALLS[0] += 1
         k = _CALLS[0]
 
-        # SIZE THE PROBLEM TO THE SLICE, because the packer will not size itself to the clock.
+        # SIZE THE PROBLEM TO WHAT THE RUN CAN AFFORD, not to the slice.
         #
-        # cranepack's time_budget_s is not a hard limit.  Measured on this instance: the same
-        # call at grid step 4 returned inside its 120 s, and at step 2 -- four times the position
-        # grid -- it ran 18 minutes against the same 120 s ask.  A 9x overrun.  Inside a
-        # diagnostic that is a blocked queue; inside the operator, at the grader's hard limit, it
-        # is a missing answer.
+        # harness/brkcost.py measured this on the real hidden P3 and both columns are step
+        # functions, which changes the whole design:
         #
-        # There is no knob that makes it stop, so the defence is to hand it a problem whose size
-        # is bounded rather than a deadline it ignores.  Three levers set the column count --
-        # positions per orientation (STEP), candidate blocks (NOUT), entry times each (NENT) --
-        # and all three shrink together when the slice is short.  This is fitting the work to the
-        # time available, not a threshold on any property of the instance.
+        #     slice   took   ratio      obj     gain
+        #        8s   20.3s   2.5x   105,430   -1.19%
+        #       12s   18.9s   1.6x   105,430   -1.19%
+        #       20s   21.0s   1.1x   105,430   -1.19%
+        #       35s   77.0s   2.2x    91,670  -14.09%
+        #       60s   78.5s   1.3x    91,670  -14.09%
+        #      100s   81.0s   0.8x    91,670  -14.09%
         #
-        # The tiers are chosen against an EFFECTIVE slice, not the one asked for, because a fixed
-        # table would just be my guess at the overrun.  The operator measures its own: the first
-        # smoke test asked 60 s at the largest tier and took 115.5 s, so the ratio is real and
-        # it is not 1.  Dividing the slice by the running ratio makes the next call pick a tier
-        # that fits the time actually available on THIS machine and THIS instance, and the
-        # estimate is blended rather than replaced so one slow call does not collapse it.
-        # An explicit argument or env override wins over the tiers, so a sweep can ask for a
-        # size the tier table would never pick.  Without this the env vars read as live knobs
-        # and are silently ignored, which is the same class of quiet failure as a knob that
-        # reaches the call site but not the signature.
+        # TIME IS SET BY THE PROBLEM, NOT THE BUDGET.  Every small-tier call costs about 20 s and
+        # every large-tier call about 78 s, whatever they were asked for -- cranepack runs its
+        # own search to completion and the deadline is advisory.  Handing it 100 s instead of 35
+        # buys nothing; it finishes in 81 either way.
+        #
+        # AND SO IS THE GAIN.  -1.19% at the small tier, -14.09% at the large one, nothing in
+        # between and nothing above.  The large tier is four times the cost for twelve times the
+        # return, so it should be chosen almost always.
+        #
+        # WHICH EXPOSES THE BUG THIS REPLACES.  The old rule picked a tier from the slice, with
+        # the large one gated at 40 s -- and brk's opening slot is worker_budget * 0.20, which at
+        # a 240 s run is 39.8 s.  Just under.  Deflating by the observed ratio pushed it further
+        # under.  So the operator was running in the -1.19% tier for the whole session while
+        # -14.09% was one threshold away, and that is why giving it the entire budget changed
+        # nothing: a bigger slice still bought the same small problem.
+        #
+        # The rule now asks the only question the measurement supports -- can the REMAINING RUN
+        # time absorb this tier's measured cost -- and takes the largest tier that fits.  Costs
+        # are learned per tier from what actually happens here, seeded with the numbers above,
+        # so the rule adapts to a machine or an instance where they differ instead of trusting
+        # a table.
         _ev = (os.environ.get("BRK_STEP"), os.environ.get("BRK_NOUT"), os.environ.get("BRK_NENT"))
         SL = float(budget)
         if step is None and nout is None and nent is None and not any(_ev):
-            eff = SL / max(1.0, _RATIO[0])
-            if eff < 15.0:
-                STEP, NOUT, NENT = 6, 10, 1
-            elif eff < 40.0:
-                STEP, NOUT, NENT = 4, 20, 2
-            else:
-                STEP, NOUT, NENT = 4, 40, 3
+            # (step, nout, nent) largest first; _TIERCOST[i] is its measured seconds
+            # The run's remaining time is the real constraint; the slice is advisory and the
+            # packer overruns it by construction.  Without `hard` the operator cannot tell 40 s
+            # of slice with 190 s left from 40 s of slice with 45 s left, and those want
+            # opposite tiers.  0.85 leaves room for the rehoming scans and the grader check that
+            # follow the pack.
+            _cap = (float(hard) if hard is not None else SL) * 0.85
+            for _ti, (_st, _no, _ne) in enumerate(_TIERS):
+                if _TIERCOST[_ti] <= _cap or _ti == len(_TIERS) - 1:
+                    STEP, NOUT, NENT = _st, _no, _ne
+                    _tier = _ti
+                    break
         else:
             STEP = int(step if step is not None else (_ev[0] or 4))
             NOUT = int(nout if nout is not None else (_ev[1] or 40))
             NENT = int(nent if nent is not None else (_ev[2] or 3))
+            _tier = -1
 
         # THE CONTESTED BAY: the most-pressed bay THAT ANYTHING WANTS TO ENTER.
         #
@@ -276,7 +304,10 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
                     seed=12345 + 7919 * k, warm=warm or None, frozen=[],
                     weights=[float(x) for x in wts])
         # the ratio is against what was ASKED, which is what the deflation has to undo
-        _RATIO[0] = 0.5 * _RATIO[0] + 0.5 * ((time.time() - _pt) / max(1e-6, _ask))
+        _el = time.time() - _pt
+        _RATIO[0] = 0.5 * _RATIO[0] + 0.5 * (_el / max(1e-6, _ask))
+        if _tier >= 0:
+            _TIERCOST[_tier] = 0.5 * _TIERCOST[_tier] + 0.5 * _el
         got = {loc: (o, x, y, en, ex) for (loc, o, x, y, en, ex) in r[1]}
 
         admitted = [i for i in range(len(cand)) if not isres[i] and i in got]
