@@ -23,3 +23,4 @@ P3: 200 blocks.  beam 10s per evaluation, 4 trials per perturbation strength
           1        4   166015           -590   1/4
           2        4   167040           +435   0/4
           4        4   167180           +575   0/4
+          8        4   176670         +10065   0/4
