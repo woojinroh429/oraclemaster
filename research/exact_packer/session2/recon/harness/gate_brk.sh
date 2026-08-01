@@ -42,6 +42,11 @@
 set -u
 cd "$(dirname "$0")/.." || exit 1
 mkdir -p results
+# ONE INSTANCE.  The shared experiment lock serialises DIFFERENT queues but not a second
+# copy of this one -- two copies take it in turn and overwrite the same result files,
+# which is what contaminated q23.
+exec 8>"/tmp/ogc_$(basename "$0").lock"
+flock -n 8 || { echo "another $(basename "$0") is already running"; exit 0; }
 exec 9>/tmp/ogc_experiment.lock
 flock 9 || exit 1
 
