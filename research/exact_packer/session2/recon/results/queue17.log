@@ -1,0 +1,7 @@
+
+[STOPPED -- secondary, and the lock is needed by queue20]
+
+nout=80 and step=3 are refinements of the tier that is now chosen automatically.  Both overran
+their budget under the old sizing (260s, 363s against 240s), and the tier rule that replaced it
+picks the problem size from measured cost, so these two are no longer the question.  queue20
+measures that rule, and it was last in a queue of five for the lock.
