@@ -10,3 +10,5 @@ P3  fastobj conw0 r1   240s  obj=113200      Z1=0.0      Z2=3830   Z3=627.0     
 === q8_c0ctl_r1.log  (control conw0 r1)  03:55:31
 P3  control conw0 r1   240s  obj=114855      Z1=0.0      Z2=3471   Z3=650.0     feas=y   ran 239s
 === q8_foc0_r2.log  (fastobj conw0 r2)  03:59:31
+P3  fastobj conw0 r2   240s  obj=98465       Z1=0.0      Z2=2653   Z3=568.0     feas=y   ran 239s
+=== q8_c0ctl_r2.log  (control conw0 r2)  04:03:31
