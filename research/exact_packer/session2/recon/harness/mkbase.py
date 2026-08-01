@@ -614,6 +614,31 @@ if DET:
     assert s.count(_pk) == 1, "allocator pick site not found -- refusing to guess"
     s = s.replace(_pk, "            k = elig[sum(tried) % len(elig)]   # OGC_DET: fixed rotation", 1)
 
+# OGC_BRKPOOL: repack a rotating POOL MEMBER instead of always the incumbent.
+#
+# Measured this session: with the tier fix in, the arm is deterministic on P3 -- three runs of
+# the control returned 86,665 with Z2 and Z3 identical, spread zero.  The 9,490 spread quoted
+# earlier mixed queues whose code differed (tier rule, ask deflation, the `hard` argument all
+# landed between them), so it was never a property of one build.
+#
+# That changes what is left to do.  There is no variance to remove; the arm lands on one
+# solution and stays there.  Lowering it means reaching a DIFFERENT solution, and the pipeline
+# already holds up to six -- pool[] keeps the best six distinct objectives a worker has seen.
+# brk only ever repacks pool[0].
+#
+# Repacking pool[1] or pool[2] starts the exact packer from a different arrangement, which is
+# the one thing that reliably lands it somewhere else: the whole reason brk works is that an
+# arrangement a greedy pass committed to can be re-solved, and a different arrangement re-solves
+# differently.  Cost is nothing -- the pool is already built and already scored -- and the result
+# still has to beat the incumbent on the real grader before it is kept, so a worse starting
+# point can only waste its own slice.
+BRKPOOL = os.environ.get("OGC_BRKPOOL", "").strip()
+if BRKPOOL and os.environ.get("OGC_BRK") == "1":
+    _bp = "_brk.repack(prob_info, pool[0][1], t, _total,"
+    assert s.count(_bp) == 1, "brk pool site not found -- refusing to guess"
+    s = s.replace(_bp, "_brk.repack(prob_info, pool[min(_brk._CALLS[0] %% %d, len(pool) - 1)][1],"
+                       " t, _total," % int(BRKPOOL), 1)
+
 old = re.search(r"_AXES = \[\n(?:.*\n)*?\]", s).group(0)
 assert old.count("dict(") == 6, "myalg_orig.py should have exactly six axes"
 s = s.replace(old, AXES, 1)
