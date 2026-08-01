@@ -568,6 +568,51 @@ if WARMUP:
                   "    except Exception:\n"
                   "        pass\n"
                   "%s" % (repr(float(WARMUP)), _wa), 1)
+# OGC_DET: take the wall clock OUT of the decisions, as far as a time limit allows.
+#
+# The spread on P3 is not a speed problem.  Every random draw in the worker loop is seeded, and
+# FASTOBJ removed 173 ms of verification from every operator call -- a 1300x speed-up on that
+# path -- and moved the answer by 0.26%.  Making the surrounding Python into C++ would do the
+# same thing: run the same clock-reading decisions faster.
+#
+# There are exactly two places where the algorithm asks what time it is and changes what it
+# DOES:
+#
+#   1  the beam's adaptive width.  It measures cost per state-level and picks the width that
+#      fits the remaining budget.  brknoise priced the consequence: a COLD first call
+#      over-estimates the cost, narrows the width, and returns a solution 15.6% worse than the
+#      five warm calls after it, which agree to the digit.  OGC_ADAPTB=0 / OGC_ADAPTK=0 pin
+#      both, and they already exist in the engine.
+#   2  the allocator's operator choice, gain[i]/spent[i].  Which operator runs next is decided
+#      by measured rate, so a run that is a little faster or slower takes a different branch
+#      and every branch after it differs too.
+#
+# DET pins both.  What it CANNOT pin is how many iterations fit in the budget -- the loop still
+# ends when the clock says so -- so this narrows the dependence rather than removing it, and
+# saying otherwise would be a claim the design cannot support.
+#
+# The width has to be chosen, not merely pinned: the engine's own comment records that a
+# predicted width is "silently catastrophic" because the beam returns NOTHING when it overruns,
+# and that a constant was 4x wrong the moment the beam ran one-core inside the pool.  So DET
+# takes the width as its value and the arms sweep it.
+DET = os.environ.get("OGC_DET", "").strip()
+if DET:
+    _dw = float(DET)
+    _da = "def algorithm(prob_info, timelimit=60):"
+    assert s.count(_da) == 1, "algorithm entry point not found -- refusing to guess"
+    s = s.replace(_da, 'import os as _dos\n'
+                       '_dos.environ["OGC_ADAPTB"] = "0"    # see OGC_DET in mkbase.py\n'
+                       '_dos.environ["OGC_ADAPTK"] = "0"\n\n\n' + _da, 1)
+    _bw = 'def _beam_width(mul):'
+    assert s.count(_bw) == 1
+    s = s.replace(_bw, 'def _beam_width(mul, _det=%s):\n'
+                       '    return max(1, int(round(_det * mul)))\n\n\n'
+                       'def _beam_width_adaptive(mul):' % repr(_dw), 1)
+    # the allocator picks by measured RATE; with DET it rotates, so the sequence of operators
+    # is the same on every run of the same arm
+    _pk = "            k = max(elig, key=lambda i: gain[i] / spent[i])"
+    assert s.count(_pk) == 1, "allocator pick site not found -- refusing to guess"
+    s = s.replace(_pk, "            k = elig[sum(tried) % len(elig)]   # OGC_DET: fixed rotation", 1)
 
 old = re.search(r"_AXES = \[\n(?:.*\n)*?\]", s).group(0)
 assert old.count("dict(") == 6, "myalg_orig.py should have exactly six axes"
