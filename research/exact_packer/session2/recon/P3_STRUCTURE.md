@@ -134,3 +134,52 @@ how many operator calls fit in the budget. That is where the spread comes from, 
 is a large, noisy share of it — so removing it narrows the band as well as raising the ceiling.
 `OGC_FASTOBJ` screens on the arithmetic objective and verifies for real only what could beat the
 incumbent.
+
+## The one thing that worked
+
+`bayrepack` -- lift every block out of the most-pressed bay that something wants to enter, add
+the outsiders that would most improve the objective, and let `cranepack` seat maximum VALUE
+under the descent rule. Residents are weighted by what evicting them would cost, outsiders by
+what admitting them gains, so it trades rather than merely adds. Displaced blocks are rehomed
+for real -- each must find a legal seat in another bay at its own unchanged times against the
+finished new state -- and a block that cannot kills the repack.
+
+Paired against its own control, same base and same build, three reps against three:
+
+    rep    brk on     brk off     delta
+    r1     82,180      96,990    -15.27%
+    r2     86,550     106,700    -18.88%
+    r3     86,550     106,700    -18.88%
+    mean   85,093     103,463    -17.75%
+
+    brk  82,180 - 86,550     width  4,370
+    ctl  96,990 - 106,700    width  9,710
+
+The bands do not overlap. brk's worst run is 10,440 under the control's best, and all three are
+under the 87,560 that every scoring knob in this session reached only at its luckiest. r2 and r3
+agree to the digit on Z2 and Z3, so the operator converges on a small set of discrete solutions
+rather than drifting. It lowers the mean by 17.75% and halves the spread -- the second half
+matters for a finals budget that may be shorter than the heats.
+
+Z3 = 443 on the best run, at Z2 = 3146. Nothing else this session got Z3 under 462, and that
+only by paying Z2 up to 3652. Improving both terms at once is exactly what p3max proved no
+single move can do, which is why `_balance` -- the only Z2/Z3 repair operator the pipeline had
+-- is structurally dead here.
+
+### What it cost to get right
+
+The gain nearly died four times, each time to something that fails silently rather than loudly:
+
+* the operator first REJECTED any repack that could not re-seat every resident -- and the
+  winning repack displaces three
+* rotating the target bay across calls to avoid re-deriving one answer sent call two to a bay
+  with no profitable entrant, which returned None in 0.0 s and cut -15.27% to -2.31%
+* a container restart left `ogc_fast.so` older than `mkbase.py`, so every generated arm passed
+  one argument too many, pybind raised TypeError into a bare `except`, and four queues reported
+  the greedy floor (2,488,352,313) as an ordinary result with `feas=y`
+* `BRK_STEP/NOUT/NENT` read as sweepable knobs while the tier table overrode them
+  unconditionally, so a sweep would have measured one setting three times
+
+All four are now asserted or reported, and each guard was negative-tested against the failure it
+is for. `harness/brksmoke.py` exists because a `None` inside a 240 s arm is indistinguishable
+from "the operator found nothing worth doing".
