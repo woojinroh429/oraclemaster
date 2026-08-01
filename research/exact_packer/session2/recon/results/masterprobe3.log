@@ -1,0 +1,16 @@
+incumbent  obj=86665  Z2=3023  Z3=477.0
+
+  K    status    if seated   moved  spill   realised (greedy)
+  1    OPTIMAL   79492       1      7       139075    Z2 1655   Z3 872.0
+       moves: b100 1->0
+  2    OPTIMAL   72438       2      8       137130    Z2 2196   Z3 841.0
+       moves: b100 1->0, b164 1->0
+  3    OPTIMAL   65426       3      9       137130    Z2 2196   Z3 841.0
+       moves: b100 1->0, b105 2->0, b164 1->0
+  4    OPTIMAL   59292       4      12      152300    Z2 2320   Z3 938.0
+       moves: b53 2->0, b100 1->0, b105 2->0, b164 1->0
+  6    OPTIMAL   50862       6      14      152300    Z2 2320   Z3 938.0
+  8    OPTIMAL   45641       8      16      162505    Z2 2501   Z3 1000.0
+  12   OPTIMAL   38821       12     20      174705    Z2 2511   Z3 1081.0
+  16   OPTIMAL   36759       16     23      176390    Z2 2848   Z3 1081.0
+  24   OPTIMAL   36759       16     23      176390    Z2 2848   Z3 1081.0
