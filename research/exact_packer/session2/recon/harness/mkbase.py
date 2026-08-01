@@ -728,6 +728,98 @@ assert old.count("dict(") == 6, "myalg_orig.py should have exactly six axes"
 s = s.replace(old, AXES, 1)
 
 ast.parse(s)
+
+# ---------------------------------------------------------------------------------------
+# OGC_MANCH: a regrow anchored on an EXACT assignment instead of on the incumbent.
+#
+# W2BEAM measured why the beam's assignment is weak, and it is not the weight.  Told to chase
+# balance less, the beam DOES trade Z2 for Z3 -- 2522 -> 3464 and 582 -> 556 on P3 -- but at 36
+# units of Z2 per unit of Z3, against an objective that prices them at 30 and an optimum that
+# achieves 2.8.  Thirteen times worse.  The beam gives up preference on whatever block is in
+# front of it; the optimum gives it up only where it pays.
+#
+# So supply the WHICH.  _regrow already re-derives a beam from (bay per block, dispatch order)
+# with a decaying stay-weight, migrating a block only where migrating lowers the objective --
+# it is simply always handed the incumbent's own assignment by _anchor_of.  This hands it a
+# CP-SAT optimum instead, under per-bay CARDINALITY caps read off the incumbent, so the target
+# is one the geometry has already demonstrated it can hold.  Measured on P3: at the incumbent's
+# own bay counts the optimum is 59,715 (Z2 3903, Z3 268) against our 97,570 (Z2 3134, Z3 546).
+#
+# Nothing new is searched and nothing is gated: it is the existing regrow with a better anchor,
+# scored on the true objective like every other operator, discarded when it loses.
+_MANCH = os.environ.get("OGC_MANCH", "")
+if _MANCH:
+    _mfn = '''
+
+def _master_anchor(prob_info, sol):
+    """(bay per block, dispatch order) from an EXACT assignment, for _regrow to re-derive.
+
+    Same objective the solution is scored on, minus w1*Z1 which the pinned dispatch order and
+    the beam's own timing decide.  Constrained by per-bay CARDINALITY taken from the incumbent
+    -- area was measured worthless here (first-choice demand over capacity is 0.48/0.12/0.15 on
+    P3, so the row forbids nothing) while cardinality is what the packer actually ran out of.
+    Returns None on any failure and the caller falls back to the incumbent anchor."""
+    if not HAVE_ORTOOLS:
+        return None
+    try:
+        from ortools.sat.python import cp_model
+        B = prob_info["blocks"]; n = len(B); m = len(prob_info["bays"])
+        if m < 2:
+            return None
+        w = prob_info["weights"]; w2 = float(w.get("w2", 0)); w3 = float(w["w3"])
+        pref = [B[b]["bay_preferences"] for b in range(n)]
+        mxp = [max(pref[b]) for b in range(n)]
+        bar = [float(prob_info["bays"][j]["width"]) * float(prob_info["bays"][j]["height"])
+               for j in range(m)]
+        SC = 1000; avg = sum(bar) / m
+        U = [int(round(SC * avg / bar[j])) for j in range(m)]
+        cur, order = _anchor_of(prob_info, sol)
+        if any(c < 0 for c in cur):
+            return None
+        cap = [sum(1 for b in range(n) if cur[b] == j) for j in range(m)]
+        mdl = cp_model.CpModel()
+        x = [[mdl.NewBoolVar("") for j in range(m)] for b in range(n)]
+        for b in range(n):
+            mdl.Add(sum(x[b]) == 1)
+        for j in range(m):
+            mdl.Add(sum(x[b][j] for b in range(n)) <= cap[j])
+        ld = [mdl.NewIntVar(0, 10 ** 9, "") for j in range(m)]
+        for j in range(m):
+            mdl.Add(ld[j] == sum(x[b][j] * int(B[b]["workload"]) for b in range(n)))
+        Mv = mdl.NewIntVar(0, 10 ** 12, "")
+        for j in range(m):
+            for k in range(m):
+                if j != k:
+                    mdl.Add(Mv >= U[j] * ld[j] - U[k] * ld[k])
+        mdl.Minimize(w2 * Mv + w3 * SC * sum(x[b][j] * (mxp[b] - pref[b][j])
+                                             for b in range(n) for j in range(m)))
+        for b in range(n):
+            for j in range(m):
+                mdl.AddHint(x[b][j], 1 if cur[b] == j else 0)
+        slv = cp_model.CpSolver()
+        slv.parameters.max_time_in_seconds = 5.0
+        slv.parameters.num_search_workers = 1
+        if slv.Solve(mdl) not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
+            return None
+        return ([next(j for j in range(m) if slv.Value(x[b][j]) == 1) for b in range(n)], order)
+    except Exception:
+        return None
+
+'''
+    assert "\ndef _regrow(" in s
+    s = s.replace("\ndef _regrow(", _mfn + "\ndef _regrow(", 1)
+    _hook = '''    if HAVE_ORTOOLS:
+        ops.append(("manch", lambda t: _regrow(prob_info, pool[0][1], t, axes[0], %s,
+                                               anchor=_master_anchor(prob_info, pool[0][1])),
+                    True, True, 4.0))
+''' % _MANCH
+    _at = '''    if HAVE_ORTOOLS:
+        ops.append(("bay", lambda t: _assign(prob_info, pool[0][1], t), True, True, 3.0))
+'''
+    assert _at in s, "operator list anchor not found"
+    s = s.replace(_at, _at + _hook, 1)
+    assert s.count("_master_anchor(") == 2
+
 open(OUT, "w").write(s)
 print("wrote %s -- cap preserved=%s, cohort axes=%d"
       % (OUT, "min(96," in s, s.count("cohort=" + repr(FLOOR))))
