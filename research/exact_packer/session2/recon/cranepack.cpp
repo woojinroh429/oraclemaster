@@ -13,14 +13,6 @@
 #include <algorithm>
 #include <chrono>
 #include <cstdlib>
-#include <cstdio>
-#include <cstdio>
-#ifdef _OPENMP
-#include <omp.h>
-#else
-static inline int omp_get_num_threads(){return 1;}
-static inline int omp_get_thread_num(){return 0;}
-#endif
 namespace py = pybind11;
 typedef std::vector<std::pair<double,double>> Poly;
 
@@ -63,86 +55,24 @@ struct Col {
     int block, orient, x, y, entry, exit;
     std::vector<Poly> layers;             // world coords
     double bx0,by0,bx1,by1;
-    // PER-LAYER OCCUPANCY MASK, for the conservative pre-test in crane_conflict.
-    //
-    // Profiled: 34.7M crane_conflict calls, 77.7% of them real conflicts.  A conflict returns
-    // at the first overlapping layer and is cheap; the 22.3% that do NOT conflict walk the
-    // whole Ka x Kb layer product, and that is where the polygon time goes.
-    //
-    // Each layer gets a bitmask over a fixed MASKN x MASKN grid of its own bounding box... no:
-    // over the SHARED integer lattice, so two masks can be ANDed directly.  A cell is set if
-    // the layer covers any part of it, which makes the test conservative -- disjoint masks
-    // prove the polygons cannot overlap, and anything else falls through to the exact test.
-    // So this can only save work, never change an answer.
-    std::vector<uint64_t> lmask;          // MASKW words per layer, laid out layer-major
-    int mx0, my0;                         // lattice origin for this column
 };
-static const int MASKW = 8;               // 8 words x 64 bits = 512 cells = 32 x 16 lattice
-static const int MASK_NX = 32, MASK_NY = 16;
 static void bbox_of(Col& c){
     c.bx0=1e18;c.by0=1e18;c.bx1=-1e18;c.by1=-1e18;
     for(auto&L:c.layers) for(auto&p:L){
         c.bx0=std::min(c.bx0,p.first);c.by0=std::min(c.by0,p.second);
         c.bx1=std::max(c.bx1,p.first);c.by1=std::max(c.by1,p.second);
     }
-    // Rasterise each layer onto the SHARED unit lattice, conservatively: a cell is set when the
-    // layer's bounding box touches it at all.  Two columns' masks are comparable because the
-    // lattice is absolute (floor of world coordinates), and a cell is only cleared when the
-    // layer provably does not reach it -- so disjoint masks are a proof of non-overlap.
-    int nl=(int)c.layers.size();
-    c.lmask.assign((size_t)nl*MASKW, 0ULL);
-    c.mx0=(int)std::floor(c.bx0); c.my0=(int)std::floor(c.by0);
-    for(int k=0;k<nl;k++){
-        const Poly& L=c.layers[k];
-        if(L.size()<3) continue;
-        double lx0=1e18,ly0=1e18,lx1=-1e18,ly1=-1e18;
-        for(auto&p:L){ lx0=std::min(lx0,p.first); ly0=std::min(ly0,p.second);
-                       lx1=std::max(lx1,p.first); ly1=std::max(ly1,p.second); }
-        int cx0=(int)std::floor(lx0)-c.mx0, cy0=(int)std::floor(ly0)-c.my0;
-        int cx1=(int)std::ceil (lx1)-c.mx0, cy1=(int)std::ceil (ly1)-c.my0;
-        if(cx0<0)cx0=0; if(cy0<0)cy0=0;
-        if(cx1>MASK_NX)cx1=MASK_NX; if(cy1>MASK_NY)cy1=MASK_NY;
-        uint64_t* row=&c.lmask[(size_t)k*MASKW];
-        for(int y=cy0;y<cy1;y++) for(int x=cx0;x<cx1;x++){
-            int bit=y*MASK_NX+x;
-            row[bit>>6] |= (1ULL<<(bit&63));
-        }
-    }
-}
-// Do layer ka of A and layer kb of B share a lattice cell?  Masks are stored relative to each
-// column's own origin, so the shift between them is applied here.  Conservative: returns true
-// whenever it cannot prove disjointness.
-static inline bool mask_may_overlap(const Col& A,int ka,const Col& B,int kb){
-    int dx=B.mx0-A.mx0, dy=B.my0-A.my0;
-    if(dx<=-MASK_NX||dx>=MASK_NX||dy<=-MASK_NY||dy>=MASK_NY) return false;
-    const uint64_t* ra=&A.lmask[(size_t)ka*MASKW];
-    const uint64_t* rb=&B.lmask[(size_t)kb*MASKW];
-    for(int y=0;y<MASK_NY;y++){
-        int yb=y-dy; if(yb<0||yb>=MASK_NY) continue;
-        for(int x=0;x<MASK_NX;x++){
-            int bit=y*MASK_NX+x; if(!((ra[bit>>6]>>(bit&63))&1ULL)) continue;
-            int xb=x-dx; if(xb<0||xb>=MASK_NX) continue;
-            int bb=yb*MASK_NX+xb;
-            if((rb[bb>>6]>>(bb&63))&1ULL) return true;
-        }
-    }
-    return false;
 }
 
 // crane conflict, fastconf j>=k logic (descent OR ascent => same A_k vs B_{j>k} loop)
-// PROFILE (CRANEPACK_PROF=1).  Before optimising this again, measure it.  The last attempt
-// removed 330M cheap pair-visits and left the expensive calls untouched, costing 14%.
-static long long cc_calls=0, cc_true=0, cc_aabb=0, cc_deep=0;
 static bool crane_conflict(const Col& A, const Col& B){
-    cc_calls++;
     if(!(A.entry < B.exit && B.entry < A.exit)) return false;         // time co-presence
-    if(A.bx1<=B.bx0||B.bx1<=A.bx0||A.by1<=B.by0||B.by1<=A.by0){ cc_aabb++; return false; } // AABB
-    cc_deep++;
+    if(A.bx1<=B.bx0||B.bx1<=A.bx0||A.by1<=B.by0||B.by1<=A.by0) return false; // AABB
     int Ka=A.layers.size(), Kb=B.layers.size();
     int mk=std::min(Ka,Kb);
     for(int k=0;k<mk;k++){                                            // resting j==k
         if(A.layers[k].size()<3||B.layers[k].size()<3) continue;
-        if(poly_overlap(A.layers[k],B.layers[k])){ cc_true++; return true; }
+        if(poly_overlap(A.layers[k],B.layers[k])) return true;
     }
     bool AoverB = (A.entry>=B.entry) || (A.exit<=B.exit);             // A sweeps B upper layers
     bool BoverA = (B.entry>=A.entry) || (B.exit<=A.exit);
@@ -151,7 +81,7 @@ static bool crane_conflict(const Col& A, const Col& B){
             if(A.layers[k].size()<3) continue;
             for(int j=k+1;j<Kb;j++){
                 if(B.layers[j].size()<3) continue;
-                if(poly_overlap(A.layers[k],B.layers[j])){ cc_true++; return true; }
+                if(poly_overlap(A.layers[k],B.layers[j])) return true;
             }
         }
     }
@@ -160,7 +90,7 @@ static bool crane_conflict(const Col& A, const Col& B){
             if(B.layers[k].size()<3) continue;
             for(int j=k+1;j<Ka;j++){
                 if(A.layers[j].size()<3) continue;
-                if(poly_overlap(B.layers[k],A.layers[j])){ cc_true++; return true; }
+                if(poly_overlap(B.layers[k],A.layers[j])) return true;
             }
         }
     }
@@ -289,86 +219,19 @@ py::tuple pack(py::list blocks, double W, double H, int step,
     int ncol=(int)cols.size();
 
     // ---- pairwise conflict graph (only across different blocks) ----
-    //
-    // THIS LOOP IS THE BUILD.  Measured on P3: 28,370 columns, 56.5 s, and the build is the
-    // part of a pack that cannot be interrupted -- the search honours its deadline, this does
-    // not.  So it is what decides which tier the operator can afford, and a bigger tier is
-    // worth real objective (nent 3 -> 6 took P3 from 88,695 to 80,795).
-    //
-    // The original visited all ncol*(ncol-1)/2 pairs -- 400 million at 28,000 columns -- and
-    // then rejected most of them on the time test.  Two changes, neither of which can alter
-    // the edge set:
-    //
-    //   SWEEP.  Columns are visited in ENTRY order, so for a fixed a every later b has
-    //   cb.entry >= ca.entry.  Overlap needs ca.entry < cb.exit && cb.entry < ca.exit; the
-    //   first is then automatic (cb.exit > cb.entry >= ca.entry) and the second fails for
-    //   every remaining b once it fails for one.  So the inner loop BREAKS instead of
-    //   continuing, and the pairs it skips are exactly the ones the old time test discarded.
-    //   Measured on P3: processing times 3/7/12 against a horizon of 82, so two columns
-    //   overlap in time about 17% of the time -- roughly a 6x cut in pairs visited.
-    //
-    //   THREADS.  The loop is pure computation.  adj[a] is safe to write (a is partitioned)
-    //   but adj[b] is not, so edges go to per-thread buffers and adj is filled serially
-    //   afterwards -- O(edges), tens of thousands, against hundreds of millions of tests.
-    //   schedule(dynamic) because the work per a is triangular AND now varies with the time
-    //   window, so a static split would be badly unbalanced.
-    //
-    // adj is sorted at the end exactly as before, so the graph handed to the search is
-    // identical and the packer stays deterministic.  CRANEPACK_SLOW=1 restores the original
-    // loop for A/B, and that is how this was checked rather than asserted.
     std::vector<std::vector<int>> adj(ncol);
     long nedge=0;
-    const bool SLOWPATH=[](){const char*e=getenv("CRANEPACK_SLOW");return e&&e[0]=='1';}();
-    if(SLOWPATH){
-        for(int a=0;a<ncol;a++){
-            const Col& ca=cols[a];
-            for(int b=a+1;b<ncol;b++){
-                const Col& cb=cols[b];
-                if(ca.block==cb.block) continue;             // same-block handled by blockUsed
-                if(ca.bx1<=cb.bx0||cb.bx1<=ca.bx0||ca.by1<=cb.by0||cb.by1<=ca.by0) continue;
-                if(!(ca.entry<cb.exit&&cb.entry<ca.exit)) continue;
-                if(crane_conflict(ca,cb)){ adj[a].push_back(b); adj[b].push_back(a); nedge++; }
-            }
-        }
-    } else {
-        std::vector<int> ord(ncol);
-        for(int i=0;i<ncol;i++) ord[i]=i;
-        std::sort(ord.begin(),ord.end(),[&](int p,int q){
-            if(cols[p].entry!=cols[q].entry) return cols[p].entry<cols[q].entry;
-            return p<q;                                      // stable, so the sweep is fixed
-        });
-        std::vector<std::vector<std::pair<int,int>>> tls;
-        #pragma omp parallel
-        {
-            #pragma omp single
-            tls.resize(omp_get_num_threads());
-            std::vector<std::pair<int,int>>& loc=tls[omp_get_thread_num()];
-            #pragma omp for schedule(dynamic,32)
-            for(int i=0;i<ncol;i++){
-                int a=ord[i]; const Col& ca=cols[a];
-                for(int j=i+1;j<ncol;j++){
-                    int b=ord[j]; const Col& cb=cols[b];
-                    if(cb.entry>=ca.exit) break;             // and so does every later j
-                    if(ca.block==cb.block) continue;
-                    if(ca.bx1<=cb.bx0||cb.bx1<=ca.bx0||ca.by1<=cb.by0||cb.by1<=ca.by0) continue;
-                    if(crane_conflict(ca,cb)) loc.push_back({a,b});
-                }
-            }
-        }
-        if(getenv("CRANEPACK_PROF")){
-            size_t tot=0; for(auto& v:tls) tot+=v.size();
-            fprintf(stderr,"    cranepack: threads=%d ncol=%d edges=%zu\n",
-                    (int)tls.size(), ncol, tot);
-        }
-        for(auto& v:tls) for(auto& e:v){
-            adj[e.first].push_back(e.second); adj[e.second].push_back(e.first); nedge++;
+    for(int a=0;a<ncol;a++){
+        const Col& ca=cols[a];
+        for(int b=a+1;b<ncol;b++){
+            const Col& cb=cols[b];
+            if(ca.block==cb.block) continue;                 // same-block handled by blockUsed
+            if(ca.bx1<=cb.bx0||cb.bx1<=ca.bx0||ca.by1<=cb.by0||cb.by1<=ca.by0) continue;
+            if(!(ca.entry<cb.exit&&cb.entry<ca.exit)) continue;
+            if(crane_conflict(ca,cb)){ adj[a].push_back(b); adj[b].push_back(a); nedge++; }
         }
     }
     for(auto& v:adj) std::sort(v.begin(),v.end());
-    if(getenv("CRANEPACK_PROF"))
-        fprintf(stderr,"    cranepack: ncol=%d edges=%ld | crane_conflict calls=%lld "
-                       "aabb-rejected=%lld deep=%lld true=%lld\n",
-                ncol,nedge,cc_calls,cc_aabb,cc_deep,cc_true);
     auto t1=std::chrono::high_resolution_clock::now();
     double build_ms=std::chrono::duration<double,std::milli>(t1-t0).count();
 
