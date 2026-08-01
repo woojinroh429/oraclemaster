@@ -1,3 +1,14 @@
    draw 1   obj=194100       at 5s
    draw 2   obj=193005       at 11s
    draw 3   obj=186025       at 16s
+   draw 11  obj=181525       at 57s
+   draw 22  obj=179435       at 115s
+   draw 26  obj=175795       at 135s
+P3  GRASP k=6  27 draws in 141s   best obj=175795      Z1=0.0     Z2=2519  Z3=1088.0
+   finalist build=175795      short-polish=107495     
+   finalist build=179435      short-polish=102675     
+   finalist build=181525      short-polish=111525     
+   finalist build=181525      short-polish=111525     
+   -> re-ranked: the best build was NOT the best polished
+P3  GRASP k=6  polished     obj=102675      Z1=0.0     Z2=2535  Z3=600.0   feasible=True
+   base=pref mode=trueobj  (P6 fixed-order reference is 28,138,113)
