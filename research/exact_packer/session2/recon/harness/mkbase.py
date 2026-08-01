@@ -497,7 +497,7 @@ if os.environ.get("OGC_BRK") == "1":
         import bayrepack as _brk
         ops.append(("brk", lambda t: _brk.repack(prob_info, pool[0][1], t, _total,
                                                  _build_operations, _ogc_fast_engine),
-                    True, True, 8.0))
+                    True, True, float(os.environ.get("OGC_BRKFLOOR", "8.0"))))
     except Exception:
         pass''', 1)
 
@@ -524,6 +524,17 @@ try:
             "run will silently return the greedy floor." % _k)
 except ImportError:
     pass          # no engine at all is a different failure, and one the pipeline reports itself
+
+# OGC_RESERVE: the share of the budget held back for the closing z3 pass.  Shipped as
+# max(2, min(0.20*T, 40)) -- 40s of a 240s run, 17% of it.  That split predates brk, when the
+# post-pass was the only thing that could move Z3 after construction; now it competes with an
+# operator that moves Z3 by re-solving the packing, and the trade has never been measured.
+RESERVE = os.environ.get("OGC_RESERVE", "").strip()
+if RESERVE:
+    _ro = "    reserve = max(2.0, min(0.20 * timelimit, 40.0))     # for the final polish"
+    assert s.count(_ro) == 1, "reserve site not found -- refusing to guess"
+    s = s.replace(_ro, "    reserve = max(2.0, min(%s * timelimit, %s))     # for the final polish"
+                  % (repr(float(RESERVE)), repr(float(RESERVE) * 200.0)), 1)
 
 old = re.search(r"_AXES = \[\n(?:.*\n)*?\]", s).group(0)
 assert old.count("dict(") == 6, "myalg_orig.py should have exactly six axes"
