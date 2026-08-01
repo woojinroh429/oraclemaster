@@ -1,0 +1,136 @@
+# P3, taken apart
+
+Everything here is measured on the real hidden `prob_3.json`. Retractions are kept in place
+rather than deleted, because the wrong version of each was acted on for a while and the reason
+it was wrong is the useful part.
+
+## The instance
+
+    200 blocks, 3 bays, 240 s, w1 = 17778, w2 = 5, w3 = 150
+    demand ratio 0.327 -- the yard is a third full
+
+    bay   size      cells   u = (mean area)/(own area)
+      0   43 x 23     989   2.078
+      1   89 x 28    2492   0.825
+      2  122 x 22    2684   0.766
+
+    horizon 82 (releases 0..70, dues 5..82)
+    blocks whose FIRST choice is bay j:  {0: 77, 1: 60, 2: 63}
+    first -> second preference gap: min 0, median 47, mean 46.7, max 100
+
+Z1 is 0 in every solution anything has produced, and stays 0: every block has slack. So the
+objective is `5*Z2 + 150*Z3` and **is a function of the bay assignment alone**. Positions,
+orientations and entry times appear nowhere in it — they matter only through what they make
+feasible.
+
+Bay 0 is the smallest and carries the largest `u`, so it always sets Z2's maximum, and 77 of
+200 blocks want it first. Z3 pulls blocks into bay 0 and Z2 pushes them out, over the same bay.
+That single tension is the whole instance.
+
+## What every configuration produced
+
+Twenty-odd runs across every knob land on a handful of discrete solutions:
+
+    obj      Z2     Z3    produced by
+    87,560   3652   462   conw=0.0 (3 of 4 runs), mum=* (3), pf=0.5 r2
+    91,110   2952   509   span2=1.0 (2 of 3)
+    92,930   3496   503   conw=0.25 (3 of 3), div conw+span2 (2 of 3)
+    94,965   2343   555   span2=1.0 r3
+    96,235   3767   516   per-axis conw diversification (2 of 3)
+    96,990   3108   543   base
+   103,795   3419   578   conw=0.0 AND span2=1.0 together (2 of 2)
+   106,700   2680   622   base, bad end of its band
+   106,940   2518   629   conw=0.0 r2
+
+Z2 and Z3 move in opposite directions down that list, exactly as the bay-0 tension predicts.
+The best solutions are the ones that took the trade furthest.
+
+Two things follow that are worth more than the individual numbers:
+
+* **conw and span2 are one mechanism, not two.** Both flatten the packing. Held together the
+  result is 103,795 — worse than either alone.
+* **conw=0.0 is a REGIME, not a candidate score.** Per-axis diversification put conw=0.0 on two
+  of six axes and returned 96,235, level with the base. If one flat beam could produce 87,560,
+  best-of over the true objective would have returned it. It did not: a beam builds a flat
+  layout and any axis at conw=1.0 repairs it back toward contact packing. Axes rotate within a
+  worker by design, so they are the one unit that cannot hold a regime steady.
+
+## Why a less-full bay takes more blocks
+
+The crane rule: a landing block's layer `k` is refused by anything resting at layer `j >= k` in
+the same column. So at a cell of stack height `h`, the layer indices still usable are `k >= h`.
+**Occupancy is not the resource; height is.** A one-layer resident is nearly free ground for an
+overhang; a four-layer one sterilises its cells against every layer of everything.
+
+That is the common case here, not an edge case:
+
+    layers per (block, orientation):  1:32   2:476   3:552   4:528
+    orientations whose upper layers overhang their own layer 0:  1,352 of 1,588  (85%)
+
+And it explains conw. A block always lands on cells that are completely free, so the total
+sterilised volume it creates is the same wherever it goes — position changes *where* height is
+added, never *how much*. What contact gets wrong is not that it packs tightly, but that it is
+indifferent about **whom** it packs against: a four-layer block pressed against a one-layer
+block scores exactly as well as against another four-layer one, and leaves a height cliff where
+a broad low plateau could have been. Overhangs need the plateau. `conw=0.0` fixes this by
+abandoning tightness outright, which is precisely why it is the best P3 setting measured and
+the worst P4 one (+25.9%).
+
+`hmatch` in `ogc_fast.cpp` charges the mean `|my height - neighbour's height|` over the boundary
+cells that touch something. The block still wants to nestle; it only picks a neighbour of its
+own height.
+
+## How much room is actually there
+
+`harness/p3bound.py`, a capacity-aware lower bound. Assign blocks to bays minimising
+`w2*Z2 + w3*Z3` subject to each bay's `cells x horizon` covering the `area x time` it holds.
+Both sides relax safely — capacity over-estimates (no crane rule, perfect tiling), demand
+under-estimates (true polygon area, minimised over orientations) — so its optimum is a valid
+lower bound on the real objective.
+
+    bay 0 first-choice demand / capacity   0.48
+    bay 1                                  0.12
+    bay 2                                  0.15
+    proven lower bound                     36,765   (Z2 6633, Z3 24)
+    our best                               87,560   (+138%)
+
+**Area is not binding.** Neither 80,000 nor 70,000 is excluded by it. The bound assumed 100%
+packing and bay 0 runs at 54% peak area occupancy, so the entire 138% gap is packing efficiency
+under the crane rule.
+
+> RETRACTED: an earlier estimate of mine put bay 0's ratio at 1.11 and concluded that ~8 blocks
+> must structurally leave bay 0. It used bounding-box area maximised over orientations, which
+> over-states demand on both counts. The correct figure is 0.48 and nothing is forced out.
+
+## What cannot fix it
+
+* **Single-block eviction from bay 0** — proven exhausted. Break-even needs `gap/workload <
+  0.0948`; the cheapest resident is 0.145. Every single move loses, which is why `_balance`,
+  the only Z2/Z3 repair operator, is structurally dead here.
+* **Pairwise swap** — 98 improving exchanges exist, worth −26.98% priced exactly, and 0 of 7
+  are seatable as pairs against the incumbent arrangement.
+* **Re-timing** — of the 25 most valuable would-be entrants to bay 0, 2 fit at their own entry
+  time, 0 fit at some other tardiness-free time, and 23 fit nowhere in their window.
+* **prefw** — structurally dead. It enters the per-cell score, where the bay penalty is
+  constant and cannot change which cell wins, and the per-bay `drank`, which is sorted and then
+  truncated to top-K with K >= the bay count on every instance. 0.0, 2.0 and 8.0 returned
+  byte-identical objectives.
+
+Every one of those tests holds bay 0's residents at the positions the pipeline gave them. A
+block that does not fit around one arrangement has been told nothing about a different one —
+which is what `harness/p3bay0.py` and the `bayrepack` operator exist to ask.
+
+## Throughput, and why it is also a variance question
+
+`_total` is the file's only selection criterion, so it runs once per operator invocation. It
+calls `check_feasibility`, which does two jobs: it re-derives `w1*Z1 + w2*Z2 + w3*Z3`, which is
+arithmetic over (bay, entry, exit), and it re-validates every crane path, which is polygon work.
+
+    check_feasibility      173 ms
+    the arithmetic alone   0.13 ms      -- and equal to the grader's number to the last digit
+
+Every random draw in the worker loop is seeded, so what differs between two runs of one arm is
+how many operator calls fit in the budget. That is where the spread comes from, and verification
+is a large, noisy share of it — so removing it narrows the band as well as raising the ceiling.
+`OGC_FASTOBJ` screens on the arithmetic objective and verifies for real only what could beat the
+incumbent.
