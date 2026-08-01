@@ -230,3 +230,31 @@ The gain nearly died four times, each time to something that fails silently rath
 All four are now asserted or reported, and each guard was negative-tested against the failure it
 is for. `harness/brksmoke.py` exists because a `None` inside a 240 s arm is indistinguishable
 from "the operator found nothing worth doing".
+
+## A note on how this file's numbers were arrived at
+
+Four claims in this session were made on two or three samples and then broken by the next run:
+
+    hmatch "monotone"          3 points   broken by the 4th
+    brk "halves the spread"    3 runs     the width matched the control once n grew
+    brk "widens the spread"    one arm    the paired control said the opposite
+    FASTOBJ "width 1/10"       2 runs     broken by the 3rd
+
+Each was written with a sentence acknowledging the sample was too small, and then asserted
+anyway. That acknowledgement is an alibi, not a reservation.
+
+The rule adopted after the fourth: **under three reps, record the numbers and say nothing about
+direction.** Where a claim here rests on fewer, it says so and stops.
+
+The one result that has never moved is `brk`, and it is the one measured six runs against
+three, paired inside a single queue, with disjoint bands.
+
+## Throughput: measured, and it does nothing
+
+    FASTOBJ  101,935 / 100,935 / 106,700   mean 103,190  width 5,765
+    control   96,990 / 106,700 / 106,700   mean 103,463  width 9,710
+
+`_total` costs 173 ms against 0.13 ms for the same number by arithmetic, and it is the file's
+only selection criterion, so screening it looked like free throughput. Over three runs it moves
+the mean by 273 points -- 0.26% -- and the width claim did not survive either. Whatever governs
+the spread on this instance, verification time is not a large part of it.
