@@ -1,8 +1,2 @@
 warm-up arm and its control verified
-=== q23_warm_r1.log  (warmup r1)  06:13:09
-P3  warmup r1      240s  obj=88695       Z1=0.0      Z2=2679   Z3=502.0     feas=y   ran 239s
-=== q23_cold_r1.log  (nowarm r1)  06:17:09
-P3  nowarm r1      240s  obj=86665       Z1=0.0      Z2=3023   Z3=477.0     feas=y   ran 239s
-=== q23_warm_r2.log  (warmup r2)  06:21:09
-P3  warmup r2      240s  obj=88630       Z1=0.0      Z2=3026   Z3=490.0     feas=y   ran 239s
-=== q23_cold_r2.log  (nowarm r2)  06:25:09
+=== q23_cold_r2.log  (nowarm r2)  07:16:07
