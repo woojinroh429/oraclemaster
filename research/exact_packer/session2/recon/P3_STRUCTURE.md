@@ -402,3 +402,21 @@ already uses.
 That is a valid cut rather than an area approximation. Cost: cranepack's large tier runs ~78 s,
 so a 240 s budget affords two or three rounds. Justification: the bound is 36,765 and we sit at
 86,665, and the whole of that gap is this constraint being wrong.
+
+## Free repacking: the ceiling, measured properly this time
+
+The first attempt started from `myalg_base` at 101,935, reached 92,740, and I read that as a
+ceiling -- wrongly, since the pipeline WITH brk reaches past it. Redone from `myalg_brk`:
+
+    start 90,365, no clock, 468 s
+      round 1   bay 0 -> nothing (172 s)   bay 1 -> nothing (0 s)   bay 2 -> -1,455 (161 s)
+      round 2   bay 0 -> nothing (135 s)   bay 1 -> nothing         bay 2 -> nothing
+    ceiling 88,910  (-1.61%)
+
+The contrast is the finding. From a bad start bay 0 gave -9,195; from a good one the same bay
+gives nothing after 172 seconds. `brk` has already extracted that inside the pipeline through
+repeated calls, and the ceiling -- 88,910 -- sits INSIDE the range the pipeline already reaches
+(86,665 - 90,365).
+
+**Free repacking is spent.** It fixes an arrangement; it cannot re-decide which block goes to
+which bay, and the whole 50,000 between the 36,765 bound and where we sit is that decision.
