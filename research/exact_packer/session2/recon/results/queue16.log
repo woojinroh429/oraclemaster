@@ -10,3 +10,5 @@ P3  brk only r2    240s  obj=88720       Z1=0.0      Z2=2744   Z3=500.0     feas
 === q16_stack_r3.log  (brk+hmatch2 r3)  02:36:44
 P3  brk+hmatch2 r3   240s  obj=88910       Z1=0.0      Z2=3232   Z3=485.0     feas=y   ran 239s
 === q16_brkonly_r3.log  (brk only r3)  02:40:44
+P3  brk only r3    240s  obj=91670       Z1=0.0      Z2=3514   Z3=494.0     feas=y   ran 240s
+queue16done  02:44:44

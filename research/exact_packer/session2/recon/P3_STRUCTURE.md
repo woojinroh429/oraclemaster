@@ -175,14 +175,38 @@ Paired against its own control, same base and same build, three reps against thr
 > three samples were not enough to see it. This matters more than a usual retraction, because
 > narrowing the band for a shorter finals budget was one of the reasons to want the operator.
 
-What survives on five samples against three:
+What survives on six samples against three:
 
-    brk mean  86,909      ctl mean 103,463      -16.0%
-    bands still disjoint -- brk's worst (90,545) is 6,445 under the control's best (96,990)
+    brk   82,180 / 86,550 / 86,550 / 90,545 / 88,720 / 91,670   mean  87,703   width 9,490
+    ctl   96,990 / 106,700 / 106,700                            mean 103,463   width 9,710
 
-Every one of the five is under the 87,560 that every scoring knob in this session reached only
-at its luckiest... except the two above it, so more precisely: the median is, and the mean is by
-a wide margin.
+    -15.2% on the means; bands still disjoint -- brk's worst (91,670) is 6,445 under the
+    control's best (96,990); widths effectively equal.
+
+### A caution about where the samples came from
+
+The six brk-only runs split cleanly by queue, with no value in common:
+
+    queue12  82,180 / 86,550 / 86,550    (01:04-01:20)
+    queue16  90,545 / 88,720 / 91,670    (02:20-02:45)
+
+`bayrepack` was diffed across the interval and its only change is the env override, a genuine
+no-op when `BRK_*` are unset; there was no contention either (one run family, load 4.19 on 4
+cores). With n=3 apiece this can be coincidence, but a split that clean is worth recording
+rather than explaining away — and it is exactly why every claim here is paired against a control
+run in the same queue. queue16's own control was measured alongside its arm, so its verdict
+stands regardless of what the level difference turns out to be.
+
+### hmatch on top of brk: suggestive, not established
+
+    rep    brk+hmatch2    brk only      delta
+    r1        84,555        90,545      -6.6%
+    r2        90,580        88,720      +2.1%
+    r3        88,910        91,670      -3.0%
+    mean      88,015        90,312      -2.5%
+
+Two pairs of three favour the stack. But one reverses, and 2,297 points sits well inside brk's
+own 9,490 run-to-run spread, so this does not carry on its own.
 
 Z3 = 443 on the best run, at Z2 = 3146. Nothing else this session got Z3 under 462, and that
 only by paying Z2 up to 3652. Improving both terms at once is exactly what p3max proved no
