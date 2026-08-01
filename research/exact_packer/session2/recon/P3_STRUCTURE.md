@@ -367,3 +367,38 @@ So the gap between the bound and where we are cannot be closed by repacking. Rep
 blocks into a bay by re-solving that bay; it has now done everything it can do. Reaching 70,000
 would need the assignment and the packing solved together rather than one after the other, which
 is a different program, not a further knob.
+
+## Assignment and packing are already solved jointly -- with the wrong constraint
+
+I described them as solved separately. That was wrong. `_assign` is a Benders/LBBD loop and has
+been all along:
+
+    1  CP-SAT proposes an assignment (which bay for each block)
+    2  _realise tries to pack it
+    3  where it spills, that bay's capacity factor is multiplied by 0.90, and back to 1
+
+The defect is the row in step 1:
+
+    mdl.Add(sum(x[b][k] * area[b] for b in pres) <= int(cap[k] * capf[k]))
+
+That is an AREA constraint, and area is not what binds. Measured on P3:
+
+    bay 0  first-choice demand / capacity  0.48
+    bay 1                                  0.12
+    bay 2                                  0.15
+
+So CP-SAT solves under a constraint that forbids nothing, proposes an assignment near the 36,765
+bound, `_realise` fails on the crane rule, and the loop responds by tightening AREA -- which was
+never the reason it failed. The function's own docstring concedes the row is "a relaxation and a
+loose one (polygons nest, so real solutions can violate it)".
+
+**The cut has to come from the crane rule, not from area.** When an assignment fails, what is
+learned is not "shrink this bay by 10%" but "this set S cannot be co-resident in this bay", and
+there is exactly one thing in the repo that can decide that: `cranepack`, the packer `brk`
+already uses.
+
+    sum(x[b][k] for b in S) <= |S| - 1        for each S cranepack proves unpackable
+
+That is a valid cut rather than an area approximation. Cost: cranepack's large tier runs ~78 s,
+so a 240 s budget affords two or three rounds. Justification: the bound is 36,765 and we sit at
+86,665, and the whole of that gap is this constraint being wrong.
