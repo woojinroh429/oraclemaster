@@ -20,3 +20,4 @@ P3: 200 blocks.  beam 10s per evaluation, 4 trials per perturbation strength
 
 === big_first  seed obj = 166605   (8.1s)
       swaps   trials   best        vs seed    wins
+          1        4   166015           -590   1/4
