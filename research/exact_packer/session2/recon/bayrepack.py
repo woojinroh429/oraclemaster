@@ -421,12 +421,20 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
             _room = (float(hard) if hard is not None else SL) * 0.85
 
             def _ncol_est(_st, _no, _ne):
-                """Columns a tier would generate.  Must agree with windows() below, which
-                returns the tardiness-free bounds plus the block's own entry time plus _ne
-                sampled points -- so up to _ne + 2 DISTINCT times, not _ne.  Estimating _ne
-                under-counted by 1.3x to 2.8x depending on the tier, which is worse than a
-                constant error: it biased the tiers against each other."""
-                _pos = (int(W // _st) + 1) * (int(H // _st) + 1)
+                """Columns a tier would generate, per block, per orientation, per entry time.
+
+                Two corrections, each found by comparing against the count cranepack returns.
+
+                TIMES: windows() below offers the tardiness-free bounds, the block's own entry
+                time, and _ne sampled points -- up to _ne + 2 DISTINCT values, not _ne.  Using
+                _ne under-counted by 1.3x to 2.8x, unevenly across tiers, which biases the tiers
+                against each other rather than scaling them alike.
+
+                POSITIONS: a block cannot start where it would hang off the bay, so the grid it
+                can use is (W - w) / step, not W / step.  Ignoring its footprint over-counted by
+                2.5x on P3 -- estimate 28,672 against a real 11,282 -- and squaring that made the
+                predicted build 52.6 s where it measured 7.7 s, which is why every tier still
+                looked unaffordable."""
                 _tot = 0
                 for _b in res + [b for _, b in outs[:_no]]:
                     _lo, _hi = rel[_b], due[_b] - pt[_b]
@@ -439,7 +447,13 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
                         for _i in range(max(1, _ne)):
                             _ts.add(_lo + (_hi - _lo) * _i // max(1, _ne - 1) if _ne > 1 else _lo)
                         _nt = len(_ts)
-                    _tot += len(B[_b]["shape"]) * _pos * _nt
+                    _, _ob = _layers_bbox(B, _b)
+                    for _q in _ob:
+                        _dw, _dh = _q[2] - _q[0], _q[3] - _q[1]
+                        _nx = int((W - _dw) // _st) + 1
+                        _ny = int((H - _dh) // _st) + 1
+                        if _nx > 0 and _ny > 0:
+                            _tot += _nx * _ny * _nt
                 return float(_tot)
 
             _pick = None
