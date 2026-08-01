@@ -1,2 +1,4 @@
 four arms verified: DK and FASTOBJ vary independently, none carries brk
 === p4s_d.log  (D neither knob)  14:16:53
+P4  D neither knob   480s  obj=1981906     Z1=99.0     Z2=1627   Z3=4337.0    feas=y   ran 455s
+=== p4s_a.log  (A DK0 FASTOBJ1)  14:24:28
