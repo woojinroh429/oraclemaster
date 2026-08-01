@@ -3,3 +3,5 @@
    draw 8   obj=175795       at 41s
 P3  GRASP k=6  28 draws in 145s   best obj=175795      Z1=0.0     Z2=2519  Z3=1088.0
    finalist build=175795      short-polish=104075     
+   finalist build=175795      short-polish=99345      
+   finalist build=180250      short-polish=115320     
