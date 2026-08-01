@@ -4,3 +4,5 @@ P3  brk alone r1   240s  obj=87890       Z1=0.0      Z2=2758   Z3=494.0     feas
 === q15_grow_r1.log  (brk+grow r1)  03:18:32
 P3  brk+grow r1    240s  obj=94600       Z1=0.0      Z2=3470   Z3=515.0     feas=y   ran 239s
 === q15_solo_r2.log  (brk alone r2)  03:22:33
+P3  brk alone r2   240s  obj=87800       Z1=0.0      Z2=3370   Z3=473.0     feas=y   ran 239s
+=== q15_grow_r2.log  (brk+grow r2)  03:26:32
