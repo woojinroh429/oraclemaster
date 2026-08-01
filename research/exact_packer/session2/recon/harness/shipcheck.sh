@@ -51,8 +51,7 @@ run () {  # prob secs tag outfile
       && git push -q origin claude/repair-plan-model-1ig6it >/dev/null 2>&1 )
 }
 
-run 4 480 "FIXED P4 r1" "fix_p4_r1.log"
-run 3 240 "FIXED P3 r1" "fix_p3_r1.log"
-run 3 240 "FIXED P3 r2" "fix_p3_r2.log"
-run 4 480 "FIXED P4 r2" "fix_p4_r2.log"
+run 3 240 "FIT P3 r1" "fit_p3_r1.log"
+run 4 480 "FIT P4 r1" "fit_p4_r1.log"
+run 3 240 "FIT P3 r2" "fit_p3_r2.log"
 echo "shipcheck done  $(date -u +%H:%M:%S)"

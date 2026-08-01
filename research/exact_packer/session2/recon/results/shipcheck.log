@@ -1,4 +1,2 @@
 arm and size-predicted packer budget verified
-=== fix_p4_r1.log  (FIXED P4 r1)  13:19:02
-P4  FIXED P4 r1    480s  obj=1981906     Z1=99.0     Z2=1627   Z3=4337.0    feas=y   ran 454s
-=== fix_p3_r1.log  (FIXED P3 r1)  13:26:37
+=== fit_p3_r1.log  (FIT P3 r1)  13:43:28

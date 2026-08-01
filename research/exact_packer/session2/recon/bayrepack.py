@@ -393,6 +393,10 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
         # even the smallest does not fit, do not call the packer at all.
         _tier = -1
         if not _forced and os.environ.get("BRK_OLDTIER") != "1":
+            # Half the room, not all of it: what is predicted is the BUILD, and the solve
+            # that follows runs for as long as it is asked.  A tier whose build alone fills the
+            # budget leaves nothing to search with, which is a slow way of returning the warm
+            # start.
             _room = (float(hard) if hard is not None else SL) * 0.85
             _pick = None
             for _ti, (_st, _no, _ne) in enumerate(_TIERS):
@@ -401,7 +405,7 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
                 _nc = float(sum(len(B[b]["shape"]) for b in _ids) * _pos * _ne)
                 if _PAIRRATE[0] is None:
                     continue                       # uncalibrated -> smallest tier, below
-                if _PAIRRATE[0] * _nc * _nc <= _room:
+                if _PAIRRATE[0] * _nc * _nc <= _room * 0.5:
                     _pick = (_ti, _st, _no, _ne, _nc)
                     break
             if _pick is None:
@@ -410,7 +414,7 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
                 _pos = (int(W // _st) + 1) * (int(H // _st) + 1)
                 _ids = res + [b for _, b in outs[:_no]]
                 _nc = float(sum(len(B[b]["shape"]) for b in _ids) * _pos * _ne)
-                if _PAIRRATE[0] is not None and _PAIRRATE[0] * _nc * _nc > _room:
+                if _PAIRRATE[0] is not None and _PAIRRATE[0] * _nc * _nc > _room * 0.5:
                     if os.environ.get("BRK_DEBUG") == "1":
                         print("    brk: declined, smallest tier predicts %.0fs of %.0fs"
                               % (_PAIRRATE[0] * _nc * _nc, _room), flush=True)
@@ -512,10 +516,21 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
         _el = time.time() - _pt
         _RATIO[0] = 0.5 * _RATIO[0] + 0.5 * (_el / max(1e-6, _ask))
         if _tier >= 0 and _NCOL > 0.0:
-            # Seconds per squared column.  Blended, so one slow call does not lock the operator
-            # into the smallest tier for the rest of the process, and measured on the machine
-            # actually running rather than inherited from the instance it was developed on.
-            _r = _el / (_NCOL * _NCOL)
+            # Seconds per squared column, fitted to the BUILD ONLY.
+            #
+            # The first version of this divided the WHOLE call by ncol^2, and that cost P3 its
+            # entire gain: 90,475 where the same arm had given 86,665.  A call is build + solve,
+            # the solve runs for as long as it is asked, and on a small tier the solve dominates
+            # -- so charging all of it to ncol^2 inflates the rate, every larger tier then looks
+            # unaffordable, and the operator can never climb off the tier it calibrated on.
+            #
+            # No estimate is needed: cranepack returns n_cols and build_ms in its result tuple.
+            # The rate is fitted against OUR OWN column estimate rather than the returned count,
+            # so the units match what the prediction above is computed from -- the estimate is an
+            # upper bound (it counts positions the packer discards) and this absorbs that bias
+            # instead of pretending it is not there.
+            _build = float(r[4]) / 1000.0 if len(r) > 4 else _el
+            _r = _build / (_NCOL * _NCOL)
             _PAIRRATE[0] = _r if _PAIRRATE[0] is None else 0.5 * _PAIRRATE[0] + 0.5 * _r
         got = {loc: (o, x, y, en, ex) for (loc, o, x, y, en, ex) in r[1]}
 
