@@ -3,3 +3,4 @@
        slow: build 58.3s  edges 26924021       fast: build 66.4s  edges 26924021
   prob_3 step=4 nout=40 nent=6 30017     31858161  75.5      0.9x      IDENTICAL
        slow: build 66.0s  edges 31858161       fast: build 75.5s  edges 31858161
+  prob_3 step=3 nout=40 nent=3 no pack call

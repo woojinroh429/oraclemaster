@@ -14,6 +14,7 @@
 #include <chrono>
 #include <cstdlib>
 #include <cstdio>
+#include <cstdio>
 #ifdef _OPENMP
 #include <omp.h>
 #else
@@ -72,14 +73,19 @@ static void bbox_of(Col& c){
 }
 
 // crane conflict, fastconf j>=k logic (descent OR ascent => same A_k vs B_{j>k} loop)
+// PROFILE (CRANEPACK_PROF=1).  Before optimising this again, measure it.  The last attempt
+// removed 330M cheap pair-visits and left the expensive calls untouched, costing 14%.
+static long long cc_calls=0, cc_true=0, cc_aabb=0, cc_deep=0;
 static bool crane_conflict(const Col& A, const Col& B){
+    cc_calls++;
     if(!(A.entry < B.exit && B.entry < A.exit)) return false;         // time co-presence
-    if(A.bx1<=B.bx0||B.bx1<=A.bx0||A.by1<=B.by0||B.by1<=A.by0) return false; // AABB
+    if(A.bx1<=B.bx0||B.bx1<=A.bx0||A.by1<=B.by0||B.by1<=A.by0){ cc_aabb++; return false; } // AABB
+    cc_deep++;
     int Ka=A.layers.size(), Kb=B.layers.size();
     int mk=std::min(Ka,Kb);
     for(int k=0;k<mk;k++){                                            // resting j==k
         if(A.layers[k].size()<3||B.layers[k].size()<3) continue;
-        if(poly_overlap(A.layers[k],B.layers[k])) return true;
+        if(poly_overlap(A.layers[k],B.layers[k])){ cc_true++; return true; }
     }
     bool AoverB = (A.entry>=B.entry) || (A.exit<=B.exit);             // A sweeps B upper layers
     bool BoverA = (B.entry>=A.entry) || (B.exit<=A.exit);
@@ -88,7 +94,7 @@ static bool crane_conflict(const Col& A, const Col& B){
             if(A.layers[k].size()<3) continue;
             for(int j=k+1;j<Kb;j++){
                 if(B.layers[j].size()<3) continue;
-                if(poly_overlap(A.layers[k],B.layers[j])) return true;
+                if(poly_overlap(A.layers[k],B.layers[j])){ cc_true++; return true; }
             }
         }
     }
@@ -97,7 +103,7 @@ static bool crane_conflict(const Col& A, const Col& B){
             if(B.layers[k].size()<3) continue;
             for(int j=k+1;j<Ka;j++){
                 if(A.layers[j].size()<3) continue;
-                if(poly_overlap(B.layers[k],A.layers[j])) return true;
+                if(poly_overlap(B.layers[k],A.layers[j])){ cc_true++; return true; }
             }
         }
     }
@@ -302,6 +308,10 @@ py::tuple pack(py::list blocks, double W, double H, int step,
         }
     }
     for(auto& v:adj) std::sort(v.begin(),v.end());
+    if(getenv("CRANEPACK_PROF"))
+        fprintf(stderr,"    cranepack: ncol=%d edges=%ld | crane_conflict calls=%lld "
+                       "aabb-rejected=%lld deep=%lld true=%lld\n",
+                ncol,nedge,cc_calls,cc_aabb,cc_deep,cc_true);
     auto t1=std::chrono::high_resolution_clock::now();
     double build_ms=std::chrono::duration<double,std::milli>(t1-t0).count();
 
