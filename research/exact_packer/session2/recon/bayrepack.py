@@ -27,10 +27,18 @@ also the one that turns blocks away.  On a saturated instance the same operator 
 of Z3: a bay that packs better admits blocks earlier and fewer of them are late.  Nothing here
 tests density, and nothing is tuned to one instance.
 
-SAFETY.  The rebuilt solution is verified with the real grader before it is returned, and a
-repack that fails to re-seat every resident is discarded rather than patched -- a partial
-repack would need a home for the displaced blocks, which is a second search and a second way to
-be wrong.  Returning None always means the caller keeps what it had.
+DISPLACEMENT IS THE POINT.  An earlier version of this rejected any repack that failed to
+re-seat every resident.  That was measured wrong the moment the diagnostic ran: the repack that
+took P3 from 96,990 to 82,175 re-seated 50 residents of 53 and displaced three, and the rule
+would have thrown it away.  Trading a cheap resident out for an expensive entrant is not a
+failure of the repack, it IS the repack, and the weights already price it.  So displaced blocks
+are rehomed instead -- each is offered its bays in preference order and must find a legal seat
+at its own unchanged times against the finished new state.  A block that cannot kills the
+repack; it is NOT priced at its next-best bay and hoped for, which is exactly the assumption
+that made every earlier P3 diagnostic report a wall that was not there.
+
+SAFETY.  The rebuilt solution is verified with the real grader before it is returned, and
+returning None always means the caller keeps what it had.
 """
 import math
 import os
@@ -53,6 +61,9 @@ def _load():
 
 
 _LB_CACHE = {}
+# call counter: rotates both the target bay and the packer seed, so repeated calls are not
+# repeated answers.  Process-local, which is what we want -- each worker explores on its own.
+_CALLS = [0]
 
 
 def _layers_bbox(B, bid):
@@ -129,8 +140,19 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
         # THE CONTESTED BAY: the one setting Z2's maximum.  Measured, not named -- on a
         # saturated instance this is the bay whose refusals turn into tardiness instead of
         # preference, and the operator is the same either way.
+        #
+        # ROTATED across calls, and the seed with it.  The allocator will call this repeatedly
+        # from whatever the incumbent then is, and cranepack is deterministic and warm-started
+        # from the current layout: a second call on the same bay with the same seed re-derives
+        # the same answer, returns None because it no longer beats its own result, and is then
+        # treated as STARVED -- so its slice grows and the budget drains into a search that
+        # cannot move.  Rotating the target down the u_j*load_j order means call two attacks the
+        # next-most-pressed bay, which is where the pressure went after call one relieved the
+        # first; rotating the seed means even a repeat visit explores differently.
+        _CALLS[0] += 1
+        k = _CALLS[0]
         v0 = [u[j] * sum(wl[b] for b in range(n) if cur[b] == j) for j in range(m)]
-        TGT = max(range(m), key=lambda j: v0[j])
+        TGT = sorted(range(m), key=lambda j: -v0[j])[(k - 1) % m]
         res = [b for b in range(n) if cur[b] == TGT]
         if not res:
             return None
@@ -189,7 +211,7 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
                 for i, b in enumerate(cand) if isres[i]]
         t0 = time.time()
         r = CP.pack(blocks_in, W, H, STEP, max(1.0, float(budget) - (time.time() - t0)),
-                    seed=12345, warm=warm or None, frozen=[],
+                    seed=12345 + 7919 * k, warm=warm or None, frozen=[],
                     weights=[float(x) for x in wts])
         got = {loc: (o, x, y, en, ex) for (loc, o, x, y, en, ex) in r[1]}
 
