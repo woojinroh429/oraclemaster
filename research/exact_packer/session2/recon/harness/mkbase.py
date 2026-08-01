@@ -474,6 +474,32 @@ def _fast_obj(prob_info, sol):
         s = s.replace(_oc, "                o, _ = _total(prob_info, %s, best_o)\n"
                            "                if o < best_o:" % _x, 1)
 
+# OGC_BRK -- add the exact bay-repack as an ordinary roster entry.
+#
+# Every existing operator treats the current arrangement as given.  _balance moves ONE block to
+# a better bay, and p3max proved that neighbourhood empty on P3: evicting from bay 0 needs
+# gap/workload under 0.0948 and the cheapest resident is 0.145, so every single move loses.
+# _z3_improve reassigns without re-placing.  The beam places greedily in dispatch order and
+# never revisits.  But the arrangement IS the problem -- the capacity-aware bound is 36,765
+# against our 87,560, area is not binding (bay 0's first-choice demand is 0.48 of its capacity),
+# and bay 0 sits at 54% peak occupancy while the bound assumed 100%.
+#
+# bayrepack lifts every block out of the contested bay, adds the outsiders that would most
+# improve the objective, and lets cranepack seat maximum VALUE under the descent rule.  It goes
+# in as a normal roster entry so the allocator prices it against everything else -- it earns its
+# budget or gets none.  No gate, no density test.
+if os.environ.get("OGC_BRK") == "1":
+    _oa = '''    if HAVE_ORTOOLS:
+        ops.append(("bay", lambda t: _assign(prob_info, pool[0][1], t), True, True, 3.0))'''
+    assert s.count(_oa) == 1, "operator roster site not found -- refusing to guess"
+    s = s.replace(_oa, _oa + '''
+    try:
+        import bayrepack as _brk
+        ops.append(("brk", lambda t: _brk.repack(prob_info, pool[0][1], t, _total,
+                                                 _build_operations), True, True, 3.0))
+    except Exception:
+        pass''', 1)
+
 old = re.search(r"_AXES = \[\n(?:.*\n)*?\]", s).group(0)
 assert old.count("dict(") == 6, "myalg_orig.py should have exactly six axes"
 s = s.replace(old, AXES, 1)
