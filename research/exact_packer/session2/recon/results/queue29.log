@@ -1,2 +1,8 @@
 arm, operator and packer verified
 === q29_el_r1.log  (eject+linw r1)  10:29:10
+P3  eject+linw r1   240s  obj=86665       Z1=0.0      Z2=3023   Z3=477.0     feas=y   ran 239s
+=== q29_ej_r1.log  (eject only r1)  10:33:10
+P3  eject only r1   240s  obj=87285       Z1=0.0      Z2=2607   Z3=495.0     feas=y   ran 239s
+=== q29_ctl_r1.log  (shipped    r1)  10:37:10
+P3  shipped    r1   240s  obj=86670       Z1=0.0      Z2=2874   Z3=482.0     feas=y   ran 245s
+=== q29_el_r2.log  (eject+linw r2)  10:41:15
