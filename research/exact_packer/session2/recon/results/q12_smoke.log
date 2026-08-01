@@ -1,0 +1,6 @@
+myalg_base on P3: obj=94000  Z1=0.0 Z2=2420 Z3=546.0  feasible=True
+      60s slice: obj 94000 -> 91830  (-2.31%)  Z1=0.0 Z2=2976 Z3=513.0  feasible=True  in 115.5s
+     120s slice: repack returned None after 0.0s
+
+   repeated application from its own output is where the real gain would be, so the
+   second line above is the one that says whether this is a one-shot or an operator.

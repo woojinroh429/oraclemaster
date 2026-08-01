@@ -21,11 +21,15 @@ enforced pairwise, validated against Gurobi earlier in this project.  Weights ar
 units, so it maximises value seated rather than block count: a resident carries what evicting
 it would cost, an outsider what admitting it would gain.
 
-WHY IT IS NOT A P3 SPECIAL CASE.  The contested bay is chosen by measurement -- the bay whose
-u_j * load_j is highest, which is the one setting Z2's maximum and, on every instance measured,
-also the one that turns blocks away.  On a saturated instance the same operator buys Z1 instead
-of Z3: a bay that packs better admits blocks earlier and fewer of them are late.  Nothing here
-tests density, and nothing is tuned to one instance.
+WHY IT IS NOT A P3 SPECIAL CASE.  The target is chosen by measurement: bays are ranked by
+u_j * load_j -- the quantity that sets Z2's maximum -- and the first one that some block would
+profit by entering is taken.  Pressure alone is the wrong test, and the smoke test showed why:
+an earlier version rotated strictly down the pressure order, and call two landed on a bay with
+no profitable entrant, returned None in 0.0 s, and gave up the repeated application that is
+where the gain compounds.  A bay nobody wants into cannot be repacked profitably however loaded
+it is, because the objective only moves when a block changes bay.  On a saturated instance the
+same operator buys Z1 instead of Z3 -- a bay that packs better admits blocks earlier and fewer
+of them are late.  Nothing here tests density and nothing is tuned to one instance.
 
 DISPLACEMENT IS THE POINT.  An earlier version of this rejected any repack that failed to
 re-seat every resident.  That was measured wrong the moment the diagnostic ran: the repack that
@@ -61,9 +65,16 @@ def _load():
 
 
 _LB_CACHE = {}
-# call counter: rotates both the target bay and the packer seed, so repeated calls are not
-# repeated answers.  Process-local, which is what we want -- each worker explores on its own.
+# call counter, which rotates the packer's SEED.  cranepack is deterministic and warm-started
+# from the current layout, so without this a second call on the same bay re-derives its own
+# previous answer, fails to beat it, returns None, and is then treated as starved -- its slice
+# grows and the budget drains into a search that cannot move.  Process-local, which is what we
+# want: each worker explores its own sequence.
 _CALLS = [0]
+# observed (time taken)/(time asked for) for the packer, blended across calls.  cranepack does
+# not stop when its budget runs out, so this is the only honest input to how big a problem it
+# is safe to hand over -- and it is measured on the machine actually running, not assumed.
+_RATIO = [1.0]
 
 
 def _layers_bbox(B, bid):
@@ -137,25 +148,8 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
             return w1 * z1 + w2 * math.floor(max(v) - min(v)) + w3 * z3
 
         base = obj_of(cur, ent, ext)
-        # THE CONTESTED BAY: the one setting Z2's maximum.  Measured, not named -- on a
-        # saturated instance this is the bay whose refusals turn into tardiness instead of
-        # preference, and the operator is the same either way.
-        #
-        # ROTATED across calls, and the seed with it.  The allocator will call this repeatedly
-        # from whatever the incumbent then is, and cranepack is deterministic and warm-started
-        # from the current layout: a second call on the same bay with the same seed re-derives
-        # the same answer, returns None because it no longer beats its own result, and is then
-        # treated as STARVED -- so its slice grows and the budget drains into a search that
-        # cannot move.  Rotating the target down the u_j*load_j order means call two attacks the
-        # next-most-pressed bay, which is where the pressure went after call one relieved the
-        # first; rotating the seed means even a repeat visit explores differently.
         _CALLS[0] += 1
         k = _CALLS[0]
-        v0 = [u[j] * sum(wl[b] for b in range(n) if cur[b] == j) for j in range(m)]
-        TGT = sorted(range(m), key=lambda j: -v0[j])[(k - 1) % m]
-        res = [b for b in range(n) if cur[b] == TGT]
-        if not res:
-            return None
 
         # SIZE THE PROBLEM TO THE SLICE, because the packer will not size itself to the clock.
         #
@@ -170,11 +164,19 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
         # positions per orientation (STEP), candidate blocks (NOUT), entry times each (NENT) --
         # and all three shrink together when the slice is short.  This is fitting the work to the
         # time available, not a threshold on any property of the instance.
+        #
+        # The tiers are chosen against an EFFECTIVE slice, not the one asked for, because a fixed
+        # table would just be my guess at the overrun.  The operator measures its own: the first
+        # smoke test asked 60 s at the largest tier and took 115.5 s, so the ratio is real and
+        # it is not 1.  Dividing the slice by the running ratio makes the next call pick a tier
+        # that fits the time actually available on THIS machine and THIS instance, and the
+        # estimate is blended rather than replaced so one slow call does not collapse it.
         SL = float(budget)
         if step is None and nout is None and nent is None:
-            if SL < 15.0:
+            eff = SL / max(1.0, _RATIO[0])
+            if eff < 15.0:
                 STEP, NOUT, NENT = 6, 10, 1
-            elif SL < 40.0:
+            elif eff < 40.0:
                 STEP, NOUT, NENT = 4, 20, 2
             else:
                 STEP, NOUT, NENT = 4, 40, 3
@@ -183,19 +185,41 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
             NOUT = int(nout if nout is not None else os.environ.get("BRK_NOUT", "40"))
             NENT = int(nent if nent is not None else os.environ.get("BRK_NENT", "3"))
 
-        # outsiders, priced exactly against the incumbent
-        outs = []
-        for b in range(n):
-            if cur[b] == TGT:
+        # THE CONTESTED BAY: the most-pressed bay THAT ANYTHING WANTS TO ENTER.
+        #
+        # Pressure alone is the wrong test, and the smoke test showed why.  An earlier version
+        # rotated the target strictly down the u_j*load_j order so repeated calls would not
+        # re-derive one answer -- and the second call landed on a bay with no profitable
+        # entrants, returned None in 0.0s, and gave up the one thing worth having.  Repeated
+        # application from the operator's own output is where the gain compounds.
+        #
+        # So rank by pressure and take the first bay that has somewhere to go.  A bay nobody
+        # wants into cannot be repacked profitably however loaded it is: the objective only
+        # moves when a block changes bay, and the residents are already where they want to be.
+        # The seed still rotates on every call, which is what stops a repeat visit from
+        # re-deriving its own previous answer -- that was the real hazard, and it does not need
+        # the target to move as well.
+        cands = []
+        for j in sorted(range(m), key=lambda j: -(u[j] * sum(wl[b] for b in range(n)
+                                                             if cur[b] == j))):
+            if not any(cur[b] == j for b in range(n)):
                 continue
-            alt = list(cur); alt[b] = TGT
-            g = base - obj_of(alt, ent, ext)
-            if g > 0:
-                outs.append((g, b))
-        outs.sort(reverse=True)
-        outs = outs[:NOUT]
-        if not outs:
-            return None                       # nothing wants in; a repack cannot pay
+            got_outs = []
+            for b in range(n):
+                if cur[b] == j:
+                    continue
+                alt = list(cur); alt[b] = j
+                g = base - obj_of(alt, ent, ext)
+                if g > 0:
+                    got_outs.append((g, b))
+            if got_outs:
+                got_outs.sort(reverse=True)
+                cands.append((j, got_outs[:NOUT]))
+                break
+        if not cands:
+            return None                       # no bay has a profitable entrant anywhere
+        TGT, outs = cands[0]
+        res = [b for b in range(n) if cur[b] == TGT]
 
         W, H = float(bays[TGT]["width"]), float(bays[TGT]["height"])
 
@@ -233,9 +257,11 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
         warm = [(i, place[b][0], int(place[b][1]), int(place[b][2]))
                 for i, b in enumerate(cand) if isres[i]]
         t0 = time.time()
+        _pt = time.time()
         r = CP.pack(blocks_in, W, H, STEP, max(1.0, float(budget) - (time.time() - t0)),
                     seed=12345 + 7919 * k, warm=warm or None, frozen=[],
                     weights=[float(x) for x in wts])
+        _RATIO[0] = 0.5 * _RATIO[0] + 0.5 * ((time.time() - _pt) / max(1e-6, SL))
         got = {loc: (o, x, y, en, ex) for (loc, o, x, y, en, ex) in r[1]}
 
         admitted = [i for i in range(len(cand)) if not isres[i] and i in got]
