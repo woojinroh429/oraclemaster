@@ -334,3 +334,36 @@ Measured against the rule it replaced, interleaved inside one queue:
 Three pairs, all favouring the new rule. Less than the step function suggested -- repeated
 small-tier calls appear to recover some of it inside a run -- but that is an explanation and not
 a measurement.
+
+## The ceiling of free repacking, and why 70,000 is not behind it
+
+`harness/p3ceil.py` removed the clock entirely and swept every bay, repacking each freely, until
+a full pass improved nothing:
+
+    round  bay      obj       delta    secs
+        1    0    92,740     -9,195     202
+        1    1        --         --       0
+        1    2        --         --     333
+        2    0        --         --     136
+        2    1        --         --       0
+        2    2        --         --     302
+
+    101,935 -> 92,740  (-9.02%), two rounds, 973 s
+
+**The idea is spent, and the operator already beats it.** `brk` inside a 240 s run averages
+87,703 -- below the ceiling a patient, unbounded sweep reaches. The pipeline does better because
+`brk` is called repeatedly with a rotating seed while other operators change the state between
+calls, which explores more than one thread walking the bays in order.
+
+Bay 1 returns instantly every time: nothing wants to enter it, so there is nothing to repack
+profitably however loaded it is. Bay 2 spends 333 s and finds nothing.
+
+    lower bound                36,765
+    ceiling of free repacking  92,740
+    brk in a 240 s run         87,703
+    target                     70,000
+
+So the gap between the bound and where we are cannot be closed by repacking. Repacking moves
+blocks into a bay by re-solving that bay; it has now done everything it can do. Reaching 70,000
+would need the assignment and the packing solved together rather than one after the other, which
+is a different program, not a further knob.
