@@ -1,2 +1,8 @@
 W2BEAM wired on the rank only; exact objective untouched; lean arm verified
 === w2b_100_r1.log  (w2beam 1.0 r1)  15:10:59
+P3  w2beam 1.0 r1   240s  obj=99910       Z1=0.0      Z2=2522   Z3=582.0     feas=y   ran 239s
+=== w2b_025_r1.log  (w2beam 0.25 r1)  15:14:58
+P3  w2beam 0.25 r1   240s  obj=105425      Z1=0.0      Z2=2785   Z3=610.0     feas=y   ran 239s
+=== w2b_000_r1.log  (w2beam 0.0 r1)  15:18:58
+P3  w2beam 0.0 r1   240s  obj=100720      Z1=0.0      Z2=3464   Z3=556.0     feas=y   ran 239s
+=== w2b_100_r2.log  (w2beam 1.0 r2)  15:22:58
