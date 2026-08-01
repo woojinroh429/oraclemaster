@@ -75,14 +75,27 @@ _CALLS = [0]
 # not stop when its budget runs out, so this is the only honest input to how big a problem it
 # is safe to hand over -- and it is measured on the machine actually running, not assumed.
 _RATIO = [1.0]
-# The packer's runtime is a property of the PROBLEM, not of the deadline it is given -- measured
-# on P3, every large-tier call took 77-81 s whether it was asked for 35 s or 100 s, and every
-# small-tier call about 20 s.  So the tiers are listed largest-first with their measured cost,
-# and the operator takes the largest one the remaining time can absorb.  Costs are updated from
-# what actually happens, so a different machine or instance corrects the seed rather than
-# inheriting it.
+# (grid step, outsiders, entry variants), largest first.  The packer's runtime is a property of
+# the PROBLEM rather than of the deadline it is given: on P3 every large-tier call took 77-81 s
+# whether it was asked for 35 s or 100 s.  So the operator takes the largest tier the remaining
+# run can absorb, and predicts the cost rather than reading it off a table -- see below.
 _TIERS = [(4, 40, 3), (4, 20, 2), (6, 10, 1)]
-_TIERCOST = [80.0, 21.0, 21.0]
+# SECONDS PER SQUARED COLUMN.  The tier costs above were measured on P3 and do not transfer:
+# the same table sent a P4 run 240 seconds past a 480-second budget, which at the grader's hard
+# limit is a missing answer rather than a worse one.
+#
+# The reason is structural and it is in cranepack, not here.  Its conflict graph is built by a
+# plain O(ncol^2) double loop with NO clock check in it -- the search loop honours
+# time_budget_s, the build cannot even look at it.  So a pack that is too big cannot be cut
+# short; it can only be declined before it starts.  A constant cannot do that, because the same
+# tier generates a handful of columns in P3's 43x23 bay and a flood of them in a large one.
+#
+# What DOES transfer is the rate: seconds per squared column, on this machine, for this
+# geometry.  The operator estimates the column count a tier would generate, predicts its cost
+# from the running rate, and takes the largest tier the remaining run can absorb.  Unknown until
+# the first call, so the first call takes the SMALLEST tier -- cheap everywhere, and it is what
+# calibrates the rate.
+_PAIRRATE = [None]
 
 
 _WISH_CACHE = {}
@@ -272,38 +285,29 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
         # a table.
         _ev = (os.environ.get("BRK_STEP"), os.environ.get("BRK_NOUT"), os.environ.get("BRK_NENT"))
         SL = float(budget)
-        if step is None and nout is None and nent is None and not any(_ev):
-            # (step, nout, nent) largest first; _TIERCOST[i] is its measured seconds
-            # The run's remaining time is the real constraint; the slice is advisory and the
-            # packer overruns it by construction.  Without `hard` the operator cannot tell 40 s
-            # of slice with 190 s left from 40 s of slice with 45 s left, and those want
-            # opposite tiers.  0.85 leaves room for the rehoming scans and the grader check that
-            # follow the pack.
-            if os.environ.get("BRK_OLDTIER") == "1":
-                # The rule this replaced, kept switchable so the two can be measured against
-                # each other INSIDE ONE QUEUE.  Arm levels have drifted between queues twice
-                # tonight, so a fix cannot be scored against numbers from an earlier queue --
-                # which is the only comparison available otherwise, and it is not a comparison.
-                _eff = SL / max(1.0, _RATIO[0])
-                if _eff < 15.0:
-                    STEP, NOUT, NENT = 6, 10, 1
-                elif _eff < 40.0:
-                    STEP, NOUT, NENT = 4, 20, 2
-                else:
-                    STEP, NOUT, NENT = 4, 40, 3
-                _tier = -1
-            else:
-                _cap = (float(hard) if hard is not None else SL) * 0.85
-                for _ti, (_st, _no, _ne) in enumerate(_TIERS):
-                    if _TIERCOST[_ti] <= _cap or _ti == len(_TIERS) - 1:
-                        STEP, NOUT, NENT = _st, _no, _ne
-                        _tier = _ti
-                        break
-        else:
+        _forced = not (step is None and nout is None and nent is None and not any(_ev))
+        if _forced:
             STEP = int(step if step is not None else (_ev[0] or 4))
             NOUT = int(nout if nout is not None else (_ev[1] or 40))
             NENT = int(nent if nent is not None else (_ev[2] or 3))
-            _tier = -1
+        elif os.environ.get("BRK_OLDTIER") == "1":
+            # The rule this replaced, kept switchable so the two can be measured against each
+            # other INSIDE ONE QUEUE.  Arm levels have drifted between queues twice, so a fix
+            # cannot be scored against numbers from an earlier queue -- which is the only
+            # comparison available otherwise, and it is not a comparison.
+            _eff = SL / max(1.0, _RATIO[0])
+            if _eff < 15.0:
+                STEP, NOUT, NENT = 6, 10, 1
+            elif _eff < 40.0:
+                STEP, NOUT, NENT = 4, 20, 2
+            else:
+                STEP, NOUT, NENT = 4, 40, 3
+        else:
+            # DEFERRED.  A tier's cost is set by how many columns it generates, which depends on
+            # the target bay's size and its resident count -- neither known yet.  Chosen below,
+            # once TGT is fixed.  NOUT is needed before that only to bound the candidate list,
+            # so the widest tier's value is used here and the list is truncated afterwards.
+            STEP, NOUT, NENT = _TIERS[0]
 
         # THE CONTESTED BAY: the most-pressed bay THAT ANYTHING WANTS TO ENTER.
         #
@@ -340,7 +344,7 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
                     got_outs.append((g, b))
             if got_outs:
                 got_outs.sort(reverse=True)
-                cands.append((j, got_outs[:NOUT]))
+                cands.append((j, got_outs))   # truncated to NOUT after the tier is chosen
                 break
         # DIRECTED VARIANT.  With BRK_WISH the target bay and the outsider list come from an
         # exact reassignment rather than from pressure and single-move gain -- see _wish for why
@@ -381,6 +385,41 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
         res = [b for b in range(n) if cur[b] == TGT]
 
         W, H = float(bays[TGT]["width"]), float(bays[TGT]["height"])
+
+        # NOW the tier can be chosen, because the column count is computable.  cranepack builds
+        # its conflict graph with an O(ncol^2) double loop that never looks at the clock, so an
+        # oversized pack cannot be cut short -- only declined before it starts.  Predict from the
+        # measured seconds-per-squared-column, take the largest tier the run can absorb, and if
+        # even the smallest does not fit, do not call the packer at all.
+        _tier = -1
+        if not _forced and os.environ.get("BRK_OLDTIER") != "1":
+            _room = (float(hard) if hard is not None else SL) * 0.85
+            _pick = None
+            for _ti, (_st, _no, _ne) in enumerate(_TIERS):
+                _pos = (int(W // _st) + 1) * (int(H // _st) + 1)
+                _ids = res + [b for _, b in outs[:_no]]
+                _nc = float(sum(len(B[b]["shape"]) for b in _ids) * _pos * _ne)
+                if _PAIRRATE[0] is None:
+                    continue                       # uncalibrated -> smallest tier, below
+                if _PAIRRATE[0] * _nc * _nc <= _room:
+                    _pick = (_ti, _st, _no, _ne, _nc)
+                    break
+            if _pick is None:
+                _ti = len(_TIERS) - 1
+                _st, _no, _ne = _TIERS[_ti]
+                _pos = (int(W // _st) + 1) * (int(H // _st) + 1)
+                _ids = res + [b for _, b in outs[:_no]]
+                _nc = float(sum(len(B[b]["shape"]) for b in _ids) * _pos * _ne)
+                if _PAIRRATE[0] is not None and _PAIRRATE[0] * _nc * _nc > _room:
+                    if os.environ.get("BRK_DEBUG") == "1":
+                        print("    brk: declined, smallest tier predicts %.0fs of %.0fs"
+                              % (_PAIRRATE[0] * _nc * _nc, _room), flush=True)
+                    return None
+                _pick = (_ti, _st, _no, _ne, _nc)
+            _tier, STEP, NOUT, NENT, _NCOL = _pick
+        else:
+            _NCOL = 0.0
+        outs = outs[:NOUT]
 
         def windows(b):
             """Entry times to offer.  Restricted to the tardiness-free window so a repack can
@@ -472,8 +511,12 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
         # the ratio is against what was ASKED, which is what the deflation has to undo
         _el = time.time() - _pt
         _RATIO[0] = 0.5 * _RATIO[0] + 0.5 * (_el / max(1e-6, _ask))
-        if _tier >= 0:
-            _TIERCOST[_tier] = 0.5 * _TIERCOST[_tier] + 0.5 * _el
+        if _tier >= 0 and _NCOL > 0.0:
+            # Seconds per squared column.  Blended, so one slow call does not lock the operator
+            # into the smallest tier for the rest of the process, and measured on the machine
+            # actually running rather than inherited from the instance it was developed on.
+            _r = _el / (_NCOL * _NCOL)
+            _PAIRRATE[0] = _r if _PAIRRATE[0] is None else 0.5 * _PAIRRATE[0] + 0.5 * _r
         got = {loc: (o, x, y, en, ex) for (loc, o, x, y, en, ex) in r[1]}
 
         # WHERE IT STOPS.  repack has seven exits that all look like None to the caller, and a
