@@ -420,3 +420,88 @@ repeated calls, and the ceiling -- 88,910 -- sits INSIDE the range the pipeline 
 
 **Free repacking is spent.** It fixes an arrangement; it cannot re-decide which block goes to
 which bay, and the whole 50,000 between the 36,765 bound and where we sit is that decision.
+
+## The assignment gap is real, quantified, and geometrically unreachable
+
+This closes the direction the whole section above was building toward, and it closes it against
+that section's own conclusion. Kept side by side deliberately: the reasoning was sound and the
+premise it rested on was false.
+
+### The gap, priced exactly
+
+The assignment master minimises exactly the P3 objective (`w2*Mv + w3*SC*pref`, and Z1 = 0 in
+every solution), so its optimum IS what perfect reassignment is worth at the incumbent's times.
+Measured from an incumbent of 86,665 (`harness/masterprobe2.py`, `masterprobe3.py`):
+
+| constraint on bay 0 | model optimum | blocks moved |
+|---|---|---|
+| area rows at capf 1.0 | 83,633 | 3 |
+| area rows dropped | **36,759** | 16 |
+| cardinality <= 55 (current) | 59,709 | 15 |
+| cardinality <= 56 | 57,080 | 14 |
+| cardinality <= 60 | 47,210 | 14 |
+
+And within a Hamming ball of K moves: K=1 79,492, K=2 72,438, K=3 65,426, K=4 59,292.
+
+Three things follow and all three are measurements, not readings.
+
+**Solver time is not a lever.** The master solves to OPTIMAL with a 0.0% gap in under a second;
+8 s on one core and 240 s on eight give the identical answer.
+
+**Entry times are not the binding decision.** Dropping the area rows lands on 36,759 -- the
+capacity-aware bound to six digits -- at the incumbent's own unchanged entry times.
+
+**The area rows cost 47,000 while forbidding nothing real.** First-choice demand over capacity
+is 0.48 / 0.12 / 0.15. A per-bay CARDINALITY cap, measured from the packer, is a far tighter
+and more honest master relaxation, and it is the one worth keeping from all of this.
+
+### Why none of it is reachable
+
+`harness/baycap.py`, unit weights so a block is a block, bay 0's residents plus a growing
+outsider list:
+
+| candidates offered | seated | outsiders in | residents dropped |
+|---|---|---|---|
+| 55 | 55 | 0 | none |
+| 57 | 55 | 2 | 2 |
+| 59 | 55 | 2 | 2 |
+| 63 | 56 | 3 | 2 |
+| 70 | 56 | 4 | 3 |
+
+**Bay 0 saturates at 55-56 blocks.** Fifteen extra candidates buy ONE extra seat; a newcomer
+enters only by shedding a resident, near one for one. So 36,759 is reachable as an ASSIGNMENT
+and not as a PACKING, and the capacity-aware bound is not a target. That distinction is the
+whole finding, and it is the one this document previously blurred.
+
+Exchange is the obvious escape and it fails too (`harness/swapcap.py`): hand cranepack exactly
+the 55 blocks the cardinality-capped master wants in bay 0 --
+
+| cap | model obj | stayers | incomers | seated | incomers seated |
+|---|---|---|---|---|---|
+| 55 | 59,709 | 48 | 7 | **47 of 55** | 3 of 7 |
+| 56 | 57,080 | 49 | 7 | 48 of 56 | 2 of 7 |
+| 60 | 47,210 | 51 | 9 | 51 of 60 | 3 of 9 |
+
+The packer seats all 55 of the CURRENT members and only 47 when 7 are exchanged. The incomers
+are not merely hard to add, they displace stayers. Bay 0's residents are the blocks that fit it.
+
+### What was tried against this gap, and what each cost
+
+| direction | result |
+|---|---|
+| crane-rule cuts in the master (`OGC_CUT`) | both arms identical to the digit -- `_assign`'s answer realises to 151,815, loses to the incumbent, and is discarded whether cuts sharpened it or not |
+| directing brk from an exact reassignment (`BRK_WISH`) | 86,670 vs 86,665 paired |
+| exact linearised weights for the packer (`BRK_LINW`) | trace identical to the block |
+| (k,1) ejection move in cranepack (`CRANEPACK_EJECT`) | null AND widens the spread: 86,665/92,760 and 87,285/92,860 against a control that gave 86,670 twice |
+
+The third and fourth are worth reading together. cranepack's local search has exactly two
+improving moves, (1,1) and (2,1), and both remove exactly ONE selected column -- and they only
+consider candidates with `blocked[c]==1`, columns blocked by that single column alone. A column
+blocked by two selected columns is unreachable from either. So the neighbourhood really was
+empty, and three different weightings giving `admitted 0` identically is what an empty
+neighbourhood looks like. Filling it produced the session's first `admitted 2` -- and no
+trade inside it pays, because seating one outsider costs two or more residents.
+
+**All three defaults stay off. The shipped path is untouched**, and on the evidence it is also
+the most stable thing measured: 86,670 twice, to the digit, while both ejection arms blew out
+on their second rep.
