@@ -2,3 +2,5 @@ brk and brk+conw0 arms verified
 === q14_stack_r1.log  (brk+conw0 r1)  02:44:44
 P3  brk+conw0 r1   240s  obj=96685       Z1=0.0      Z2=2957   Z3=546.0     feas=y   ran 240s
 === q14_wide_r1.log  (brk nout=80 r1)  02:48:45
+P3  brk nout=80 r1   240s  obj=86670       Z1=0.0      Z2=2874   Z3=482.0     feas=y   ran 260s
+=== q14_fine_r1.log  (brk step=3 r1)  02:53:05

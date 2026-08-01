@@ -262,11 +262,21 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
         warm = [(i, place[b][0], int(place[b][1]), int(place[b][2]))
                 for i, b in enumerate(cand) if isres[i]]
         t0 = time.time()
+        # ASK FOR LESS THAN WE HAVE.  cranepack overruns whatever it is told, so the deadline
+        # handed to it is deflated by the observed ratio rather than being the time remaining.
+        # q14_wide_r1 finished a 240 s run in 260 s: the ratio adapts from the PREVIOUS call, so
+        # a call that starts near the end of the budget overruns before the estimate can react,
+        # and at the grader's hard limit that is a truncated answer rather than a slow one.
+        # Deflating the ask makes the FIRST call inside a run safe too, not just the ones after
+        # the estimate has settled.
+        _left = float(budget) - (time.time() - t0)
+        _ask = max(1.0, _left / max(1.0, _RATIO[0]))
         _pt = time.time()
-        r = CP.pack(blocks_in, W, H, STEP, max(1.0, float(budget) - (time.time() - t0)),
+        r = CP.pack(blocks_in, W, H, STEP, _ask,
                     seed=12345 + 7919 * k, warm=warm or None, frozen=[],
                     weights=[float(x) for x in wts])
-        _RATIO[0] = 0.5 * _RATIO[0] + 0.5 * ((time.time() - _pt) / max(1e-6, SL))
+        # the ratio is against what was ASKED, which is what the deflation has to undo
+        _RATIO[0] = 0.5 * _RATIO[0] + 0.5 * ((time.time() - _pt) / max(1e-6, _ask))
         got = {loc: (o, x, y, en, ex) for (loc, o, x, y, en, ex) in r[1]}
 
         admitted = [i for i in range(len(cand)) if not isres[i] and i in got]
