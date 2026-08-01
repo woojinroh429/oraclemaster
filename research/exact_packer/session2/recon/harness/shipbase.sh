@@ -34,8 +34,12 @@ run () {  # prob secs tag outfile
     echo "=== $4  ($3)  $(date -u +%H:%M:%S)"
     python3.12 harness/run1.py myalgorithm "$1" "$2" "$3" > "results/$4" 2>&1
     tail -1 "results/$4"
+    # PUSH, not just commit.  The container has restarted twice today and each time it
+    # rewound local git to a morning snapshot and deleted every untracked file.  A local
+    # commit does not survive that; a pushed one does.
     ( cd ../../.. && git add -f "research/exact_packer/session2/recon/results/$4" >/dev/null 2>&1 \
-      && git commit -q -m "shipped baseline: $3" >/dev/null 2>&1 )
+      && git commit -q -m "shipped baseline: $3" >/dev/null 2>&1 \
+      && git push -q origin claude/repair-plan-model-1ig6it >/dev/null 2>&1 )
 }
 
 for rep in 1 2; do
