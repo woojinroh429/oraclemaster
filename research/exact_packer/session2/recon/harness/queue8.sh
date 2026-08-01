@@ -50,7 +50,12 @@ for nm, M in (('fo', A), ('foc0', B)):
     s = inspect.getsource(M)
     assert 'def _fast_obj' in s and 'def _total(prob_info, sol, screen=None)' in s, nm
     assert 'pool[0][0] if pool else None' in s and 'band.tell(ai, _fast_obj' in s, nm
-    assert s.count('o, _ = _total(prob_info, s)') == 1, (nm, 'closing best-of must stay real')
+    # TWO sites keep the full geometric check and must: the per-worker floor, which is the
+    # single guarantee that a worker never returns something unverified, and the closing
+    # best-of across workers, which decides what leaves the process.  Everything between them
+    # is screened.  This assert was written for 1 and the build has 2, so queue8 killed itself
+    # on its own verification -- the invariant was wrong, not the patch.
+    assert s.count('o, _ = _total(prob_info, s)') == 2, (nm, 'floor and closing best-of must stay real')
 assert 'def _fast_obj' not in inspect.getsource(C), 'control must NOT carry the patch'
 assert all(a.get('conw') == 0.0 for a in B._AXES) and all(a.get('conw') == 0.0 for a in C._AXES)
 assert all(a.get('conw', 1.0) == 1.0 for a in A._AXES)

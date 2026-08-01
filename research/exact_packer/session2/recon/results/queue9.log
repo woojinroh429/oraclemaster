@@ -1,0 +1,6 @@
+installed  single beam obj=159475  in 20.9s
+hmatch     single beam obj=159475  in 21.0s
+identity ok: both engines return 159475 on one deterministic beam
+hmatch engine installed  01:44:43
+hmatch arms verified on the fastobj base, contact untouched
+=== q9_hm0.0_r1.log  (hmatch=0.0 r1)  01:44:44
