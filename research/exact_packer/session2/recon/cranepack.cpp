@@ -13,6 +13,7 @@
 #include <algorithm>
 #include <chrono>
 #include <cstdlib>
+#include <cstdio>
 #ifdef _OPENMP
 #include <omp.h>
 #else
@@ -290,6 +291,11 @@ py::tuple pack(py::list blocks, double W, double H, int step,
                     if(crane_conflict(ca,cb)) loc.push_back({a,b});
                 }
             }
+        }
+        if(getenv("CRANEPACK_PROF")){
+            size_t tot=0; for(auto& v:tls) tot+=v.size();
+            fprintf(stderr,"    cranepack: threads=%d ncol=%d edges=%zu\n",
+                    (int)tls.size(), ncol, tot);
         }
         for(auto& v:tls) for(auto& e:v){
             adj[e.first].push_back(e.second); adj[e.second].push_back(e.first); nedge++;
