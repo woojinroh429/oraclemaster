@@ -6,3 +6,5 @@ P3  warmup r3      240s  obj=86665       Z1=0.0      Z2=3023   Z3=477.0     feas
 === q23_cold_r3.log  (nowarm r3)  07:24:06
 P3  nowarm r3      240s  obj=86665       Z1=0.0      Z2=3023   Z3=477.0     feas=y   ran 239s
 === q23_warm_r4.log  (warmup r4)  07:28:05
+P3  warmup r4      240s  obj=86635       Z1=0.0      Z2=2507   Z3=494.0     feas=y   ran 239s
+=== q23_cold_r4.log  (nowarm r4)  07:32:05
