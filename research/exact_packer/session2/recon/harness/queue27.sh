@@ -52,13 +52,17 @@ assert 'badsets' not in c, 'control must not carry the cuts'
 assert a.count('_realise(') == 2 and c.count('_realise(') == 2, 'all call sites must match arity'
 print('cut arm and control verified')" || exit 1
 
+# NOTE.  The first copy of this file was written through a shell heredoc and this body came out
+# with LITERAL \$1 / \$3.  The queue "completed" in four seconds having run nothing, and wrote
+# one file called results/'$3'.  bash -n does not catch that class of error -- only running it
+# does, so the first run of any generated queue is checked for a real result line, not exit 0.
 run () {  # module tag outfile
-    [ -s "results/\$3" ] && return
-    echo "=== \$3  (\$2)  \$(date -u +%H:%M:%S)"
-    python3.12 harness/run1.py "\$1" 3 240 "\$2" > "results/\$3" 2>&1
-    tail -1 "results/\$3"
-    ( cd ../../.. && git add -f "research/exact_packer/session2/recon/results/\$3" >/dev/null 2>&1 \
-      && git commit -q -m "result: \$2" >/dev/null 2>&1 )
+    [ -s "results/$3" ] && return
+    echo "=== $3  ($2)  $(date -u +%H:%M:%S)"
+    python3.12 harness/run1.py "$1" 3 240 "$2" > "results/$3" 2>&1
+    tail -1 "results/$3"
+    ( cd ../../.. && git add -f "research/exact_packer/session2/recon/results/$3" >/dev/null 2>&1 \
+      && git commit -q -m "result: $2" >/dev/null 2>&1 )
 }
 
 for rep in 1 2 3; do
