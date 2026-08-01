@@ -76,12 +76,14 @@ def _layers_bbox(B, bid):
     return ol, ob
 
 
-def repack(prob_info, sol, budget, total_fn, build_fn, nout=None, step=None, nent=None):
+def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
+           nout=None, step=None, nent=None):
     """One repack of the most contested bay.  Returns a better operations dict, or None.
 
     total_fn(prob_info, sol) -> (objective, checkdict)   the caller's own scorer, so this
     module never decides what "better" means.
     build_fn(list of assignment records) -> operations dict
+    engine_fn(prob_info) -> ogc_fast Engine, used to rehome blocks the repack displaces.
     """
     CP = _load()
     if CP is None:
@@ -191,29 +193,55 @@ def repack(prob_info, sol, budget, total_fn, build_fn, nout=None, step=None, nen
                     weights=[float(x) for x in wts])
         got = {loc: (o, x, y, en, ex) for (loc, o, x, y, en, ex) in r[1]}
 
-        # every resident must come back.  A partial repack would need somewhere to put the
-        # displaced, which is a second search and a second way to be wrong.
-        if any(isres[i] and i not in got for i in range(len(cand))):
-            return None
         admitted = [i for i in range(len(cand)) if not isres[i] and i in got]
         if not admitted:
             return None
-
-        recs = []
-        for b in range(n):
-            if cur[b] == TGT or b in [cand[i] for i in admitted]:
-                continue
-            oi, x, y = place[b]
-            recs.append({"block_id": b, "bay_id": cur[b], "orient_idx": oi, "x": x, "y": y,
-                         "entry_time": ent[b], "exit_time": ext[b]})
+        # DISPLACED RESIDENTS.  An earlier version of this rejected any repack that failed to
+        # re-seat every resident, on the reasoning that a partial repack needs somewhere to put
+        # the leftovers.  That was measured wrong the moment the diagnostic ran: the repack that
+        # took P3 from 96,990 to 82,175 re-seated 50 of 53 and displaced three, and the rule
+        # would have thrown it away.  Trading a cheap resident out for an expensive entrant is
+        # not a failure of the repack, it IS the repack -- and the weights already price it, so
+        # cranepack drops the residents that cost least to lose.
+        #
+        # So rehome them instead, and make the engine say yes.  Each displaced block is offered
+        # its bays in preference order and must find a legal seat at its own unchanged times
+        # against the finished new state.  One that cannot is not "priced at its next-best bay"
+        # -- that is the assumption the earlier diagnostics made and it is exactly the assumption
+        # this whole night proved unsafe.  It kills the repack.
+        displaced = [i for i in range(len(cand)) if isres[i] and i not in got]
+        keep = {b: (cur[b], place[b][0], place[b][1], place[b][2], ent[b], ext[b])
+                for b in range(n) if cur[b] != TGT and b not in {cand[i] for i in admitted}}
         for i, b in enumerate(cand):
-            if i not in got:
-                continue
-            o, x, y, en, ex = got[i]
-            recs.append({"block_id": b, "bay_id": TGT, "orient_idx": int(o), "x": int(x),
-                         "y": int(y), "entry_time": int(en), "exit_time": int(ex)})
-        if len(recs) != n:
+            if i in got:
+                o, x, y, en, ex = got[i]
+                keep[b] = (TGT, int(o), float(x), float(y), int(en), int(ex))
+        if displaced:
+            if engine_fn is None:
+                return None
+            E = engine_fn(prob_info)
+            E.clear_all()
+            for q, (j, o, x, y, en, ex) in keep.items():
+                E.add(int(j), int(q), int(o), float(x), float(y), int(en), int(ex))
+            for i in displaced:
+                b = cand[i]
+                seated = False
+                for j in sorted((k for k in range(m) if k != TGT), key=lambda k: -pref[b][k]):
+                    r = E.feasible_scan(int(b), [int(j)], int(ent[b]), int(ext[b]), 1)
+                    if len(r):
+                        E.add(int(j), int(b), int(r[0][1]), float(r[0][2]), float(r[0][3]),
+                              int(ent[b]), int(ext[b]))
+                        keep[b] = (j, int(r[0][1]), float(r[0][2]), float(r[0][3]),
+                                   ent[b], ext[b])
+                        seated = True
+                        break
+                if not seated:
+                    return None
+        if len(keep) != n:
             return None
+        recs = [{"block_id": b, "bay_id": j, "orient_idx": o, "x": x, "y": y,
+                 "entry_time": en, "exit_time": ex}
+                for b, (j, o, x, y, en, ex) in sorted(keep.items())]
         out = build_fn(recs)
         o, _c = total_fn(prob_info, out)
         return out if o < base - 1e-9 else None
