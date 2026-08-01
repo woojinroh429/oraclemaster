@@ -25,3 +25,16 @@ myalg_sac3.py
 myalg_rank.py
 myalg_dk*.py
 myalg_pw.py
+
+# Every arm mkbase.py generates.  They are outputs, not sources: the builder is versioned and
+# each queue rebuilds its own arms before running them, so a committed copy is a stale duplicate
+# that can silently disagree with the builder it came from.  myalg_orig.py is the exception --
+# it is the pinned input -- and it is matched by none of these.
+myalg_div*.py
+myalg_wd*.py
+myalg_hm*.py
+myalg_fo*.py
+myalg_brk*.py
+myalg_ops.py
+myalg_q*.py
+myalg_s*.py
