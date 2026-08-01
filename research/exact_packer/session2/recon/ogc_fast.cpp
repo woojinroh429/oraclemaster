@@ -1490,6 +1490,28 @@ struct Engine {
         //
         // Cheap, because the dispatch order is fixed: every state at a level has the SAME
         // unplaced set, so the projection is one vector per level, computed once.
+        // HOW HARD SHOULD THE BEAM CHASE BALANCE WHILE PLACING?  (env OGC_W2BEAM, default 1.0)
+        //
+        // Measured on P3, where Z1 is zero so the objective is purely assignment:
+        //
+        //                         obj       Z2     Z3    bay counts
+        //     what we produce     90,545    2299   527   [55, 74, 71]
+        //     optimum, bay0<=55   59,715    3903   268   [55, 75, 70]
+        //
+        // Our Z2 is BETTER than the optimum's.  The beam balances the bays too well and sells
+        // preference to do it -- and w3=150 against w2=5 makes a unit of preference worth
+        // thirty units of balance.  The optimum lets Z2 rise by 1,604 to take Z3 down by 259,
+        // and holds bay 0 at the same 55 blocks we already put there, so this is not a capacity
+        // problem at all.  It is a trade priced the wrong way round.
+        //
+        // The cause is the term itself: obj2 over PARTIAL loads.  Early states all look better
+        // when loads are even, so the beam balances hard and routes blocks off their preferred
+        // bays long before the final loads mean anything.  This scales that pull in the RANK
+        // only -- the exact objective below still uses the true w2 -- so 1.0 is byte-identical
+        // to before and 0.0 asks the beam to place for preference and leave balance to the
+        // repair passes that follow.
+        static const double W2BEAM=[](){const char*e=getenv("OGC_W2BEAM");return e?atof(e):1.0;}();
+        const double w2r = w2 * W2BEAM;
         static const bool Z2LA=[](){const char*e=getenv("OGC_Z2LA");return (e&&e[0]=='1');}();
         std::vector<std::vector<double>> z2rem;
         if(Z2LA){
@@ -1734,9 +1756,9 @@ struct Engine {
                 if(THRUBEAM)
                     // KEEP Z3 (dropping it blew up Z3 for a tiny Z1 gain -> net worse); only AMPLIFY
                     // the future-tardiness lookahead so the search still steers away from congestion.
-                    keyed[i]={ w1*(c.gt + THRUHZ*hz) + w3*c.gz3 - mu*c.gcontact + w2*obj2la(c.loads,level), i };
+                    keyed[i]={ w1*(c.gt + THRUHZ*hz) + w3*c.gz3 - mu*c.gcontact + w2r*obj2la(c.loads,level), i };
                 else
-                    keyed[i]={ w1*c.gt + w3*c.gz3 - mu*c.gcontact + w2*obj2la(c.loads,level) + w1*hz, i };
+                    keyed[i]={ w1*c.gt + w3*c.gz3 - mu*c.gcontact + w2r*obj2la(c.loads,level) + w1*hz, i };
             }
             std::sort(keyed.begin(),keyed.end(),[](const std::pair<double,int>&a,const std::pair<double,int>&b){return a.first<b.first;});
             // CANONICAL DEDUP: two states that placed the SAME blocks in the same bays at the

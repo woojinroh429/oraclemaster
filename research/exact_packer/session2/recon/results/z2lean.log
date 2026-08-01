@@ -1,2 +1,6 @@
 lean arm and Z2 lookahead verified
 === z2L_off_r1.log  (lean Z2LA off r1)  14:59:28
+P3  lean Z2LA off r1   240s  obj=97570       Z1=0.0      Z2=3134   Z3=546.0     feas=y   ran 239s
+=== z2L_on_r1.log  (lean Z2LA on  r1)  15:03:27
+P3  lean Z2LA on  r1   240s  obj=96990       Z1=0.0      Z2=3108   Z3=543.0     feas=y   ran 239s
+=== z2L_off_r2.log  (lean Z2LA off r2)  15:07:27
