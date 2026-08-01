@@ -14,3 +14,5 @@ P3  hmatch=8.0 r1   240s  obj=104460      Z1=0.0      Z2=3762   Z3=571.0     fea
 === q9_hm0.0_r2.log  (hmatch=0.0 r2)  02:00:42
 P3  hmatch=0.0 r2   240s  obj=96990       Z1=0.0      Z2=3108   Z3=543.0     feas=y   ran 239s
 === q9_hm0.5_r2.log  (hmatch=0.5 r2)  02:04:42
+P3  hmatch=0.5 r2   240s  obj=100865      Z1=0.0      Z2=3433   Z3=558.0     feas=y   ran 239s
+=== q9_hm2.0_r2.log  (hmatch=2.0 r2)  02:08:42
