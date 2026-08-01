@@ -9,3 +9,5 @@ brk arm and its control verified
 === q12_brk_r1.log  (brk on r1)  01:04:46
 P3  brk on r1      240s  obj=82180       Z1=0.0      Z2=3146   Z3=443.0     feas=y   ran 239s
 === q12_ctl_r1.log  (brk off r1)  01:08:45
+P3  brk off r1     240s  obj=96990       Z1=0.0      Z2=3108   Z3=543.0     feas=y   ran 239s
+=== q12_brk_r2.log  (brk on r2)  01:12:45
