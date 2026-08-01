@@ -292,3 +292,45 @@ like a win. `defer_big`'s 3-of-4 at ONE swap, its best cell anywhere, is exactly
 
 **Carry this forward:** a single evaluation of a fixed order carries up to 15.6% of noise on this
 instance. Nothing may be compared on one beam call.
+
+## The tier rule: what `brk` was actually short of
+
+`harness/brkcost.py` handed the repack operator a range of slices and measured both what it
+took and what it bought. Both columns are step functions:
+
+    slice   took   ratio      obj     gain
+       8s   20.3s   2.5x   105,430   -1.19%
+      12s   18.9s   1.6x   105,430   -1.19%
+      20s   21.0s   1.1x   105,430   -1.19%
+      35s   77.0s   2.2x    91,670  -14.09%
+      60s   78.5s   1.3x    91,670  -14.09%
+     100s   81.0s   0.8x    91,670  -14.09%
+
+**Time is set by the problem, not the budget.** Every small-tier call costs ~20 s and every
+large-tier call ~78 s whatever it was asked for -- `cranepack` runs its own search to completion
+and treats the deadline as advisory. Handing it 100 s instead of 35 buys nothing.
+
+**So is the gain.** -1.19% small, -14.09% large, nothing between and nothing above.
+
+That exposed the bug. The old rule picked a tier from the SLICE, gating the large one at 40 s --
+and `brk`'s opening slot is `worker_budget * 0.20`, which is 39.8 s on a 240 s run. Just under.
+Deflating by the observed overrun ratio pushed it further under. So the operator spent the whole
+session in the -1.19% tier with -14.09% one threshold away, and that is also why handing it the
+entire budget changed nothing: a bigger slice still bought the same small problem.
+
+The rule now takes the largest tier whose MEASURED cost fits the RUN's remaining time, with that
+remaining time passed in -- a 40 s slice with 190 s left and a 40 s slice with 45 s left want
+opposite tiers, and the slice alone cannot tell them apart. Per-tier costs are learned from what
+actually happens.
+
+Measured against the rule it replaced, interleaved inside one queue:
+
+    rep    tier NEW    tier OLD    delta
+    r1       87,070      88,720    -1.9%
+    r2       90,365      94,980    -4.9%
+    r3       86,665      97,185   -10.8%
+    mean     88,033      93,628    -6.0%
+
+Three pairs, all favouring the new rule. Less than the step function suggested -- repeated
+small-tier calls appear to recover some of it inside a run -- but that is an explanation and not
+a measurement.
