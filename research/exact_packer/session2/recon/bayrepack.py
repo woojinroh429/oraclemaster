@@ -95,7 +95,28 @@ _TIERS = [(4, 40, 3), (4, 20, 2), (6, 10, 1)]
 # from the running rate, and takes the largest tier the remaining run can absorb.  Unknown until
 # the first call, so the first call takes the SMALLEST tier -- cheap everywhere, and it is what
 # calibrates the rate.
-_PAIRRATE = [None]
+#
+# MEASURED, on P3 at two tiers, forcing the knobs and asking only 15 s so the build dominates:
+#
+#     tier (6,10,1)   ncol 11,580   build  8.3 s   ->  6.19e-8 s per squared column
+#     tier (4,20,2)   ncol 24,318   build 39.1 s   ->  6.61e-8
+#
+# (24318/11580)^2 = 4.41 against a measured build ratio of 4.71, so the build really is
+# O(ncol^2) and the rate is the same number at both sizes.  Predicting the large tier from it
+# gives ~85 s, which is what the old hand-written table claimed (80 s): that table was RIGHT on
+# P3 and simply could not travel, because it was seconds-per-TIER.  Seconds-per-squared-column
+# travels, since the instance lives entirely in ncol.
+#
+# SEEDED rather than left unknown.  brk is called about ONCE PER WORKER in a run -- traced, four
+# calls in a 240 s P3 run -- so a predictor that starts uncalibrated never gets a second call in
+# which to spend what it learned.  That is why the previous version took the smallest tier every
+# time while reporting 94-97 s of room.  Still corrected from cranepack's own build_ms on every
+# call, so a different machine or bay shape moves it.
+_PAIRRATE = [6.4e-8]
+# The search is not predicted -- it runs for as long as it is ASKED, and we set the ask.  This is
+# the least ask worth making: a tier whose build leaves less than this has nothing to search with
+# and is a slow way of returning the warm start.
+_MINASK = 8.0
 
 
 _WISH_CACHE = {}
@@ -398,23 +419,42 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
             # budget leaves nothing to search with, which is a slow way of returning the warm
             # start.
             _room = (float(hard) if hard is not None else SL) * 0.85
+
+            def _ncol_est(_st, _no, _ne):
+                """Columns a tier would generate.  Must agree with windows() below, which
+                returns the tardiness-free bounds plus the block's own entry time plus _ne
+                sampled points -- so up to _ne + 2 DISTINCT times, not _ne.  Estimating _ne
+                under-counted by 1.3x to 2.8x depending on the tier, which is worse than a
+                constant error: it biased the tiers against each other."""
+                _pos = (int(W // _st) + 1) * (int(H // _st) + 1)
+                _tot = 0
+                for _b in res + [b for _, b in outs[:_no]]:
+                    _lo, _hi = rel[_b], due[_b] - pt[_b]
+                    if _hi < _lo:
+                        _nt = 1
+                    else:
+                        _ts = {_lo, _hi}
+                        if _lo <= ent[_b] <= _hi:
+                            _ts.add(ent[_b])
+                        for _i in range(max(1, _ne)):
+                            _ts.add(_lo + (_hi - _lo) * _i // max(1, _ne - 1) if _ne > 1 else _lo)
+                        _nt = len(_ts)
+                    _tot += len(B[_b]["shape"]) * _pos * _nt
+                return float(_tot)
+
             _pick = None
             for _ti, (_st, _no, _ne) in enumerate(_TIERS):
-                _pos = (int(W // _st) + 1) * (int(H // _st) + 1)
-                _ids = res + [b for _, b in outs[:_no]]
-                _nc = float(sum(len(B[b]["shape"]) for b in _ids) * _pos * _ne)
-                if _PAIRRATE[0] is None:
-                    continue                       # uncalibrated -> smallest tier, below
-                if _PAIRRATE[0] * _nc * _nc <= _room * 0.5:
+                _nc = _ncol_est(_st, _no, _ne)
+                # build + the least ask worth making has to fit; the ask itself is set below
+                # from whatever the build leaves, so the two together never exceed the room.
+                if _PAIRRATE[0] * _nc * _nc + _MINASK <= _room:
                     _pick = (_ti, _st, _no, _ne, _nc)
                     break
             if _pick is None:
                 _ti = len(_TIERS) - 1
                 _st, _no, _ne = _TIERS[_ti]
-                _pos = (int(W // _st) + 1) * (int(H // _st) + 1)
-                _ids = res + [b for _, b in outs[:_no]]
-                _nc = float(sum(len(B[b]["shape"]) for b in _ids) * _pos * _ne)
-                if _PAIRRATE[0] is not None and _PAIRRATE[0] * _nc * _nc > _room * 0.5:
+                _nc = _ncol_est(_st, _no, _ne)
+                if _PAIRRATE[0] * _nc * _nc + _MINASK > _room:
                     if os.environ.get("BRK_DEBUG") == "1":
                         print("    brk: declined, smallest tier predicts %.0fs of %.0fs"
                               % (_PAIRRATE[0] * _nc * _nc, _room), flush=True)
@@ -515,6 +555,16 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
         # the estimate has settled.
         _left = float(budget) - (time.time() - t0)
         _ask = max(1.0, _left / max(1.0, _RATIO[0]))
+        if _tier >= 0 and _NCOL > 0.0:
+            # A call costs BUILD + ASK, and only the ask is ours to set.  The tier above was
+            # chosen so the predicted build leaves at least _MINASK inside the run's remaining
+            # time; spend exactly what it leaves.  Measured on P3: the same forced tier took
+            # 352.6 s when asked for 300 and 54.2 s when asked for 15 -- the difference is
+            # entirely the ask, which is why the old table's "80 s" was not wrong so much as
+            # incomplete.
+            _budleft = (float(hard) if hard is not None else SL) * 0.85 \
+                - _PAIRRATE[0] * _NCOL * _NCOL
+            _ask = max(_MINASK, min(_ask, _budleft))
         _pt = time.time()
         r = CP.pack(blocks_in, W, H, STEP, _ask,
                     seed=12345 + 7919 * k, warm=warm or None, frozen=[],
@@ -522,6 +572,14 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
         # the ratio is against what was ASKED, which is what the deflation has to undo
         _el = time.time() - _pt
         _RATIO[0] = 0.5 * _RATIO[0] + 0.5 * (_el / max(1e-6, _ask))
+        if os.environ.get("BRK_DEBUG") == "1":
+            # A call is BUILD + SEARCH.  The search runs for as long as it is ASKED, which we
+            # set; only the build is a property of the problem and has to be predicted.  The
+            # first version of this trace was guarded by _tier >= 0 and so printed nothing on
+            # the forced-knob path, which is exactly the path used to measure it.
+            print("    brk cost: ncol~%.0f real_ncol=%s build=%.1fs ask=%.1fs total=%.1fs"
+                  % (_NCOL, (r[2] if len(r) > 2 else "?"),
+                     (float(r[4]) / 1000.0 if len(r) > 4 else -1.0), _ask, _el), flush=True)
         if _tier >= 0 and _NCOL > 0.0:
             # Seconds per squared column, fitted to the BUILD ONLY.
             #
