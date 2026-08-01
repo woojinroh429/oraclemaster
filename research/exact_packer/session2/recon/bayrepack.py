@@ -246,9 +246,15 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
         # The seed still rotates on every call, which is what stops a repeat visit from
         # re-deriving its own previous answer -- that was the real hazard, and it does not need
         # the target to move as well.
+        # BRK_TARGET pins the bay, so an exhaustive sweep can cover every one of them instead
+        # of re-picking the most-pressed each call.  Unset -- which is every path the pipeline
+        # takes -- leaves the measured choice untouched.
+        _tg = os.environ.get("BRK_TARGET")
+        _order = ([int(_tg)] if _tg is not None and _tg.isdigit() and int(_tg) < m
+                  else sorted(range(m), key=lambda j: -(u[j] * sum(wl[b] for b in range(n)
+                                                                   if cur[b] == j))))
         cands = []
-        for j in sorted(range(m), key=lambda j: -(u[j] * sum(wl[b] for b in range(n)
-                                                             if cur[b] == j))):
+        for j in _order:
             if not any(cur[b] == j for b in range(n)):
                 continue
             got_outs = []
