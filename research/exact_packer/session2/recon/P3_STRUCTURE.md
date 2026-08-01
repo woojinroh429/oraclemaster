@@ -36,8 +36,11 @@ Twenty-odd runs across every knob land on a handful of discrete solutions:
     91,110   2952   509   span2=1.0 (2 of 3)
     92,930   3496   503   conw=0.25 (3 of 3), div conw+span2 (2 of 3)
     94,965   2343   555   span2=1.0 r3
+    92,930   3496   503   per-worker conw 0/.25/1/4 (the conw=0.25 solution again)
     96,235   3767   516   per-axis conw diversification (2 of 3)
     96,990   3108   543   base
+   100,535   3187   564   per-worker conw, 2 of 4 workers flat
+   106,335   4257   567   per-worker conw, 3 of 4 workers flat
    103,795   3419   578   conw=0.0 AND span2=1.0 together (2 of 2)
    106,700   2680   622   base, bad end of its band
    106,940   2518   629   conw=0.0 r2
@@ -49,11 +52,20 @@ Two things follow that are worth more than the individual numbers:
 
 * **conw and span2 are one mechanism, not two.** Both flatten the packing. Held together the
   result is 103,795 — worse than either alone.
-* **conw=0.0 is a REGIME, not a candidate score.** Per-axis diversification put conw=0.0 on two
-  of six axes and returned 96,235, level with the base. If one flat beam could produce 87,560,
-  best-of over the true objective would have returned it. It did not: a beam builds a flat
-  layout and any axis at conw=1.0 repairs it back toward contact packing. Axes rotate within a
-  worker by design, so they are the one unit that cannot hold a regime steady.
+* **conw=0.0 is a REGIME, not a candidate score, and the regime needs the whole pool.** Per-axis
+  diversification put conw=0.0 on two of six axes and returned 96,235, level with the base. If
+  one flat beam could produce 87,560, best-of over the true objective would have returned it. It
+  did not: a beam builds a flat layout and any axis at conw=1.0 repairs it back toward contact
+  packing. Axes rotate within a worker by design, so they cannot hold a regime steady — but
+  workers can, each keeping its own pool for the entire budget and meeting only at the closing
+  best-of. Splitting by worker fails too (100,535 at two of four, 106,335 at three of four), and
+  workers were the last unit available. **There is no way to make conw=0.0 safe for a saturated
+  instance by splitting it**, so the knob is closed rather than merely unproven.
+
+**Every direction that WEAKENED contact was a dead end** — conw as a constant, span2 (the same
+mechanism), per-axis, per-worker. The 17.75% came from re-solving the arrangement with contact
+left at full strength, taking nothing away. That is worth stating plainly because the whole
+night was spent on the other hypothesis.
 
 ## Why a less-full bay takes more blocks
 
