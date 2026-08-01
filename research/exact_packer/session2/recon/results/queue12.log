@@ -7,3 +7,5 @@ myalg_base on P3: obj=94000  Z1=0.0 Z2=2420 Z3=546.0  feasible=True
    second line above is the one that says whether this is a one-shot or an operator.
 brk arm and its control verified
 === q12_brk_r1.log  (brk on r1)  01:04:46
+P3  brk on r1      240s  obj=82180       Z1=0.0      Z2=3146   Z3=443.0     feas=y   ran 239s
+=== q12_ctl_r1.log  (brk off r1)  01:08:45
