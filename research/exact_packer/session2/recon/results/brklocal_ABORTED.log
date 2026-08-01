@@ -1,0 +1,33 @@
+P3: 200 blocks.  beam 10s per evaluation, 4 trials per perturbation strength
+
+=== edd        seed obj = 165295   (8.8s)
+      swaps   trials   best        vs seed    wins
+          1        4   165295             +0   0/4
+          2        4   165295             +0   0/4
+          4        4   164270          -1025   1/4
+          8        4   160925          -4370   2/4
+         16        4   163130          -2165   1/4
+         32        4   150530         -14765   2/4
+
+=== lst        seed obj = 148650   (8.9s)
+      swaps   trials   best        vs seed    wins
+          1        4   148650             +0   0/4
+
+[ABORTED -- killed on a wrong diagnosis, and the numbers above are not trustworthy]
+
+Two reads of this file disagreed:
+
+    monitor saw   16 -> 160,925  -4,370  3/4     32 -> 157,910   -7,385  4/4
+    file showed   16 -> 163,130  -2,165  1/4     32 -> 150,530  -14,765  2/4
+
+The 8-row agreed, and the monitor's 16-row repeats the 8-row's values exactly, which is what a
+byte-truncated read of a partially written buffer looks like -- the monitor used `tail -c`,
+which cuts at a byte boundary rather than a line boundary.  So the file was probably right and
+the monitor wrong.
+
+I did not establish that.  I inferred "two processes are interleaving into one log" from `ps`
+showing two matching lines, killed the run, and only then read the command column: 3338 was the
+`timeout 2400` wrapper and 3339 its python child.  One run, not two.  A nearly complete
+measurement was destroyed by a diagnosis I could have checked first with the same command.
+
+Rerun is clean, with the reader taking whole lines only.
