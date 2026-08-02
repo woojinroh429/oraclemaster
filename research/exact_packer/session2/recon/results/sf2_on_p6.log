@@ -1,0 +1,4 @@
+    brk tier: room=477s rate=6.4e-08 -> tier 3 (step 6 nout 10 nent 2) ncol~20180 pred=26.1s  [hard=561 slice=172s]
+    brk tier: room=434s rate=6.4e-08 -> tier 3 (step 6 nout 10 nent 2) ncol~44848 pred=128.7s  [hard=510 slice=172s]
+    brk tier: room=422s rate=6.4e-08 -> tier 3 (step 6 nout 10 nent 2) ncol~40908 pred=107.1s  [hard=497 slice=172s]
+    brk tier: room=419s rate=6.4e-08 -> tier 3 (step 6 nout 10 nent 2) ncol~45498 pred=132.5s  [hard=493 slice=172s]

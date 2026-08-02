@@ -19,25 +19,38 @@ for m in ogc_fast ogc_geom ogc_state cranepack st3dtcs; do
 done
 
 echo "== copying python =="
-# SHIP THE LEAN BUILD.  myalg_lean.py (1,486 lines incl. its provenance header) is what every
-# measurement in this session was made on; myalgorithm.py is 6,675 lines of legacy that was
-# being packaged by accident.  Both were run on the hidden instances at their real budgets:
+# SHIP brk.  The exact bay-repack is a separate module by design -- it is a self-contained
+# operator with its own cost model, and folding 797 lines of it into the pipeline file would
+# make both harder to read for no benefit.  myalgorithm.py imports it; if the import fails the
+# roster entry is simply absent and the pipeline runs exactly as it did without it.
 #
-#                   lean        legacy       leader
-#     P1  60 s       11,280      11,280      --
-#     P2 120 s       31,368      31,368      --
-#     P3 240 s       96,990      90,545      ~70,000
-#     P4 480 s    1,780,253   3,273,791      2,200,000
+# WHAT IS ACTUALLY ESTABLISHED, at the real budgets:
 #
-# Identical on P1/P2, 7% worse on P3, 45% better on P4 -- and on P4 the lean build is 19% AHEAD
-# of the leaderboard's best while the legacy file is 49% behind it.
+#                 brk on        brk off
+#     P1          11,280        11,280        same
+#     P2          31,368        31,368        same
+#     P3          80,795        96,990        brk by 16,195
+#     P4       1,781,181     1,780,253        brk worse by 928 (0.05%) -- a tie
+#     P5       9,044,458     not measured
+#     P6      29,651,637    30,297,335*       brk better
 #
-# It ships AS myalgorithm.py because that is the entry point the grader imports.
-cp "$HERE/myalg_lean.py" "$OUT/myalgorithm.py"
+#     * that figure came from myalg_orig, not from the lean build, which has never been
+#       measured on P5 or P6 at all.  So the honest claim is: brk wins P3 decisively, ties
+#       P1/P2/P4, and P5/P6 lack a matched control.  It is not "verified better everywhere",
+#       and the control runs are queued.
+#
+# The 797 lines buy 16.7% on P3 and cost nothing measurable anywhere else.
+# GENERATED, so the zip stays reproducible from committed sources -- which is this script's
+# whole contract.  Shipping the checked-in myalg_brk.py would ship whatever the last experiment
+# left on disk.
+OGC_DK=0 OGC_FASTOBJ=1 OGC_BRK=1 \
+    python3.12 "$HERE/harness/mkbase.py" 0.3 myalg_ship.py 0 "" 0 1.0 "" 0 "" >/dev/null
+cp "$HERE/myalg_ship.py" "$OUT/myalgorithm.py"
+cp "$HERE/bayrepack.py" "$OUT/"
 cp "$HERE/utils.py" "$OUT/"
 
 echo "== packaging =="
-( cd "$OUT" && zip -j -q submit_recon.zip myalgorithm.py utils.py *.$EXT )
+( cd "$OUT" && zip -j -q submit_recon.zip myalgorithm.py bayrepack.py utils.py *.$EXT )
 echo "== done: $OUT/submit_recon.zip =="
 ( cd "$OUT" && unzip -l submit_recon.zip )
 
