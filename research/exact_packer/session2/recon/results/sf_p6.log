@@ -1,0 +1,5 @@
+    brk tier: room=474s rate=6.4e-08 -> tier 1 (step 4 nout 40 nent 3) ncol~67832 pred=294.5s  [hard=557 slice=172s]
+    brk cost: BUILD ABORTED at 6.7s of a 473.6s cap (tier 1 ncol~67832)
+    brk tier: room=439s rate=6.4e-08 -> tier 3 (step 6 nout 10 nent 1) ncol~44848 pred=128.7s  [hard=516 slice=172s]
+    brk tier: room=429s rate=6.4e-08 -> tier 3 (step 6 nout 10 nent 1) ncol~45498 pred=132.5s  [hard=504 slice=172s]
+    brk tier: room=428s rate=6.4e-08 -> tier 3 (step 6 nout 10 nent 1) ncol~46818 pred=140.3s  [hard=504 slice=172s]
