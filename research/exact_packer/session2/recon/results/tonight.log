@@ -25,3 +25,5 @@ P1  sweep P1        60s  obj=11280       Z1=0.0      Z2=33     Z3=73.0      feas
 === on_sweep_p2.log (sweep P2) 02:58:00
 P2  sweep P2       120s  obj=31368       Z1=0.0      Z2=3342   Z3=90.0      feas=y   ran 119s
 === on_sweep_p5.log (sweep P5) 02:59:59
+P5  sweep P5       600s  obj=9044458     Z1=639.0    Z2=2487   Z3=3814.0    feas=y   ran 599s
+=== on_sweep_p6.log (sweep P6) 03:09:59
