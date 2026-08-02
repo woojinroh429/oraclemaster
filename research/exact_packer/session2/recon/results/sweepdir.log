@@ -1,3 +1,5 @@
 arms built: worker-level sweep overrides are in the modules
 confirmed: swy/swx are plumbed and no axis varies them
 === sw_b_p6.log (sweep B half P6) 07:55:11
+P6  sweep B half P6   900s  obj=29690916    Z1=4320.0   Z2=972    Z3=5878.0    feas=y   ran 901s
+=== sw_c_p6.log (sweep C allx P6) 08:10:12
