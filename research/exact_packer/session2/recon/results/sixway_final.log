@@ -1,4 +1,1 @@
-verified: brk shipped, ask=cap, total_s, self-timing build, derived nent, pruned, no bitset
-=== fx_p3.log (six P3) 12:41:59
-P3  six P3         240s  obj=100685      Z1=0.0      Z2=3157   Z3=566.0     feas=y   ran 239s
-=== fx_p6.log (six P6) 12:45:59
+another sixway_final.sh is already running
