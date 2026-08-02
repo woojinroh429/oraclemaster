@@ -11,12 +11,33 @@
 # survives the snapshot rewind that takes untracked files with it.  That is why this file is
 # committed before it is used.
 #
-# overnight.sh takes its own flock, so a second copy exits immediately and firing this
-# repeatedly cannot stack.
+# WHY THE FIRST THING IT DOES IS CHECK THE EXPERIMENT LOCK.  SessionStart fires on COMPACTION,
+# not only on a container restart, and the earlier version of this file ran
+#
+#     git fetch origin <branch> && git reset --hard FETCH_HEAD
+#
+# unconditionally.  At 04:40:40 it fired mid-compaction while askfix was running, and the reset
+# rewound every TRACKED file to the remote -- including results/af_p6.log, which the live P6 run
+# had just finished writing.  A fifteen-minute measurement was overwritten by its own committed
+# partial, and results/askfix.log was rewound to a previous run's copy, which is why the queue
+# log then disagreed with the processes actually on the machine.
+#
+# The rewind is only needed after a real container restart, and a real restart kills the queue.
+# So: if the experiment lock is held, something is running, there was no rewind, and there is
+# nothing to do.  Never touch the working tree while a measurement is in flight.
 set -u
 cd "$(dirname "$0")/.." 2>/dev/null || exit 0
-pgrep -f "harness/overnight\.sh" >/dev/null 2>&1 && exit 0
-# the rewind takes local git back to a morning snapshot; re-sync before running anything
+
+# flock -n on the shared experiment lock: if we CANNOT take it, a queue is live -- leave.
+exec 7>/tmp/ogc_experiment.lock 2>/dev/null || exit 0
+flock -n 7 || exit 0
+exec 7>&-
+
+for q in overnight askfix; do
+    pgrep -f "harness/${q}\.sh" >/dev/null 2>&1 && exit 0
+done
+
+# only now, with nothing running, is a rewind safe: local git can be at a pre-restart snapshot
 ( cd ../../.. && git fetch -q origin claude/repair-plan-model-1ig6it 2>/dev/null \
   && git reset -q --hard FETCH_HEAD 2>/dev/null )
 [ -f harness/overnight.sh ] || exit 0
