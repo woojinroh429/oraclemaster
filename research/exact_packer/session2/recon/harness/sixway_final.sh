@@ -47,7 +47,7 @@ assert 'USEBITS' not in c and 'freeb' not in c, 'the bitset is still in the sour
 assert 'projected > build_cap' in c, 'the build does not watch its clock'
 assert 'total_s' in CP.pack.__doc__ and 'max_iters' in CP.pack.__doc__, 'binary is behind source'
 r = inspect.getsource(R)
-assert '_ask = max(_MINASK, _cap)' in r, 'the double charge is back'
+assert '_ask = max(_MINASK, SL)' in r, 'the double charge is back'
 assert 'def _ne_of(_frac)' in r, 'nent is not derived'
 assert 'int(r[9]) == 1' in r, 'abort not handled'
 for dead in ('BRK_WISH', 'BRK_LINW', 'BRK_OLDTIER', 'BRK_TARGET'):
