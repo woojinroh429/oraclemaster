@@ -55,13 +55,33 @@ struct Col {
     int block, orient, x, y, entry, exit;
     std::vector<Poly> layers;             // world coords
     double bx0,by0,bx1,by1;
+    // PER-LAYER bounding boxes, four doubles each, flat.  The pair filters reject on the COLUMN
+    // box, but crane_conflict then goes layer by layer straight into poly_overlap -- point-in-
+    // polygon over every vertex plus every segment-crossing test, a few hundred operations to
+    // answer a question a box comparison usually answers in four.  A layer stack is a taper, so
+    // upper layers are much smaller than the column box that admitted the pair, and most layer
+    // pairs separate.  Exact, not approximate: disjoint boxes cannot contain overlapping
+    // polygons, so no conflict can be missed.
+    std::vector<double> lbb;              // 4*k: x0,y0,x1,y1 per layer
 };
 static void bbox_of(Col& c){
     c.bx0=1e18;c.by0=1e18;c.bx1=-1e18;c.by1=-1e18;
-    for(auto&L:c.layers) for(auto&p:L){
-        c.bx0=std::min(c.bx0,p.first);c.by0=std::min(c.by0,p.second);
-        c.bx1=std::max(c.bx1,p.first);c.by1=std::max(c.by1,p.second);
+    c.lbb.assign(4*c.layers.size(), 0.0);
+    for(size_t k=0;k<c.layers.size();k++){
+        double lx0=1e18,ly0=1e18,lx1=-1e18,ly1=-1e18;
+        for(auto&p:c.layers[k]){
+            lx0=std::min(lx0,p.first); ly0=std::min(ly0,p.second);
+            lx1=std::max(lx1,p.first); ly1=std::max(ly1,p.second);
+        }
+        c.lbb[4*k]=lx0; c.lbb[4*k+1]=ly0; c.lbb[4*k+2]=lx1; c.lbb[4*k+3]=ly1;
+        c.bx0=std::min(c.bx0,lx0); c.by0=std::min(c.by0,ly0);
+        c.bx1=std::max(c.bx1,lx1); c.by1=std::max(c.by1,ly1);
     }
+}
+// disjoint layer boxes => the polygons inside them cannot overlap
+static inline bool lay_sep(const Col&A,int ka,const Col&B,int kb){
+    const double*a=&A.lbb[4*ka]; const double*b=&B.lbb[4*kb];
+    return a[2]<=b[0] || b[2]<=a[0] || a[3]<=b[1] || b[3]<=a[1];
 }
 
 // crane conflict, fastconf j>=k logic (descent OR ascent => same A_k vs B_{j>k} loop)
@@ -72,6 +92,7 @@ static bool crane_conflict(const Col& A, const Col& B){
     int mk=std::min(Ka,Kb);
     for(int k=0;k<mk;k++){                                            // resting j==k
         if(A.layers[k].size()<3||B.layers[k].size()<3) continue;
+        if(lay_sep(A,k,B,k)) continue;
         if(poly_overlap(A.layers[k],B.layers[k])) return true;
     }
     bool AoverB = (A.entry>=B.entry) || (A.exit<=B.exit);             // A sweeps B upper layers
@@ -81,6 +102,7 @@ static bool crane_conflict(const Col& A, const Col& B){
             if(A.layers[k].size()<3) continue;
             for(int j=k+1;j<Kb;j++){
                 if(B.layers[j].size()<3) continue;
+                if(lay_sep(A,k,B,j)) continue;
                 if(poly_overlap(A.layers[k],B.layers[j])) return true;
             }
         }
@@ -90,6 +112,7 @@ static bool crane_conflict(const Col& A, const Col& B){
             if(B.layers[k].size()<3) continue;
             for(int j=k+1;j<Ka;j++){
                 if(A.layers[j].size()<3) continue;
+                if(lay_sep(B,k,A,j)) continue;
                 if(poly_overlap(B.layers[k],A.layers[j])) return true;
             }
         }
@@ -248,27 +271,55 @@ py::tuple pack(py::list blocks, double W, double H, int step,
     std::vector<std::vector<int>> adj(ncol);
     long nedge=0;
     bool aborted=false;
+
+    // TWO STRUCTURAL WASTES, both measured before being removed.
+    //
+    // ENTRY ORDER + BREAK.  Two columns can only conflict if they are present at the same time,
+    // and on P3 the processing times are 3/7/12 against a horizon of 82 -- about 17% of pairs
+    // overlap.  The loop used to visit all ncol^2/2 of them and reject inside.  Sorted by entry,
+    // once cb.entry >= ca.exit no LATER b can overlap either, so the inner loop breaks.  This is
+    // exact, not a heuristic: entries are non-decreasing, so the test is monotone.
+    //
+    // FLAT ARRAYS.  The filters read block, bbox, entry and exit -- 40 bytes -- but those live
+    // inside a Col that also owns a vector<vector<pair<double,double>>> of layer polygons, so the
+    // inner loop was streaming 30,000 fat scattered structs, about 2.4 MB, through L2 to look at
+    // a tenth of each.  Pulled into six flat arrays the scan is sequential and prefetchable, and
+    // only the pairs that survive both filters ever touch the polygons.
+    //
+    // Doubles, not floats, for the bbox: the AABB test is an exact comparison and narrowing it
+    // could flip a boundary case, which would change the edge set rather than the speed.
+    std::vector<int> ord(ncol);
+    for(int i=0;i<ncol;i++) ord[i]=i;
+    std::sort(ord.begin(),ord.end(),[&](int p,int q){
+        return cols[p].entry!=cols[q].entry ? cols[p].entry<cols[q].entry : p<q; });
+    std::vector<int> sblk(ncol), sent(ncol), sext(ncol);
+    std::vector<double> sx0(ncol), sy0(ncol), sx1(ncol), sy1(ncol);
+    for(int i=0;i<ncol;i++){ const Col& c=cols[ord[i]];
+        sblk[i]=c.block; sent[i]=c.entry; sext[i]=c.exit;
+        sx0[i]=c.bx0; sy0[i]=c.by0; sx1[i]=c.bx1; sy1[i]=c.by1; }
+
     const double build_cap = (total_s > 0.0) ? total_s : -1.0;
-    const double total_pairs = 0.5*(double)ncol*(double)ncol;
-    for(int a=0;a<ncol;a++){
-        if(build_cap > 0.0 && (a & 255) == 255){
+    for(int i=0;i<ncol;i++){
+        if(build_cap > 0.0 && (i & 255) == 255){
             double el = std::chrono::duration<double>(
                             std::chrono::high_resolution_clock::now()-tcols).count();
-            double done = (double)a*(double)ncol - 0.5*(double)a*(double)a;
-            if(done > 1.0){
-                double projected = cols_s + el * total_pairs / done;
-                // leave room for the search: a build that would consume the entire cap has
-                // already lost, and finishing it only turns a cheap decline into a costly one.
-                if(projected > build_cap){ aborted=true; break; }
-            }
+            // rows, not pairs: with the break each row scans a similar time-window, so cost per
+            // row is roughly flat, while the old pair count assumed a triangle that no longer
+            // exists.  cols_s is added because the projection is about the WHOLE call.
+            double projected = cols_s + el * (double)ncol / (double)(i+1);
+            if(projected > build_cap){ aborted=true; break; }
         }
-        const Col& ca=cols[a];
-        for(int b=a+1;b<ncol;b++){
-            const Col& cb=cols[b];
-            if(ca.block==cb.block) continue;                 // same-block handled by blockUsed
-            if(ca.bx1<=cb.bx0||cb.bx1<=ca.bx0||ca.by1<=cb.by0||cb.by1<=ca.by0) continue;
-            if(!(ca.entry<cb.exit&&cb.entry<ca.exit)) continue;
-            if(crane_conflict(ca,cb)){ adj[a].push_back(b); adj[b].push_back(a); nedge++; }
+        const int ai=ord[i], ab=sblk[i], aen=sent[i], aex=sext[i];
+        const double ax0=sx0[i], ay0=sy0[i], ax1=sx1[i], ay1=sy1[i];
+        for(int j=i+1;j<ncol;j++){
+            if(sent[j]>=aex) break;                              // entry-sorted: none after can overlap
+            if(sblk[j]==ab) continue;                            // same block handled by blockUsed
+            if(ax1<=sx0[j]||sx1[j]<=ax0||ay1<=sy0[j]||sy1[j]<=ay0) continue;
+            if(aen>=sext[j]) continue;                           // the other half of co-presence
+            const int bj=ord[j];
+            if(crane_conflict(cols[ai],cols[bj])){
+                adj[ai].push_back(bj); adj[bj].push_back(ai); nedge++;
+            }
         }
     }
     for(auto& v:adj) std::sort(v.begin(),v.end());

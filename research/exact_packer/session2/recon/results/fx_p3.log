@@ -1,0 +1,20 @@
+    brk calib: 932:5.32e-08 -> rate 5.32e-08 at 932 cols, growth n^0.000
+    brk tier: room=89s rate=5.32e-08 -> tier 0 (step 4 nout 40 nent 6) ncol~30782 pred=50.4s  [hard=105 slice=40s]
+    brk: build refused at tier 0 (1.8s) -- stepping down to tier 1
+    brk calib: 364:5.39e-08 948:5.83e-08 -> rate 5.83e-08 at 948 cols, growth n^0.081
+    brk tier: room=87s rate=5.83e-08 -> tier 0 (step 4 nout 40 nent 6) ncol~30782 pred=73.2s  [hard=102 slice=40s]
+    brk calib: 356:4.18e-08 926:5.56e-08 -> rate 5.56e-08 at 926 cols, growth n^0.298
+    brk tier: room=86s rate=5.56e-08 -> tier 3 (step 6 nout 10 nent 1) ncol~11414 pred=15.3s  [hard=101 slice=40s]
+    brk calib: 918:6.05e-08 -> rate 6.05e-08 at 918 cols, growth n^0.000
+    brk tier: room=86s rate=6.05e-08 -> tier 0 (step 4 nout 40 nent 6) ncol~30782 pred=57.4s  [hard=101 slice=40s]
+    brk: build refused at tier 0 (2.2s) -- stepping down to tier 1
+    brk: build refused at tier 0 (1.8s) -- stepping down to tier 1
+    brk: build refused at tier 1 (33.3s) -- stepping down to tier 2
+    brk: build refused at tier 1 (76.4s) -- stepping down to tier 2
+    brk cost: ncol~11414 real_ncol=11278 build=12.9s ask=86.0s total=87.2s
+    brk cost: tier 3 ncol~11414 real_ncol=11278 build=12.9s total=87.2s  -> rate 9.911e-08 s/col^2
+    brk[pressure] tgt=0 res=54 outs=10 admitted 4, displaced 3, obj 90580 vs base 113190 -> KEEP
+    brk: build refused at tier 1 (93.2s) -- stepping down to tier 2
+    brk cost: ncol~24728 real_ncol=24407 build=62.4s ask=85.7s total=86.5s
+    brk cost: tier 2 ncol~24728 real_ncol=24407 build=62.4s total=86.5s  -> rate 1.021e-07 s/col^2
+    brk[pressure] tgt=0 res=52 outs=18 displaced b187 could not be rehomed in any other bay
