@@ -98,7 +98,21 @@ _RATIO = [1.0]
 # MOMENT, and more candidate times let the packer find the moment it fits.  P3 shows precisely
 # that: Z3 502 -> 423, blocks reaching the bays they want, bought with Z2 2679 -> 3469 on an
 # instance where a unit of preference is worth thirty of balance.
-_TIERS = [(4, 40, 6), (4, 40, 3), (4, 20, 2), (6, 10, 1)]
+# nent is a FRACTION of the instance's own entry-time ceiling, not a count.  windows() draws
+# its points into a SET, so any nent above a block's window width collapses to duplicates and
+# the ladder's top rung was silently P3-shaped.  Measured on the real instances -- distinct
+# entry times actually offered, averaged over blocks:
+#
+#     P3  width max  6     nent 3 -> 1.96   6 -> 2.12   9 -> 2.12   12 -> 2.12
+#     P4  width max 11     nent 3 -> 2.57   6 -> 4.08   9 -> 4.46   12 -> 4.49
+#     P6  width max 14     nent 3 -> 2.72   6 -> 4.58   9 -> 5.68   12 -> 6.10
+#
+# So 6 was not a fitted value on P3, it was P3's CEILING -- 9 and 12 are the same algorithm
+# there.  But P6 has a third more resolution available and the constant threw it away.  The
+# fractions below are a ladder SHAPE (full, half, third, sixth); the absolute numbers come from
+# the instance.  On P3 they reproduce 6/3/2/1 exactly, which is the check that this changes
+# nothing where the old table was right.
+_TIERS = [(4, 40, 1.0), (4, 40, 0.5), (4, 20, 1.0 / 3.0), (6, 10, 1.0 / 6.0)]
 # SECONDS PER SQUARED COLUMN.  The tier costs above were measured on P3 and do not transfer:
 # the same table sent a P4 run 240 seconds past a 480-second budget, which at the grader's hard
 # limit is a missing answer rather than a worse one.
@@ -323,6 +337,17 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
         # are learned per tier from what actually happens here, seeded with the numbers above,
         # so the rule adapts to a machine or an instance where they differ instead of trusting
         # a table.
+        # THE INSTANCE'S ENTRY-TIME CEILING.  The widest tardiness-free window any block has;
+        # nothing above it can produce a distinct entry time for any block, so it is the point
+        # past which nent is free to ask for and worth nothing.
+        _B = prob_info["blocks"]
+        _CEIL = max(1, max((int(b["due_date"]) - int(b["processing_time"])
+                            - int(b["release_time"]) + 1) for b in _B))
+
+        def _ne_of(_frac):
+            """A ladder rung as a count.  Fractions come from _TIERS, the ceiling from above."""
+            return max(1, min(_CEIL, int(round(_frac * _CEIL))))
+
         _ev = (os.environ.get("BRK_STEP"), os.environ.get("BRK_NOUT"), os.environ.get("BRK_NENT"))
         SL = float(budget)
         _forced = not (step is None and nout is None and nent is None and not any(_ev))
@@ -347,7 +372,8 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
             # the target bay's size and its resident count -- neither known yet.  Chosen below,
             # once TGT is fixed.  NOUT is needed before that only to bound the candidate list,
             # so the widest tier's value is used here and the list is truncated afterwards.
-            STEP, NOUT, NENT = _TIERS[0]
+            STEP, NOUT, _f0 = _TIERS[0]
+            NENT = _ne_of(_f0)
 
         # THE CONTESTED BAY: the most-pressed bay THAT ANYTHING WANTS TO ENTER.
         #
@@ -479,7 +505,8 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
                 return float(_tot)
 
             _pick = None
-            for _ti, (_st, _no, _ne) in enumerate(_TIERS):
+            for _ti, (_st, _no, _fr) in enumerate(_TIERS):
+                _ne = _ne_of(_fr)
                 _nc = _ncol_est(_st, _no, _ne)
                 # build + the least ask worth making has to fit; the ask itself is set below
                 # from whatever the build leaves, so the two together never exceed the room.
@@ -488,7 +515,8 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
                     break
             if _pick is None:
                 _ti = len(_TIERS) - 1
-                _st, _no, _ne = _TIERS[_ti]
+                _st, _no, _fr = _TIERS[_ti]
+                _ne = _ne_of(_fr)
                 _nc = _ncol_est(_st, _no, _ne)
                 if _PAIRRATE[0] * _nc * _nc + _MINASK > _room:
                     if os.environ.get("BRK_DEBUG") == "1":
