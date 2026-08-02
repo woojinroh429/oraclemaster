@@ -2,3 +2,7 @@
     brk tier: room=88s rate=4.82e-08 -> tier 0 (step 4 nout 40 nent 6) ncol~31142 pred=46.8s  [hard=104 slice=40s]
     brk calib: 348:3.96e-07 904:6.26e-08 -> rate 6.26e-08 at 904 cols, growth n^0.000
     brk tier: room=87s rate=6.26e-08 -> tier 0 (step 4 nout 40 nent 6) ncol~30782 pred=59.4s  [hard=102 slice=40s]
+    brk calib: 348:3.92e-07 908:7.29e-08 -> rate 7.29e-08 at 908 cols, growth n^0.000
+    brk tier: room=86s rate=7.29e-08 -> tier 0 (step 4 nout 40 nent 6) ncol~30782 pred=69.0s  [hard=102 slice=40s]
+    brk calib: 364:3.23e-07 948:5.09e-08 -> rate 5.09e-08 at 948 cols, growth n^0.000
+    brk tier: room=86s rate=5.09e-08 -> tier 0 (step 4 nout 40 nent 6) ncol~30782 pred=48.2s  [hard=101 slice=40s]
