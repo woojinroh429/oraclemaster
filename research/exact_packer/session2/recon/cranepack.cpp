@@ -277,45 +277,32 @@ py::tuple pack(py::list blocks, double W, double H, int step,
     std::vector<int> sel(nblk,-1);       // working
     std::vector<int> blocked(ncol,0);    // #selected columns conflicting with this col
     std::vector<char> selflag(ncol,0);
-
-    // FREE-COLUMN BITSET.  greedy_extend below picks, per block, the first column with
-    // blocked==0 -- by scanning that block's whole column list from the start.  Counted on P3:
-    // the search performs 12,791,335,136 of those reads in 35 s, against the 26,924,021 pair
-    // tests the build does in 50 s.  The build was profiled today and hardened three ways; the
-    // SEARCH had never been looked at, and it is doing 475x more work.
+    // NO FREE-COLUMN BITSET, and the measurement is why.  Profiling said the search does
+    // 12,791,335,136 reads against the build's 26,924,021 -- 475x -- and nearly all of it is the
+    // linear scan in greedy_extend below, walking a block's ~404 candidate columns to find the
+    // first unblocked one.  A per-block bitset maintained by add_col/rem_col turns that into a
+    // ctz over about seven words.  It was built, and it was proved IDENTICAL -- same placement,
+    // four cases, three column counts, with iterations capped so both arms did equal work.
     //
-    // One bit per column, grouped by block, set exactly when blocked[c]==0.  It is maintained
-    // in add_col/rem_col on the 0<->1 transitions only, inside loops that already walk adj[c],
-    // so the maintenance is free asymptotically.  Finding a free column becomes a
-    // count-trailing-zeros over ~7 words instead of up to 404 array reads.
+    // Then it was timed at a scale that means something:
     //
-    // Bit i of a block's range is colsOfBlock[b][i], so find-first-set returns the SAME column
-    // the scan would have returned.  Behaviour is identical, not merely equivalent.
-    // CRANEPACK_NOBITS=1 restores the scan for A/B.
-    static const bool USEBITS=[](){const char*e=getenv("CRANEPACK_NOBITS");return !(e&&e[0]=='1');}();
-    std::vector<int> bitBase(nblk,0), bitPos(ncol,0);
-    int totw=0;
-    for(int b=0;b<nblk;b++){
-        bitBase[b]=totw;
-        for(size_t i=0;i<colsOfBlock[b].size();i++) bitPos[colsOfBlock[b][i]]=(int)i;
-        totw += ((int)colsOfBlock[b].size()+63)/64;
-    }
-    std::vector<uint64_t> freeb(std::max(1,totw),0ULL);
-    auto bit_set=[&](int c){ int b=cols[c].block,i=bitPos[c];
-                             freeb[bitBase[b]+(i>>6)] |= (1ULL<<(i&63)); };
-    auto bit_clr=[&](int c){ int b=cols[c].block,i=bitPos[c];
-                             freeb[bitBase[b]+(i>>6)] &= ~(1ULL<<(i&63)); };
-    if(USEBITS) for(int c=0;c<ncol;c++) if(blocked[c]==0) bit_set(c);
+    //     ncol 11,580  20,000 passes   scan 6.96 s   bits 11.36 s   0.61x
+    //     ncol 24,318   8,000 passes   scan 6.06 s   bits  9.93 s   0.61x
+    //     ncol 30,017   8,000 passes   scan 8.26 s   bits 15.23 s   0.54x
+    //
+    // 1.6-1.9x SLOWER, consistently.  The saving scales with columns per block; the cost scales
+    // with EDGES, because add_col and rem_col each pay a branch and a bit write per adjacency
+    // neighbour and adj[c] runs to thousands.  The profile was right that the search dominates
+    // the build -- what it did not say, and what I assumed, is that the SCAN dominates the
+    // search.  It does not.  Reverted.
 
     auto add_col=[&](int c){
         int b=cols[c].block; sel[b]=c; selflag[c]=1;
-        if(USEBITS){ for(int nb2:adj[c]){ if(blocked[nb2]++==0) bit_clr(nb2); } }
-        else       { for(int nb2:adj[c]) blocked[nb2]++; }
+        for(int nb2:adj[c]) blocked[nb2]++;
     };
     auto rem_col=[&](int c){
         int b=cols[c].block; sel[b]=-1; selflag[c]=0;
-        if(USEBITS){ for(int nb2:adj[c]){ if(--blocked[nb2]==0) bit_set(nb2); } }
-        else       { for(int nb2:adj[c]) blocked[nb2]--; }
+        for(int nb2:adj[c]) blocked[nb2]--;
     };
     auto clear_all=[&](){
         for(int b=0;b<nblk;b++) if(sel[b]>=0) rem_col(sel[b]);
@@ -328,16 +315,7 @@ py::tuple pack(py::list blocks, double W, double H, int step,
     auto greedy_extend=[&](const std::vector<int>& border){
         for(int b:border){
             if(sel[b]>=0) continue;
-            if(USEBITS){
-                int nw=((int)colsOfBlock[b].size()+63)/64, base=bitBase[b], found=-1;
-                for(int w=0;w<nw && found<0;w++){
-                    uint64_t v=freeb[base+w];
-                    if(v) found=(w<<6)+__builtin_ctzll(v);
-                }
-                if(found>=0 && found<(int)colsOfBlock[b].size()) add_col(colsOfBlock[b][found]);
-            } else {
-                for(int c:colsOfBlock[b]) if(blocked[c]==0){ add_col(c); break; }
-            }
+            for(int c:colsOfBlock[b]) if(blocked[c]==0){ add_col(c); break; }
         }
     };
 
