@@ -3,3 +3,11 @@ confirmed: swy/swx are plumbed and no axis varies them
 === sw_b_p6.log (sweep B half P6) 07:55:11
 P6  sweep B half P6   900s  obj=29690916    Z1=4320.0   Z2=972    Z3=5878.0    feas=y   ran 901s
 === sw_c_p6.log (sweep C allx P6) 08:10:12
+P6  sweep C allx P6   900s  obj=29285474    Z1=4262.0   Z2=3015   Z3=5644.0    feas=y   ran 901s
+=== sw_b_p3.log (sweep B half P3) 08:25:14
+P3  sweep B half P3   240s  obj=80795       Z1=0.0      Z2=3469   Z3=423.0     feas=y   ran 239s
+=== sw_b_p4.log (sweep B half P4) 08:29:13
+P4  sweep B half P4   480s  obj=1781181     Z1=88.0     Z2=2561   Z3=3933.0    feas=y   ran 455s
+=== sw_b_p5.log (sweep B half P5) 08:36:49
+P5  sweep B half P5   600s  obj=9044458     Z1=639.0    Z2=2487   Z3=3814.0    feas=y   ran 599s
+sweepdir done 08:46:48
