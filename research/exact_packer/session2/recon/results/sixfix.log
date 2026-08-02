@@ -11,3 +11,5 @@ P5  sixfix P5      600s  obj=9044458     Z1=639.0    Z2=2487   Z3=3814.0    feas
 === sf_p1.log (sixfix P1) 07:14:40
 P1  sixfix P1       60s  obj=11280       Z1=0.0      Z2=33     Z3=73.0      feas=y   ran 45s
 === sf_p2.log (sixfix P2) 07:15:25
+P2  sixfix P2      120s  obj=31368       Z1=0.0      Z2=3342   Z3=90.0      feas=y   ran 119s
+=== sf_p3_r2.log (sixfix P3 r2) 07:17:25
