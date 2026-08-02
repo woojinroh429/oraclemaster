@@ -14,3 +14,4 @@
     brk[pressure] tgt=0 res=53 outs=17 displaced b187 could not be rehomed in any other bay
     brk[pressure] tgt=0 res=53 outs=17 admitted 5, displaced 2, obj 87990 vs base 97570 -> KEEP
     brk[pressure] tgt=0 res=54 outs=16 admitted 6, displaced 4, obj 83095 vs base 107195 -> KEEP
+P3  nentderive P3   240s  obj=80795       Z1=0.0      Z2=3469   Z3=423.0     feas=y   ran 239s
