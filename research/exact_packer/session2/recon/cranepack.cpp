@@ -113,9 +113,16 @@ struct Xorshift { uint64_t s;
 //                     temporal slack lever).  "one column per block" still holds.
 // warm : list of (block_idx, orient, x, y) greedy placements (may be off-grid; seeded)
 // returns (best_count, [(block, orient, x, y)...], n_cols, n_edges, build_ms, solve_ms)
+// total_s : optional deadline on BUILD + SEARCH together, measured from entry.  time_budget_s
+// bounds only the search, so a caller that must not overrun has to PREDICT the build and
+// subtract it -- and the prediction is a rate times ncol^2, which was 1.6x optimistic on P6
+// (predicted 119 s, measured 213 s).  The build measures itself for free; letting it subtract
+// itself removes the prediction from the budget entirely.  A mispredicted tier then costs
+// search time, which is quality, instead of costing the deadline, which is the whole answer.
+// Negative (the default) keeps the old meaning exactly, so every existing caller is unchanged.
 py::tuple pack(py::list blocks, double W, double H, int step,
                double time_budget_s, uint64_t seed, py::object warm, py::object frozen,
-               py::object weights){
+               py::object weights, double total_s){
     auto t0=std::chrono::high_resolution_clock::now();
     int nblk = (int)py::len(blocks);
 
@@ -417,6 +424,12 @@ py::tuple pack(py::list blocks, double W, double H, int step,
     // main loop: iterated force/repair local search on the incumbent.
     auto now_s=[&](){ auto t=std::chrono::high_resolution_clock::now();
                       return std::chrono::duration<double>(t-t1).count(); };
+    // now_s() runs from t1, i.e. AFTER the build, so a total deadline is just the total minus
+    // what the build already spent.  Clamped at zero: an oversized tier returns the warm start
+    // rather than borrowing time it does not have.
+    const double search_budget = (total_s > 0.0)
+        ? std::max(0.0, total_s - build_ms / 1000.0)
+        : time_budget_s;
     int since_improve=0;
     // ensure we hold a working selection = current best (or a fresh greedy)
     auto load_best=[&](){ clear_all();
@@ -430,7 +443,7 @@ py::tuple pack(py::list blocks, double W, double H, int step,
     // SUCCESSFUL pack (the common case in the low-density relocator, where success ==
     // "all of F+b fit").  Correctness-preserving; only skips search that cannot improve.
     // initial random restarts (each hardened with the swap local opt) to get incumbent
-    for(int it=0; it<200 && now_s()<time_budget_s && best<nblk; it++){
+    for(int it=0; it<200 && now_s()<search_budget && best<nblk; it++){
         clear_all();
         for(int i=nblk-1;i>0;i--){ int j=rng.randint(i+1); std::swap(border[i],border[j]); }
         greedy_extend(border);
@@ -440,7 +453,7 @@ py::tuple pack(py::list blocks, double W, double H, int step,
     load_best();
 
     // iterated local search: force a random excluded block in (kick conflicts), repair.
-    while(now_s()<time_budget_s && best<nblk){
+    while(now_s()<search_budget && best<nblk){
         // snapshot current working weight
         double before=wsel();
         // pick a random excluded block that has at least one column
@@ -773,5 +786,6 @@ PYBIND11_MODULE(cranepack,m){
     m.def("pack",&pack,
           py::arg("blocks"),py::arg("W"),py::arg("H"),py::arg("step"),
           py::arg("time_budget_s"),py::arg("seed")=12345,py::arg("warm")=py::none(),
-          py::arg("frozen")=py::none(),py::arg("weights")=py::none());
+          py::arg("frozen")=py::none(),py::arg("weights")=py::none(),
+          py::arg("total_s")=-1.0);
 }

@@ -437,10 +437,10 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
             # that follows runs for as long as it is asked.  A tier whose build alone fills the
             # budget leaves nothing to search with, which is a slow way of returning the warm
             # start.
-            # The same cap the ask is subtracted from, for the same reason: a tier whose build
-            # alone exceeds the operator's share cannot be afforded no matter how much of the
-            # RUN is left, because the rest of the run belongs to the other operators.
-            _room = min(SL, (float(hard) if hard is not None else SL) * 0.85)
+            # The same cap the pack is given, for the same reason: a tier whose build alone
+            # fills the cap leaves nothing to search with.  That cap is the RUN's remaining
+            # time, not the operator's slice -- see the note at the ask.
+            _room = (float(hard) if hard is not None else SL) * 0.85
 
             def _ncol_est(_st, _no, _ne):
                 """Columns a tier would generate, per block, per orientation, per entry time.
@@ -607,15 +607,28 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
             # budget.  Subtracting from a cap that includes the build makes build + search <= cap
             # structural instead of coincidental.
             #
-            # The cap is the SLICE, not the run's remaining time.  hard is still respected as an
-            # upper bound -- a call late in the run must not overrun the run itself -- but the
-            # allocator's share is what stops one operator eating the others' budget.
-            _cap = min(SL, (float(hard) if hard is not None else SL) * 0.85)
+            # THE CAP IS THE RUN DEADLINE, NOT THE SLICE.  Capping on the slice also caps the
+            # TIER CHOOSER, and on P3 that switched off the one lever measured to matter:
+            #
+            #     room 97s -> tier 0 (4,40,6)  ncol~31,142    87,990 / 86,635  (forced: 80,795)
+            #     room 40s -> tier 3 (6,10,1)  ncol~11,402    94,630 / 91,250
+            #
+            # 2.7x fewer columns for 5,600 of objective.  P3 gives hard=114 s and a 40 s slice,
+            # and one number was answering two questions: how long may THIS call run, and what
+            # share of the run does this OPERATOR deserve.  Only the first is a deadline.
+            #
+            # What made the slice look necessary was the build PREDICTION, not the cap.  On P6
+            # the rate said 119 s and the build took 213 s, so build + ask overshot whatever it
+            # was subtracted from.  cranepack now takes total_s and subtracts its own MEASURED
+            # build, so the deadline holds without predicting anything, and _ask below is only a
+            # hint.  A mispredicted tier costs search time -- quality -- and never the deadline.
+            _cap = (float(hard) if hard is not None else SL) * 0.85
             _ask = max(_MINASK, _cap - _PAIRRATE[0] * _NCOL * _NCOL)
         _pt = time.time()
         r = CP.pack(blocks_in, W, H, STEP, _ask,
                     seed=12345 + 7919 * k, warm=warm or None, frozen=[],
-                    weights=[float(x) for x in wts])
+                    weights=[float(x) for x in wts],
+                    total_s=(_cap if _tier >= 0 and _NCOL > 0.0 else -1.0))
         # the ratio is against what was ASKED, which is what the deflation has to undo
         _el = time.time() - _pt
         _RATIO[0] = 0.5 * _RATIO[0] + 0.5 * (_el / max(1e-6, _ask))
