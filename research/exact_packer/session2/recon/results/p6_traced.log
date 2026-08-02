@@ -5,3 +5,9 @@
     brk cost: ncol~40908 real_ncol=40756 build=112.2s ask=171.8s total=286.3s
     brk cost: tier 3 ncol~40908 real_ncol=40756 build=112.2s total=286.3s  -> rate 6.705e-08 s/col^2
     brk[pressure] tgt=0 res=96 outs=10 displaced b0 could not be rehomed in any other bay
+    brk cost: ncol~43180 real_ncol=43389 build=192.7s ask=171.8s total=367.5s
+    brk cost: tier 3 ncol~43180 real_ncol=43389 build=192.7s total=367.5s  -> rate 1.033e-07 s/col^2
+    brk[pressure] tgt=2 res=90 outs=10 displaced b4 could not be rehomed in any other bay
+    brk cost: ncol~45624 real_ncol=45662 build=213.3s ask=171.8s total=386.0s
+    brk cost: tier 3 ncol~45624 real_ncol=45662 build=213.3s total=386.0s  -> rate 1.025e-07 s/col^2
+    brk[pressure] tgt=2 res=93 outs=10 displaced b15 could not be rehomed in any other bay
