@@ -40,7 +40,13 @@ done
 # only now, with nothing running, is a rewind safe: local git can be at a pre-restart snapshot
 ( cd ../../.. && git fetch -q origin claude/repair-plan-model-1ig6it 2>/dev/null \
   && git reset -q --hard FETCH_HEAD 2>/dev/null )
-[ -f harness/overnight.sh ] || exit 0
+# WHICH queue to bring back.  harness/CURRENT names it, is committed, and is updated whenever a
+# new queue is launched -- so a restart resumes the work that was actually in flight instead of
+# whatever overnight.sh happened to be.  Every queue skips a stage whose result file exists, so
+# resuming costs nothing and repeats nothing.
+Q="$(cat harness/CURRENT 2>/dev/null || echo overnight)"
+[ -f "harness/$Q.sh" ] || Q=overnight
+[ -f "harness/$Q.sh" ] || exit 0
 mkdir -p results
-nohup bash harness/overnight.sh >> results/tonight.log 2>&1 < /dev/null &
-echo "queue relaunched $(date -u +%H:%M:%S)"
+nohup bash "harness/$Q.sh" >> "results/$Q.log" 2>&1 < /dev/null &
+echo "queue relaunched: $Q $(date -u +%H:%M:%S)"
