@@ -610,8 +610,18 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
             # 7,195 of objective, reproducible to six figures.  This cannot endanger the
             # deadline: what truncates the search is total_s minus the REAL build, and _ask is
             # only an upper hint on top of it.
+            # TWO BOUNDS, each answering its own question.  _cap keeps the CALL inside the
+            # run's deadline; _ask keeps this OPERATOR inside its share so the others still get
+            # theirs.  cranepack takes the tighter of the two against its own measured build, so
+            # neither has to predict anything -- which is what broke this twice today, once by
+            # charging the build to the search and once by charging column generation to the
+            # pair loop.
+            #
+            # _ask is the SLICE, unmodified.  Subtracting a predicted build from it was the
+            # double charge worth 7,195 on P3, and letting it run to _cap was what put P4 at
+            # 491 s of a 480 s budget once the build stopped being the expensive part.
             _cap = (float(hard) if hard is not None else SL) * 0.85
-            _ask = max(_MINASK, _cap)
+            _ask = max(_MINASK, SL)
         # AN ABORTED BUILD STEPS DOWN A TIER INSTEAD OF GIVING UP.
         #
         # The predictor can be wrong -- it was, on P3, the moment the container moved to a host

@@ -684,8 +684,22 @@ py::tuple pack(py::list blocks, double W, double H, int step,
     // now_s() runs from t1, i.e. AFTER the build, so a total deadline is just the total minus
     // what the build already spent.  Clamped at zero: an oversized tier returns the warm start
     // rather than borrowing time it does not have.
+    // BOTH BOUNDS, whichever is tighter.  total_s answers "does this CALL fit the run's
+    // deadline"; time_budget_s answers "does this OPERATOR leave room for the others".  They are
+    // different questions and only the first was being asked: with total_s set, time_budget_s
+    // was ignored entirely.  That was harmless while the build was slow -- on P3 a 96 s cap minus
+    // a 60 s build left 36 s to search with -- and became a defect the moment the build got 10x
+    // faster, because the same cap then handed the search 100 s.  Measured on P4, one call:
+    //
+    //     build=22.1s ask=247.3s total=267.5s     of a 480 s run
+    //     build=88.0s ask=266.3s total=287.2s
+    //
+    // and the run finished at 491 s, which the grader does not score at all.  Neither bound
+    // predicts the build: total_s subtracts the MEASURED one, and time_budget_s never depended
+    // on it.
     const double search_budget = aborted ? 0.0
-        : ((total_s > 0.0) ? std::max(0.0, total_s - build_ms / 1000.0)
+        : ((total_s > 0.0) ? std::min(time_budget_s,
+                                      std::max(0.0, total_s - build_ms / 1000.0))
                            : time_budget_s);
     int since_improve=0;
     // ensure we hold a working selection = current best (or a fresh greedy)
