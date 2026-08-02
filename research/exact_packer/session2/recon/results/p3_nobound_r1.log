@@ -18,3 +18,4 @@
     brk cost: ncol~30782 real_ncol=30354 build=11.0s ask=39.8s total=51.7s
     brk cost: tier 0 ncol~30782 real_ncol=30354 build=11.0s total=51.7s  -> rate 1.165e-08 s/col^2
     brk[pressure] tgt=0 res=52 outs=18 displaced b187 could not be rehomed in any other bay
+P3  P3 nobound r1   240s  obj=80795       Z1=0.0      Z2=3469   Z3=423.0     feas=y   ran 239s
