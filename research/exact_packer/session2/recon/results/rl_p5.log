@@ -1,0 +1,12 @@
+    brk calib: 934:9.33e-08 1824:1.59e-08 -> rate 1.59e-08 at 1824 cols, growth n^0.000
+    brk tier: room=268s rate=1.59e-08 -> tier 2 (step 4 nout 20 nent 5) ncol~109644 pred=191.3s  [hard=316 slice=112s]
+    brk: build refused at tier 2 (0.9s) -- stepping down to tier 3
+    brk calib: 738:4.45e-07 1532:2.58e-08 -> rate 2.58e-08 at 1532 cols, growth n^0.000
+    brk tier: room=250s rate=2.58e-08 -> tier 2 (step 4 nout 20 nent 5) ncol~91928 pred=218.0s  [hard=294 slice=112s]
+    brk: build refused at tier 2 (1.4s) -- stepping down to tier 3
+    brk calib: 876:6.04e-07 1688:1.57e-08 -> rate 1.57e-08 at 1688 cols, growth n^0.000
+    brk tier: room=246s rate=1.57e-08 -> tier 2 (step 4 nout 20 nent 5) ncol~122060 pred=233.5s  [hard=289 slice=112s]
+    brk: build refused at tier 2 (1.8s) -- stepping down to tier 3
+    brk calib: 922:4.7e-07 1798:1.65e-08 -> rate 1.65e-08 at 1798 cols, growth n^0.000
+    brk tier: room=241s rate=1.65e-08 -> tier 2 (step 4 nout 20 nent 5) ncol~108858 pred=195.1s  [hard=283 slice=112s]
+    brk: build refused at tier 2 (3.3s) -- stepping down to tier 3

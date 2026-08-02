@@ -1,0 +1,24 @@
+    brk calib: 380:4.95e-07 900:5.26e-08 -> rate 5.26e-08 at 900 cols, growth n^0.000
+    brk tier: room=266s rate=5.26e-08 -> tier 1 (step 4 nout 40 nent 6) ncol~69904 pred=257.1s  [hard=313 slice=88s]
+    brk calib: 930:1.55e-07 2466:1.35e-08 -> rate 1.35e-08 at 2466 cols, growth n^0.000
+    brk tier: room=258s rate=1.35e-08 -> tier 2 (step 4 nout 20 nent 4) ncol~129612 pred=227.0s  [hard=303 slice=88s]
+    brk: build refused at tier 2 (1.4s) -- stepping down to tier 3
+    brk calib: 380:5.89e-06 914:6.6e-08 -> rate 6.6e-08 at 914 cols, growth n^0.000
+    brk tier: room=249s rate=6.6e-08 -> tier 2 (step 4 nout 20 nent 4) ncol~43658 pred=125.8s  [hard=293 slice=88s]
+    brk calib: 746:1.79e-06 1614:4.49e-08 -> rate 4.49e-08 at 1614 cols, growth n^0.000
+    brk tier: room=247s rate=4.49e-08 -> tier 3 (step 6 nout 10 nent 2) ncol~23648 pred=25.1s  [hard=291 slice=88s]
+    brk: build refused at tier 1 (77.3s) -- stepping down to tier 2
+    brk: build refused at tier 2 (63.6s) -- stepping down to tier 3
+    brk cost: ncol~23648 real_ncol=23533 build=22.1s ask=247.3s total=267.5s
+    brk cost: tier 3 ncol~23648 real_ncol=23533 build=22.1s total=267.5s  -> rate 3.948e-08 s/col^2
+    brk[pressure] tgt=0 res=52 outs=10 displaced b0 could not be rehomed in any other bay
+    brk cost: ncol~36966 real_ncol=37290 build=44.6s ask=257.5s total=280.3s
+    brk cost: tier 3 ncol~36966 real_ncol=37290 build=44.6s total=280.3s  -> rate 3.262e-08 s/col^2
+    brk[pressure] tgt=2 res=58 outs=5 displaced b35 could not be rehomed in any other bay
+    brk cost: ncol~10892 real_ncol=10917 build=2.2s ask=249.5s total=249.7s
+    brk cost: tier 3 ncol~10892 real_ncol=10917 build=2.2s total=249.7s  -> rate 1.817e-08 s/col^2
+    brk[pressure] tgt=1 res=40 outs=10 displaced b2 could not be rehomed in any other bay
+    brk cost: ncol~48306 real_ncol=46959 build=88.0s ask=266.3s total=287.2s
+    brk cost: tier 2 ncol~48306 real_ncol=46959 build=88.0s total=287.2s  -> rate 3.771e-08 s/col^2
+    brk[pressure] tgt=1 res=46 outs=20 displaced b11 could not be rehomed in any other bay
+P4  rel P4         480s  obj=1981906     Z1=99.0     Z2=1627   Z3=4337.0    feas=y   ran 491s
