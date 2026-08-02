@@ -624,6 +624,10 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
             # hint.  A mispredicted tier costs search time -- quality -- and never the deadline.
             _cap = (float(hard) if hard is not None else SL) * 0.85
             _ask = max(_MINASK, _cap - _PAIRRATE[0] * _NCOL * _NCOL)
+            if os.environ.get("BRK_NOSUB") == "1":
+                # total_s already bounds build + search on the MEASURED build, so
+                # subtracting a PREDICTED build here charges for it twice.
+                _ask = max(_MINASK, _cap)
         _pt = time.time()
         r = CP.pack(blocks_in, W, H, STEP, _ask,
                     seed=12345 + 7919 * k, warm=warm or None, frozen=[],
