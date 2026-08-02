@@ -2,3 +2,15 @@
     brk tier: room=96s rate=6.4e-08 -> tier 0 (step 4 nout 40 nent 6) ncol~30782 pred=60.6s  [hard=113 slice=40s]
     brk tier: room=95s rate=6.4e-08 -> tier 0 (step 4 nout 40 nent 6) ncol~30782 pred=60.6s  [hard=112 slice=40s]
     brk tier: room=95s rate=6.4e-08 -> tier 0 (step 4 nout 40 nent 6) ncol~30782 pred=60.6s  [hard=112 slice=40s]
+    brk cost: ncol~31142 real_ncol=30632 build=62.2s ask=97.0s total=97.2s
+    brk cost: tier 0 ncol~31142 real_ncol=30632 build=62.2s total=97.2s  -> rate 6.412e-08 s/col^2
+    brk[pressure] tgt=0 res=54 outs=17 admitted 1, displaced 1, obj 100110 vs base 106700 -> KEEP
+    brk cost: ncol~30782 real_ncol=30342 build=61.3s ask=95.8s total=96.0s
+    brk cost: tier 0 ncol~30782 real_ncol=30342 build=61.3s total=96.0s  -> rate 6.465e-08 s/col^2
+    brk cost: ncol~30782 real_ncol=30462 build=62.5s ask=95.4s total=95.7s
+    brk cost: tier 0 ncol~30782 real_ncol=30462 build=62.5s total=95.7s  -> rate 6.597e-08 s/col^2
+    brk cost: ncol~30782 real_ncol=30374 build=61.8s ask=95.3s total=95.5s
+    brk cost: tier 0 ncol~30782 real_ncol=30374 build=61.8s total=95.5s  -> rate 6.527e-08 s/col^2
+    brk[pressure] tgt=0 res=53 outs=17 displaced b187 could not be rehomed in any other bay
+    brk[pressure] tgt=0 res=53 outs=17 admitted 5, displaced 2, obj 87990 vs base 97570 -> KEEP
+    brk[pressure] tgt=0 res=54 outs=16 admitted 6, displaced 4, obj 83095 vs base 107195 -> KEEP
