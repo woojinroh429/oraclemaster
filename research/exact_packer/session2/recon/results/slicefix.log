@@ -1,2 +1,4 @@
 arms built: slice rule present, default off; swx arm carries the worker override
 === sf2_on_p6.log (slice on P6) 10:02:09
+P6  slice on P6    900s  obj=30056673    Z1=4383.0   Z2=2589   Z3=5430.0    feas=y   ran 900s
+=== sf2_off_p6.log (slice off P6) 10:17:10

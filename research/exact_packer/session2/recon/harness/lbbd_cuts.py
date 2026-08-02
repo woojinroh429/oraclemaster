@@ -22,7 +22,7 @@ actually impossible -- rather than a scalar shrink factor."""
 import sys, os, json, time
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 os.chdir(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-import myalgorithm as M, utils
+import myalg_legacy as M, utils
 M._CPP_ENGINE_MODE = M.HAVE_OGC_FAST
 from ortools.sat.python import cp_model
 

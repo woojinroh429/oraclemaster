@@ -11,7 +11,7 @@ import json, os, sys, time
 HERE = os.path.dirname(os.path.abspath(__file__))
 REC = os.path.dirname(HERE)
 sys.path.insert(0, REC); os.chdir(REC)
-import myalgorithm as M, utils
+import myalg_legacy as M, utils
 
 
 def load(prob):

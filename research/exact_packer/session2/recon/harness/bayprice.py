@@ -46,7 +46,7 @@ import sys, os, json, time
 HERE = os.path.dirname(os.path.abspath(__file__))
 REC = os.path.dirname(HERE)
 sys.path.insert(0, REC); os.chdir(REC)
-import myalgorithm as M, utils
+import myalg_legacy as M, utils
 M._CPP_ENGINE_MODE = M.HAVE_OGC_FAST
 
 

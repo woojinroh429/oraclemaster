@@ -40,12 +40,10 @@ echo "== copying python =="
 #       and the control runs are queued.
 #
 # The 797 lines buy 16.7% on P3 and cost nothing measurable anywhere else.
-# GENERATED, so the zip stays reproducible from committed sources -- which is this script's
-# whole contract.  Shipping the checked-in myalg_brk.py would ship whatever the last experiment
-# left on disk.
-OGC_DK=0 OGC_FASTOBJ=1 OGC_BRK=1 \
-    python3.12 "$HERE/harness/mkbase.py" 0.3 myalg_ship.py 0 "" 0 1.0 "" 0 "" >/dev/null
-cp "$HERE/myalg_ship.py" "$OUT/myalgorithm.py"
+# myalgorithm.py IS the algorithm now -- 1,466 lines, generated once from mkbase and committed,
+# not regenerated here.  The previous 6,675-line file is myalg_legacy.py and is kept only because
+# the GRASP harnesses read its construction; nothing ships from it.
+cp "$HERE/myalgorithm.py" "$OUT/myalgorithm.py"
 cp "$HERE/bayrepack.py" "$OUT/"
 cp "$HERE/utils.py" "$OUT/"
 
