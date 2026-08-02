@@ -146,6 +146,8 @@ _TIERS = [(4, 40, 1.0), (4, 40, 0.5), (4, 20, 1.0 / 3.0), (6, 10, 1.0 / 6.0)]
 # time while reporting 94-97 s of room.  Still corrected from cranepack's own build_ms on every
 # call, so a different machine or bay shape moves it.
 _PAIRRATE = [6.4e-8]
+# has this process priced the machine it is running on?  See the calibration below.
+_CALIB = [False, None]   # [done?, (ncol, rate, growth exponent)]
 # The search is not predicted -- it runs for as long as it is ASKED, and we set the ask.  This is
 # the least ask worth making: a tier whose build leaves less than this has nothing to search with
 # and is a slow way of returning the warm start.
@@ -385,13 +387,79 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
                             _tot += _nx * _ny * _nt
                 return float(_tot)
 
+            # CALIBRATE THE RATE ON THIS MACHINE, ONCE, BEFORE CHOOSING.
+            #
+            # _PAIRRATE was a constant measured on one host and never updated before a tier was
+            # picked -- it only adapts AFTER a call, and brk fires about once per worker, so the
+            # correction never arrives in time.  When the container moved to a slower host the
+            # same P3 build went 61.8 s -> 91.8 s at the same column count on an idle machine,
+            # the predictor still said 60.6 s, the chooser took a tier that did not fit an 83 s
+            # cap, the build correctly refused it, and brk did nothing at all on all four
+            # workers: P3 80,795 -> 100,685, which is brk-off.
+            #
+            # So measure it here.  One pack on a deliberately coarse grid costs about a second
+            # and prices the machine actually running.  time_budget_s is ~0 because only the
+            # BUILD is being timed; the search is not wanted and does not run.
+            if _PAIRRATE[0] is not None and not _CALIB[0]:
+                _CALIB[0] = True
+                try:
+                    # TWO POINTS, because the rate is not a constant in ncol.  Measured:
+                    #
+                    #       932 cols -> 5.2e-08      11,580 -> 6.19e-08
+                    #    24,318      -> 6.61e-08     30,017 -> ~1.0e-07     61,619 -> 1.4e-07
+                    #
+                    # It grows -- small column sets fit in cache and large ones do not -- so a
+                    # single micro-build is optimistic by 1.4x at the sizes that matter, which is
+                    # the direction that costs a deadline.  Two builds an octave apart give the
+                    # exponent as well as the level, and the exponent is itself a property of the
+                    # machine: between 932 and 30,017 columns it is 0.19 on this host and 0.09 on
+                    # the one this morning.
+                    _cb = []
+                    for _b in (list(res) + [b for _g, b in outs])[:24]:
+                        _ol, _ob2 = _layers_bbox(B, _b)
+                        _cb.append((_ol, _ob2, [(ent[_b], ext[_b])]))
+                    _pts = []
+                    if _cb:
+                        for _cst in (24, 12):
+                            _cr = CP.pack(_cb, W, H, _cst, 0.01, seed=1, warm=None, frozen=[],
+                                          weights=[1.0] * len(_cb))
+                            _cn, _cbuild = float(_cr[2]), float(_cr[4]) / 1000.0
+                            if _cn > 200.0 and _cbuild > 0.005:
+                                _pts.append((_cn, _cbuild / (_cn * _cn)))
+                    if len(_pts) == 2 and _pts[1][0] > _pts[0][0] * 1.5:
+                        (_n1, _r1), (_n2, _r2) = _pts
+                        _g = math.log(max(1e-12, _r2 / _r1)) / math.log(_n2 / _n1)
+                        _g = min(0.5, max(0.0, _g))       # growth only, and never explosive
+                        _CALIB[1] = (_n2, _r2, _g)
+                        _PAIRRATE[0] = _r2
+                    elif _pts:
+                        _CALIB[1] = (_pts[-1][0], _pts[-1][1], 0.0)
+                        _PAIRRATE[0] = _pts[-1][1]
+                    if os.environ.get("BRK_DEBUG") == "1" and _CALIB[1]:
+                        print("    brk calib: %s -> rate %.3g at %d cols, growth n^%.3f"
+                              % (" ".join("%d:%.3g" % (int(n), r) for n, r in _pts),
+                                 _CALIB[1][1], int(_CALIB[1][0]), _CALIB[1][2]), flush=True)
+                except Exception as _e:
+                    # never silent: a calibration that cannot run leaves the seeded rate in
+                    # place, and the seed is exactly what was wrong the last time this mattered
+                    if os.environ.get("BRK_DEBUG") == "1":
+                        print("    brk calib FAILED (%s) -- keeping the seeded rate" % _e,
+                              flush=True)
+
+            def _pred(_nc):
+                """Seconds the build will take at _nc columns, on THIS machine."""
+                if _CALIB[1] is None:
+                    return _PAIRRATE[0] * _nc * _nc
+                _n0, _r0, _g = _CALIB[1]
+                return _r0 * ((_nc / _n0) ** _g) * _nc * _nc
+
             _pick = None
             for _ti, (_st, _no, _fr) in enumerate(_TIERS):
                 _ne = _ne_of(_fr)
                 _nc = _ncol_est(_st, _no, _ne)
                 # build + the least ask worth making has to fit; the ask itself is set below
                 # from whatever the build leaves, so the two together never exceed the room.
-                if _PAIRRATE[0] * _nc * _nc + _MINASK <= _room:
+                if _pred(_nc) + _MINASK <= _room:
                     _pick = (_ti, _st, _no, _ne, _nc)
                     break
             if _pick is None:
@@ -399,10 +467,10 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
                 _st, _no, _fr = _TIERS[_ti]
                 _ne = _ne_of(_fr)
                 _nc = _ncol_est(_st, _no, _ne)
-                if _PAIRRATE[0] * _nc * _nc + _MINASK > _room:
+                if _pred(_nc) + _MINASK > _room:
                     if os.environ.get("BRK_DEBUG") == "1":
                         print("    brk: declined, smallest tier predicts %.0fs of %.0fs"
-                              % (_PAIRRATE[0] * _nc * _nc, _room), flush=True)
+                              % (_pred(_nc), _room), flush=True)
                     return None
                 _pick = (_ti, _st, _no, _ne, _nc)
             _tier, STEP, NOUT, NENT, _NCOL = _pick
@@ -411,7 +479,7 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
                       " ncol~%.0f pred=%.1fs  [hard=%s slice=%.0fs]"
                       % (_room, ("%.3g" % _PAIRRATE[0]) if _PAIRRATE[0] is not None else "-",
                          _tier, STEP, NOUT, NENT, _NCOL,
-                         (_PAIRRATE[0] * _NCOL * _NCOL) if _PAIRRATE[0] is not None else -1.0,
+                         _pred(_NCOL) if _PAIRRATE[0] is not None else -1.0,
                          ("%.0f" % hard) if hard is not None else "-", SL), flush=True)
         else:
             _NCOL = 0.0
@@ -544,11 +612,42 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
             # only an upper hint on top of it.
             _cap = (float(hard) if hard is not None else SL) * 0.85
             _ask = max(_MINASK, _cap)
-        _pt = time.time()
-        r = CP.pack(blocks_in, W, H, STEP, _ask,
-                    seed=12345 + 7919 * k, warm=warm or None, frozen=[],
-                    weights=[float(x) for x in wts],
-                    total_s=_cap)
+        # AN ABORTED BUILD STEPS DOWN A TIER INSTEAD OF GIVING UP.
+        #
+        # The predictor can be wrong -- it was, on P3, the moment the container moved to a host
+        # where the same 30,000-column build went 61.8 s -> 91.8 s.  The chooser took a tier that
+        # no longer fitted an 83 s cap, the build correctly refused it, and brk returned None on
+        # all four workers: 80,795 -> 100,685, which is brk switched off.
+        #
+        # A better predictor would not fix that, only postpone it: any prediction is wrong on
+        # some machine.  What fixes it is what happens NEXT.  An abort is cheap -- 1.6 s, because
+        # the projection fires within the first few hundred rows -- so the honest response is to
+        # take the next tier down and try again.  The operator then degrades one rung at a time
+        # instead of vanishing, and the total spent on refused builds is bounded by the ladder.
+        _rest = list(range(_tier + 1, len(_TIERS))) if _tier >= 0 else []
+        while True:
+            _pt = time.time()
+            r = CP.pack(blocks_in, W, H, STEP, _ask,
+                        seed=12345 + 7919 * k, warm=warm or None, frozen=[],
+                        weights=[float(x) for x in wts],
+                        total_s=_cap)
+            if not (len(r) > 9 and int(r[9]) == 1) or not _rest:
+                break
+            _tier = _rest.pop(0)
+            _st2, _no2, _fr2 = _TIERS[_tier]
+            if os.environ.get("BRK_DEBUG") == "1":
+                print("    brk: build refused at tier %d (%.1fs) -- stepping down to tier %d"
+                      % (_tier - 1, time.time() - _pt, _tier), flush=True)
+            # a coarser grid and fewer entry times: rebuild the column inputs for the new rung
+            STEP, NOUT, NENT = _st2, _no2, _ne_of(_fr2)
+            outs = outs[:NOUT]
+            cand = list(res) + [b for _g, b in outs]
+            isres = [True] * len(res) + [False] * len(outs)
+            blocks_in = [(_layers_bbox(B, _b)[0], _layers_bbox(B, _b)[1], windows(_b))
+                         for _b in cand]
+            wts = wts[:len(cand)]
+            warm = [w for w in (warm or []) if w[0] < len(cand)]
+            _NCOL = _ncol_est(STEP, NOUT, NENT)
         # the ratio is against what was ASKED, which is what the deflation has to undo
         _el = time.time() - _pt
         # AN ABORTED BUILD IS NOT AN ANSWER.  cranepack now projects its own O(ncol^2) build
