@@ -1,0 +1,16 @@
+    brk tier: room=411s rate=6.4e-08 -> tier 3 (step 6 nout 10 nent 2) ncol~20552 pred=27.0s  [hard=483 slice=172s]
+    brk tier: room=402s rate=6.4e-08 -> tier 3 (step 6 nout 10 nent 2) ncol~18824 pred=22.7s  [hard=472 slice=172s]
+    brk tier: room=399s rate=6.4e-08 -> tier 3 (step 6 nout 10 nent 2) ncol~21312 pred=29.1s  [hard=469 slice=172s]
+    brk tier: room=392s rate=6.4e-08 -> tier 3 (step 6 nout 10 nent 2) ncol~46368 pred=137.6s  [hard=462 slice=172s]
+    brk cost: BUILD ABORTED at 14.1s of a 392.4s cap (tier 3 ncol~46368)
+    brk tier: room=90s rate=6.4e-08 -> tier 3 (step 6 nout 10 nent 2) ncol~19020 pred=23.2s  [hard=106 slice=105s]
+    brk cost: BUILD ABORTED at 4.8s of a 89.9s cap (tier 3 ncol~19020)
+    brk cost: ncol~20552 real_ncol=20749 build=108.9s ask=410.9s total=417.3s
+    brk cost: tier 3 ncol~20552 real_ncol=20749 build=108.9s total=417.3s  -> rate 2.578e-07 s/col^2
+    brk[pressure] tgt=1 res=63 outs=10 displaced b0 could not be rehomed in any other bay
+    brk cost: ncol~18824 real_ncol=19112 build=89.5s ask=401.6s total=406.4s
+    brk cost: tier 3 ncol~18824 real_ncol=19112 build=89.5s total=406.4s  -> rate 2.525e-07 s/col^2
+    brk[pressure] tgt=1 res=58 outs=10 displaced b13 could not be rehomed in any other bay
+    brk cost: ncol~21312 real_ncol=21249 build=101.8s ask=399.0s total=403.5s
+    brk cost: tier 3 ncol~21312 real_ncol=21249 build=101.8s total=403.5s  -> rate 2.241e-07 s/col^2
+    brk[pressure] tgt=1 res=62 outs=10 displaced b3 could not be rehomed in any other bay

@@ -224,6 +224,12 @@ py::tuple pack(py::list blocks, double W, double H, int step,
         }
     }
     int ncol=(int)cols.size();
+    // Column generation is over; the pair loop is what the projection below is about, and it has
+    // to be timed from HERE.  Timing it from t0 charges the pair loop for the seconds spent
+    // building columns, and since the projection scales that elapsed time by ~58x at the first
+    // checkpoint, a 2.5 s column phase alone projects 145 s of pair work that does not exist.
+    auto tcols=std::chrono::high_resolution_clock::now();
+    const double cols_s=std::chrono::duration<double>(tcols-t0).count();
 
     // ---- pairwise conflict graph (only across different blocks) ----
     // THE BUILD WATCHES ITS OWN CLOCK.  This loop is the reason every caller had to predict:
@@ -247,10 +253,10 @@ py::tuple pack(py::list blocks, double W, double H, int step,
     for(int a=0;a<ncol;a++){
         if(build_cap > 0.0 && (a & 255) == 255){
             double el = std::chrono::duration<double>(
-                            std::chrono::high_resolution_clock::now()-t0).count();
+                            std::chrono::high_resolution_clock::now()-tcols).count();
             double done = (double)a*(double)ncol - 0.5*(double)a*(double)a;
             if(done > 1.0){
-                double projected = el * total_pairs / done;
+                double projected = cols_s + el * total_pairs / done;
                 // leave room for the search: a build that would consume the entire cap has
                 // already lost, and finishing it only turns a cheap decline into a costly one.
                 if(projected > build_cap){ aborted=true; break; }
