@@ -1,0 +1,2 @@
+  prune=OFF obj=104915 feas=True wall=59.3s  pruned=0 visited=92816128
+  prune=ON  obj=96370 feas=True wall=59.3s  pruned=49409760 visited=64280384

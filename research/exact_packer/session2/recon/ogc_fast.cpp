@@ -1000,6 +1000,26 @@ struct Engine {
             // only indexes them, exactly as the 1-D version is.
             // per-cell stack height, built here for the same reason the run tables are:
             // once per window, O(1) per candidate.
+            // OCCUPANCY PREFIX SUM, for the contact upper bound below.  O(bayW*bayH) once per
+            // (bay, window) -- the same order as buildOcc and the run tables it sits beside --
+            // and O(1) per candidate afterwards.
+            static thread_local std::vector<int32_t> occps;
+            occps.assign((size_t)(bayW+1)*(bayH+1),0);
+            for(int y=0;y<bayH;y++){
+                const int16_t* orow=&occ[(size_t)y*bayW];
+                int32_t* pprev=&occps[(size_t)y*(bayW+1)];
+                int32_t* pcur =&occps[(size_t)(y+1)*(bayW+1)];
+                int32_t run=0;
+                for(int x=0;x<bayW;x++){ run += (orow[x]!=0)?1:0; pcur[x+1]=pprev[x+1]+run; }
+            }
+            auto occ_in=[&](int x0,int y0,int x1,int y1)->int32_t{
+                if(x0<0)x0=0; if(y0<0)y0=0;
+                if(x1>bayW)x1=bayW; if(y1>bayH)y1=bayH;
+                if(x0>=x1||y0>=y1) return 0;
+                const int W1=bayW+1;
+                return occps[(size_t)y1*W1+x1] - occps[(size_t)y0*W1+x1]
+                     - occps[(size_t)y1*W1+x0] + occps[(size_t)y0*W1+x0];
+            };
             static thread_local std::vector<int8_t> hgt;
             if(hmatch_lam>0.0) buildHgt(TL[bay],cur,ex,bayW,bayH,hgt);
             static thread_local std::vector<int> r2L, r2R, r2M1, r2M2;
@@ -1035,6 +1055,25 @@ struct Engine {
                 int loy=(int)std::ceil(-od.y0),hiy=(int)std::floor(bh_j-od.y1);
                 bool any=false;
                 double _since=0.0;          // cells scored since bestsc last improved
+                // OGC_NOPRUNE=1 recomputes without the bound, which is how identity is
+                // demonstrated rather than argued.  Disabled where the bound is not proved:
+                // lex_on is a different scale, and the span/shadow/hmatch terms are not shown to
+                // be non-negative.  fut_beta is allowed because its term is >= 0 and so cannot
+                // pull a score below the bound.
+                static const bool _NOPRUNE=[](){const char*e=getenv("OGC_NOPRUNE");return e&&e[0]=='1';}();
+                const double _swy = use_ourscore()? pos_lam*1.4 : pos_lam*sw_y;
+                const double _swx = use_ourscore()? pos_lam*0.02 : pos_lam*sw_x;
+                const double _ctcoef = use_ourscore()
+                                     ? 12.0/std::max(1.0,(od.x1-od.x0)+(od.y1-od.y0)) : con_w;
+                // LAYCT is excluded because the bound is derived from contact_at, and
+                // contact_at_layered counts against a DIFFERENT occupancy (per-layer maps, which
+                // a flat prefix sum does not dominate).  _ctcoef>=0 because the bound flips sign
+                // with it.  Scope the guard to what was actually proved, not to what is likely.
+                const bool _prune_ok = !_NOPRUNE && !lex_on && span_lam<=0.0 && span2_lam<=0.0
+                                    && hmatch_lam<=0.0 && shadw_lam<=0.0 && shad_lam<=0.0
+                                    && pos_lam>0.0 && !LAYCT_on() && _ctcoef>=0.0;
+                double _wmax=1.0;
+                if(_prune_ok && COHORT_on() && !wgt.empty()){ for(double v:wgt) if(v>_wmax) _wmax=v; }
                 // NO EARLY EXIT ON THE POSITION TERM, and the arithmetic says why.
                 //
                 // 86.1% of scored cells are evaluated after bestsc last improved, so the waste is
@@ -1054,6 +1093,9 @@ struct Engine {
                 //
                 // Recorded rather than deleted: the 86% is still the largest identified waste in
                 // the beam, and the next attempt should not re-derive this one.
+                static const bool _PRUNECHK=[](){const char*e=getenv("OGC_PRUNECHK");
+                                                 return e&&e[0]=='1';}();
+                bool _chk=false;    // set only while scoring a cell the bound wanted to skip
                 auto try_cell=[&](int ix,int iy){
                     bool ok;
                     if(CBPROF_on()){
@@ -1206,7 +1248,14 @@ struct Engine {
                     if(CBPROF_on()){
                         #pragma omp atomic
                         cb_n_ok += 1.0; }
-                    if(sc<bestsc){bestsc=sc;boi=oi;bix=ix;biy=iy;bct=ct; _since=0.0;}
+                    if(sc<bestsc){
+                        if(_chk){
+                            // A cell the bound wanted to skip has just become the best.  That is
+                            // the bound being WRONG, and it is the only thing that is.
+                            #pragma omp atomic
+                            cb_n_badprune += 1.0;
+                        }
+                        bestsc=sc;boi=oi;bix=ix;biy=iy;bct=ct; _since=0.0;}
                     else _since += 1.0;
                 };
                 // CONTACT CANDIDATE POSITIONS.  This beam ranks by contact, so a position
@@ -1260,8 +1309,62 @@ struct Engine {
                     if(usec) for(int ix: xs) for(int iy: ys) try_cell(ix,iy);
                 }
                 const bool _fellback = (!usec || !any);
+                // CONTACT UPPER BOUND.  The earlier attempt bounded only the POSITION term and
+                // never fired, because the score is contact-dominated by an order of magnitude.
+                // Bounding the contact itself inverts that.  contact_at counts, per footprint
+                // cell, its four neighbours: outside the bay scores 1, inside the footprint
+                // scores nothing, an occupied cell scores its weight.  So
+                //
+                //     ct  <=  wall_ub  +  4 * Wmax * (occupied cells within the footprint bbox
+                //                                     dilated by one)
+                //
+                // because every occupied cell that can contribute lies in that rectangle and can
+                // be counted at most once per direction.  The prefix sum answers the rectangle in
+                // four reads.  In a sparse region the count is zero and an interior placement can
+                // touch nothing at all, so its score cannot beat one that touches twenty cells --
+                // which is exactly the region where 86% of the scoring was being spent.
+                //
+                // `continue`, not `break`: the bound is not monotone in iy.  And only in the full
+                // sweep, never in the corner loop, so `any` keeps its meaning and the fallback is
+                // not triggered by a skipped cell.
                 if(_fellback)
-                    for(int ix=lox;ix<=hix;ix+=step)for(int iy=loy;iy<=hiy;iy+=step) try_cell(ix,iy);
+                    for(int ix=lox;ix<=hix;ix+=step)for(int iy=loy;iy<=hiy;iy+=step){
+                        bool _wouldprune=false;
+                        if(_prune_ok && bestsc<1e299){
+                            const int bx0=ix+fp.cx0, by0=iy+fp.cy0;
+                            const int bx1=bx0+fp.cw, by1=by0+fp.ch;
+                            // COLUMNS/ROWS that point outside, counted rather than assumed to be
+                            // one.  A footprint whose bbox pokes out by k has k out-of-bay columns
+                            // on that side, not one, and "the placement would be infeasible
+                            // anyway" is an argument about try_cell -- which this test runs
+                            // BEFORE.  Counting them costs two subtractions and needs no argument.
+                            const int outL = (bx0<=0)?    std::min(fp.cw, 1-bx0)        : 0;
+                            const int outR = (bx1>=bayW)? std::min(fp.cw, bx1-bayW+1)   : 0;
+                            const int outB = (by0<=0)?    std::min(fp.ch, 1-by0)        : 0;
+                            const int outT = (by1>=bayH)? std::min(fp.ch, by1-bayH+1)   : 0;
+                            double ct_ub = (double)(outL+outR)*(double)fp.ch
+                                         + (double)(outB+outT)*(double)fp.cw
+                                         + 4.0*_wmax*(double)occ_in(bx0-1,by0-1,bx1+1,by1+1)
+                                         + 0.5;   // contact_at returns (int)(ct+0.5)
+                            double lb = ((double)iy+od.y1)*_swy + (double)ix*_swx
+                                      + prefw*pen - _ctcoef*ct_ub;
+                            if(lb >= bestsc){
+                                if(CBPROF_on()){
+                                    #pragma omp atomic
+                                    cb_n_pruned += 1.0; }
+                                if(!_PRUNECHK) continue;
+                                _wouldprune=true;
+                            }
+                        }
+                        // OGC_PRUNECHK=1: score the cell anyway and report any pruned cell that
+                        // would have become the best.  A wall-clock A/B cannot test this bound --
+                        // the arms run for a fixed time, so the faster one searches further and
+                        // legitimately lands elsewhere (P3: 104,915 vs 96,370, both feasible).
+                        // Soundness is a per-cell property, so test it per cell.
+                        _chk = _wouldprune;
+                        try_cell(ix,iy);
+                        _chk = false;
+                    }
                 if(CBPROF_on()){
                     #pragma omp atomic
                     cb_n_after += _since;
@@ -1319,7 +1422,7 @@ struct Engine {
     // after the last improvement to bestsc, which is the size of the early-exit prize; cb_n_ok
     // counts cells that survive feasibility and get scored, which is the useful yield.
     double cb_n_scan=0.0, cb_n_corner=0.0, cb_n_sweep=0.0, cb_n_both=0.0;
-    double cb_n_after=0.0, cb_n_ok=0.0, cb_n_pruned=0.0;
+    double cb_n_after=0.0, cb_n_ok=0.0, cb_n_pruned=0.0, cb_n_badprune=0.0;
     double cb_ct_flat=0.0, cb_ct_lay=0.0, cb_ct_n=0.0;   // contact magnitude census
     // DEFAULT OFF until the soundness audit below passes: a hard reject that is wrong
     // silently removes legal placements from the search.
@@ -1510,7 +1613,7 @@ struct Engine {
         cb_n_cell=cb_n_bitmap=cb_n_exact=cb_t_exact=cb_n_hard=cb_n_badrej=0.0;
         cb_t_retry=cb_t_roll=cb_n_retry=0.0; cb_n_arskip=cb_n_arbad=0.0;
         cb_n_scan=cb_n_corner=cb_n_sweep=cb_n_both=cb_n_after=cb_n_ok=0.0;
-        cb_n_pruned=0.0;
+        cb_n_pruned=0.0; cb_n_badprune=0.0;
         cb_ct_flat=cb_ct_lay=cb_ct_n=0.0;
         auto obj2f=[&](const std::vector<double>& loads){ double mn=1e18,mx=-1e18; for(int j=0;j<n_bays;j++){double v=u[j]*loads[j]; if(v<mn)mn=v; if(v>mx)mx=v;} return n_bays>1?(mx-mn):0.0; };
         // NOTE on ranking obj2.  Two attempts to make this a better search signal both
@@ -3318,6 +3421,7 @@ PYBIND11_MODULE(ogc_fast,m){
         .def_readonly("cb_n_after",&Engine::cb_n_after)
         .def_readonly("cb_n_ok",&Engine::cb_n_ok)
         .def_readonly("cb_n_pruned",&Engine::cb_n_pruned)
+        .def_readonly("cb_n_badprune",&Engine::cb_n_badprune)
         .def("contact_beam",&Engine::contact_beam,
              py::arg("order"),py::arg("areas"),py::arg("workloads"),py::arg("B"),py::arg("K"),
              py::arg("step"),py::arg("pos_lam"),py::arg("prefw"),py::arg("mu"),
