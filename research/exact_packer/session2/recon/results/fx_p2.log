@@ -20,3 +20,4 @@
     brk cost: ncol~25078 real_ncol=24402 build=3.0s ask=19.0s total=22.0s
     brk cost: tier 2 ncol~25078 real_ncol=24402 build=3.0s total=22.0s  -> rate 4.75e-09 s/col^2
     brk[pressure] tgt=0 res=65 outs=1 packer admitted NO outsider (seated 65 of 66 columns offered)
+P2  six P2         120s  obj=31368       Z1=0.0      Z2=3342   Z3=90.0      feas=y   ran 119s
