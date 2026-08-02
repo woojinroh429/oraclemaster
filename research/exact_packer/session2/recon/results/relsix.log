@@ -1,2 +1,4 @@
 verified: offset-relative geometry + exact conflict memo
 === rl_p6.log (rel P6) 14:12:14
+P6  rel P6         900s  obj=29583182    Z1=4298.0   Z2=3177   Z3=6020.0    feas=y   ran 900s
+=== rl_p4.log (rel P4) 14:27:15
