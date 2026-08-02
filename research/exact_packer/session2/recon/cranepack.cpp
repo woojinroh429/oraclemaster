@@ -51,6 +51,48 @@ static bool poly_overlap(const Poly& A,const Poly& B){
     return false;
 }
 
+// ---------- OFFSET-RELATIVE GEOMETRY ----------
+// The world-coordinate versions above answer the same mathematical question, but not with the
+// same arithmetic: a polygon stored as (outline + x) has different low bits at x=4 and x=8, and
+// point_in_poly compares cross products against an ABSOLUTE epsilon of 1e-9 while their
+// magnitude scales with the coordinates.  Two columns in the same relative arrangement can
+// therefore be judged differently depending on where in the bay they sit -- measured, 36 pairs
+// of 18,789,635 on P3.
+//
+// Everything below takes B's vertices as (p + offset) computed from the ORIGIN outline, so the
+// operations depend only on (outline A, outline B, dx, dy).  Same relative arrangement, same
+// answer, anywhere in the bay -- which is both more correct and what makes the conflict result
+// memoisable on that key.
+static inline int point_in_poly_off(double px,double py,const Poly& poly,
+                                    double ox,double oy,double eps=1e-9){
+    int n=poly.size(); bool inside=false;
+    for(int i=0,j=n-1;i<n;j=i++){
+        double xi=poly[i].first+ox, yi=poly[i].second+oy;
+        double xj=poly[j].first+ox, yj=poly[j].second+oy;
+        double d=cross(xi,yi,xj,yj,px,py);
+        double minx=std::min(xi,xj)-eps,maxx=std::max(xi,xj)+eps;
+        double miny=std::min(yi,yj)-eps,maxy=std::max(yi,yj)+eps;
+        if(std::fabs(d)<eps && px>=minx&&px<=maxx&&py>=miny&&py<=maxy) return 0;
+        if(((yi>py)!=(yj>py)) && (px<(xj-xi)*(py-yi)/(yj-yi)+xi)) inside=!inside;
+    }
+    return inside?1:-1;
+}
+// A at its own origin, B translated by (ox,oy)
+static bool poly_overlap_off(const Poly& A,const Poly& B,double ox,double oy){
+    for(auto&p:A) if(point_in_poly_off(p.first,p.second,B,ox,oy)==1) return true;
+    for(auto&p:B) if(point_in_poly(p.first+ox,p.second+oy,A)==1) return true;
+    int na=A.size(),nb=B.size();
+    for(int i=0;i<na;i++){
+        double p0x=A[i].first,p0y=A[i].second,p1x=A[(i+1)%na].first,p1y=A[(i+1)%na].second;
+        for(int j=0;j<nb;j++){
+            double q0x=B[j].first+ox,q0y=B[j].second+oy;
+            double q1x=B[(j+1)%nb].first+ox,q1y=B[(j+1)%nb].second+oy;
+            if(seg_cross_proper(p0x,p0y,p1x,p1y,q0x,q0y,q1x,q1y)) return true;
+        }
+    }
+    return false;
+}
+
 // ---------- placement column ----------
 struct Col {
     int block, orient, x, y, entry, exit;
@@ -83,6 +125,62 @@ static void bbox_of(Col& c){
 static inline bool lay_sep(const Col&A,int ka,const Col&B,int kb){
     const double*a=&A.lbb[4*ka]; const double*b=&B.lbb[4*kb];
     return a[2]<=b[0] || b[2]<=a[0] || a[3]<=b[1] || b[3]<=a[1];
+}
+
+// crane conflict, fastconf j>=k logic (descent OR ascent => same A_k vs B_{j>k} loop)
+// RELATIVE FORM.  Takes the two ORIGIN layer stacks with their origin bounding boxes and the
+// offset of B relative to A, so the verdict is a function of (shape A, shape B, dx, dy, times)
+// and nothing else.  The world-coordinate form it replaces gave different answers for the same
+// relative arrangement at different absolute positions.
+static bool crane_conflict_rel(const std::vector<Poly>& LA, const std::vector<double>& BA,
+                               const std::vector<Poly>& LB, const std::vector<double>& BB,
+                               double ox, double oy,
+                               int Aen,int Aex,int Ben,int Bex){
+    if(!(Aen < Bex && Ben < Aex)) return false;                       // time co-presence
+    int Ka=(int)LA.size(), Kb=(int)LB.size();
+    // whole-shape AABB, in A's frame
+    {   double ax0=1e18,ay0=1e18,ax1=-1e18,ay1=-1e18,bx0=1e18,by0=1e18,bx1=-1e18,by1=-1e18;
+        for(int k=0;k<Ka;k++){ ax0=std::min(ax0,BA[4*k]); ay0=std::min(ay0,BA[4*k+1]);
+                               ax1=std::max(ax1,BA[4*k+2]); ay1=std::max(ay1,BA[4*k+3]); }
+        for(int k=0;k<Kb;k++){ bx0=std::min(bx0,BB[4*k]+ox); by0=std::min(by0,BB[4*k+1]+oy);
+                               bx1=std::max(bx1,BB[4*k+2]+ox); by1=std::max(by1,BB[4*k+3]+oy); }
+        if(ax1<=bx0||bx1<=ax0||ay1<=by0||by1<=ay0) return false;
+    }
+    auto sep=[&](int ka,int kb){
+        return BA[4*ka+2]<=BB[4*kb]+ox || BB[4*kb+2]+ox<=BA[4*ka]
+            || BA[4*ka+3]<=BB[4*kb+1]+oy || BB[4*kb+3]+oy<=BA[4*ka+1];
+    };
+    int mk=std::min(Ka,Kb);
+    for(int k=0;k<mk;k++){                                            // resting j==k
+        if(LA[k].size()<3||LB[k].size()<3) continue;
+        if(sep(k,k)) continue;
+        if(poly_overlap_off(LA[k],LB[k],ox,oy)) return true;
+    }
+    bool AoverB = (Aen>=Ben) || (Aex<=Bex);
+    bool BoverA = (Ben>=Aen) || (Bex<=Aex);
+    if(AoverB){
+        for(int k=0;k<Ka;k++){
+            if(LA[k].size()<3) continue;
+            for(int j=k+1;j<Kb;j++){
+                if(LB[j].size()<3) continue;
+                if(sep(k,j)) continue;
+                if(poly_overlap_off(LA[k],LB[j],ox,oy)) return true;
+            }
+        }
+    }
+    if(BoverA){
+        for(int k=0;k<Kb;k++){
+            if(LB[k].size()<3) continue;
+            for(int j=k+1;j<Ka;j++){
+                if(LA[j].size()<3) continue;
+                if(sep(j,k)) continue;
+                // B's layer k against A's layer j: same test with the roles swapped, which is
+                // B at the origin and A at -offset
+                if(poly_overlap_off(LB[k],LA[j],-ox,-oy)) return true;
+            }
+        }
+    }
+    return false;
 }
 
 // crane conflict, fastconf j>=k logic (descent OR ascent => same A_k vs B_{j>k} loop)
@@ -126,6 +224,36 @@ struct Xorshift { uint64_t s;
     Xorshift(uint64_t seed):s(seed?seed:0x9e3779b97f4a7c15ULL){}
     uint64_t next(){ s^=s<<13; s^=s>>7; s^=s<<17; return s; }
     int randint(int n){ return (int)(next()% (uint64_t)n); }
+};
+
+// ---------- conflict memo ----------
+// Now that the verdict is offset-relative it is a pure function of
+// (block+orient of each side, dx, dy, which sweeps which), and columns sit on a grid, so those
+// keys repeat: P3's 43x23 bay gives 1,024 column pairs per block pair over 105 offsets at step
+// 6, and 4,356 over 231 at step 4, with entry-time variants multiplying the pairs again without
+// adding offsets.  Measured reuse on a 24,318-column build: 23,208,767 hits to 1,090,614 misses.
+//
+// This was tried BEFORE the geometry was made relative and produced 36 edges too many, because
+// the same key could then legitimately yield different verdicts at different absolute
+// positions.  That is fixed at the source rather than papered over here.
+//
+// Open addressing, linear probing, one byte per key; past 70% full it stops inserting and the
+// caller simply computes, so a memo that runs out of room degrades into the original code.
+struct ConflictMemo {
+    std::vector<uint64_t> key; std::vector<int8_t> val;
+    uint64_t mask; size_t used, cap;
+    explicit ConflictMemo(int bits)
+        : key(size_t(1)<<bits, ~0ull), val(size_t(1)<<bits, 0),
+          mask((size_t(1)<<bits)-1), used(0), cap(((size_t(1)<<bits)*7)/10) {}
+    inline int8_t* find(uint64_t k){
+        uint64_t h=k*0x9E3779B97F4A7C15ull; h^=h>>29;
+        size_t i=(size_t)(h&mask);
+        for(;;){
+            if(key[i]==k) return &val[i];
+            if(key[i]==~0ull){ if(used>=cap) return nullptr; key[i]=k; used++; return &val[i]; }
+            i=(i+1)&mask;
+        }
+    }
 };
 
 // ---------- main entry ----------
@@ -216,6 +344,26 @@ py::tuple pack(py::list blocks, double W, double H, int step,
 
     // ---- generate columns (coarse grid + warm positions) ----
     std::vector<Col> cols;
+    // ORIGIN layer bounding boxes, one set per (block, orient).  The relative conflict test
+    // needs them in the shape's own frame; computing them per COLUMN would reintroduce exactly
+    // the position dependence the relative form exists to remove.
+    std::vector<std::vector<std::vector<double>>> OLBB(nblk);
+    for(int b=0;b<nblk;b++){
+        OLBB[b].resize(BL[b].size());
+        for(size_t o=0;o<BL[b].size();o++){
+            OLBB[b][o].assign(4*BL[b][o].size(), 0.0);
+            for(size_t k=0;k<BL[b][o].size();k++){
+                double x0=1e18,y0=1e18,x1=-1e18,y1=-1e18;
+                for(auto&pt:BL[b][o][k]){
+                    x0=std::min(x0,pt.first); y0=std::min(y0,pt.second);
+                    x1=std::max(x1,pt.first); y1=std::max(y1,pt.second);
+                }
+                OLBB[b][o][4*k]=x0; OLBB[b][o][4*k+1]=y0;
+                OLBB[b][o][4*k+2]=x1; OLBB[b][o][4*k+3]=y1;
+            }
+        }
+    }
+
     std::vector<std::vector<int>> colsOfBlock(nblk);
     auto make_col=[&](int b,int o,int x,int y,int en,int ex){
         Col c; c.block=b;c.orient=o;c.x=x;c.y=y;c.entry=en;c.exit=ex;
@@ -300,6 +448,11 @@ py::tuple pack(py::list blocks, double W, double H, int step,
         sx0[i]=c.bx0; sy0[i]=c.by0; sx1[i]=c.bx1; sy1[i]=c.by1; }
 
     // sized from the column count: enough slots that the offsets fit without filling it
+    // CRANEPACK_NOMEMO=1 recomputes every pair, which is how the memo is proved exact rather
+    // than assumed: the two arms must return the same edge count on the same input.
+    static const bool NOMEMO=[](){const char*e=getenv("CRANEPACK_NOMEMO");return e&&e[0]=='1';}();
+    ConflictMemo memo(22);
+
     const double build_cap = (total_s > 0.0) ? total_s : -1.0;
     for(int i=0;i<ncol;i++){
         if(build_cap > 0.0 && (i & 255) == 255){
@@ -331,7 +484,26 @@ py::tuple pack(py::list blocks, double W, double H, int step,
             // distinct-key count did not move, so that aliasing never actually occurred.  The
             // real cause is still unexplained, and an optimisation whose disagreement I cannot
             // explain does not ship, however good the number beside it.
-            if(crane_conflict(cols[ai],cols[bj])){
+            const Col& CA=cols[ai]; const Col& CB=cols[bj];
+            const int tcase=((CA.entry>=CB.entry||CA.exit<=CB.exit)?1:0)
+                          | ((CB.entry>=CA.entry||CB.exit<=CA.exit)?2:0);
+            const uint64_t mk =
+                  ((uint64_t)(CA.block*16+CA.orient))
+                | ((uint64_t)(CB.block*16+CB.orient)<<13)
+                | ((uint64_t)(CB.x-CA.x+2048)<<26)
+                | ((uint64_t)(CB.y-CA.y+2048)<<38)
+                | ((uint64_t)tcase<<50);
+            int8_t* mv = NOMEMO ? nullptr : memo.find(mk);
+            bool hit;
+            if(mv && *mv) hit = (*mv==2);
+            else {
+                hit = crane_conflict_rel(BL[CA.block][CA.orient], OLBB[CA.block][CA.orient],
+                                         BL[CB.block][CB.orient], OLBB[CB.block][CB.orient],
+                                         (double)(CB.x-CA.x), (double)(CB.y-CA.y),
+                                         CA.entry,CA.exit,CB.entry,CB.exit);
+                if(mv) *mv = hit?2:1;
+            }
+            if(hit){
                 adj[ai].push_back(bj); adj[bj].push_back(ai); nedge++;
             }
         }
