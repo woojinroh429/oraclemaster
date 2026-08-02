@@ -122,7 +122,7 @@ struct Xorshift { uint64_t s;
 // Negative (the default) keeps the old meaning exactly, so every existing caller is unchanged.
 py::tuple pack(py::list blocks, double W, double H, int step,
                double time_budget_s, uint64_t seed, py::object warm, py::object frozen,
-               py::object weights, double total_s){
+               py::object weights, double total_s, long max_iters){
     auto t0=std::chrono::high_resolution_clock::now();
     int nblk = (int)py::len(blocks);
 
@@ -470,7 +470,18 @@ py::tuple pack(py::list blocks, double W, double H, int step,
     // SUCCESSFUL pack (the common case in the low-density relocator, where success ==
     // "all of F+b fit").  Correctness-preserving; only skips search that cannot improve.
     // initial random restarts (each hardened with the swap local opt) to get incumbent
-    for(int it=0; it<200 && now_s()<search_budget && best<nblk; it++){
+    // ITERATION CAP, for the harness only (default -1 = no cap, shipped behaviour exactly).
+    // The search is a fixed pass sequence TRUNCATED BY A DEADLINE, so under a deadline a faster
+    // search does not finish sooner -- it does more passes and returns a DIFFERENT placement.
+    // That makes "faster" and "different" indistinguishable, which is why the first attempt to
+    // prove the bitset identical failed: unbinding the deadline instead just meant the ILS loop
+    // ran until every block was seated, and at 31k columns that never happened.
+    // Capping ITERATIONS makes both arms do identical work, so placement must match exactly and
+    // solve_ms is a clean comparison.
+    long _it_left = (max_iters > 0) ? max_iters : -1;
+    auto _budget_it = [&](){ if(_it_left < 0) return true;
+                             if(_it_left == 0) return false; _it_left--; return true; };
+    for(int it=0; it<200 && now_s()<search_budget && best<nblk && _budget_it(); it++){
         clear_all();
         for(int i=nblk-1;i>0;i--){ int j=rng.randint(i+1); std::swap(border[i],border[j]); }
         greedy_extend(border);
@@ -480,7 +491,7 @@ py::tuple pack(py::list blocks, double W, double H, int step,
     load_best();
 
     // iterated local search: force a random excluded block in (kick conflicts), repair.
-    while(now_s()<search_budget && best<nblk){
+    while(now_s()<search_budget && best<nblk && _budget_it()){
         // snapshot current working weight
         double before=wsel();
         // pick a random excluded block that has at least one column
@@ -814,5 +825,5 @@ PYBIND11_MODULE(cranepack,m){
           py::arg("blocks"),py::arg("W"),py::arg("H"),py::arg("step"),
           py::arg("time_budget_s"),py::arg("seed")=12345,py::arg("warm")=py::none(),
           py::arg("frozen")=py::none(),py::arg("weights")=py::none(),
-          py::arg("total_s")=-1.0);
+          py::arg("total_s")=-1.0,py::arg("max_iters")=-1);
 }
