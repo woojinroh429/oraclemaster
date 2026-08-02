@@ -11,3 +11,10 @@ P3  pred P3 r1     240s  obj=87990       Z1=0.0      Z2=3468   Z3=471.0     feas
 === on_s3e6_r1.log (s3 n40 e6) 02:35:43
 P3  s3 n40 e6      240s  obj=84485       Z1=0.0      Z2=3397   Z3=450.0     feas=y   ran 289s
 === on_s3e6_r2.log (s3 n40 e6 r2) 02:40:33
+P3  s3 n40 e6 r2   240s  obj=84485       Z1=0.0      Z2=3397   Z3=450.0     feas=y   ran 282s
+=== STAGE 3  P3 reps 02:45:16
+=== on_pred_p3_r2.log (pred P3 r2) 02:45:16
+P3  pred P3 r2     240s  obj=87990       Z1=0.0      Z2=3468   Z3=471.0     feas=y   ran 239s
+=== on_pred_p3_r3.log (pred P3 r3) 02:49:15
+P3  pred P3 r3     240s  obj=84990       Z1=0.0      Z2=3048   Z3=465.0     feas=y   ran 239s
+=== on_pred_p3_r4.log (pred P3 r4) 02:53:15
