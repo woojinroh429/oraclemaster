@@ -564,6 +564,9 @@ struct Engine {
                                        double mu,double w1,double w3,int topk,
                                        double fut_beta=0.0,double mean_proc=1.0,
                                        double w2=0.0,std::vector<double> loads={}){
+        if(CBPROF_on()){ 
+            #pragma omp atomic
+            cb_n_scan += 1.0; }
         const BlockShape& bs=shapes[bid]; int P=(int)bs.pt; int ex=cur+P; double dd=shapes[bid].due;
         double s_max=0; if(!bs.prefs.empty()){ s_max=bs.prefs[0]; for(double v:bs.prefs) if(v>s_max)s_max=v; }
         double tardy = ex>dd? (double)(ex-dd):0.0;
@@ -1031,6 +1034,7 @@ struct Engine {
                 int lox=(int)std::ceil(-od.x0),hix=(int)std::floor(bw_j-od.x1);
                 int loy=(int)std::ceil(-od.y0),hiy=(int)std::floor(bh_j-od.y1);
                 bool any=false;
+                double _since=0.0;          // cells scored since bestsc last improved
                 auto try_cell=[&](int ix,int iy){
                     bool ok;
                     if(CBPROF_on()){
@@ -1180,7 +1184,11 @@ struct Engine {
                         double dwall=std::min(std::min(dl,dr),std::min(db,dt));
                         sc += fut_beta*((double)P/std::max(1e-9,mean_proc))*dwall; }
                     any=true;
-                    if(sc<bestsc){bestsc=sc;boi=oi;bix=ix;biy=iy;bct=ct;}
+                    if(CBPROF_on()){
+                        #pragma omp atomic
+                        cb_n_ok += 1.0; }
+                    if(sc<bestsc){bestsc=sc;boi=oi;bix=ix;biy=iy;bct=ct; _since=0.0;}
+                    else _since += 1.0;
                 };
                 // CONTACT CANDIDATE POSITIONS.  This beam ranks by contact, so a position
                 // touching nothing can never win -- yet the full grid sweep evaluates every
@@ -1232,8 +1240,22 @@ struct Engine {
                     usec = corner*4.0 < swept;
                     if(usec) for(int ix: xs) for(int iy: ys) try_cell(ix,iy);
                 }
-                if(!usec || !any)
+                const bool _fellback = (!usec || !any);
+                if(_fellback)
                     for(int ix=lox;ix<=hix;ix+=step)for(int iy=loy;iy<=hiy;iy+=step) try_cell(ix,iy);
+                if(CBPROF_on()){
+                    #pragma omp atomic
+                    cb_n_after += _since;
+                    if(usec && _fellback){ 
+                        #pragma omp atomic
+                        cb_n_both += 1.0; }
+                    else if(usec){ 
+                        #pragma omp atomic
+                        cb_n_corner += 1.0; }
+                    else { 
+                        #pragma omp atomic
+                        cb_n_sweep += 1.0; }
+                }
             }
             if(boi<0)continue;
             double drank = w1*tardy + w3*pen - mu*(double)bct
@@ -1263,6 +1285,22 @@ struct Engine {
     // path, cb_t_roll the per-state completion rollouts.
     double cb_t_retry=0.0, cb_t_roll=0.0; double cb_n_retry=0.0;
     double cb_n_arskip=0.0, cb_n_arbad=0.0;   // area precheck: skips, and skips that were wrong
+    // WHERE THE 106.8 MILLION CELLS COME FROM.  The whole-run profile put the first-choice scan
+    // at 45.3% of a P3 run and the beam at 43.9%; the scan IS the beam.  cb_n_cell says how many
+    // cells are visited but not why, and the two structural suspects are both here:
+    //
+    //   the corner set          usec = corner*4 < swept picks the restricted candidate set, but
+    //                           `if(!usec || !any)` then runs the FULL sweep whenever the corner
+    //                           attempt seated nothing -- so a low-density instance can pay for
+    //                           both, every orientation, every block.
+    //   no early termination    the sweep scores every cell and keeps the best.  If the best is
+    //                           found early, everything after it is spent proving a negative.
+    //
+    // cb_n_corner / cb_n_sweep / cb_n_both count which path ran; cb_n_after counts cells visited
+    // after the last improvement to bestsc, which is the size of the early-exit prize; cb_n_ok
+    // counts cells that survive feasibility and get scored, which is the useful yield.
+    double cb_n_scan=0.0, cb_n_corner=0.0, cb_n_sweep=0.0, cb_n_both=0.0;
+    double cb_n_after=0.0, cb_n_ok=0.0;
     double cb_ct_flat=0.0, cb_ct_lay=0.0, cb_ct_n=0.0;   // contact magnitude census
     // DEFAULT OFF until the soundness audit below passes: a hard reject that is wrong
     // silently removes legal placements from the search.
@@ -1452,6 +1490,7 @@ struct Engine {
         const bool CBPROF=CBPROF_on(); cb_t_rebuild=0.0; cb_t_scan=0.0;
         cb_n_cell=cb_n_bitmap=cb_n_exact=cb_t_exact=cb_n_hard=cb_n_badrej=0.0;
         cb_t_retry=cb_t_roll=cb_n_retry=0.0; cb_n_arskip=cb_n_arbad=0.0;
+        cb_n_scan=cb_n_corner=cb_n_sweep=cb_n_both=cb_n_after=cb_n_ok=0.0;
         cb_ct_flat=cb_ct_lay=cb_ct_n=0.0;
         auto obj2f=[&](const std::vector<double>& loads){ double mn=1e18,mx=-1e18; for(int j=0;j<n_bays;j++){double v=u[j]*loads[j]; if(v<mn)mn=v; if(v>mx)mx=v;} return n_bays>1?(mx-mn):0.0; };
         // NOTE on ranking obj2.  Two attempts to make this a better search signal both
@@ -3252,6 +3291,12 @@ PYBIND11_MODULE(ogc_fast,m){
         .def_readonly("cb_t_exact",&Engine::cb_t_exact)
         .def_readonly("cb_t_rebuild",&Engine::cb_t_rebuild)
         .def_readonly("cb_t_scan",&Engine::cb_t_scan)
+        .def_readonly("cb_n_scan",&Engine::cb_n_scan)
+        .def_readonly("cb_n_corner",&Engine::cb_n_corner)
+        .def_readonly("cb_n_sweep",&Engine::cb_n_sweep)
+        .def_readonly("cb_n_both",&Engine::cb_n_both)
+        .def_readonly("cb_n_after",&Engine::cb_n_after)
+        .def_readonly("cb_n_ok",&Engine::cb_n_ok)
         .def("contact_beam",&Engine::contact_beam,
              py::arg("order"),py::arg("areas"),py::arg("workloads"),py::arg("B"),py::arg("K"),
              py::arg("step"),py::arg("pos_lam"),py::arg("prefw"),py::arg("mu"),
