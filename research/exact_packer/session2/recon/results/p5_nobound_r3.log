@@ -1,0 +1,23 @@
+    brk calib: 934:4.45e-08 1824:1.66e-08 -> rate 1.66e-08 at 1824 cols, growth n^0.000
+    brk tier: room=265s rate=1.66e-08 -> tier 2 (step 4 nout 20 nent 5) ncol~109644 pred=199.7s  [hard=312 slice=112s]
+    brk calib: 888:4.66e-08 1872:1.66e-08 -> rate 1.66e-08 at 1872 cols, growth n^0.000
+    brk tier: room=252s rate=1.66e-08 -> tier 3 (step 6 nout 10 nent 2) ncol~31658 pred=16.7s  [hard=297 slice=112s]
+    brk calib: 682:7.75e-08 1492:2.22e-08 -> rate 2.22e-08 at 1492 cols, growth n^0.000
+    brk tier: room=252s rate=2.22e-08 -> tier 2 (step 4 nout 20 nent 5) ncol~102680 pred=234.2s  [hard=296 slice=112s]
+    brk: build refused at tier 2 (0.9s) -- stepping down to tier 3
+    brk calib: 738:1.51e-07 1532:2.62e-08 -> rate 2.62e-08 at 1532 cols, growth n^0.000
+    brk tier: room=248s rate=2.62e-08 -> tier 2 (step 4 nout 20 nent 5) ncol~91928 pred=221.7s  [hard=291 slice=112s]
+    brk: build refused at tier 2 (2.9s) -- stepping down to tier 3
+    brk: build refused at tier 2 (40.9s) -- stepping down to tier 3
+    brk cost: ncol~24818 real_ncol=25619 build=7.1s ask=111.8s total=123.3s
+    brk cost: tier 3 ncol~24818 real_ncol=25619 build=7.1s total=123.3s  -> rate 1.152e-08 s/col^2
+    brk[pressure] tgt=0 res=55 outs=10 displaced b5 could not be rehomed in any other bay
+    brk cost: ncol~21728 real_ncol=22020 build=12.0s ask=111.8s total=147.9s
+    brk cost: tier 3 ncol~21728 real_ncol=22020 build=12.0s total=147.9s  -> rate 2.532e-08 s/col^2
+    brk[pressure] tgt=1 res=47 outs=10 displaced b37 could not be rehomed in any other bay
+    brk cost: ncol~31658 real_ncol=32285 build=22.8s ask=111.8s total=149.7s
+    brk cost: tier 3 ncol~31658 real_ncol=32285 build=22.8s total=149.7s  -> rate 2.278e-08 s/col^2
+    brk[pressure] tgt=3 res=56 outs=10 displaced b12 could not be rehomed in any other bay
+    brk cost: ncol~20196 real_ncol=20291 build=13.2s ask=111.8s total=142.4s
+    brk cost: tier 3 ncol~20196 real_ncol=20291 build=13.2s total=142.4s  -> rate 3.239e-08 s/col^2
+    brk[pressure] tgt=1 res=44 outs=10 displaced b3 could not be rehomed in any other bay
