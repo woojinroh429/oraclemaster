@@ -71,13 +71,15 @@ this reason: a block standing beside a shorter one earns nothing for the layers 
 air.
 
 \paragraph{Instances are not on a spectrum.}
-Across the instances we measured, the tardiness share of the objective is $0\%$ on the sparsest
-and $97.4\%$ on the densest, with nothing in between; on the training set, $Z_1$ is exactly zero
-on a substantial fraction of instances. Where $Z_1$ vanishes the entry times are free and the
-problem is an assignment problem dominated by preference; where the yard is saturated the entry
-times are the whole objective. A hand-drawn density threshold has to guess where the switch lies,
-and the observed distribution gives no evidence about it. We therefore built a scheduler that
-measures which operator is paying rather than one that classifies the instance.
+The training set splits cleanly rather than gradually: $Z_1$ is exactly zero on twenty of the
+forty instances and strictly positive on the other twenty (Table~\ref{tab:train}), and the
+objective spans $1\,499$ to $36\,012\,305$, a factor of twenty-four thousand. On the final
+instances the tardiness share of the objective runs from $0\%$ to $97.4\%$ with nothing in
+between. Where $Z_1$ vanishes the entry times are free and the problem is an assignment problem
+dominated by preference; where the yard is saturated the entry times are the whole objective. A
+hand-drawn density threshold has to guess where that switch lies, and the observed distribution
+gives no evidence about it, so we built a scheduler that measures which operator is paying rather
+than one that classifies the instance.
 
 \subsection{Contributions}
 
@@ -275,30 +277,45 @@ the property itself.
 \section{Computational Results}
 
 Table~\ref{tab:train} reports all forty training instances at a uniform $60$\,s budget, decomposed
-into the three objective components. A uniform budget is the only comparable one---hidden limits
-vary per instance and are not disclosed---and all solutions pass the provided feasibility checker.
+into the three objective components. A uniform budget is the only comparable one, since the hidden
+limits vary per instance and are not disclosed. All forty solutions pass the provided feasibility
+checker. The split noted in Section~1.1 is visible directly in the table: $Z_1$ is zero on
+instances 1--20 and positive on 21--40, and no instance lies between the two regimes.
 
-\begin{table}[t]
+\begin{table}[htbp]
 \centering
 \caption{Training instances, $60$\,s each. $n$ blocks, $m$ bays.}
 \label{tab:train}
 \small
-\begin{tabular}{rrrrrrr}
+\begin{tabular}{rrrrrrr@{\qquad}rrrrrrr}
 \toprule
-Inst. & $n$ & $m$ & $Z_1$ & $Z_2$ & $Z_3$ & Objective \\
+Inst. & $n$ & $m$ & $Z_1$ & $Z_2$ & $Z_3$ & Obj. & Inst. & $n$ & $m$ & $Z_1$ & $Z_2$ & $Z_3$ & Obj. \\
 \midrule
-1 & 100 & 2 & 0 & 157 & 2 & 1\,499 \\
-2 & 100 & 3 & 0 & 144 & 15 & 3\,690 \\
-3 & 100 & 3 & 0 & 1\,542 & 186 & 43\,320 \\
-4 & 100 & 2 & 0 & 2\,278 & 0 & 15\,946 \\
-5 & 150 & 3 & 0 & 1\,654 & 228 & 45\,778 \\
-6 & 150 & 3 & 0 & 2\,346 & 173 & 42\,372 \\
-7 & 150 & 3 & 0 & 2\,335 & 239 & 52\,195 \\
+1 & 100 & 2 & 0 & 157 & 2 & 1\,499 & 21 & 100 & 3 & 8 & 2\,032 & 2\,693 & 530\,934 \\
+2 & 100 & 3 & 0 & 144 & 15 & 3\,690 & 22 & 100 & 2 & 2 & 2\,391 & 1\,748 & 733\,039 \\
+3 & 100 & 3 & 0 & 1\,542 & 186 & 43\,320 & 23 & 100 & 2 & 83 & 1\,237 & 1\,284 & 1\,390\,856 \\
+4 & 100 & 2 & 0 & 2\,278 & 0 & 15\,946 & 24 & 100 & 3 & 1 & 4\,553 & 661 & 234\,398 \\
+5 & 150 & 3 & 0 & 1\,654 & 228 & 45\,778 & 25 & 100 & 2 & 317 & 397 & 1\,792 & 247\,676 \\
+6 & 150 & 3 & 0 & 2\,346 & 173 & 42\,372 & 26 & 150 & 3 & 523 & 1\,197 & 4\,150 & 7\,604\,038 \\
+7 & 150 & 3 & 0 & 2\,335 & 239 & 52\,195 & 27 & 150 & 2 & 1\,695 & 845 & 4\,422 & 24\,369\,925 \\
+8 & 150 & 2 & 0 & 2\,413 & 8 & 11\,252 & 28 & 150 & 3 & 17 & 2\,371 & 1\,892 & 801\,374 \\
+9 & 200 & 3 & 0 & 2\,047 & 271 & 50\,885 & 29 & 150 & 3 & 1 & 7\,860 & 969 & 327\,613 \\
+10 & 200 & 4 & 0 & 2\,225 & 400 & 68\,775 & 30 & 150 & 2 & 123 & 573 & 1\,442 & 1\,930\,651 \\
+11 & 200 & 4 & 0 & 923 & 96 & 19\,229 & 31 & 200 & 4 & 121 & 1\,025 & 10\,436 & 4\,402\,780 \\
+12 & 200 & 4 & 0 & 2\,205 & 387 & 66\,906 & 32 & 200 & 3 & 415 & 2\,080 & 2\,065 & 2\,632\,595 \\
+13 & 250 & 4 & 0 & 3\,905 & 297 & 59\,026 & 33 & 200 & 3 & 955 & 1\,824 & 4\,977 & 7\,131\,775 \\
+14 & 250 & 4 & 0 & 1\,106 & 350 & 52\,080 & 34 & 200 & 4 & 44 & 2\,051 & 1\,256 & 830\,457 \\
+15 & 250 & 4 & 0 & 4\,276 & 100 & 34\,680 & 35 & 200 & 3 & 21 & 2\,032 & 1\,485 & 512\,903 \\
+16 & 250 & 4 & 0 & 3\,294 & 139 & 34\,957 & 36 & 250 & 4 & 18 & 4\,500 & 6\,496 & 100\,954 \\
+17 & 300 & 4 & 0 & 6\,563 & 238 & 57\,906 & 37 & 250 & 3 & 614 & 4\,506 & 3\,154 & 3\,956\,886 \\
+18 & 300 & 4 & 0 & 4\,188 & 198 & 43\,086 & 38 & 250 & 3 & 2\,607 & 1\,987 & 4\,164 & 36\,012\,305 \\
+19 & 300 & 4 & 0 & 4\,604 & 301 & 58\,449 & 39 & 250 & 3 & 500 & 1\,218 & 5\,711 & 7\,528\,022 \\
+20 & 300 & 5 & 0 & 2\,704 & 652 & 97\,724 & 40 & 250 & 4 & 2\,629 & 3\,957 & 7\,947 & 1\,860\,811 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\begin{table}[t]
+\begin{table}[htbp]
 \centering
 \caption{Effect of the successive changes. Differences inside the stated run-to-run spreads are
 not claimed as improvements.}
@@ -327,7 +344,7 @@ and the faster arm therefore reaches a different solution legitimately. We inste
 construction call with identical arguments and no deadline, and compare a digest over every
 returned placement.
 
-\begin{table}[t]
+\begin{table}[htbp]
 \centering
 \caption{Contact upper bound: one construction call, identical arguments, deadline lifted. The
 digest hashes every returned placement, so ``identical'' means the whole solution.}
@@ -346,8 +363,6 @@ Dense  &  9.3\,M\;(1.3\%)  & 0 & 102.72 & 94.61 & identical, $1.09\times$ \\
 The conflict-graph build was accepted only after its edge count was confirmed unchanged on every
 configuration tested; the resulting speedup is $10.5\times$ in isolation and appears in production
 as a build cost of $10.7$--$14.2$\,s where the same configuration previously cost about $90$\,s.
-
-\newpage
 
 \section{Team Members' Contributions}
 

@@ -50,10 +50,6 @@ if not rows:
     sys.exit(0)
 
 print("%% %d of 40 training instances, 60 s each" % len(rows))
-print(r"\begin{tabular}{rrrrrrr}")
-print(r"\toprule")
-print(r"Inst. & $n$ & $m$ & $Z_1$ & $Z_2$ & $Z_3$ & Objective \\")
-print(r"\midrule")
 
 
 def fmt(v):
@@ -67,10 +63,23 @@ def fmt(v):
     return out
 
 
+# SIDE BY SIDE.  Forty rows stacked vertically fill a whole page, which pushed every float in
+# the document to the end and left the tables nowhere near the text that discusses them.  Two
+# blocks of twenty halve the height and read better besides.
 half = (len(rows) + 1) // 2
-for r in rows:
-    print(r"%d & %d & %d & %s & %s & %s & %s \\"
-          % (r["p"], r["n"], r["m"], fmt(r["z1"]), fmt(r["z2"]), fmt(r["z3"]), fmt(r["obj"])))
+left, right = rows[:half], rows[half:]
+cell = lambda r: (r"%d & %d & %d & %s & %s & %s & %s"
+                  % (r["p"], r["n"], r["m"], fmt(r["z1"]), fmt(r["z2"]), fmt(r["z3"]),
+                     fmt(r["obj"])))
+head = r"Inst. & $n$ & $m$ & $Z_1$ & $Z_2$ & $Z_3$ & Obj."
+print(r"\begin{tabular}{rrrrrrr@{\qquad}rrrrrrr}")
+print(r"\toprule")
+print(head + " & " + head + r" \\")
+print(r"\midrule")
+for i in range(half):
+    a = cell(left[i])
+    b = cell(right[i]) if i < len(right) else " & " * 6
+    print(a + " & " + b + r" \\")
 print(r"\bottomrule")
 print(r"\end{tabular}")
 
