@@ -1035,46 +1035,25 @@ struct Engine {
                 int loy=(int)std::ceil(-od.y0),hiy=(int)std::floor(bh_j-od.y1);
                 bool any=false;
                 double _since=0.0;          // cells scored since bestsc last improved
-                // EARLY EXIT ON THE POSITION TERM.  Measured on P3: 51.1 M of 59.3 M scored
-                // cells -- 86.2% -- are evaluated AFTER bestsc last improved, i.e. spent proving
-                // a negative.  The score's positional part rises with iy, the contact part is
-                // bounded, and every optional term below is non-negative, so for a fixed ix
+                // NO EARLY EXIT ON THE POSITION TERM, and the arithmetic says why.
                 //
-                //     sc  >=  (iy+od.y1)*pos_lam*SWY + ix*pos_lam*SWX + prefw*pen - CMAX
+                // 86.1% of scored cells are evaluated after bestsc last improved, so the waste is
+                // real, and the score's positional part does rise with iy.  A dominance bound was
+                // built on that -- exact, verified identical (prune on/off both 96,370 on P3) --
+                // and it fired zero times out of 112.9 M cells.  It cannot fire:
                 //
-                // and once that lower bound reaches bestsc no larger iy can win.  This is a
-                // dominance argument, not a heuristic: the chosen cell is identical.
+                //     positional range   pos_lam * bay height   ~= 0.1 * 23  =   2.3
+                //     contact range      con_w * ct             ~= 1.0 * 60  =  60
                 //
-                // It is a LOOP BOUND, not a per-cell test, so an instance where it never fires
-                // pays nothing -- which matters because the saving is density-dependent.  P3
-                // scores 52% of the cells it visits; a saturated instance rejects almost all of
-                // them before scoring and has little to skip.  Exact everywhere, useful here.
+                // The score is contact-DOMINATED by more than an order of magnitude, so a lower
+                // bound that only knows iy is always far below any bestsc a real cell produced.
+                // Tightening the contact bound does not help: even the footprint's perimeter,
+                // the tightest cheap bound available, is 26x the entire positional spread.  Any
+                // pruning here has to bound the CONTACT achievable at larger iy, which is not a
+                // function of iy at all.
                 //
-                // ENABLED ONLY WHERE THE BOUND IS PROVED.  lex_on uses a different scale
-                // entirely and the five span/shadow/hmatch terms are not shown to be
-                // non-negative, so any of them switches this off.  All are zero in every shipped
-                // axis; fut_beta is not, and it is safe because its term is >= 0 and therefore
-                // cannot pull a score below the bound.
-                // OGC_NOPRUNE=1 disables it, which is how identity is DEMONSTRATED rather than
-                // argued: the two arms must return the same objective on the same input.
-                static const bool _NOPRUNE=[](){const char*e=getenv("OGC_NOPRUNE");return e&&e[0]=='1';}();
-                const bool _prune_ok = !_NOPRUNE && !lex_on && span_lam<=0.0 && span2_lam<=0.0
-                                    && hmatch_lam<=0.0 && shadw_lam<=0.0 && shad_lam<=0.0
-                                    && pos_lam>0.0;
-                // upper bound on the contact term: contact cannot exceed the footprint's cell
-                // count, scaled by the largest cohort weight when weights are in use
-                double _ctmax=0.0;
-                if(_prune_ok){
-                    // FP has no cell count; its bounding box is a valid upper bound on
-                    // how many cells can be in contact, and a loose bound is still exact.
-                    double _cells=(double)std::max(1,fp.cw)*(double)std::max(1,fp.ch);
-                    double _wmax=1.0;
-                    if(COHORT_on() && !wgt.empty()){ for(double v:wgt) if(v>_wmax) _wmax=v; }
-                    _ctmax = _cells*_wmax*(use_ourscore()? 12.0/std::max(1.0,(od.x1-od.x0)+(od.y1-od.y0))
-                                                         : con_w);
-                }
-                const double _swy = use_ourscore()? pos_lam*1.4 : pos_lam*sw_y;
-                const double _swx = use_ourscore()? pos_lam*0.02 : pos_lam*sw_x;
+                // Recorded rather than deleted: the 86% is still the largest identified waste in
+                // the beam, and the next attempt should not re-derive this one.
                 auto try_cell=[&](int ix,int iy){
                     bool ok;
                     if(CBPROF_on()){
@@ -1282,21 +1261,7 @@ struct Engine {
                 }
                 const bool _fellback = (!usec || !any);
                 if(_fellback)
-                    for(int ix=lox;ix<=hix;ix+=step){
-                        for(int iy=loy;iy<=hiy;iy+=step){
-                            if(_prune_ok && bestsc<1e299){
-                                double lb = ((double)iy+od.y1)*_swy + (double)ix*_swx
-                                          + prefw*pen - _ctmax;
-                                if(lb >= bestsc){
-                                    if(CBPROF_on()){
-                                        #pragma omp atomic
-                                        cb_n_pruned += (double)((hiy-iy)/std::max(1,step)+1); }
-                                    break;
-                                }
-                            }
-                            try_cell(ix,iy);
-                        }
-                    }
+                    for(int ix=lox;ix<=hix;ix+=step)for(int iy=loy;iy<=hiy;iy+=step) try_cell(ix,iy);
                 if(CBPROF_on()){
                     #pragma omp atomic
                     cb_n_after += _since;

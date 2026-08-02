@@ -46,7 +46,7 @@ import utils                                             # noqa: E402
 FIELDS = ["cb_t_rebuild", "cb_t_scan", "cb_t_retry", "cb_t_roll", "cb_t_exact"]
 COUNTS = ["cb_n_scan", "cb_n_cell", "cb_n_ok", "cb_n_after", "cb_n_bitmap",
           "cb_n_exact", "cb_n_hard", "cb_n_corner", "cb_n_sweep", "cb_n_both",
-          "cb_n_retry", "cb_n_arskip", "cb_n_arbad", "cb_n_badrej"]
+          "cb_n_pruned", "cb_n_retry", "cb_n_arskip", "cb_n_arbad", "cb_n_badrej"]
 TOT = {k: 0.0 for k in FIELDS + COUNTS}
 BEAM = [0.0, 0]
 
@@ -108,6 +108,10 @@ if TOT["cb_n_cell"] > 0:
     print("  cells scored AFTER the best was found: %.0f of %.0f (%.1f%%) -- the early-exit prize"
           % (TOT["cb_n_after"], TOT["cb_n_ok"],
              100.0 * TOT["cb_n_after"] / max(1.0, TOT["cb_n_ok"])))
+if TOT["cb_n_pruned"] > 0 or TOT["cb_n_cell"] > 0:
+    _would = TOT["cb_n_cell"] + TOT["cb_n_pruned"]
+    print("  cells the early exit skipped: %.0f of %.0f that would have been visited (%.1f%%)"
+          % (TOT["cb_n_pruned"], _would, 100.0 * TOT["cb_n_pruned"] / max(1.0, _would)))
 _paths = TOT["cb_n_corner"] + TOT["cb_n_sweep"] + TOT["cb_n_both"]
 if _paths > 0:
     print("  candidate set per (block,bay,orient): corner only %.1f%%, full sweep %.1f%%,"
