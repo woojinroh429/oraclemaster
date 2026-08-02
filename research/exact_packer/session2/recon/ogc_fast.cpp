@@ -1035,6 +1035,46 @@ struct Engine {
                 int loy=(int)std::ceil(-od.y0),hiy=(int)std::floor(bh_j-od.y1);
                 bool any=false;
                 double _since=0.0;          // cells scored since bestsc last improved
+                // EARLY EXIT ON THE POSITION TERM.  Measured on P3: 51.1 M of 59.3 M scored
+                // cells -- 86.2% -- are evaluated AFTER bestsc last improved, i.e. spent proving
+                // a negative.  The score's positional part rises with iy, the contact part is
+                // bounded, and every optional term below is non-negative, so for a fixed ix
+                //
+                //     sc  >=  (iy+od.y1)*pos_lam*SWY + ix*pos_lam*SWX + prefw*pen - CMAX
+                //
+                // and once that lower bound reaches bestsc no larger iy can win.  This is a
+                // dominance argument, not a heuristic: the chosen cell is identical.
+                //
+                // It is a LOOP BOUND, not a per-cell test, so an instance where it never fires
+                // pays nothing -- which matters because the saving is density-dependent.  P3
+                // scores 52% of the cells it visits; a saturated instance rejects almost all of
+                // them before scoring and has little to skip.  Exact everywhere, useful here.
+                //
+                // ENABLED ONLY WHERE THE BOUND IS PROVED.  lex_on uses a different scale
+                // entirely and the five span/shadow/hmatch terms are not shown to be
+                // non-negative, so any of them switches this off.  All are zero in every shipped
+                // axis; fut_beta is not, and it is safe because its term is >= 0 and therefore
+                // cannot pull a score below the bound.
+                // OGC_NOPRUNE=1 disables it, which is how identity is DEMONSTRATED rather than
+                // argued: the two arms must return the same objective on the same input.
+                static const bool _NOPRUNE=[](){const char*e=getenv("OGC_NOPRUNE");return e&&e[0]=='1';}();
+                const bool _prune_ok = !_NOPRUNE && !lex_on && span_lam<=0.0 && span2_lam<=0.0
+                                    && hmatch_lam<=0.0 && shadw_lam<=0.0 && shad_lam<=0.0
+                                    && pos_lam>0.0;
+                // upper bound on the contact term: contact cannot exceed the footprint's cell
+                // count, scaled by the largest cohort weight when weights are in use
+                double _ctmax=0.0;
+                if(_prune_ok){
+                    // FP has no cell count; its bounding box is a valid upper bound on
+                    // how many cells can be in contact, and a loose bound is still exact.
+                    double _cells=(double)std::max(1,fp.cw)*(double)std::max(1,fp.ch);
+                    double _wmax=1.0;
+                    if(COHORT_on() && !wgt.empty()){ for(double v:wgt) if(v>_wmax) _wmax=v; }
+                    _ctmax = _cells*_wmax*(use_ourscore()? 12.0/std::max(1.0,(od.x1-od.x0)+(od.y1-od.y0))
+                                                         : con_w);
+                }
+                const double _swy = use_ourscore()? pos_lam*1.4 : pos_lam*sw_y;
+                const double _swx = use_ourscore()? pos_lam*0.02 : pos_lam*sw_x;
                 auto try_cell=[&](int ix,int iy){
                     bool ok;
                     if(CBPROF_on()){
@@ -1242,7 +1282,21 @@ struct Engine {
                 }
                 const bool _fellback = (!usec || !any);
                 if(_fellback)
-                    for(int ix=lox;ix<=hix;ix+=step)for(int iy=loy;iy<=hiy;iy+=step) try_cell(ix,iy);
+                    for(int ix=lox;ix<=hix;ix+=step){
+                        for(int iy=loy;iy<=hiy;iy+=step){
+                            if(_prune_ok && bestsc<1e299){
+                                double lb = ((double)iy+od.y1)*_swy + (double)ix*_swx
+                                          + prefw*pen - _ctmax;
+                                if(lb >= bestsc){
+                                    if(CBPROF_on()){
+                                        #pragma omp atomic
+                                        cb_n_pruned += (double)((hiy-iy)/std::max(1,step)+1); }
+                                    break;
+                                }
+                            }
+                            try_cell(ix,iy);
+                        }
+                    }
                 if(CBPROF_on()){
                     #pragma omp atomic
                     cb_n_after += _since;
@@ -1300,7 +1354,7 @@ struct Engine {
     // after the last improvement to bestsc, which is the size of the early-exit prize; cb_n_ok
     // counts cells that survive feasibility and get scored, which is the useful yield.
     double cb_n_scan=0.0, cb_n_corner=0.0, cb_n_sweep=0.0, cb_n_both=0.0;
-    double cb_n_after=0.0, cb_n_ok=0.0;
+    double cb_n_after=0.0, cb_n_ok=0.0, cb_n_pruned=0.0;
     double cb_ct_flat=0.0, cb_ct_lay=0.0, cb_ct_n=0.0;   // contact magnitude census
     // DEFAULT OFF until the soundness audit below passes: a hard reject that is wrong
     // silently removes legal placements from the search.
@@ -1491,6 +1545,7 @@ struct Engine {
         cb_n_cell=cb_n_bitmap=cb_n_exact=cb_t_exact=cb_n_hard=cb_n_badrej=0.0;
         cb_t_retry=cb_t_roll=cb_n_retry=0.0; cb_n_arskip=cb_n_arbad=0.0;
         cb_n_scan=cb_n_corner=cb_n_sweep=cb_n_both=cb_n_after=cb_n_ok=0.0;
+        cb_n_pruned=0.0;
         cb_ct_flat=cb_ct_lay=cb_ct_n=0.0;
         auto obj2f=[&](const std::vector<double>& loads){ double mn=1e18,mx=-1e18; for(int j=0;j<n_bays;j++){double v=u[j]*loads[j]; if(v<mn)mn=v; if(v>mx)mx=v;} return n_bays>1?(mx-mn):0.0; };
         // NOTE on ranking obj2.  Two attempts to make this a better search signal both
@@ -3297,6 +3352,7 @@ PYBIND11_MODULE(ogc_fast,m){
         .def_readonly("cb_n_both",&Engine::cb_n_both)
         .def_readonly("cb_n_after",&Engine::cb_n_after)
         .def_readonly("cb_n_ok",&Engine::cb_n_ok)
+        .def_readonly("cb_n_pruned",&Engine::cb_n_pruned)
         .def("contact_beam",&Engine::contact_beam,
              py::arg("order"),py::arg("areas"),py::arg("workloads"),py::arg("B"),py::arg("K"),
              py::arg("step"),py::arg("pos_lam"),py::arg("prefw"),py::arg("mu"),
