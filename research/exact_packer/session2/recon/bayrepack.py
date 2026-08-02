@@ -591,6 +591,7 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
         # the estimate has settled.
         _left = float(budget) - (time.time() - t0)
         _ask = max(1.0, _left / max(1.0, _RATIO[0]))
+        _cap = -1.0            # no cap on the forced path, which bypasses the chooser entirely
         if _tier >= 0 and _NCOL > 0.0:
             # A call costs BUILD + ASK and only the ask is ours to set, so SUBTRACT rather than
             # take a minimum.  The previous form was
@@ -632,9 +633,19 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
         r = CP.pack(blocks_in, W, H, STEP, _ask,
                     seed=12345 + 7919 * k, warm=warm or None, frozen=[],
                     weights=[float(x) for x in wts],
-                    total_s=(_cap if _tier >= 0 and _NCOL > 0.0 else -1.0))
+                    total_s=_cap)
         # the ratio is against what was ASKED, which is what the deflation has to undo
         _el = time.time() - _pt
+        # AN ABORTED BUILD IS NOT AN ANSWER.  cranepack now projects its own O(ncol^2) build
+        # from the rows it has finished and stops when the projection exceeds the cap, so a tier
+        # that cannot be afforded costs the fraction already spent instead of the whole overrun.
+        # The graph it leaves behind is missing edges, so any selection made over it could break
+        # the crane rule -- the result is discarded outright rather than verified and hoped for.
+        if len(r) > 9 and int(r[9]) == 1:
+            if os.environ.get("BRK_DEBUG") == "1":
+                print("    brk cost: BUILD ABORTED at %.1fs of a %.1fs cap (tier %d ncol~%.0f)"
+                      % (_el, _cap, _tier, _NCOL), flush=True)
+            return None
         _RATIO[0] = 0.5 * _RATIO[0] + 0.5 * (_el / max(1e-6, _ask))
         if os.environ.get("BRK_DEBUG") == "1":
             # A call is BUILD + SEARCH.  The search runs for as long as it is ASKED, which we

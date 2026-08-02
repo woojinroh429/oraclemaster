@@ -226,9 +226,36 @@ py::tuple pack(py::list blocks, double W, double H, int step,
     int ncol=(int)cols.size();
 
     // ---- pairwise conflict graph (only across different blocks) ----
+    // THE BUILD WATCHES ITS OWN CLOCK.  This loop is the reason every caller had to predict:
+    // it is O(ncol^2) and used to have no clock check at all, so an oversized pack could not be
+    // cut short, only declined in advance.  Prediction is a rate times ncol^2, and the rate is
+    // not a constant -- measured 6.25e-08 to 6.6e-08 at P3's 30k columns and 9.4e-08 to 1.4e-07
+    // at P6's 44k-62k, rising with size, which reads as cache behaviour.  One number is
+    // therefore always optimistic about the LARGEST tier, which is exactly the tier that can
+    // cost a run its deadline: on P6 it predicted 249 s for a build that took 544 s.
+    //
+    // A loop that measures itself needs no rate.  After k outer iterations the pairs visited
+    // are k*ncol - k*k/2 of a total ncol*ncol/2, so elapsed time scales to a projected total
+    // directly.  If that projection exceeds what is left, stop: the caller gets abort=1 and
+    // keeps what it had, which costs the fraction already spent instead of the whole overrun.
+    // Checked every 256 rows, so the clock read is amortised to nothing.
     std::vector<std::vector<int>> adj(ncol);
     long nedge=0;
+    bool aborted=false;
+    const double build_cap = (total_s > 0.0) ? total_s : -1.0;
+    const double total_pairs = 0.5*(double)ncol*(double)ncol;
     for(int a=0;a<ncol;a++){
+        if(build_cap > 0.0 && (a & 255) == 255){
+            double el = std::chrono::duration<double>(
+                            std::chrono::high_resolution_clock::now()-t0).count();
+            double done = (double)a*(double)ncol - 0.5*(double)a*(double)a;
+            if(done > 1.0){
+                double projected = el * total_pairs / done;
+                // leave room for the search: a build that would consume the entire cap has
+                // already lost, and finishing it only turns a cheap decline into a costly one.
+                if(projected > build_cap){ aborted=true; break; }
+            }
+        }
         const Col& ca=cols[a];
         for(int b=a+1;b<ncol;b++){
             const Col& cb=cols[b];
@@ -427,9 +454,9 @@ py::tuple pack(py::list blocks, double W, double H, int step,
     // now_s() runs from t1, i.e. AFTER the build, so a total deadline is just the total minus
     // what the build already spent.  Clamped at zero: an oversized tier returns the warm start
     // rather than borrowing time it does not have.
-    const double search_budget = (total_s > 0.0)
-        ? std::max(0.0, total_s - build_ms / 1000.0)
-        : time_budget_s;
+    const double search_budget = aborted ? 0.0
+        : ((total_s > 0.0) ? std::max(0.0, total_s - build_ms / 1000.0)
+                           : time_budget_s);
     int since_improve=0;
     // ensure we hold a working selection = current best (or a fresh greedy)
     auto load_best=[&](){ clear_all();
@@ -513,7 +540,7 @@ py::tuple pack(py::list blocks, double W, double H, int step,
     for(int b=0;b<nblk;b++) if(best_sel[b]>=0) warmcols.append(best_sel[b]);
 
     return py::make_tuple(best, placements, ncol, (long)nedge, build_ms, solve_ms,
-                          coldesc, edges, warmcols);
+                          coldesc, edges, warmcols, aborted ? 1 : 0);
 }
 
 // ================= C++ VLNS refiner (whole SLS loop in C++) =================
