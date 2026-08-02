@@ -20,3 +20,5 @@
     brk cost: ncol~23226 real_ncol=23819 build=6.4s ask=111.8s total=119.1s
     brk cost: tier 3 ncol~23226 real_ncol=23819 build=6.4s total=119.1s  -> rate 1.194e-08 s/col^2
     brk[pressure] tgt=0 res=52 outs=10 displaced b10 could not be rehomed in any other bay
+    brk: declined, smallest tier predicts 9s of 8s
+P5  P5 repeat r3   600s  obj=9138023     Z1=648.0    Z2=1732   Z3=3655.0    feas=y   ran 600s
