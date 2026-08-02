@@ -13,6 +13,7 @@
 #include <algorithm>
 #include <chrono>
 #include <cstdlib>
+#include <cstdio>
 namespace py = pybind11;
 typedef std::vector<std::pair<double,double>> Poly;
 
@@ -298,6 +299,7 @@ py::tuple pack(py::list blocks, double W, double H, int step,
         sblk[i]=c.block; sent[i]=c.entry; sext[i]=c.exit;
         sx0[i]=c.bx0; sy0[i]=c.by0; sx1[i]=c.bx1; sy1[i]=c.by1; }
 
+    // sized from the column count: enough slots that the offsets fit without filling it
     const double build_cap = (total_s > 0.0) ? total_s : -1.0;
     for(int i=0;i<ncol;i++){
         if(build_cap > 0.0 && (i & 255) == 255){
@@ -317,6 +319,18 @@ py::tuple pack(py::list blocks, double W, double H, int step,
             if(ax1<=sx0[j]||sx1[j]<=ax0||ay1<=sy0[j]||sy1[j]<=ay0) continue;
             if(aen>=sext[j]) continue;                           // the other half of co-presence
             const int bj=ord[j];
+            // NO CONFLICT MEMO.  The idea is sound and the reuse is real -- keyed on
+            // (block,orient) of each side, the relative offset and the sweep case, a P3 build
+            // measured 23,208,767 hits against 1,090,614 misses, 95.5% reuse, and the build fell
+            // from 33.8 s to 4.8 s.  But it also produced 18,789,671 edges where every other
+            // build produces 18,789,635.  Thirty-six edges in eighteen million: small enough to
+            // pass a casual look, and a different graph is a different problem.
+            //
+            // Widening the key ruled out the obvious cause -- blocks carry EIGHT orientations
+            // here, so block*8+orient aliased block N orient 7 with block N+1 orient 0 -- and the
+            // distinct-key count did not move, so that aliasing never actually occurred.  The
+            // real cause is still unexplained, and an optimisation whose disagreement I cannot
+            // explain does not ship, however good the number beside it.
             if(crane_conflict(cols[ai],cols[bj])){
                 adj[ai].push_back(bj); adj[bj].push_back(ai); nedge++;
             }
