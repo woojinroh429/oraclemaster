@@ -1,36 +1,25 @@
 BUILD INSTRUCTIONS
 ==================
 
-The algorithm is Python with two C++ extension modules.  Both extensions must be compiled
-before the algorithm is run; without them the entry point still returns a feasible solution,
-but a much worse one, because every hot loop lives in them.
+The two .so files in this zip are ALREADY COMPILED for the evaluation environment and no build
+step is required to run the algorithm.  They were built on Ubuntu 24.04 LTS with Python 3.12,
+matching the stated evaluation server, because the rules state that server-side compilation is
+not performed.  The .cpp sources are included so the binaries can be inspected and rebuilt.
 
-FILES
------
-    myalgorithm.py    entry point.  algorithm(prob_info, timelimit) -> operations dict
+CONTENTS
+--------
+    myalgorithm.py    entry point.  algorithm(prob_info, timelimit) -> solution dict
     bayrepack.py      the exact bay-repacking operator (pure Python; calls cranepack)
-    ogc_fast.cpp      construction engine (contact beam, rollouts, geometry)
-    cranepack.cpp     maximum-weight set packing over space-time columns
+    ogc_fast.cpython-312-x86_64-linux-gnu.so     construction engine, compiled
+    cranepack.cpython-312-x86_64-linux-gnu.so    set-packing solver, compiled
+    ogc_fast.cpp      source for the above
+    cranepack.cpp     source for the above
+    utils.py          unmodified copy of the provided module
 
-REQUIREMENTS
-------------
-    Python           3.10 or newer (developed and measured on 3.12)
-    C++ compiler     g++ with C++17 and OpenMP  (g++ 11 or newer)
-    pybind11         pip install pybind11
-
-    Python packages, all installed with pip:
-        pybind11        required, build-time
-        numpy           required
-        shapely         required
-        pyclipper       required
-        threadpoolctl   optional; pins BLAS-style pools to one thread inside workers
-        ortools         optional; enables the CP-SAT bay-reassignment operator.  The
-                        algorithm detects its absence and runs the other five operators.
-
-BUILD
------
-Run both commands in the directory holding the source files.  The resulting .so files must
-sit beside myalgorithm.py, which imports them by name.
+REBUILDING (only if the binaries need to be regenerated)
+-------------------------------------------------------
+Requires g++ with C++17 and OpenMP, and pybind11 (pip install pybind11).  Run in the directory
+holding the sources; the .so files must end up beside myalgorithm.py, which imports them by name.
 
     g++ -O3 -shared -std=c++17 -fPIC -fopenmp $(python3 -m pybind11 --includes) \
         ogc_fast.cpp  -o ogc_fast$(python3-config --extension-suffix)
@@ -38,30 +27,34 @@ sit beside myalgorithm.py, which imports them by name.
     g++ -O3 -shared -std=c++17 -fPIC -fopenmp $(python3 -m pybind11 --includes) \
         cranepack.cpp -o cranepack$(python3-config --extension-suffix)
 
-Each takes roughly 30-60 seconds.  -w may be added to silence warnings; no warning in either
-file affects correctness.
+Each takes roughly 30-60 seconds.  Without OpenMP, drop -fopenmp: the pragmas become no-ops and
+the code stays correct, losing only the parallel speedup inside the beam.
 
-If the evaluation environment lacks OpenMP, drop -fopenmp from both commands.  The code
-compiles and runs correctly without it -- the omp pragmas become no-ops -- and only loses the
-parallel speedup inside the beam.
+RUNTIME DEPENDENCIES
+--------------------
+Required, and all present in the provided conda environment:
 
-RUN
----
-    import myalgorithm
-    operations = myalgorithm.algorithm(prob_info, timelimit)
+    python 3.12, numpy, shapely
 
-prob_info is the problem dictionary as provided; timelimit is in seconds.  The function
-always returns a feasible solution and never raises: it establishes a cheap feasible schedule
-first and only replaces it with something that scores better under the official feasibility
-check.
+Optional.  Each is imported inside a try/except and its absence only disables one thing:
 
-The algorithm uses multiple processes, defaulting to min(8, cpu_count).  Set the environment
-variable WORKERS to override; WORKERS=1 makes it single-process.
+    ortools         enables the CP-SAT bay-reassignment operator; without it the other five
+                    operators run and the algorithm is unaffected otherwise
+    pyclipper       an alternative geometry path; shapely covers the same work without it
+    threadpoolctl   pins BLAS-style thread pools to one thread inside worker processes
 
-NOTES ON THE ENVIRONMENT
-------------------------
-No file is read or written at run time and no network access is used.  Nothing is cached
-between calls except in-process memoisation, so repeated calls in one process are safe.
+Nothing else is imported.  No file is read or written at run time, no network access is used,
+and no path outside the execution folder is touched.
 
-The algorithm honours the time limit it is given.  It reserves the last min(0.2*T, 40 s) for a
-final improvement pass, so it returns slightly before the limit rather than at it.
+BEHAVIOUR THE EVALUATOR MAY WANT TO RELY ON
+-------------------------------------------
+algorithm() always returns a feasible solution and does not raise.  It establishes a cheap
+feasible schedule first and only ever replaces it with a candidate that passes the provided
+check_feasibility(), so a failure in any later stage degrades the result rather than the run.
+
+It honours the time limit it is given and reserves the final min(0.2*T, 40 s) for an improvement
+pass, so it returns slightly before the limit rather than at it.
+
+It uses multiple processes, defaulting to min(8, cpu_count).  The evaluation server allows four
+cores, and the default therefore resolves to four there.  Set the environment variable WORKERS to
+override; WORKERS=1 makes it single-process.

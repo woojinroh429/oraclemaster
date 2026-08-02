@@ -6,7 +6,13 @@ import importlib
 mod = importlib.import_module(sys.argv[1])
 p = int(sys.argv[2]); T = float(sys.argv[3]); tag = sys.argv[4] if len(sys.argv) > 4 else ""
 here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-d = json.load(open(os.path.join(here, 'data/hidden/prob_%d.json' % p)))
+# data/hidden by default, so every existing harness and every log in results/ keeps its meaning.
+# --data <dir> points at the 40 training instances, which the technical report needs and which
+# had never been on disk in this container until they were supplied.
+_dd = 'data/hidden'
+if '--data' in sys.argv:
+    _dd = sys.argv[sys.argv.index('--data') + 1]
+d = json.load(open(os.path.join(here, _dd, 'prob_%d.json' % p)))
 t = time.time(); s = mod.algorithm(d, T); el = time.time() - t
 # Score with a fixed scorer, not the module under test.  The deployed build has no _total,
 # so a 900s P6 run finished and then threw the result away at the last line.
