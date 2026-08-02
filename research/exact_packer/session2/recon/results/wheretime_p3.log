@@ -1,0 +1,16 @@
+
+P3  240s budget, ONE worker   obj=92490  feas=True  wall=239.3s
+  component                                seconds    calls  % wall
+  contact_beam (construction)                105.1        7   43.9%
+  brk repack (whole operator)                 53.4        1   22.3%
+    ...cranepack search                       41.4        0   17.3%
+  regrow                                      35.4        1   14.8%
+  bay assign (CP-SAT)                         19.6        1    8.2%
+    ...cranepack build                        11.6        3    4.9%
+  check_feasibility (the real grader)          4.8       18    2.0%
+  _build_operations                            0.0       33    0.0%
+  balance                                      0.0        1    0.0%
+  _fast_obj (arithmetic screen)                0.0       33    0.0%
+
+  NOTE: components nest -- brk repack contains cranepack, and the operators contain
+  _total.  Read each line against the wall clock, not against each other.
