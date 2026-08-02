@@ -4,3 +4,5 @@ arm and tier table verified
 arm and tier table verified
 === STAGE 1  predictor gate 02:24:08
 === on_pred_p4_r1.log (pred P4 r1) 02:24:08
+P4  pred P4 r1     480s  obj=1781181     Z1=88.0     Z2=2561   Z3=3933.0    feas=y   ran 455s
+=== on_pred_p3_r1.log (pred P3 r1) 02:31:44
