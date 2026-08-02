@@ -1,0 +1,22 @@
+    brk calib: 358:2.43e-07 924:4.71e-08 -> rate 4.71e-08 at 924 cols, growth n^0.000
+    brk tier: room=92s rate=4.71e-08 -> tier 0 (step 4 nout 40 nent 6) ncol~30782 pred=44.7s  [hard=109 slice=40s]
+    brk calib: 360:2.35e-07 932:4.68e-08 -> rate 4.68e-08 at 932 cols, growth n^0.000
+    brk tier: room=89s rate=4.68e-08 -> tier 0 (step 4 nout 40 nent 6) ncol~30782 pred=44.3s  [hard=105 slice=40s]
+    brk calib: 348:2.81e-06 908:5.01e-08 -> rate 5.01e-08 at 908 cols, growth n^0.000
+    brk tier: room=88s rate=5.01e-08 -> tier 0 (step 4 nout 40 nent 6) ncol~30782 pred=47.5s  [hard=104 slice=40s]
+    brk calib: 356:9.48e-06 918:4.45e-08 -> rate 4.45e-08 at 918 cols, growth n^0.000
+    brk tier: room=87s rate=4.45e-08 -> tier 0 (step 4 nout 40 nent 6) ncol~30782 pred=42.2s  [hard=102 slice=40s]
+    brk: build refused at tier 0 (0.9s) -- stepping down to tier 1
+    brk cost: ncol~30782 real_ncol=30356 build=10.6s ask=92.4s total=111.6s
+    brk cost: tier 0 ncol~30782 real_ncol=30356 build=10.6s total=111.6s  -> rate 1.115e-08 s/col^2
+    brk cost: ncol~30782 real_ncol=30360 build=20.9s ask=89.2s total=108.0s
+    brk cost: tier 0 ncol~30782 real_ncol=30360 build=20.9s total=108.0s  -> rate 2.201e-08 s/col^2
+    brk cost: ncol~28768 real_ncol=28349 build=21.1s ask=86.9s total=103.3s
+    brk cost: tier 1 ncol~28768 real_ncol=28349 build=21.1s total=103.3s  -> rate 2.551e-08 s/col^2
+    brk cost: ncol~30782 real_ncol=30462 build=25.2s ask=88.5s total=107.0s
+    brk cost: tier 0 ncol~30782 real_ncol=30462 build=25.2s total=107.0s  -> rate 2.657e-08 s/col^2
+    brk[pressure] tgt=0 res=52 outs=18 displaced b187 could not be rehomed in any other bay
+    brk[pressure] tgt=0 res=54 outs=16 admitted 3, displaced 1, obj 91975 vs base 102580 -> KEEP
+    brk[pressure] tgt=0 res=53 outs=17 admitted 6, displaced 3, obj 84990 vs base 100935 -> KEEP
+    brk[pressure] tgt=0 res=54 outs=16 admitted 6, displaced 4, obj 83095 vs base 107195 -> KEEP
+P3  rel P3         240s  obj=80795       Z1=0.0      Z2=3469   Z3=423.0     feas=y   ran 239s

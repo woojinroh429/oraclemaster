@@ -454,15 +454,24 @@ py::tuple pack(py::list blocks, double W, double H, int step,
     ConflictMemo memo(22);
 
     const double build_cap = (total_s > 0.0) ? total_s : -1.0;
+    double _lastel=0.0; int _lasti=0;
     for(int i=0;i<ncol;i++){
         if(build_cap > 0.0 && (i & 255) == 255){
             double el = std::chrono::duration<double>(
                             std::chrono::high_resolution_clock::now()-tcols).count();
-            // rows, not pairs: with the break each row scans a similar time-window, so cost per
-            // row is roughly flat, while the old pair count assumed a triangle that no longer
-            // exists.  cols_s is added because the projection is about the WHOLE call.
-            double projected = cols_s + el * (double)ncol / (double)(i+1);
-            if(projected > build_cap){ aborted=true; break; }
+            // PROJECT FROM THE RECENT RATE, not the cumulative one.  Cost per row is NOT flat:
+            // the conflict memo is cold at the start and warm later, so the first rows pay for
+            // every polygon test and the rest mostly read a byte.  A cumulative average taken at
+            // row 255 therefore projects the whole build at the cold price -- measured on P3, it
+            // refused a tier 0 build after 0.9 s whose own predictor had costed it at 44.7 s
+            // against 92 s of room, which switched brk off exactly as the earlier bug did.
+            // The last chunk is the honest estimate of what the remaining rows will cost.
+            double dt = el - _lastel; double dr = (double)(i - _lasti);
+            _lastel = el; _lasti = i;
+            if(dr > 0.0){
+                double projected = cols_s + el + ((double)(ncol-1-i)) * (dt/dr);
+                if(projected > build_cap){ aborted=true; break; }
+            }
         }
         const int ai=ord[i], ab=sblk[i], aen=sent[i], aex=sext[i];
         const double ax0=sx0[i], ay0=sy0[i], ax1=sx1[i], ay1=sy1[i];
