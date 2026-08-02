@@ -4,3 +4,5 @@ P4  askcap P4      480s  obj=1981906     Z1=99.0     Z2=1627   Z3=4337.0    feas
 === ac_p5.log (askcap P5) 15:00:27
 P5  askcap P5      600s  obj=9044458     Z1=639.0    Z2=2487   Z3=3814.0    feas=y   ran 599s
 === ac_p3.log (askcap P3) 15:10:27
+P3  askcap P3      240s  obj=80795       Z1=0.0      Z2=3469   Z3=423.0     feas=y   ran 239s
+=== ac_p6.log (askcap P6) 15:14:27
