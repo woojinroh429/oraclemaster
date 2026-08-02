@@ -43,12 +43,19 @@ sys.path.insert(0, HERE)
 
 # (step, nout, nent, iterations).  Rising column counts and rising pass counts, so a
 # disagreement is caught at the cheapest size that can show it.
+# (step, nout, nent, iterations).  THE FIRST RUN OF THIS WAS TOO SMALL TO MEAN ANYTHING.
+# It capped at 20-200 passes and measured 0.02-0.27 s of solve, where a real call spends 30 s or
+# more -- about a hundredth of the work, at a size where setup dominates and even the SIGN is
+# noise.  Three of four cases came out slower and the only one above 1x was the one with the most
+# passes, which is the shape you get when the measurement is too small rather than when the
+# change is bad.
+#
+# Identity is already settled by that run (four cases, all IDENTICAL), so these are for TIME:
+# pass counts chosen so each arm spends seconds, not milliseconds.
 CASES = [
-    ("prob_3", 6, 10, 1, 20),
-    ("prob_3", 6, 10, 1, 200),
-    ("prob_3", 4, 20, 2, 60),
-    ("prob_3", 4, 40, 6, 60),
-    ("prob_6", 6, 10, 1, 40),
+    ("prob_3", 6, 10, 1, 20000),
+    ("prob_3", 4, 20, 2, 8000),
+    ("prob_3", 4, 40, 6, 8000),
 ]
 
 CHILD = r'''
