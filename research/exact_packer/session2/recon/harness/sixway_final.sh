@@ -76,3 +76,12 @@ run 2 120 "six P2"    "fx_p2.log"
 run 3 240 "six P3 r2" "fx_p3_r2.log"
 run 6 900 "six P6 slice-on" "fx_p6_slice.log" OGC_SLICEFIX=1
 echo "sixway done $(date -u +%H:%M:%S)"
+
+# P5 REPEAT.  fx_p5 came in at 9,224,860 against a 9,044,458 baseline -- 2.0% worse, and unlike
+# P6 there is no measured spread for P5 to absorb it.  The largest gap ever seen between two P5
+# runs is 73,474, so 180,402 is either a real regression or a variance nobody has measured.  Two
+# more samples decide which, and they are queued rather than run now because naming a cause
+# before the repeat is what produced two retractions today.
+run 5 600 "P5 repeat r2" "fx_p5_r2.log"
+run 5 600 "P5 repeat r3" "fx_p5_r3.log"
+echo "p5 repeats done $(date -u +%H:%M:%S)"
