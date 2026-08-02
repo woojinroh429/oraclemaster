@@ -437,7 +437,10 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
             # that follows runs for as long as it is asked.  A tier whose build alone fills the
             # budget leaves nothing to search with, which is a slow way of returning the warm
             # start.
-            _room = (float(hard) if hard is not None else SL) * 0.85
+            # The same cap the ask is subtracted from, for the same reason: a tier whose build
+            # alone exceeds the operator's share cannot be afforded no matter how much of the
+            # RUN is left, because the rest of the run belongs to the other operators.
+            _room = min(SL, (float(hard) if hard is not None else SL) * 0.85)
 
             def _ncol_est(_st, _no, _ne):
                 """Columns a tier would generate, per block, per orientation, per entry time.
@@ -589,15 +592,26 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
         _left = float(budget) - (time.time() - t0)
         _ask = max(1.0, _left / max(1.0, _RATIO[0]))
         if _tier >= 0 and _NCOL > 0.0:
-            # A call costs BUILD + ASK, and only the ask is ours to set.  The tier above was
-            # chosen so the predicted build leaves at least _MINASK inside the run's remaining
-            # time; spend exactly what it leaves.  Measured on P3: the same forced tier took
-            # 352.6 s when asked for 300 and 54.2 s when asked for 15 -- the difference is
-            # entirely the ask, which is why the old table's "80 s" was not wrong so much as
-            # incomplete.
-            _budleft = (float(hard) if hard is not None else SL) * 0.85 \
-                - _PAIRRATE[0] * _NCOL * _NCOL
-            _ask = max(_MINASK, min(_ask, _budleft))
+            # A call costs BUILD + ASK and only the ask is ours to set, so SUBTRACT rather than
+            # take a minimum.  The previous form was
+            #
+            #     _ask = max(_MINASK, min(_left / _RATIO, room - predicted_build))
+            #
+            # whose first term comes from the SLICE and is unrelated to room, so it passed
+            # straight through whenever it was the smaller of the two.  Traced on P6:
+            #
+            #     build 112.2 s + ask 171.8 s = 286.3 s     against a 172 s slice
+            #     build 213.3 s + ask 171.8 s = 386.0 s
+            #
+            # One call spending 2.2x its share, and the run finishing in 1014 s against a 900 s
+            # budget.  Subtracting from a cap that includes the build makes build + search <= cap
+            # structural instead of coincidental.
+            #
+            # The cap is the SLICE, not the run's remaining time.  hard is still respected as an
+            # upper bound -- a call late in the run must not overrun the run itself -- but the
+            # allocator's share is what stops one operator eating the others' budget.
+            _cap = min(SL, (float(hard) if hard is not None else SL) * 0.85)
+            _ask = max(_MINASK, _cap - _PAIRRATE[0] * _NCOL * _NCOL)
         _pt = time.time()
         r = CP.pack(blocks_in, W, H, STEP, _ask,
                     seed=12345 + 7919 * k, warm=warm or None, frozen=[],
