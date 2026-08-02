@@ -46,9 +46,9 @@ flock 9 || exit 1
 # the same flags as myalg_brk, differing only in OGC_WDIV.
 HALF='swy:1.0,1.0,0.01,0.01;swx:0.01,0.01,1.0,1.0'
 ALLX='swy:0.01;swx:1.0'
-OGC_DK=0 OGC_FASTOBJ=1 OGC_BRK=1 OGC_WDIV=myalg_swb \
+OGC_DK=0 OGC_FASTOBJ=1 OGC_BRK=1 OGC_WDIV="$HALF" \
     python3.12 harness/mkbase.py 0.3 myalg_swb.py 0 "" 0 1.0 "" 0 "" >/dev/null || exit 1
-OGC_DK=0 OGC_FASTOBJ=1 OGC_BRK=1 OGC_WDIV=myalg_swc \
+OGC_DK=0 OGC_FASTOBJ=1 OGC_BRK=1 OGC_WDIV="$ALLX" \
     python3.12 harness/mkbase.py 0.3 myalg_swc.py 0 "" 0 1.0 "" 0 "" >/dev/null || exit 1
 
 python3.12 -c "
