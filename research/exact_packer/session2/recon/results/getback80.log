@@ -1,3 +1,5 @@
 == rebuild cranepack (total_s) 05:35:15
 total_s wired; cap and tier chooser are both the run deadline
 === gb_p6.log (gb80 P6) 05:35:26
+P6  gb80 P6        900s  obj=30425588    Z1=4430.0   Z2=2091   Z3=5827.0    feas=y   ran 899s
+=== gb_p3_r1.log (gb80 P3 r1) 05:50:26
