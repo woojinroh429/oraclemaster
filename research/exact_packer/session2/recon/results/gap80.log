@@ -1,2 +1,14 @@
 BRK_NOSUB added
 === gap_a_r1.log (gap A nosub r1) 06:12:32
+P3  gap A nosub r1   240s  obj=80795       Z1=0.0      Z2=3469   Z3=423.0     feas=y   ran 239s
+=== gap_b_r1.log (gap B chooser r1) 06:16:31
+P3  gap B chooser r1   240s  obj=87990       Z1=0.0      Z2=3468   Z3=471.0     feas=y   ran 239s
+=== gap_c_r1.log (gap C forced r1) 06:20:31
+P3  gap C forced r1   240s  obj=80795       Z1=0.0      Z2=3469   Z3=423.0     feas=y   ran 239s
+=== gap_a_r2.log (gap A nosub r2) 06:24:31
+P3  gap A nosub r2   240s  obj=80795       Z1=0.0      Z2=3469   Z3=423.0     feas=y   ran 239s
+=== gap_b_r2.log (gap B chooser r2) 06:28:30
+P3  gap B chooser r2   240s  obj=87990       Z1=0.0      Z2=3468   Z3=471.0     feas=y   ran 239s
+=== gap_c_r2.log (gap C forced r2) 06:32:30
+P3  gap C forced r2   240s  obj=80795       Z1=0.0      Z2=3469   Z3=423.0     feas=y   ran 239s
+gap80 done 06:36:29
