@@ -243,6 +243,35 @@ s = s.replace(_o, """    n = len(prob_info["blocks"])
     t0 = time.time()
     for step, frac in ((1, 0.6), (2, 1.0)):""", 1)
 
+# OGC_SLICEFIX -- decide "starved" from what an operator DID, not from how it is registered.
+#
+#     elif ops[k][3]:
+#         if s is None:
+#             slot[k] = min(budget * 0.45, slot[k] * 1.3)
+#
+# Field 3 means "starves without budget", and for a beam that is true: handed too little time it
+# returns nothing and wants more.  brk carries the same flag, but its None almost always means a
+# displaced block could not be rehomed -- infeasible, not starved.  So FAILING grows its share,
+# to as much as 45% of the run, and P6 is where it fails most: on a 900 s run that is 405 s going
+# to an operator that just came back empty.
+#
+# The fix is not a per-operator exception.  It asks everyone the same question, from behaviour
+# rather than registration: an operator that SPENT its slice and returned nothing was starved;
+# one that returned nothing cheaply was exhausted and more time will not change that.  0.6
+# separates "most of it" from "a little of it" -- a shape, not a fitted value.
+#
+# Patched into `s`, which is myalg_a.py's source.  The first attempt looked for this anchor in
+# mkbase.py itself -- code that only exists in what mkbase PRODUCES -- found zero, and the
+# assertion stopped the queue rather than letting it run a silently unpatched arm.
+_SLA = "        elif ops[k][3]:\n            if s is None:"
+_SLB = ("        elif ops[k][3]:\n"
+        "            if s is None and (not _SLICEFIX or el >= 0.6 * slot[k]):")
+assert s.count(_SLA) == 1, "slice-growth site not found -- refusing to guess"
+s = s.replace(_SLA, _SLB, 1)
+_SLC = "    gain = [0.0] * len(ops); spent = [1e-6] * len(ops); tried = [0] * len(ops)"
+assert s.count(_SLC) == 1, "roster stats site not found -- refusing to guess"
+s = s.replace(_SLC, '    _SLICEFIX = os.environ.get("OGC_SLICEFIX") == "1"\n' + _SLC, 1)
+
 AXES = '''_AXES = [
     dict(Bmul=1.0, K=4, pos_lam=0.10, order="defer_big", fut_beta=1.0, prefw=0.0, w3mul=1.0, cohort=0.0),
     dict(Bmul=1.0, K=4, pos_lam=0.12, order="defer_big", fut_beta=1.0, prefw=0.0, w3mul=3.0, cohort=%(F)s),
