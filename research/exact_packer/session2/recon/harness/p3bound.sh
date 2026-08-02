@@ -38,7 +38,8 @@ for r in 1 2 3 4; do
     f="results/p3_nobound_r$r.log"
     [ -s "$f" ] && continue
     echo "=== P3 bound OFF r$r $(date -u +%H:%M:%S)"
-    OGC_NOPRUNE=1 BRK_DEBUG=1 timeout 1500 \
+    # bound-off is the DEFAULT now; OGC_NOPRUNE is no longer read by the engine
+    BRK_DEBUG=1 timeout 1500 \
         python3.12 harness/run1.py myalgorithm 3 240 "P3 nobound r$r" > "$f" 2>&1
     echo "    $(grep -h '^P3 ' "$f" | tail -1)"
     echo "    brk: $(grep -o 'obj [0-9]* vs base' "$f" | grep -o '[0-9]*' | sort -n | tr '\n' ' ')"

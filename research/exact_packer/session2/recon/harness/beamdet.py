@@ -104,8 +104,11 @@ if not os.path.exists(ARGF):
 
 src = REPLAY % (SO, HERE, SO, HERE, ARGF, HERE, PROB)
 rows = []
-for tag, np_ in (("no bound", "1"), ("bound", "0")):
-    out = sh(src, OGC_NOPRUNE=np_)
+# The switch flipped sense when the bound became default-OFF.  Updated here rather than left
+# alone: with the old name unread, BOTH arms would have run bound-off and the comparison would
+# have reported "identical" for the same empty reason the position bound once did.
+for tag, np_ in (("no bound", "0"), ("bound", "1")):
+    out = sh(src, OGC_PRUNE=np_)
     if out is None:
         print("P%d %s: replay failed" % (PROB, tag))
         raise SystemExit(1)

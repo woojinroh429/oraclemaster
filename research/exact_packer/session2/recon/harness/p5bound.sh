@@ -31,7 +31,8 @@ for r in 1 2 3; do
     f="results/p5_nobound_r$r.log"
     [ -s "$f" ] && continue
     echo "=== P5 bound OFF r$r $(date -u +%H:%M:%S)"
-    OGC_NOPRUNE=1 BRK_DEBUG=1 timeout 3300 \
+    # bound-off is the DEFAULT now; OGC_NOPRUNE is no longer read by the engine
+    BRK_DEBUG=1 timeout 3300 \
         python3.12 harness/run1.py myalgorithm 5 600 "P5 nobound r$r" > "$f" 2>&1
     tail -1 "$f"
     ( cd ../../.. && git add -f "research/exact_packer/session2/recon/$f" >/dev/null 2>&1 \

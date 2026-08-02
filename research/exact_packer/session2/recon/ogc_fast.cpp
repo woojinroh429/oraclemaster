@@ -1060,7 +1060,23 @@ struct Engine {
                 // lex_on is a different scale, and the span/shadow/hmatch terms are not shown to
                 // be non-negative.  fut_beta is allowed because its term is >= 0 and so cannot
                 // pull a score below the bound.
-                static const bool _NOPRUNE=[](){const char*e=getenv("OGC_NOPRUNE");return e&&e[0]=='1';}();
+                // DEFAULT OFF, and the reason is worth stating because it is not a defect in the
+                // bound.  The bound is exact (45.9M/11.6M/9.3M skipped cells, zero of them
+                // wrong), it does not change what a scan answers (identical placement digests),
+                // and it is 1.85x/1.66x/1.09x faster.  It still COSTS SCORE, because the
+                // operator loop is driven by a wall clock: a faster scan fits more calls into the
+                // same budget, which shifts the axis rotation, the pool contents and brk's seed
+                // counter, so brk is handed a different incumbent.  On P3 that destroys the
+                // construction of 83,095, and with it the 80,795 that had been reached in three
+                // runs out of four -- measured 80,795/80,795/80,795/92,460 with the bound off
+                // against 86,975/87,175 with it on.
+                //
+                // Priced per instance, which is how the competition scores: P3 loses 7.7%, P5
+                // gains 2.2%.  Turning it off is simply the better trade until the cause is
+                // fixed, and the cause is the wall clock, not this bound.  OGC_PRUNE=1 turns it
+                // back on for measurement; everything proved about it stays true.
+                static const bool _NOPRUNE=[](){const char*e=getenv("OGC_PRUNE");
+                                                return !(e&&e[0]=='1');}();
                 const double _swy = use_ourscore()? pos_lam*1.4 : pos_lam*sw_y;
                 const double _swx = use_ourscore()? pos_lam*0.02 : pos_lam*sw_x;
                 const double _ctcoef = use_ourscore()
