@@ -1972,7 +1972,16 @@ def algorithm(prob_info, timelimit=60):
     except Exception:
         nw = 4
     cwd = os.path.dirname(os.path.abspath(__file__))
-    reserve = max(2.0, min(0.20 * timelimit, 40.0))     # for the final polish
+    # RESERVE FOR THE FINAL POLISH, and it was too big.  _z3_improve returns immediately when it
+    # has nothing to do -- measured on the final-round practice set, four different rosters came
+    # back with the beam's solution untouched -- and whatever it does not spend is simply thrown
+    # away.  Runs finished 19% / 17% / 11% short of their 180 / 240 / 360 s budgets.
+    #
+    # The polish still gets everything that is left at the end, so shrinking the reserve does not
+    # starve it; it only stops the WORKER LOOP being cut short to fund time the polish will not
+    # use.  OGC_RESERVE overrides for the A/B.
+    _rv = os.environ.get("OGC_RESERVE")
+    reserve = (max(2.0, float(_rv)) if _rv else max(2.0, min(0.20 * timelimit, 40.0)))
     wbudget = max(4.0, timelimit - reserve - (time.time() - t0) - 1.0)
 
     best = (float("inf"), None)
