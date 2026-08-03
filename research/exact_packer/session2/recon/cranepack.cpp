@@ -257,18 +257,45 @@ struct Xorshift { uint64_t s;
 //
 // Open addressing, linear probing, one byte per key; past 70% full it stops inserting and the
 // caller simply computes, so a memo that runs out of room degrades into the original code.
+// SHARED ACROSS THREADS, AND IT HAS TO BE.  The memo is where the build's speed lives -- 95.5%
+// reuse on a P3 build, 33.8 s down to 4.8 s.  Giving each thread a private copy quartered that
+// reuse and gave the whole parallel build back: 19.4 s serial against 17.6 s on four cores, a
+// 1.10x that is the parallel win minus the memo loss.
+//
+// Sharing it naively is silently WRONG, not just racy.  This is open addressing: two threads
+// inserting DIFFERENT keys can both see the same empty slot, both write their key, and the loser
+// then returns a pointer into a slot the winner owns.  The loser writes its verdict there and the
+// winner reads it back later -- a wrong conflict answer, which is a wrong edge, which is a
+// different problem being solved.
+//
+// So a slot is claimed by CAS and only by CAS.  The thread whose exchange succeeds owns it;
+// everyone else re-reads and either matches the key or probes on.  Relaxed ordering is enough
+// because the value is a PURE FUNCTION of the key: two threads that race on the same key compute
+// the same verdict and write the same byte, so no ordering between key and value is needed.
 struct ConflictMemo {
-    std::vector<uint64_t> key; std::vector<int8_t> val;
-    uint64_t mask; size_t used, cap;
+    std::vector<std::atomic<uint64_t>> key;
+    std::vector<std::atomic<int8_t>> val;
+    uint64_t mask; std::atomic<size_t> used; size_t cap;
     explicit ConflictMemo(int bits)
-        : key(size_t(1)<<bits, ~0ull), val(size_t(1)<<bits, 0),
-          mask((size_t(1)<<bits)-1), used(0), cap(((size_t(1)<<bits)*7)/10) {}
-    inline int8_t* find(uint64_t k){
+        : key(size_t(1)<<bits), val(size_t(1)<<bits),
+          mask((size_t(1)<<bits)-1), used(0), cap(((size_t(1)<<bits)*7)/10) {
+        for(size_t i=0;i<key.size();i++){ key[i].store(~0ull, std::memory_order_relaxed);
+                                          val[i].store(0, std::memory_order_relaxed); }
+    }
+    inline std::atomic<int8_t>* find(uint64_t k){
         uint64_t h=k*0x9E3779B97F4A7C15ull; h^=h>>29;
         size_t i=(size_t)(h&mask);
         for(;;){
-            if(key[i]==k) return &val[i];
-            if(key[i]==~0ull){ if(used>=cap) return nullptr; key[i]=k; used++; return &val[i]; }
+            uint64_t cur=key[i].load(std::memory_order_relaxed);
+            if(cur==k) return &val[i];
+            if(cur==~0ull){
+                if(used.load(std::memory_order_relaxed)>=cap) return nullptr;
+                uint64_t exp=~0ull;
+                if(key[i].compare_exchange_strong(exp,k,std::memory_order_relaxed)){
+                    used.fetch_add(1,std::memory_order_relaxed); return &val[i];
+                }
+                continue;                      // lost the slot; re-read and probe on
+            }
             i=(i+1)&mask;
         }
     }
@@ -518,7 +545,6 @@ py::tuple pack(py::list blocks, double W, double H, int step,
 #ifdef _OPENMP
             tid = omp_get_thread_num();
 #endif
-            ConflictMemo tmemo(20);
             std::vector<std::pair<int,int>>& eb = tedge[tid];
             int since=0;
             #pragma omp for schedule(dynamic,32)
@@ -541,15 +567,15 @@ py::tuple pack(py::list blocks, double W, double H, int step,
                         | ((uint64_t)(CB.x-CA.x+2048)<<26)
                         | ((uint64_t)(CB.y-CA.y+2048)<<38)
                         | ((uint64_t)tcase<<50);
-                    int8_t* mv = NOMEMO ? nullptr : tmemo.find(mk);
-                    bool hit;
-                    if(mv && *mv) hit = (*mv==2);
+                    std::atomic<int8_t>* mv = NOMEMO ? nullptr : memo.find(mk);
+                    bool hit; int8_t cached = mv ? mv->load(std::memory_order_relaxed) : 0;
+                    if(cached) hit = (cached==2);
                     else {
                         hit = crane_conflict_rel(BL[CA.block][CA.orient], OLBB[CA.block][CA.orient],
                                                  BL[CB.block][CB.orient], OLBB[CB.block][CB.orient],
                                                  (double)(CB.x-CA.x), (double)(CB.y-CA.y),
                                                  CA.entry,CA.exit,CB.entry,CB.exit);
-                        if(mv) *mv = hit?2:1;
+                        if(mv) mv->store(hit?2:1, std::memory_order_relaxed);
                     }
                     if(hit) eb.push_back({ai,bj});
                 }
@@ -620,15 +646,15 @@ py::tuple pack(py::list blocks, double W, double H, int step,
                 | ((uint64_t)(CB.x-CA.x+2048)<<26)
                 | ((uint64_t)(CB.y-CA.y+2048)<<38)
                 | ((uint64_t)tcase<<50);
-            int8_t* mv = NOMEMO ? nullptr : memo.find(mk);
-            bool hit;
-            if(mv && *mv) hit = (*mv==2);
+            std::atomic<int8_t>* mv = NOMEMO ? nullptr : memo.find(mk);
+            bool hit; int8_t cached = mv ? mv->load(std::memory_order_relaxed) : 0;
+            if(cached) hit = (cached==2);
             else {
                 hit = crane_conflict_rel(BL[CA.block][CA.orient], OLBB[CA.block][CA.orient],
                                          BL[CB.block][CB.orient], OLBB[CB.block][CB.orient],
                                          (double)(CB.x-CA.x), (double)(CB.y-CA.y),
                                          CA.entry,CA.exit,CB.entry,CB.exit);
-                if(mv) *mv = hit?2:1;
+                if(mv) mv->store(hit?2:1, std::memory_order_relaxed);
             }
             if(hit){
                 adj[ai].push_back(bj); adj[bj].push_back(ai); nedge++;
