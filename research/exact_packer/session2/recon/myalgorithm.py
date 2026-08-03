@@ -775,6 +775,125 @@ def _w3mul_of(prob_info, base):
         return base
 
 
+def _bay_swap(prob_info, sol, budget):
+    """Exchange two blocks' bays -- the move class the portfolio does not have.
+
+    Every preference mechanism tried tonight failed the same way: 12 of the 20 blocks carrying
+    preference regret had "nowhere to go" in any better bay at any time.  That is exactly what a
+    SINGLE-block move reports when the bays are mutually blocked.  A block in bay 1 wanting bay 2
+    and a block in bay 2 wanting bay 1 are each immovable alone, because neither destination has
+    room -- and yet the swap is trivially feasible in space, since each vacates precisely what the
+    other needs.  `bal` already aims at the true objective, Z2 and Z3 together; what it cannot do
+    is move two things at once.
+
+    Pairs are formed between blocks whose residency windows OVERLAP, because that is when the
+    exchange is close to space-neutral, and are tried in order of the preference regret the swap
+    would remove.  Each is scored on the full weighted objective with the real checker: the crane
+    couples operations across a residency window, and two cheaper guards were already wrong once
+    tonight on the entry-pull operator.
+
+    Z2 is not a reason to refuse a swap.  Bounded across the final practice set, w2*Z2 cannot
+    reach w3*Z3 on ANY of the forty instances -- median 5% of it, worst case 77% -- so imbalance is
+    a term to sell.
+
+    REFUTED AND UNREGISTERED.  147 overlapping cross-bay pairs on stage-2 prob_1 carry a positive
+    preference gain, and not one swap survives.  Counting only who is present at the entry INSTANT,
+    37 of the top 60 pass the first leg; counting everyone whose WINDOW overlaps -- which is what
+    the crane requires -- only 23 do, so the loose check overstates by 60%.  Of those, none clears
+    the second leg once the first block is placed.
+
+    So the deadlock this was built for does not exist.  It is not "A blocks B and B blocks A" with
+    a swap waiting to be found; the destination bay simply has no room for the block's whole
+    residency.  That is the fourth mechanism tonight to reach the same conclusion, and this one
+    reaches it from the direction designed to disprove it.
+    """
+    try:
+        if not HAVE_OGC_FAST:
+            return None
+        B = prob_info["blocks"]; n = len(B)
+        ops = (sol or {}).get("operations", {})
+        ent = {}; ext = {}; bay = {}; ori = {}; px = {}; py = {}
+        for tstr, row in ops.items():
+            t = int(tstr)
+            for op in row:
+                b = op["block_id"]
+                if op["type"] == "ENTRY":
+                    ent[b] = t; bay[b] = op["bay_id"]; ori[b] = op["orient_idx"]
+                    px[b] = op["x"]; py[b] = op["y"]
+                else:
+                    ext[b] = t
+        if len(ent) != n or len(ext) != n:
+            return None
+        _c0 = check_feasibility(prob_info, sol)
+        if not _c0.get("feasible"):
+            return None
+        cur = float(_c0["objective"])
+
+        pref = [B[i]["bay_preferences"] for i in range(n)]
+        cand = []
+        for i in range(n):
+            gi = pref[i][bay[i]]
+            for j in range(i + 1, n):
+                if bay[i] == bay[j]:
+                    continue
+                if not (ent[i] < ext[j] and ent[j] < ext[i]):
+                    continue            # windows must overlap for the exchange to be neutral
+                gain = (pref[i][bay[j]] - gi) + (pref[j][bay[i]] - pref[j][bay[j]])
+                if gain > 0:
+                    cand.append((gain, i, j))
+        if not cand:
+            return None
+        cand.sort(reverse=True)
+
+        def snap():
+            return [{"block_id": b, "bay_id": int(bay[b]), "orient_idx": int(ori[b]),
+                     "x": int(round(px[b])), "y": int(round(py[b])),
+                     "entry_time": int(ent[b]), "exit_time": int(ext[b])} for b in range(n)]
+
+        E = _ogc_fast_engine(prob_info)
+        t_end = time.time() + max(0.5, float(budget))
+        moved = 0
+        for _, i, j in cand:
+            if time.time() > t_end:
+                break
+            bi, bj = bay[i], bay[j]
+            # each takes the other's bay; positions are re-scanned, not exchanged blindly
+            E.clear_all()
+            for k in range(n):
+                # WINDOW OVERLAP, not residency at the entry instant.  A block occupies
+                # [ent, ext) and the crane must clear everything that shares any part of that
+                # span; building the state from whoever happened to be present at ent[i] leaves
+                # out every block that enters later in the window, which is why 13 of the top 40
+                # pairs passed this scan and were then rejected by the real checker.
+                if k in (i, j):
+                    continue
+                if ent[k] < ext[i] and ent[i] < ext[k]:
+                    E.add(int(bay[k]), k, int(ori[k]), float(px[k]), float(py[k]),
+                          int(ent[k]), int(ext[k]))
+            ri = E.feasible_scan(i, [bj], ent[i], ext[i], 2)
+            if len(ri) == 0:
+                continue
+            vi = [int(z) for z in ri.reshape(-1)[:4]]
+            E.add(int(vi[0]), i, int(vi[1]), float(vi[2]), float(vi[3]), int(ent[i]), int(ext[i]))
+            rj = E.feasible_scan(j, [bi], ent[j], ext[j], 2)
+            if len(rj) == 0:
+                continue
+            vj = [int(z) for z in rj.reshape(-1)[:4]]
+            keep = (bay[i], ori[i], px[i], py[i], bay[j], ori[j], px[j], py[j])
+            bay[i], ori[i], px[i], py[i] = vi[0], vi[1], vi[2], vi[3]
+            bay[j], ori[j], px[j], py[j] = vj[0], vj[1], vj[2], vj[3]
+            chk = check_feasibility(prob_info, _build_operations(snap()))
+            if chk.get("feasible") and float(chk["objective"]) < cur - 1e-9:
+                cur = float(chk["objective"]); moved += 1
+            else:
+                (bay[i], ori[i], px[i], py[i], bay[j], ori[j], px[j], py[j]) = keep
+        if moved == 0:
+            return None
+        return _build_operations(snap())
+    except Exception:
+        return None
+
+
 def _pref_move(prob_info, sol, budget):
     """Move blocks to bays they actually prefer -- the operator the portfolio was missing.
 
