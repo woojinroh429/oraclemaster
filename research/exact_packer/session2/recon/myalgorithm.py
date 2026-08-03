@@ -1835,9 +1835,13 @@ def _worker(args):
     ops = [("beam", _fresh, False, True, 4.0),
            ("grow", _grow, True, True, 4.0),
            ("bal",  lambda t: _balance(prob_info, pool[0][1], t), True, False, 0.5),
-           ("pref", lambda t: _z3_improve(prob_info, pool[0][1], t), True, False, 0.5),
-           ("pull", lambda t: _pull_early(prob_info, pool[0][1], t), True, False, 0.5),
-           ("pmov", lambda t: _pref_move(prob_info, pool[0][1], t), True, False, 0.5)]
+           ("pref", lambda t: _z3_improve(prob_info, pool[0][1], t), True, False, 0.5)]
+    # pull / pmov / swap / cpas stay DEFINED and UNREGISTERED.  Each was measured: _pull_early
+    # bought 0.05% for 22 s, _pref_move fired on nothing, _bay_swap survived no candidate, and
+    # _cpassign was 34% worse.  Registered they still draw probe slices, and the roster ablation
+    # is contaminated by them -- prob_1 at 180 s reads 544,390 with them against 516,577 for the
+    # six-operator roster that was actually submitted.  Keep the code and the measurements; keep
+    # them out of the budget.
     # WHICH INCUMBENT brk GETS.  Every operator here is handed pool[0], the best-scoring
     # solution, and for the repair passes that is right: they are deterministic, so a second
     # look at the same input returns the same nothing.  brk is not.  It is a randomised local
