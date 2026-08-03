@@ -1,0 +1,8 @@
+    brk calib: 792:2.24e-07 1924:1.2e-08 -> rate 1.2e-08 at 1924 cols, growth n^0.000
+    brk tier: room=443s rate=1.2e-08 -> tier 3 (step 6 nout 10 nent 2) ncol~44996 pred=24.3s  [hard=522 slice=172s]
+    brk calib: 814:2.95e-07 1954:1.13e-08 -> rate 1.13e-08 at 1954 cols, growth n^0.000
+    brk tier: room=441s rate=1.13e-08 -> tier 3 (step 6 nout 10 nent 2) ncol~50044 pred=28.4s  [hard=518 slice=172s]
+    brk calib: 794:3.25e-07 1874:1.26e-08 -> rate 1.26e-08 at 1874 cols, growth n^0.000
+    brk tier: room=423s rate=1.26e-08 -> tier 3 (step 6 nout 10 nent 2) ncol~46306 pred=27.0s  [hard=497 slice=172s]
+    brk calib: 814:3.39e-07 1914:1.23e-08 -> rate 1.23e-08 at 1914 cols, growth n^0.000
+    brk tier: room=406s rate=1.23e-08 -> tier 3 (step 6 nout 10 nent 2) ncol~45258 pred=25.3s  [hard=478 slice=172s]

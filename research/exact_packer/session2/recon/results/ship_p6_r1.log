@@ -1,0 +1,26 @@
+    brk calib: 792:3.13e-07 1924:1.21e-08 -> rate 1.21e-08 at 1924 cols, growth n^0.000
+    brk tier: room=441s rate=1.21e-08 -> tier 3 (step 6 nout 10 nent 2) ncol~44996 pred=24.5s  [hard=519 slice=172s]
+    brk calib: 814:2.83e-07 1954:1.13e-08 -> rate 1.13e-08 at 1954 cols, growth n^0.000
+    brk tier: room=436s rate=1.13e-08 -> tier 3 (step 6 nout 10 nent 2) ncol~50044 pred=28.2s  [hard=513 slice=172s]
+    brk calib: 848:4.22e-07 1624:1.02e-08 -> rate 1.02e-08 at 1624 cols, growth n^0.000
+    brk tier: room=423s rate=1.02e-08 -> tier 2 (step 4 nout 20 nent 5) ncol~172610 pred=303.2s  [hard=498 slice=172s]
+    brk calib: 808:3.83e-07 1910:1.49e-08 -> rate 1.49e-08 at 1910 cols, growth n^0.000
+    brk tier: room=416s rate=1.49e-08 -> tier 3 (step 6 nout 10 nent 2) ncol~45972 pred=31.6s  [hard=490 slice=172s]
+    brk: build refused at tier 2 (48.3s) -- stepping down to tier 3
+    brk cost: ncol~44996 real_ncol=44458 build=68.6s ask=171.8s total=245.4s
+    brk cost: tier 3 ncol~44996 real_ncol=44458 build=68.6s total=245.4s  -> rate 3.388e-08 s/col^2
+    brk[pressure] tgt=2 res=91 outs=10 displaced b11 could not be rehomed in any other bay
+    brk cost: ncol~41990 real_ncol=41593 build=11.7s ask=171.8s total=184.0s
+    brk cost: tier 3 ncol~41990 real_ncol=41593 build=11.7s total=184.0s  -> rate 6.616e-09 s/col^2
+    brk[pressure] tgt=0 res=95 outs=10 displaced b9 could not be rehomed in any other bay
+    brk cost: ncol~45972 real_ncol=45885 build=86.7s ask=171.8s total=261.7s
+    brk cost: tier 3 ncol~45972 real_ncol=45885 build=86.7s total=261.7s  -> rate 4.101e-08 s/col^2
+    brk[pressure] tgt=2 res=95 outs=10 displaced b0 could not be rehomed in any other bay
+    brk cost: ncol~50044 real_ncol=49867 build=122.4s ask=171.8s total=298.0s
+    brk cost: tier 3 ncol~50044 real_ncol=49867 build=122.4s total=298.0s  -> rate 4.889e-08 s/col^2
+    brk[pressure] tgt=2 res=100 outs=10 displaced b4 could not be rehomed in any other bay
+    brk tier: room=17s rate=2.8e-08 -> tier 3 (step 6 nout 10 nent 2) ncol~20572 pred=6.3s  [hard=20 slice=19s]
+    brk cost: ncol~20572 real_ncol=20892 build=8.4s ask=19.0s total=17.6s
+    brk cost: tier 3 ncol~20572 real_ncol=20892 build=8.4s total=17.6s  -> rate 1.985e-08 s/col^2
+    brk[pressure] tgt=1 res=62 outs=10 displaced b0 could not be rehomed in any other bay
+P6  ship P6 r1     900s  obj=30111690    Z1=4392.0   Z2=1647   Z3=5447.0    feas=y   ran 899s
