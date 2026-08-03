@@ -517,6 +517,10 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
         # is taken the block is undervalued, which is conservative rather than wrong.
         _w1f = float(prob_info["weights"]["w1"]); _w3f = float(prob_info["weights"].get("w3", 0.0))
         _LATE = os.environ.get("OGC_LATEWIN", "1") != "0"
+        # OGC_WINW=0 sends the old per-block weights, so the two pricings can be paired against
+        # each other on the same engine.  Default on: it is the correct price, and cranepack is
+        # byte-identical when the argument is absent.
+        _WINW = os.environ.get("OGC_WINW", "1") != "0"
 
         def _late_by(b):
             if not _LATE or _w1f <= 0.0:
@@ -585,7 +589,25 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
         def _z3c(b, j):
             return w3 * (mxp[b] - pref[b][j])
 
+        # PRICE THE SEAT, NOT THE BLOCK.
+        #
+        # This used to discount the block's weight by the late window's tardiness, because
+        # cranepack indexed weights by BLOCK and could not tell one of its seats from another.
+        # That discount is wrong in both directions: the block is undervalued whenever it takes
+        # the on-time seat, and since the late window is offered at the break-even delay
+        # w3*regret/w1, the discount equals the whole gain -- the highest-regret blocks kept
+        # 0.0% of their value on prob_40 and 8.3% on prob_36 and hit the 1.0 floor, which is
+        # precisely the blocks the repack exists to move.
+        #
+        # cranepack now takes win_weights[i][k], the value of seating candidate i at its k-th
+        # offered window, so each seat carries its own price and nothing has to be discounted.
+        # The delta is exact: relative to where the block sits today, moving its entry to a
+        # window ending at `ex` changes tardiness by max(0, ex - due) - max(0, ext - due), and
+        # that is the only term in the objective an entry time can touch.  A window EARLIER than
+        # today's is priced above the base for the same reason, which the block-weighted version
+        # could not express either.
         wts = []
+        winw = []
         for i, b in enumerate(cand):
             fall = (min((j for j in range(m) if j != TGT),
                         key=lambda j: pref[b][TGT] - pref[b][j]) if isres[i] else cur[b])
@@ -594,8 +616,11 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
                 _w = max(1.0, obj_of(alt, ent, ext) - base)
             else:
                 _w = float(outs[i - len(res)][0])
-            # charge the late window, since the packer's weight cannot distinguish it
-            wts.append(max(1.0, _w - _w1f * _late_by(b)))
+            _t0 = max(0, ext[b] - due[b])
+            _row = [max(1.0, _w - _w1f * (max(0, _ex - due[b]) - _t0))
+                    for (_en, _ex) in blocks_in[i][2]]
+            winw.append(_row)
+            wts.append(max(1.0, max(_row)))       # the block's rank is its best seat
 
         warm = [(i, place[b][0], int(place[b][1]), int(place[b][2]))
                 for i, b in enumerate(cand) if isres[i]]
@@ -698,7 +723,8 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
             r = CP.pack(blocks_in, W, H, STEP, _ask,
                         seed=12345 + 7919 * k, warm=warm or None, frozen=[],
                         weights=[float(x) for x in wts],
-                        total_s=min(_cap, SL))
+                        total_s=min(_cap, SL),
+                        **({"win_weights": winw} if _WINW else {}))
             if not (len(r) > 9 and int(r[9]) == 1) or not _rest:
                 break
             _tier = _rest.pop(0)
@@ -714,6 +740,10 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
             blocks_in = [(_layers_bbox(B, _b)[0], _layers_bbox(B, _b)[1], windows(_b))
                          for _b in cand]
             wts = wts[:len(cand)]
+            # the coarser rung offers DIFFERENT windows, so the per-seat prices are stale
+            winw = [[max(1.0, wts[_i] - _w1f * (max(0, _ex - due[cand[_i]])
+                                                - max(0, ext[cand[_i]] - due[cand[_i]])))
+                     for (_en, _ex) in blocks_in[_i][2]] for _i in range(len(cand))]
             warm = [w for w in (warm or []) if w[0] < len(cand)]
             _NCOL = _ncol_est(STEP, NOUT, NENT)
         # the ratio is against what was ASKED, which is what the deflation has to undo
