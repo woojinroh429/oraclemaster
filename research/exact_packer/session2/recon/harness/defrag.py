@@ -77,9 +77,40 @@ delayed = sorted((b for b in range(n) if ent.get(b, 0) > rel[b]),
 tot_delay = sum(ent[b] - rel[b] for b in delayed)
 print("   delayed blocks %d/%d,  total entry delay %d days" % (len(delayed), n, tot_delay),
       flush=True)
-samp = delayed[:CAP]
-print("   examining the %d longest-delayed (%.0f%% of the delay)"
-      % (len(samp), 100.0 * sum(ent[b] - rel[b] for b in samp) / max(1, tot_delay)), flush=True)
+
+# SAMPLING.  Taking the longest-delayed first selects the blocks the yard refused for the
+# longest, which is the most adversarial sample there is -- a 0% off those says little about the
+# typical delayed block.  --pick random draws uniformly from all of them instead.
+PICK = sys.argv[sys.argv.index("--pick") + 1] if "--pick" in sys.argv else "long"
+if PICK == "random":
+    import random as _rnd
+    samp = _rnd.Random(20260803).sample(delayed, min(CAP, len(delayed)))
+else:
+    samp = delayed[:CAP]
+print("   examining %d blocks, %s (%.0f%% of the delay)"
+      % (len(samp), "drawn uniformly" if PICK == "random" else "the longest-delayed",
+         100.0 * sum(ent[b] - rel[b] for b in samp) / max(1, tot_delay)), flush=True)
+
+# HOW FULL IS THE YARD AT THE MOMENTS THAT DECIDE?  "The yard runs at 53.7%" is an average over
+# time, and admission is decided by the busiest instant of the block's own window.  If those two
+# numbers are far apart then the yard was never half empty when it mattered, and the whole
+# fragmentation story is answered before any packing is attempted.
+_AR, _bc, _sc = A._footprint_areas(prob)
+occ_at = []
+for b in samp:
+    en = rel[b]; ex = en + pt[b]
+    best = 0.0
+    for j in range(m):
+        area = float(prob["bays"][j]["width"]) * float(prob["bays"][j]["height"])
+        peak = 0.0
+        for t in range(en, max(en + 1, ex)):
+            u = sum(_AR[q] for q in range(n) if q in ent and bay[q] == j
+                    and ent[q] <= t < ext[q])
+            peak = max(peak, u)
+        best = max(best, 0.0) if area <= 0 else max(best, 1.0 - peak / area)
+    occ_at.append(best)
+print("   free area in the emptiest bay over the block's own window: median %.1f%%, max %.1f%%"
+      % (100.0 * sorted(occ_at)[len(occ_at) // 2], 100.0 * max(occ_at)), flush=True)
 
 E = A._ogc_fast_engine(prob)
 
