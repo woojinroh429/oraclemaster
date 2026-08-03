@@ -12,3 +12,10 @@
     brk cost: ncol~30782 real_ncol=30436 build=7.4s ask=39.8s total=47.9s
     brk cost: tier 0 ncol~30782 real_ncol=30436 build=7.4s total=47.9s  -> rate 7.862e-09 s/col^2
     brk[pressure] tgt=0 res=52 outs=18 admitted 5, displaced 2, obj 94345 vs base 110800 -> KEEP
+    brk cost: ncol~30782 real_ncol=30342 build=8.2s ask=39.8s total=48.2s
+    brk cost: tier 0 ncol~30782 real_ncol=30342 build=8.2s total=48.2s  -> rate 8.627e-09 s/col^2
+    brk[pressure] tgt=0 res=53 outs=17 admitted 5, displaced 2, obj 87410 vs base 96990 -> KEEP
+    brk cost: ncol~31394 real_ncol=30966 build=8.7s ask=39.8s total=48.9s
+    brk cost: tier 0 ncol~31394 real_ncol=30966 build=8.7s total=48.9s  -> rate 8.795e-09 s/col^2
+    brk[pressure] tgt=0 res=56 outs=16 displaced b190 could not be rehomed in any other bay
+P3  brkpool 0.0 r2   240s  obj=87410       Z1=0.0      Z2=3442   Z3=468.0     feas=y   ran 239s
