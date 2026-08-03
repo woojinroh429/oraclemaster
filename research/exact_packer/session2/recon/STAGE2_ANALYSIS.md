@@ -204,3 +204,22 @@ instance-specific gate, and the real defect is that it does not honour the slice
 **The weights are not being followed.** Where w3 = 600 against w2 = 3, preference is worth 200x
 imbalance per unit, and the algorithm still spreads for Z2. Nothing keys internal decisions to the
 instance's own w1/w2/w3 ratio.
+
+## Correction: the Z3 opening is real but far smaller than the area relaxation suggested
+
+"Everyone to their favourite bay fits at 0.20 / 0.45 / 0.57 of capacity" is an AREA relaxation.
+Asking the geometry instead:
+
+    blocks with any preference regret        20  (total regret 663)
+    of the worst 20, a feasible slot exists
+    in a strictly better bay                  8  (32%)
+
+So Z3 = 546 comes from twenty blocks, and twelve of them have nowhere to go in any better bay at
+any time near their entry. `_pref_move` tries all twenty in 0.2 s, finds those eight candidates,
+and the checker or the objective rejects every one.
+
+The 68%-of-objective figure was therefore an artefact of relaxing geometry away. The direction
+still holds -- trading Z1 and Z2 for Z3 pays where w3 dominates -- but post-hoc reassignment is
+not the mechanism: by the time the yard is packed, most preferred bays cannot accept the block.
+Preference has to be weighted during CONSTRUCTION, so the block is placed in the right bay while
+there is still room, rather than moved afterwards.

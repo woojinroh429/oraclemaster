@@ -610,6 +610,113 @@ def _z3_improve(prob_info, sol, budget):
         return None
 
 
+def _pref_move(prob_info, sol, budget):
+    """Move blocks to bays they actually prefer -- the operator the portfolio was missing.
+
+    Z3 is the sum over blocks of (best available preference - preference of the assigned bay), so
+    it is zero when every block sits in its favourite bay.  On the final-round practice instances
+    that is often reachable: sending every block to its single most-preferred bay loads the bays
+    of stage-2 prob_1 to 0.20 / 0.45 / 0.57 of capacity, everyone fits, and yet we produce Z3 =
+    536 -- 321,600 of a 470,530 objective at w3 = 600.
+
+    Nothing in the portfolio was aiming at it.  Measured by roster ablation on that instance,
+    `pref` (the C++ z3_reassign pass) changed nothing at all, and `bay` (CP-SAT reassignment) made
+    Z3 WORSE, 696 to 919, because it chases Z1 down and pays in preference.  The only arm that
+    improved Z3 did so as a side effect of load balancing.
+
+    The trade this exploits is instance-specific in the right way -- it reads the instance's own
+    weights rather than a threshold.  Where w3 = 600 against w2 = 3, one unit of preference is
+    worth two hundred units of imbalance, so giving up balance for preference is obviously right;
+    where the weights are reversed it is obviously wrong.  Nothing here decides that: acceptance
+    is on the full weighted objective, so the weights decide.
+
+    Blocks are tried worst-regret first.  For each, every strictly better bay is scanned over a
+    window around its current entry, and the first move the checker accepts AND that lowers the
+    objective is kept.  The real checker is used because the crane couples operations across the
+    whole residency window -- two cheaper guards were tried on the sibling entry-pull operator and
+    both were wrong.
+    """
+    try:
+        if not HAVE_OGC_FAST:
+            return None
+        ops = (sol or {}).get("operations", {})
+        n = len(prob_info["blocks"])
+        blocks = prob_info["blocks"]
+        ent = {}; ext = {}; bay = {}; xx = {}; yy = {}; oo = {}
+        for tstr, row in ops.items():
+            t = int(tstr)
+            for op in row:
+                b = op["block_id"]
+                if op["type"] == "ENTRY":
+                    ent[b] = t; bay[b] = op["bay_id"]; xx[b] = op["x"]; yy[b] = op["y"]
+                    oo[b] = op["orient_idx"]
+                else:
+                    ext[b] = t
+        if len(ent) != n or len(ext) != n:
+            return None
+
+        regret = []
+        for b in range(n):
+            pr = blocks[b]["bay_preferences"]
+            r = max(pr) - pr[int(bay[b])]
+            if r > 0:
+                regret.append((r, b))
+        if not regret:
+            return None
+        regret.sort(reverse=True)
+
+        def snapshot():
+            return [{"block_id": b, "bay_id": int(bay[b]), "orient_idx": int(oo[b]),
+                     "x": int(round(xx[b])), "y": int(round(yy[b])),
+                     "entry_time": int(ent[b]), "exit_time": int(ext[b])} for b in range(n)]
+
+        _c0 = check_feasibility(prob_info, sol)
+        if not _c0.get("feasible"):
+            return None
+        cur_obj = float(_c0["objective"])
+        E = _ogc_fast_engine(prob_info)
+        t_end = time.time() + max(0.5, float(budget))
+        moved = 0
+        for _, b in regret:
+            if time.time() > t_end:
+                break
+            pr = blocks[b]["bay_preferences"]
+            here = int(bay[b])
+            better = sorted((j for j in range(len(pr)) if pr[j] > pr[here]),
+                            key=lambda j: -pr[j])
+            R = int(blocks[b]["release_time"]); P = int(blocks[b]["processing_time"])
+            keep = (bay[b], oo[b], xx[b], yy[b], ent[b], ext[b])
+            done = False
+            for j in better:
+                if done or time.time() > t_end:
+                    break
+                # entering later can only cost Z1, so walk outwards from the current entry
+                for t in sorted(range(R, ent[b] + 1), key=lambda z: abs(z - ent[b])):
+                    if time.time() > t_end:
+                        break
+                    E.clear_all()
+                    for k in range(n):
+                        if k != b and ent[k] <= t < ext[k]:
+                            E.add(int(bay[k]), k, int(oo[k]), float(xx[k]), float(yy[k]),
+                                  int(ent[k]), int(ext[k]))
+                    r = E.feasible_scan(b, [j], t, t + P, 2)
+                    if len(r) == 0:
+                        continue
+                    v = [int(z) for z in r.reshape(-1)[:4]]
+                    bay[b], oo[b], xx[b], yy[b] = v[0], v[1], v[2], v[3]
+                    ent[b] = t; ext[b] = t + P
+                    chk = check_feasibility(prob_info, _build_operations(snapshot()))
+                    if chk.get("feasible") and float(chk["objective"]) < cur_obj - 1e-9:
+                        cur_obj = float(chk["objective"]); moved += 1; done = True
+                        break
+                    bay[b], oo[b], xx[b], yy[b], ent[b], ext[b] = keep
+        if moved == 0:
+            return None
+        return _build_operations(snapshot())
+    except Exception:
+        return None
+
+
 def _pull_early(prob_info, sol, budget):
     """Move tardy blocks' ENTRY earlier -- the only operator that attacks Z1 directly.
 
@@ -1422,7 +1529,8 @@ def _worker(args):
            ("grow", _grow, True, True, 4.0),
            ("bal",  lambda t: _balance(prob_info, pool[0][1], t), True, False, 0.5),
            ("pref", lambda t: _z3_improve(prob_info, pool[0][1], t), True, False, 0.5),
-           ("pull", lambda t: _pull_early(prob_info, pool[0][1], t), True, False, 0.5)]
+           ("pull", lambda t: _pull_early(prob_info, pool[0][1], t), True, False, 0.5),
+           ("pmov", lambda t: _pref_move(prob_info, pool[0][1], t), True, False, 0.5)]
     # WHICH INCUMBENT brk GETS.  Every operator here is handed pool[0], the best-scoring
     # solution, and for the repair passes that is right: they are deterministic, so a second
     # look at the same input returns the same nothing.  brk is not.  It is a randomised local
