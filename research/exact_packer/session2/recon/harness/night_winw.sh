@@ -29,7 +29,13 @@ run () {   # key prob arm-env...
   env "$@" /usr/bin/python3.12 harness/run1.py myalgorithm "$p" 180 "[$key]" \
       --data data/stage2 >> $L 2>&1
 }
-for p in 40 26 3 4 13 36 18 27 24 15 17 9; do
+# EXTENDED TO ALL FORTY.  The twelve where the trade is available gave new 8 better /
+# 2 worse / 2 identical against base -- p about 0.055 on a sign test, suggestive and
+# short of a verdict.  The other twenty-eight also answer a second question the first
+# twelve cannot: whether per-seat pricing COSTS anything where the trade is not
+# available, which is what decides if it ships as a default.
+for p in 40 26 3 4 13 36 18 27 24 15 17 9 \
+         1 2 5 6 7 8 10 11 14 16 19 20 21 22 23 25 28 29 30 31 32 33 34 35 37 38 39; do
   run "base.$p" $p OGC_LATEWIN=0
   run "old.$p"  $p OGC_LATEWIN=1 OGC_WINW=0
   run "new.$p"  $p OGC_LATEWIN=1 OGC_WINW=1
