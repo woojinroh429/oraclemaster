@@ -610,6 +610,125 @@ def _z3_improve(prob_info, sol, budget):
         return None
 
 
+def _cpassign(prob_info, budget):
+    """Decide EVERY block's bay at once with CP-SAT, then let the beam realise it geometrically.
+
+    Both attempts at preference so far failed the same way.  Weighting preference harder in the
+    beam made two instances of three worse, and moving blocks afterwards found no slot for 12 of
+    the 20 blocks that wanted one.  The reason is the same in both: blocks are placed one at a
+    time, each wanting its own favourite bay, and whoever arrives first takes the room.  That is
+    not something a per-block weight can fix, because the conflict is between blocks.
+
+    So decide the assignment jointly.  Minimise the objective's own preference term plus its own
+    imbalance term, subject to each bay's space-time capacity -- geometry relaxed to area, which
+    is what makes it a fast integer program rather than the original problem.  The result is
+    handed to the beam as an anchor, so the beam still decides positions, orientations and times
+    and still has to make it feasible; the schedule is never taken on trust.
+
+    Capacity uses layer-0 polygon area times processing time against bay area times horizon, and
+    is deliberately loose (a slack multiplier), because a relaxation that forbids what the packer
+    could actually manage would hand over an anchor worse than the beam's own routing.
+
+    REFUTED AND UNREGISTERED.  Measured at 90 s against the best roster on three instances:
+
+        prob_1        529,770 ->    711,554    +34%
+        prob_24     2,834,203 ->  3,808,723    +34%
+        prob_26    27,393,964 -> 36,791,359    +34%
+
+    Uniformly worse, and worse in the term it was built to improve: prob_1's Z3 went 546 to 969
+    and prob_26's 11,422 to 13,884.  CP-SAT returns an assignment that minimises preference regret
+    under an AREA relaxation, and the beam cannot realise it -- blocks are pushed out of their
+    assigned bays during placement and end up worse off than under the beam's own routing.  The
+    area fits; the crane refuses it.  That is the third mechanism tonight to fail at exactly this
+    point, after weighting preference in the beam and moving blocks afterwards.
+
+    Two unit bugs found on the way, both of which returned None silently rather than failing
+    loudly: _footprint_areas gives rasterised grid cells, ~8x the polygon area, which made
+    demand/capacity 3.62 on an instance whose real ratio is 0.46 so every model was INFEASIBLE;
+    and a CP-SAT expression does not support `expr * k // s`.
+
+    Kept unregistered so the next attempt starts from the measurement rather than the idea.  What
+    it would take to work is a capacity model the packer actually honours -- area is not it.
+    """
+    try:
+        if not HAVE_ORTOOLS:
+            return None
+        from ortools.sat.python import cp_model
+        BL = prob_info["blocks"]; bays = prob_info["bays"]
+        n = len(BL); m = len(bays)
+        if m < 2:
+            return None
+        w = prob_info["weights"]
+        w2 = float(w.get("w2", 0)); w3 = float(w.get("w3", 0))
+        hor = max(int(b["due_date"]) for b in BL)
+        # AREA FROM THE LAYER-0 POLYGON, in the same units as the bay rectangles.
+        # _footprint_areas returns rasterised grid cells, which are ~8x larger here; using them
+        # against W*H*horizon made demand/capacity 3.62 on an instance whose real ratio is 0.46,
+        # so every model was INFEASIBLE and the operator silently returned None.
+        dem = []
+        for i in range(n):
+            L = BL[i]["shape"][0]["layers"][0]
+            a = abs(_Poly(L).area) if len(L) >= 3 else 1.0
+            dem.append(max(1, int(round(a * float(BL[i]["processing_time"])))))
+        capacity = [int(bays[j]["width"] * bays[j]["height"] * hor) for j in range(m)]
+        wl = [int(round(float(BL[i].get("workload", dem[i])))) for i in range(n)]
+
+        md = cp_model.CpModel()
+        x = [[md.NewBoolVar("x%d_%d" % (i, j)) for j in range(m)] for i in range(n)]
+        for i in range(n):
+            md.AddExactlyOne(x[i])
+        # space-time capacity, with slack: the packer does better than pure area accounting
+        SL = float(os.environ.get("OGC_CPSLACK", "1.15"))
+        for j in range(m):
+            md.Add(sum(dem[i] * x[i][j] for i in range(n)) <= int(capacity[j] * SL))
+        # the objective's own preference term
+        reg = []
+        for i in range(n):
+            pr = BL[i]["bay_preferences"]; mx = max(pr)
+            for j in range(m):
+                if mx - pr[j] > 0:
+                    reg.append(int(mx - pr[j]) * x[i][j])
+        # the objective's own imbalance term: spread of normalised bay workload
+        tot = sum(wl) or 1
+        u = [float(sum(bb["width"] * bb["height"] for bb in bays)) / m
+             / max(1.0, bays[j]["width"] * bays[j]["height"]) for j in range(m)]
+        SC = 1000
+        loads = []
+        for j in range(m):
+            lj = md.NewIntVar(0, SC * 10, "L%d" % j)
+            md.Add(lj == sum(int(round(wl[i] * u[j] * SC / tot)) * x[i][j] for i in range(n)))
+            loads.append(lj)
+        hi = md.NewIntVar(0, SC * 10, "hi"); lo = md.NewIntVar(0, SC * 10, "lo")
+        md.AddMaxEquality(hi, loads); md.AddMinEquality(lo, loads)
+        # fold the scaling into an integer COEFFICIENT: (hi - lo) is a CP-SAT expression and
+        # `expr * tot // SC` is not defined on one.
+        _c2 = max(0, int(max(1.0, w2) * tot // SC))
+        md.Minimize(int(w3) * sum(reg) + _c2 * (hi - lo))
+
+        sv = cp_model.CpSolver()
+        sv.parameters.max_time_in_seconds = max(1.0, float(budget) * 0.35)
+        sv.parameters.num_search_workers = 1
+        if sv.Solve(md) not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
+            return None
+        ab = [0] * n
+        for i in range(n):
+            for j in range(m):
+                if sv.Value(x[i][j]):
+                    ab[i] = j; break
+        # dispatch order stays release-then-due; the anchor is about WHERE, not when
+        ao = sorted(range(n), key=lambda i: (int(BL[i]["release_time"]), int(BL[i]["due_date"]), i))
+        left = max(1.0, float(budget) - sv.WallTime())
+        cfg = _AXES[0]
+        r = _contact_beam(prob_info, left, B=_beam_width(cfg["Bmul"]), K=cfg["K"],
+                          pos_lam=cfg["pos_lam"], order=cfg["order"], fut_beta=cfg["fut_beta"],
+                          prefw=cfg["prefw"], w3mul=cfg["w3mul"],
+                          anchor_bays=ab, anchor_order=ao, stay_w=0.0,
+                          cohort=cfg.get("cohort", 0.0))
+        return _recs_to_ops(r, n) if r else None
+    except Exception:
+        return None
+
+
 def _w3mul_of(prob_info, base):
     """Scale the beam's preference routing by the instance's OWN weight ratio.
 
