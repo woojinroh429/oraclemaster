@@ -112,7 +112,19 @@ _RATIO = [1.0]
 # fractions below are a ladder SHAPE (full, half, third, sixth); the absolute numbers come from
 # the instance.  On P3 they reproduce 6/3/2/1 exactly, which is the check that this changes
 # nothing where the old table was right.
+# OGC_TIERS overrides the NOUT column of the ladder, and it has to be done HERE rather than
+# through BRK_NOUT.  Setting BRK_NOUT does not adjust the ladder: it takes the forced path, which
+# bypasses the tier chooser AND sets _cap to -1, i.e. no time bound at all.  A sweep over it
+# therefore measures an unbounded run, not a wider candidate list -- both arms timed out.
+# (Fourth environment knob today that did something other than what its name suggests.)
 _TIERS = [(4, 40, 1.0), (4, 40, 0.5), (4, 20, 1.0 / 3.0), (6, 10, 1.0 / 6.0)]
+_TN = os.environ.get("OGC_TIERNOUT")
+if _TN:
+    try:
+        _f = float(_TN)
+        _TIERS = [(_s, max(1, int(round(_n * _f))), _e) for (_s, _n, _e) in _TIERS]
+    except Exception:
+        pass
 # SECONDS PER SQUARED COLUMN.  The tier costs above were measured on P3 and do not transfer:
 # the same table sent a P4 run 240 seconds past a 480-second budget, which at the grader's hard
 # limit is a missing answer rather than a worse one.
