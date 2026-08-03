@@ -309,9 +309,12 @@ $+$ contact bound enabled (\emph{not shipped})              & 86\,975 & 29\,566\
 
 Two cautions belong with these numbers rather than after them. Run-to-run spread on the densest
 instance is approximately $112\,000$ on unchanged code, so differences smaller than that are
-noise. On the sparsest instance the reported objective is a minimum over the repacking operator's
-independent attempts within a run, and we therefore quote the reproducible value---reached in
-three runs of four---rather than a single sample.
+noise. The sparsest instance is not stable at all, and we prefer to say so: its reported objective
+is the minimum over the repacking operator's independent attempts within a run, that operator's
+improvement varies from $6\,590$ to $31\,315$ depending on which incumbent it is handed, and the
+best value we quote was reached in four runs of seven on unchanged code. It is a mode of the
+distribution rather than a reproducible figure, and treating it as reproducible is precisely the
+error that a single lucky run invites.
 
 \paragraph{Speed, measured at identical work.}
 A fixed-time A/B cannot evaluate an accelerated search, because both arms consume the same budget
