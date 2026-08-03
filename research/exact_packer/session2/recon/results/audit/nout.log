@@ -1,2 +1,4 @@
 prob_13  NOUT=default  P13 nout           180s  obj=78401910    Z1=10848.0  Z2=1494   Z3=7596.0    feas=y   ran 166s
-prob_13  NOUT=80       prob_13  NOUT=120      
+prob_13  NOUT=80       prob_13  NOUT=120      prob_26  NOUT=default  P26 nout           180s  obj=27282253    Z1=2758.0   Z2=6667   Z3=11110.0   feas=y   ran 152s
+prob_26  NOUT=80       P26 nout           180s  obj=27179788    Z1=2763.0   Z2=10067  Z3=10936.0   feas=y   ran 606s
+prob_26  NOUT=120      
