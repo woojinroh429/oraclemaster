@@ -46,7 +46,7 @@ import utils                                             # noqa: E402
 FIELDS = ["cb_t_rebuild", "cb_t_scan", "cb_t_retry", "cb_t_roll", "cb_t_exact"]
 COUNTS = ["cb_n_scan", "cb_n_cell", "cb_n_ok", "cb_n_after", "cb_n_bitmap",
           "cb_n_exact", "cb_n_hard", "cb_n_corner", "cb_n_sweep", "cb_n_both",
-          "cb_n_pruned", "cb_n_retry", "cb_n_arskip", "cb_n_arbad", "cb_n_badrej"]
+          "cb_n_pruned", "cb_n_dedup", "cb_n_retry", "cb_n_arskip", "cb_n_arbad", "cb_n_badrej"]
 TOT = {k: 0.0 for k in FIELDS + COUNTS}
 BEAM = [0.0, 0]
 
