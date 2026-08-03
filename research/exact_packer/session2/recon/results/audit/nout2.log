@@ -7,3 +7,7 @@ prob_26  tiernout x3  P26 t              180s  obj=27414944    Z1=2745.0   Z2=84
 prob_36  tiernout x1  P36 t              180s  obj=89031657    Z1=12627.0  Z2=4248   Z3=6054.0    feas=y   ran 168s
 prob_36  tiernout x2  P36 t              180s  obj=88426584    Z1=12538.0  Z2=2138   Z3=6042.0    feas=y   ran 167s
 prob_36  tiernout x3  P36 t              180s  obj=87757038    Z1=12401.0  Z2=5971   Z3=6342.0    feas=y   ran 172s
+prob_1  tiernout x1  P1  t              180s  obj=602372      Z1=8.0      Z2=3812   Z3=896.0     feas=y   ran 145s
+prob_1  tiernout x2  P1  t              180s  obj=602372      Z1=8.0      Z2=3812   Z3=896.0     feas=y   ran 145s
+prob_1  tiernout x3  P1  t              180s  obj=529770      Z1=27.0     Z2=7387   Z3=546.0     feas=y   ran 145s
+TIERDONE

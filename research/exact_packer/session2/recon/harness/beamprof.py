@@ -81,7 +81,12 @@ class Proxy(object):
 _factory = A._ogc_fast_engine
 A._ogc_fast_engine = lambda prob: Proxy(_factory(prob))
 
-d = json.load(open(os.path.join(HERE, "data/hidden/prob_%d.json" % PROB)))
+# --data <dir> so the final-round practice instances can be profiled; the preliminary
+# hidden set stays the default, which keeps every earlier log in this directory readable.
+_DD = "data/hidden"
+if "--data" in sys.argv:
+    _DD = sys.argv[sys.argv.index("--data") + 1]
+d = json.load(open(os.path.join(HERE, _DD, "prob_%d.json" % PROB)))
 t0 = time.time()
 sol = A.algorithm(d, SECS)
 wall = time.time() - t0
