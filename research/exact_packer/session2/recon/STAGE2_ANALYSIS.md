@@ -121,3 +121,45 @@ how well the yard is packed and scheduled, which is the opposite of a set where 
 equally stuck.
 
 Measured evidence that the headroom is real: on prob_26 the bound is 230 and we produced 2,682.
+
+## Where the tardiness actually comes from
+
+Decomposing one real solution (prob_26, 120 s, 300 blocks, Z1 = 2,710):
+
+    late blocks                       201 of 300 (67%)
+    entry delay (entry - release)     mean 10.6, median 5, max 58; 28% enter at release
+    slack (due - release - proc)      mean 1.9, median 2
+    overstay (exit - entry - proc)    mean 0, max 0, total 0
+
+Two things follow immediately. Slack is tiny, so a three-day delay already makes a block late --
+the instance is extremely sensitive to entry delay. And overstay is exactly zero everywhere, so
+the "a block may stay longer than needed" freedom is already fully exploited and there is nothing
+to win there. Since T_i = max(0, (ENTRY_i - R_i) - S_i), **Z1 is entirely an entry-delay problem**.
+
+### The yard is not full while blocks wait
+
+    peak utilisation                                   66.9%
+    mean utilisation while at least one block waits    53.7%
+    days with someone waiting and utilisation < 70%    62 of 62
+
+Blocks wait an average of 10.6 days in a yard that is about half empty. We are not capacity-bound.
+
+### Search loss versus structural blocking
+
+For 150 blocks that waited, we rebuilt the bay state on their release day from the actual
+residents and asked the engine's own feasibility scan whether they could have entered:
+
+    a legal placement existed      54  (36%)   -- the search simply did not take it
+    nothing fitted anywhere        96  (64%)   -- fragmentation or blocked crane descent
+
+This splits the problem in two, and the halves need opposite treatments.
+
+**The 64% is not a search problem.** Half the yard is free and nothing can be lowered into it.
+GRASP, BRKGA or any other metaheuristic searches harder over the same placement rule, and it is
+the rule that leaves the space unusable. Fixing this means changing the placement objective from
+"pack tightly" to "preserve descent access for what comes later".
+
+**The 36% is recoverable now**, and not because the search is weak: no operator in the portfolio
+ever tries to move an entry earlier. Balance targets Z2, preference targets Z3, repacking rebuilds
+one bay, and the beam only decides entries once, during construction. Nothing attacks entry delay
+directly, which is the one quantity Z1 is made of.
