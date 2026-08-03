@@ -719,6 +719,7 @@ def _cpassign(prob_info, budget):
         ao = sorted(range(n), key=lambda i: (int(BL[i]["release_time"]), int(BL[i]["due_date"]), i))
         left = max(1.0, float(budget) - sv.WallTime())
         cfg = _AXES[0]
+        cfg = _axis_env(cfg)
         r = _contact_beam(prob_info, left, B=_beam_width(cfg["Bmul"]), K=cfg["K"],
                           pos_lam=cfg["pos_lam"], order=cfg["order"], fut_beta=cfg["fut_beta"],
                           prefw=cfg["prefw"], w3mul=cfg["w3mul"],
@@ -1276,6 +1277,7 @@ def _regrow(prob_info, sol, budget, cfg, stay, share=1.0, anchor=None, mum=1.0):
     ab, ao = anchor if anchor is not None else _anchor_of(prob_info, sol)
     B = _beam_width(cfg["Bmul"])
     try:
+        cfg = _axis_env(cfg)
         r = _contact_beam(prob_info, budget, B=B, K=cfg["K"], pos_lam=cfg["pos_lam"],
                           order=cfg["order"], fut_beta=cfg["fut_beta"], prefw=cfg["prefw"],
                           w3mul=cfg["w3mul"], anchor_bays=ab, anchor_order=ao, stay_w=stay,
