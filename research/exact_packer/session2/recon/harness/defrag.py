@@ -150,14 +150,31 @@ def first_fit(b, bays, en, ex):
 
 load_state()
 
-# ---- B: does it fit right now, with nothing moved? -------------------------------------
-fit_now = []
+# ---- B: what is the EARLIEST time it could have entered, with nothing moved? -----------
+#
+# The first three versions of this asked "does it fit AT its release time", which is
+# all-or-nothing and wrong.  utils.py:931 requires only entry_time >= release_time, so a block
+# released on day 0 and admitted on day 50 recovers 45 days if it could have entered on day 5 --
+# and every one of those was scored as zero recoverable.  That is very likely why the answer
+# kept coming back 0%.
+#
+# So walk the days from release up to the entry the solution chose and take the first that
+# fits.  Nothing is moved, so this needs no packing at all: it is the delay the scheduler gave
+# away for free.
+#
+# It is a PER-BLOCK bound.  Pulling one block earlier changes the state the next one sees, so
+# the days cannot all be banked at once.  It still settles whether the recoverable amount is
+# zero, which is the question.
+early = {}
 for b in samp:
-    en = rel[b]; ex = en + pt[b]
-    E.remove(b)                                    # it is elsewhere in time; take it out first
-    if first_fit(b, range(m), en, ex):
-        fit_now.append(b)
+    E.remove(b)
+    for t in range(rel[b], ent[b]):
+        if first_fit(b, range(m), t, t + pt[b]):
+            early[b] = t
+            break
     E.add(bay[b], b, ori[b], float(px[b]), float(py[b]), ent[b], ext[b])
+fit_now = [b for b in early if early[b] < ent[b]]
+_free_days = sum(ent[b] - early[b] for b in fit_now)
 
 # ---- C: can an EXACT packer seat the block plus everyone whose window it shares? --------
 #
@@ -257,21 +274,22 @@ for b in samp:
         shape_ok.append(b)
 
 d_of = lambda S: sum(ent[b] - rel[b] for b in S)      # noqa: E731
+rec_of = lambda S: sum(ent[b] - early.get(b, ent[b]) for b in S)   # noqa: E731
 sd = max(1, d_of(samp))
 never = [b for b in samp if b not in shape_ok]
 stuck = [b for b in samp if b not in fit_now and b not in recover and b in shape_ok]
 print()
 print("   %-34s %6s %10s" % ("verdict", "blocks", "delay days"))
-print("   %-34s %6d %10d   %5.1f%%" % ("B  fits now, nothing moved", len(fit_now),
-                                       d_of(fit_now), 100.0 * d_of(fit_now) / sd))
+print("   %-34s %6d %10d   %5.1f%%" % ("B  could have entered earlier as-is",
+                                       len(fit_now), _free_days, 100.0 * _free_days / sd))
 print("   %-34s %6d %10d   %5.1f%%" % ("C  fits after repacking the bay", len(recover),
                                        d_of(recover), 100.0 * d_of(recover) / sd))
 print("   %-34s %6d %10d   %5.1f%%" % ("A  never fits, empty yard", len(never),
                                        d_of(never), 100.0 * d_of(never) / sd))
 print("   %-34s %6d %10d   %5.1f%%" % ("   genuinely full", len(stuck),
                                        d_of(stuck), 100.0 * d_of(stuck) / sd))
-print("\n   RECOVERABLE (B+C) = %.1f%% of the sampled delay -- still a LOWER bound: cranepack is"
-      % (100.0 * (d_of(fit_now) + d_of(recover)) / sd))
+print("\n   RECOVERABLE = %.1f%% of the sampled delay, %d of %d days -- a per-block bound"
+      % (100.0 * (_free_days + d_of(recover)) / sd, _free_days + d_of(recover), sd))
 _asked = len([b for b in samp if b not in fit_now]) * m
 print("   cranepack: step-%d grid, %.0fs per bay.  of %d bay-tests, %d too wide/aborted, %d had"
       " the CONTROL fail (residents alone do not re-seat at this grid), %d seated b but had to"
