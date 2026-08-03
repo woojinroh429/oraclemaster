@@ -96,6 +96,20 @@ static bool poly_overlap_off(const Poly& A,const Poly& B,double ox,double oy){
 // ---------- placement column ----------
 struct Col {
     int block, orient, x, y, entry, exit;
+    // PER-COLUMN OBJECTIVE WEIGHT.  It used to be per BLOCK, and that is what made the packer
+    // unable to trade tardiness against preference at all: a block's on-time column and its
+    // ten-days-late column carried the SAME value, so the solver had no way to prefer either
+    // and simply took whichever seated more easily.  Every attempt to express the trade from
+    // outside failed for the same reason -- discounting the block's weight by the late cost
+    // undervalues it when it takes the on-time seat, and at the break-even delay the discount
+    // equals the whole gain, which collapsed the weights of exactly the high-regret blocks to
+    // the 1.0 floor.
+    //
+    // The granularity that is actually needed is the ENTRY VARIANT, not the full column: the
+    // objective reads (bay, entry_time) and nothing else, and one pack() call is one bay, so
+    // x, y and orientation cannot change a column's value.  w is therefore filled from
+    // win_weights[block][entry_variant] and falls back to the per-block weight.
+    double w;
     std::vector<Poly> layers;             // world coords
     double bx0,by0,bx1,by1;
     // PER-LAYER bounding boxes, four doubles each, flat.  The pair filters reject on the COLUMN
@@ -274,7 +288,8 @@ struct ConflictMemo {
 // Negative (the default) keeps the old meaning exactly, so every existing caller is unchanged.
 py::tuple pack(py::list blocks, double W, double H, int step,
                double time_budget_s, uint64_t seed, py::object warm, py::object frozen,
-               py::object weights, double total_s, long max_iters){
+               py::object weights, double total_s, long max_iters,
+               py::object win_weights){
     auto t0=std::chrono::high_resolution_clock::now();
     int nblk = (int)py::len(blocks);
 
@@ -283,6 +298,17 @@ py::tuple pack(py::list blocks, double W, double H, int step,
     std::vector<double> wt(nblk, 1.0);
     if(!weights.is_none()){
         int wi=0; for(auto v : py::cast<py::list>(weights)){ if(wi<nblk) wt[wi]=py::cast<double>(v); wi++; }
+    }
+    // win_weights[b][k] -- what seating block b at its k-th entry variant is worth.  Optional:
+    // absent, every variant inherits wt[b] and the solver behaves exactly as before, which is
+    // what keeps every existing caller byte-identical.
+    std::vector<std::vector<double>> WW(nblk);
+    if(!win_weights.is_none()){
+        int bi=0;
+        for(auto row : py::cast<py::list>(win_weights)){
+            if(bi<nblk){ for(auto v : py::cast<py::list>(row)) WW[bi].push_back(py::cast<double>(v)); }
+            bi++;
+        }
     }
 
     // parse per-block per-orient origin polygons + obb + entry/exit variants
@@ -365,8 +391,9 @@ py::tuple pack(py::list blocks, double W, double H, int step,
     }
 
     std::vector<std::vector<int>> colsOfBlock(nblk);
-    auto make_col=[&](int b,int o,int x,int y,int en,int ex){
+    auto make_col=[&](int b,int o,int x,int y,int en,int ex,int ei){
         Col c; c.block=b;c.orient=o;c.x=x;c.y=y;c.entry=en;c.exit=ex;
+        c.w = (ei>=0 && ei<(int)WW[b].size()) ? WW[b][ei] : wt[b];
         for(auto& P : BL[b][o]){
             Poly Q; Q.reserve(P.size());
             for(auto&p:P) Q.emplace_back(p.first+x,p.second+y);
@@ -392,7 +419,8 @@ py::tuple pack(py::list blocks, double W, double H, int step,
             }
             std::sort(xs.begin(),xs.end()); xs.erase(std::unique(xs.begin(),xs.end()),xs.end());
             std::sort(ys.begin(),ys.end()); ys.erase(std::unique(ys.begin(),ys.end()),ys.end());
-            for(int x:xs) for(int y:ys) for(auto& ee : ENT[b]) make_col(b,o,x,y,ee.first,ee.second);
+            for(int x:xs) for(int y:ys) for(int ei=0;ei<(int)ENT[b].size();ei++)
+                make_col(b,o,x,y,ENT[b][ei].first,ENT[b][ei].second,ei);
         }
     }
     int ncol=(int)cols.size();
@@ -560,21 +588,32 @@ py::tuple pack(py::list blocks, double W, double H, int step,
         for(int b=0;b<nblk;b++) if(sel[b]>=0) rem_col(sel[b]);
     };
     auto count_sel=[&](){ int c2=0; for(int b=0;b<nblk;b++) if(sel[b]>=0) c2++; return c2; };
-    auto wsel=[&](){ double s=0; for(int b=0;b<nblk;b++) if(sel[b]>=0) s+=wt[b]; return s; };
+    auto wsel=[&](){ double s=0; for(int b=0;b<nblk;b++) if(sel[b]>=0) s+=cols[sel[b]].w; return s; };
 
     // greedily extend current selection using a given block order; within a block
     // pick the first column with blocked==0.
     auto greedy_extend=[&](const std::vector<int>& border){
         for(int b:border){
             if(sel[b]>=0) continue;
-            for(int c:colsOfBlock[b]) if(blocked[c]==0){ add_col(c); break; }
+            int bc=-1; double bv=-1e18;
+            for(int c:colsOfBlock[b]) if(blocked[c]==0 && cols[c].w>bv){ bv=cols[c].w; bc=c; }
+            if(bc>=0) add_col(bc);
         }
     };
 
+    // A block's rank is its BEST column now that columns differ in value: with per-window
+    // weights "how much is this block worth" is only well defined as "the most any seat for it
+    // is worth".  Falls back to wt[b] for a block with no columns at all.
+    std::vector<double> blkw(nblk, 0.0);
+    for(int b=0;b<nblk;b++){
+        double m=-1e18;
+        for(int c:colsOfBlock[b]) m=std::max(m,cols[c].w);
+        blkw[b] = (m>-1e17)? m : wt[b];
+    }
     std::vector<int> border(nblk); for(int b=0;b<nblk;b++) border[b]=b;
     // weight-priority order (exploit): high-weight blocks placed first
     std::vector<int> worder(nblk); for(int b=0;b<nblk;b++) worder[b]=b;
-    std::sort(worder.begin(),worder.end(),[&](int a,int b){ return wt[a]>wt[b]; });
+    std::sort(worder.begin(),worder.end(),[&](int a,int b){ return blkw[a]>blkw[b]; });
 
     // (2,1)-swap: remove one selected column s, add TWO freed columns from distinct
     // unplaced blocks that don't conflict with each other -> net +1 block.  Canonical
@@ -587,14 +626,14 @@ py::tuple pack(py::list blocks, double W, double H, int step,
     auto try_swap=[&]()->bool{
         for(int b=0;b<nblk;b++){
             int s=sel[b]; if(s<0) continue;
-            double ws=wt[b];
+            double ws=cols[s].w;
             std::vector<int> freed;
             for(int c:adj[s]) if(!selflag[c] && blocked[c]==1 && sel[cols[c].block]<0) freed.push_back(c);
             int nf=(int)freed.size();
             if(nf==0) continue;
             // (1,1): a single heavier freed block
             for(int i=0;i<nf;i++){
-                int c1=freed[i]; if(wt[cols[c1].block] > ws + 1e-9){ rem_col(s); add_col(c1); return true; }
+                int c1=freed[i]; if(cols[c1].w > ws + 1e-9){ rem_col(s); add_col(c1); return true; }
             }
             if(nf<2) continue;
             // (2,1): two freed from distinct blocks, non-conflicting, combined weight > w_s
@@ -602,7 +641,7 @@ py::tuple pack(py::list blocks, double W, double H, int step,
                 int c1=freed[i], b1=cols[c1].block;
                 for(int k=i+1;k<nf;k++){
                     int c2=freed[k]; if(cols[c2].block==b1) continue;
-                    if(wt[b1]+wt[cols[c2].block] <= ws + 1e-9) continue;
+                    if(cols[c1].w+cols[c2].w <= ws + 1e-9) continue;
                     if(std::binary_search(adj[c1].begin(),adj[c1].end(),c2)) continue;
                     rem_col(s); add_col(c1); add_col(c2);
                     return true;
@@ -636,16 +675,17 @@ py::tuple pack(py::list blocks, double W, double H, int step,
     auto try_eject=[&]()->bool{
         for(int b=0;b<nblk;b++){
             if(sel[b]>=0) continue;
-            double wb=wt[b];
-            if(wb<=1e-9) continue;
+            if(blkw[b]<=1e-9) continue;
             for(int c:colsOfBlock[b]){
                 if(blocked[c]==0) continue;       // greedy_extend already seats these
+                const double wb=cols[c].w;
+                if(wb<=1e-9) continue;
                 double cost=0.0; bool ok=true;
                 ejbuf.clear();
                 for(int d:adj[c]){
                     if(!selflag[d]) continue;
                     ejbuf.push_back(d);
-                    cost+=wt[cols[d].block];
+                    cost+=cols[d].w;
                     if(cost>=wb-1e-9){ ok=false; break; }
                 }
                 if(!ok||ejbuf.empty()) continue;
@@ -1069,5 +1109,6 @@ PYBIND11_MODULE(cranepack,m){
           py::arg("blocks"),py::arg("W"),py::arg("H"),py::arg("step"),
           py::arg("time_budget_s"),py::arg("seed")=12345,py::arg("warm")=py::none(),
           py::arg("frozen")=py::none(),py::arg("weights")=py::none(),
-          py::arg("total_s")=-1.0,py::arg("max_iters")=-1);
+          py::arg("total_s")=-1.0,py::arg("max_iters")=-1,
+          py::arg("win_weights")=py::none());
 }
