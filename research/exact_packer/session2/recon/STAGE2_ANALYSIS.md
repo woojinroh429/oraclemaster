@@ -49,3 +49,47 @@ No block is individually impossible: due - release - processing is non-negative 
 in all 40. Layer counts (mean 1.8, or ~2.9 on the three-layer instances) and orientation counts
 (7.5 typical, 12 on some) are in the same ranges as before, so the geometry engine faces nothing
 new -- only more of it, in less space.
+
+## First run on the hard end, and how far it is from a bound
+
+Four hardest instances at 300 s, contact bound on. All feasible.
+
+| instance | density | objective | Z1 | Z2 | Z3 |
+|---|---|---|---|---|---|
+| prob_36 | 2.335 | 86,612,032 | 12,265 | 6,077 | 6,044 |
+| prob_13 | 2.278 | 74,996,317 | 10,376 | 1,925 | 7,272 |
+| prob_25 | 1.849 | 81,169,672 | 11,932 | 1,357 | 8,068 |
+| prob_26 | 1.297 | 26,744,859 | 2,682 | 4,765 | 11,074 |
+
+Z1 carries 67% to 94% of the objective on all four.
+
+### An energetic lower bound on Z1
+
+Space-time is a resource. Up to day *d* the yard offers (total bay area) x *d*; the blocks due by
+then demand the sum of (layer-0 bbox area x processing time). Where demand exceeds the offer, some
+of those blocks cannot finish on time however they are packed, and keeping the smallest ones
+minimises the *count* that must be late. Since
+
+    Z1 = sum_i max(0, EXIT_i - D_i) = sum over shifts s >= 0 of |{ i : EXIT_i > D_i + s }|,
+
+applying that count argument to the deadlines shifted by *s*, and summing over *s*, bounds Z1 from
+below. Geometry is ignored throughout, so this is a relaxation and the true optimum is higher.
+
+| instance | Z1 bound | Z1 ours | ratio |
+|---|---|---|---|
+| prob_36 | 3,371 | 12,265 | 3.64x |
+| prob_13 | 2,803 | 10,376 | 3.70x |
+| prob_25 | 2,334 | 11,932 | 5.11x |
+| prob_26 | 230 | 2,682 | **11.66x** |
+
+Real polygons cannot pack to 100% of the area, so the attainable optimum sits above the bound --
+but assuming even 70% packing efficiency raises it only ~1.4x, which does not account for 3.6x to
+11.7x.
+
+**The gap grows as density falls.** At 2.3 we are 3.6x off; at 1.3 we are 11.7x off. Where the yard
+is saturated nobody can do much, and the ordering is close to forced; where there is slack, that
+slack is exactly what we are failing to exploit. Six of the forty final instances sit in the
+1.0-1.5 band, and that band is where the most is being left behind.
+
+This is the opposite of where the effort has gone. The sparse-instance work targeted density 0.33,
+which does not occur in the final set at all.
