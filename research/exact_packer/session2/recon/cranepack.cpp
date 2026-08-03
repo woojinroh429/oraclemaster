@@ -12,6 +12,10 @@
 #include <cmath>
 #include <algorithm>
 #include <chrono>
+#include <atomic>
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 #include <cstdlib>
 #include <cstdio>
 namespace py = pybind11;
@@ -482,7 +486,93 @@ py::tuple pack(py::list blocks, double W, double H, int step,
     ConflictMemo memo(22);
 
     const double build_cap = (total_s > 0.0) ? total_s : -1.0;
-    double _lastel=0.0; int _lasti=0;
+    // PARALLEL BUILD.  This loop is the reason NOUT is 40 and the grid step is 4: both are held
+    // where they are by what the build can afford, and the file already records the conclusion --
+    // "raising it safely requires a FASTER BUILD, not a bigger table".  It has been serial on a
+    // four-core box the whole time.
+    //
+    // Rows are independent: each visits pairs (i,j) with j>i and decides edges.  What is not
+    // independent is where the results go, so each thread keeps its own edge buffer and its own
+    // memo, and both are merged after.  A private memo loses cross-thread reuse; it does not lose
+    // correctness, since a memo miss simply recomputes the same predicate.  For the same reason
+    // the memo's capacity cannot change the answer either -- a full table returns nullptr and the
+    // caller computes.
+    //
+    // THE EDGE SET MUST NOT MOVE.  adj is sorted after the merge, so insertion order does not
+    // matter, and n_edges is returned in the result tuple -- CRANEPACK_SERIAL=1 runs the old
+    // path so the two can be compared on the same input.  A parallel build that changes the graph
+    // is a different problem, which is precisely why the conflict memo's 36-edge disagreement was
+    // treated as disqualifying.
+    static const bool SERIAL=[](){const char*e=getenv("CRANEPACK_SERIAL");return e&&e[0]=='1';}();
+    int NTH = 1;
+#ifdef _OPENMP
+    if(!SERIAL) NTH = std::max(1, std::min(omp_get_max_threads(), 8));
+#endif
+    if(NTH > 1){
+        std::vector<std::vector<std::pair<int,int>>> tedge(NTH);
+        std::atomic<int> rows_done(0);
+        std::atomic<int> abort_flag(0);
+        #pragma omp parallel num_threads(NTH)
+        {
+            int tid=0;
+#ifdef _OPENMP
+            tid = omp_get_thread_num();
+#endif
+            ConflictMemo tmemo(20);
+            std::vector<std::pair<int,int>>& eb = tedge[tid];
+            int since=0;
+            #pragma omp for schedule(dynamic,32)
+            for(int i=0;i<ncol;i++){
+                if(abort_flag.load(std::memory_order_relaxed)) continue;
+                const int ai=ord[i], ab=sblk[i], aen=sent[i], aex=sext[i];
+                const double ax0=sx0[i], ay0=sy0[i], ax1=sx1[i], ay1=sy1[i];
+                for(int j=i+1;j<ncol;j++){
+                    if(sent[j]>=aex) break;
+                    if(sblk[j]==ab) continue;
+                    if(ax1<=sx0[j]||sx1[j]<=ax0||ay1<=sy0[j]||sy1[j]<=ay0) continue;
+                    if(aen>=sext[j]) continue;
+                    const int bj=ord[j];
+                    const Col& CA=cols[ai]; const Col& CB=cols[bj];
+                    const int tcase=((CA.entry>=CB.entry||CA.exit<=CB.exit)?1:0)
+                                  | ((CB.entry>=CA.entry||CB.exit<=CA.exit)?2:0);
+                    const uint64_t mk =
+                          ((uint64_t)(CA.block*16+CA.orient))
+                        | ((uint64_t)(CB.block*16+CB.orient)<<13)
+                        | ((uint64_t)(CB.x-CA.x+2048)<<26)
+                        | ((uint64_t)(CB.y-CA.y+2048)<<38)
+                        | ((uint64_t)tcase<<50);
+                    int8_t* mv = NOMEMO ? nullptr : tmemo.find(mk);
+                    bool hit;
+                    if(mv && *mv) hit = (*mv==2);
+                    else {
+                        hit = crane_conflict_rel(BL[CA.block][CA.orient], OLBB[CA.block][CA.orient],
+                                                 BL[CB.block][CB.orient], OLBB[CB.block][CB.orient],
+                                                 (double)(CB.x-CA.x), (double)(CB.y-CA.y),
+                                                 CA.entry,CA.exit,CB.entry,CB.exit);
+                        if(mv) *mv = hit?2:1;
+                    }
+                    if(hit) eb.push_back({ai,bj});
+                }
+                int done = rows_done.fetch_add(1, std::memory_order_relaxed) + 1;
+                if(build_cap > 0.0 && (++since & 63) == 0){
+                    double el = std::chrono::duration<double>(
+                                    std::chrono::high_resolution_clock::now()-tcols).count();
+                    // pairs are triangular, so rows done is not the fraction of work done
+                    double fd = (double)done/(double)ncol;
+                    double frac = fd*(2.0-fd);            // 1-(1-fd)^2
+                    if(frac > 1e-6){
+                        double projected = cols_s + el/frac;
+                        if(projected > build_cap) abort_flag.store(1, std::memory_order_relaxed);
+                    }
+                }
+            }
+        }
+        aborted = abort_flag.load() != 0;
+        for(auto& eb : tedge) for(auto& e : eb){
+            adj[e.first].push_back(e.second); adj[e.second].push_back(e.first); nedge++;
+        }
+    } else
+    { double _lastel=0.0; int _lasti=0;
     for(int i=0;i<ncol;i++){
         if(build_cap > 0.0 && (i & 255) == 255){
             double el = std::chrono::duration<double>(
@@ -544,6 +634,7 @@ py::tuple pack(py::list blocks, double W, double H, int step,
                 adj[ai].push_back(bj); adj[bj].push_back(ai); nedge++;
             }
         }
+    }
     }
     for(auto& v:adj) std::sort(v.begin(),v.end());
     auto t1=std::chrono::high_resolution_clock::now();
