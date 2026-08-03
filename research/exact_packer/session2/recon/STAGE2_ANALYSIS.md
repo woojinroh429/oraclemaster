@@ -248,3 +248,37 @@ Everything measured tonight points at the same place:
 
 The lever is the placement rule: placing so that descent access survives for what comes later.
 Not more time, and not a different metaheuristic on top of the same rule.
+## Handling both terms at once: what the three failures imply
+
+All three preference mechanisms tonight failed the same way, and the shared defect is not about
+preference at all -- it is that **congestion was treated as a constraint, never as a cost**.
+
+* beam weighting scaled regret and priced nothing else
+* post-hoc moves ranked by regret and priced nothing else
+* CP-SAT used capacity as a hard feasible/infeasible test with 1.15x slack, so it filled a bay to
+  115% and handed the packer an assignment it could not realise
+
+So the two terms are never on the same scale. Putting them there means pricing a bay choice in
+objective units:
+
+    cost(i -> j) = w3 * regret_ij + w1 * delta_tardiness(i -> j)
+
+The second term is the one that does not exist today, and it has two parts. The delay to *i*
+itself, from how full bay *j* already is across [R_i, D_i] -- with median slack of 2 days a small
+push is immediately a cost. And the delay *i* inflicts on everyone after it, by consuming the
+window it sits in. That second part is the genuinely joint term, and nothing in the pipeline
+computes it.
+
+**Congestion must not be measured as area.** That assumption was refuted three times tonight: the
+yard is at 54% utilisation while 64% of waiting blocks have nowhere legal to go. The measure has
+to be access-based -- how much *reachable* free span survives, which the engine already computes
+per row as runL/runR -- not how many square units are unoccupied.
+
+The hook exists: the engine exposes `hz1_est`, and the beam already ranks bays by
+`w1*tardy + w3r*pen - mu*contact`. The question is whether that `tardy` reflects window
+congestion at all; the fact that raising w3 made Z3 *worse* on two instances suggests it does not,
+because blocks pushed toward a preferred bay had nowhere to land and ended up worse.
+
+First experiment, and note what it does NOT touch: read what `hz1_est` measures, make the bay
+ranking's tardiness term reflect per-window access congestion, and A/B it **with w3 unchanged**.
+Every failure tonight moved w3. The side that needs fixing is the other one.
