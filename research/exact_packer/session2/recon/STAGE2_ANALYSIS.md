@@ -163,3 +163,44 @@ the rule that leaves the space unusable. Fixing this means changing the placemen
 ever tries to move an entry earlier. Balance targets Z2, preference targets Z3, repacking rebuilds
 one bay, and the beam only decides entries once, during construction. Nothing attacks entry delay
 directly, which is the one quantity Z1 is made of.
+
+## The largest opening is Z3, and we have no tool for it
+
+On stage-2 prob_1 (w3 = 600, 150 blocks, 3 bays) sending every block to its single most-preferred
+bay gives per-bay space-time loads of 0.20 / 0.45 / 0.57 of capacity. Everyone fits. **Z3 = 0 is
+reachable in the area-relaxed problem**, and we produce 536, which at w3 = 600 is 321,600 of an
+objective of 470,530 -- **68% of the score, entirely ours.**
+
+(An earlier "Z3 lower bound" table computed here by greedy-on-regret is retracted: greedy is not
+optimal for a multi-constraint transportation problem, and it produced a "bound" of 13,690 on
+prob_26 against an achieved 11,074. The everyone-to-favourite check above is constructive and
+checkable by inspection, which is why it stands.)
+
+Roster ablation at 180 s on that instance:
+
+| operators | objective | Z1 | Z2 | Z3 |
+|---|---|---|---|---|
+| all | 516,577 | 13 | 4,102 | 696 |
+| all except brk | **470,530** | 19 | 7,419 | **536** |
+| beam, grow, pref | 516,577 | 13 | 4,102 | 696 |
+| beam, pref | 516,577 | 13 | 4,102 | 696 |
+| beam, bay | 536,578 | 16 | 4,102 | 696 |
+| beam, bay, pref | 598,066 | 4 | 6,666 | 919 |
+
+Three things, and two of them refute what we expected.
+
+**No operator improves Z3 on purpose.** `pref` (`_z3_improve`) changed nothing at all -- four
+rosters returned the beam's untouched construction. `bay`, the CP-SAT reassignment, makes Z3
+*worse* (696 to 919): it chases Z1 down to 4 and pays for it in preference. The only arm that
+improved Z3 did so as a side effect of `bal`, which drove Z2 from 4,102 to 7,419 and bought Z3
+down to 536 -- a trade worth 46,047 because w2 = 3 while w3 = 600.
+
+**brk costs 63% of the budget here and returns nothing.** Two calls of 58.1 s and 55.9 s, both
+ending in "displaced ... could not be rehomed in any other bay", against an opening slice of
+144 x 0.20 = 28.8 s. The operator overran its allowance by 2x, twice, before the bandit could
+measure its rate. Removing it is worth 8.9% on this instance -- but removing it is an
+instance-specific gate, and the real defect is that it does not honour the slice it is given.
+
+**The weights are not being followed.** Where w3 = 600 against w2 = 3, preference is worth 200x
+imbalance per unit, and the algorithm still spreads for Z2. Nothing keys internal decisions to the
+instance's own w1/w2/w3 ratio.
