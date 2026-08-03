@@ -1060,23 +1060,28 @@ struct Engine {
                 // lex_on is a different scale, and the span/shadow/hmatch terms are not shown to
                 // be non-negative.  fut_beta is allowed because its term is >= 0 and so cannot
                 // pull a score below the bound.
-                // DEFAULT OFF, and the reason is worth stating because it is not a defect in the
-                // bound.  The bound is exact (45.9M/11.6M/9.3M skipped cells, zero of them
-                // wrong), it does not change what a scan answers (identical placement digests),
-                // and it is 1.85x/1.66x/1.09x faster.  It still COSTS SCORE, because the
-                // operator loop is driven by a wall clock: a faster scan fits more calls into the
-                // same budget, which shifts the axis rotation, the pool contents and brk's seed
-                // counter, so brk is handed a different incumbent.  On P3 that destroys the
-                // construction of 83,095, and with it the 80,795 that had been reached in three
-                // runs out of four -- measured 80,795/80,795/80,795/92,460 with the bound off
-                // against 86,975/87,175 with it on.
+                // DEFAULT ON.  The bound is exact (45.9M/11.6M/9.3M candidate cells skipped, zero
+                // of them wrong), it does not change what a scan answers (identical placement
+                // digests at fixed work), and it is 1.85x/1.66x/1.09x faster.
                 //
-                // Priced per instance, which is how the competition scores: P3 loses 7.7%, P5
-                // gains 2.2%.  Turning it off is simply the better trade until the cause is
-                // fixed, and the cause is the wall clock, not this bound.  OGC_PRUNE=1 turns it
-                // back on for measurement; everything proved about it stays true.
+                // It was briefly turned OFF because it costs the sparsest hidden instance 7.7%:
+                // a faster scan fits more operator calls into a wall-clock budget, which shifts
+                // the pool and the repacker's incumbent, and on that instance the specific
+                // incumbent behind its best solution stops being visited.  That was the right
+                // trade for a set of one sparse instance against one dense one.
+                //
+                // The final-round practice set settles it the other way and it is not close.
+                // Its density (demand over capacity) runs 0.38-2.33 with a median of 0.72 and TEN
+                // instances above 1.0, against the preliminary set's median 0.40 and one.  The
+                // sparsest instance in the whole final set is 0.381; the instance the bound hurts
+                // is 0.327, sparser than anything that will be scored.  Meanwhile the bound is
+                // worth 545,561 on the densest hidden instance and 2.2% on the next.  Ten
+                // instances shaped like the one it helps, none shaped like the one it hurts.
+                //
+                // OGC_PRUNE=0 disables it for measurement.  Nothing here branches on the
+                // instance -- the bound runs everywhere or nowhere.
                 static const bool _NOPRUNE=[](){const char*e=getenv("OGC_PRUNE");
-                                                return !(e&&e[0]=='1');}();
+                                                return e&&e[0]=='0';}();
                 const double _swy = use_ourscore()? pos_lam*1.4 : pos_lam*sw_y;
                 const double _swx = use_ourscore()? pos_lam*0.02 : pos_lam*sw_x;
                 const double _ctcoef = use_ourscore()
