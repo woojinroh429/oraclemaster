@@ -610,6 +610,51 @@ def _z3_improve(prob_info, sol, budget):
         return None
 
 
+def _w3mul_of(prob_info, base):
+    """Scale the beam's preference routing by the instance's OWN weight ratio.
+
+    The beam ranks bays by w1*tardy + (w3*w3mul)*regret - mu*contact, and w3mul came from the
+    axis table as a fixed 1.0/3.0/6.0 chosen on the preliminary instances.  On the final practice
+    set the weights are far more lopsided: prob_1 has w3 = 600 against w2 = 3, so one unit of
+    preference is worth two hundred units of imbalance, and a fixed multiplier of at most six
+    cannot express that.  A competitor's decomposition on the same instances shows higher Z1 and
+    lower Z3 beating ours on the total, which is the same trade seen from the other side.
+
+    So the multiplier follows the ratio the instance actually specifies, damped by a square root
+    because the beam's score mixes it with contact, which is a heuristic proxy and not in
+    objective units -- a linear response to a 200x ratio would delete contact entirely.  The axis
+    value stays as the shape of the spread across axes; this only sets its scale.
+
+    REFUTED AND UNWIRED -- kept only so the next attempt does not re-derive it.  Measured at 120 s
+    against the fixed table:
+
+        prob_1    602,372 -> 529,770   -12.2%   better
+        prob_24 2,834,203 -> 3,075,229  +8.5%   worse
+        prob_26 27,393,964 -> 27,846,994 +1.7%  worse
+
+    prob_1 and prob_24 have the SAME w3/w2 ratio of 200 and move in opposite directions, so the
+    ratio is not the explanatory variable.  On the two losing instances pushing preference harder
+    made the packing worse rather than the routing better -- prob_24's Z3 went 504 to 882 and
+    prob_26's Z2 went 8,785 to 17,447 -- which is the same wall _pref_move hit: the preferred bay
+    has no room, and insisting only produces a worse placement elsewhere.
+
+    Also recorded: the env knob OGC_W3MUL was already dead.  The axis passes w3mul explicitly and
+    the argument overrides the environment, so a sweep over it measured nothing and returned
+    identical objectives for 1, 8 and 16.
+    """
+    try:
+        if os.environ.get("OGC_W3RATIO") == "0":
+            return base
+        w = prob_info["weights"]
+        w2 = float(w.get("w2", 0)) or 1.0
+        w3 = float(w.get("w3", 0))
+        if w3 <= 0:
+            return base
+        return float(base) * max(1.0, min(8.0, (w3 / w2) ** 0.5 / 4.0))
+    except Exception:
+        return base
+
+
 def _pref_move(prob_info, sol, budget):
     """Move blocks to bays they actually prefer -- the operator the portfolio was missing.
 
