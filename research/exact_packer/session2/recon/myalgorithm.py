@@ -1963,6 +1963,21 @@ def _worker(args):
         if pool and pool[0][0] < best[0]:
             best = pool[0]
 
+    # WHAT EACH OPERATOR COST AND WHAT IT RETURNED.  The loop already keeps tried/spent/gain
+    # for its own scheduling; it has simply never been printed, so "which operator burns the
+    # budget without ever moving the incumbent" has never had a number.  Off by default and
+    # read-only -- it touches nothing the search uses.
+    if os.environ.get("OGC_OPSTAT") == "1":
+        _el = max(1e-9, time.time() - t0)
+        print("  opstat  %-6s %6s %9s %7s %12s %10s"
+              % ("op", "tried", "seconds", "%budget", "gain", "gain/s"), flush=True)
+        for _i, _o in enumerate(ops):
+            print("  opstat  %-6s %6d %9.1f %6.1f%% %12.0f %10.1f"
+                  % (_o[0], tried[_i], spent[_i], 100.0 * spent[_i] / _el,
+                     gain[_i], gain[_i] / max(1e-9, spent[_i])), flush=True)
+        print("  opstat  %-6s %6d %9.1f %6.1f%% %12s %10s"
+              % ("TOTAL", sum(tried), sum(spent), 100.0 * sum(spent) / _el, "", ""), flush=True)
+
     return best[1]
 
 
