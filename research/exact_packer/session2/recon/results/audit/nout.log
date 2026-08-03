@@ -1,0 +1,2 @@
+prob_13  NOUT=default  P13 nout           180s  obj=78401910    Z1=10848.0  Z2=1494   Z3=7596.0    feas=y   ran 166s
+prob_13  NOUT=80       
