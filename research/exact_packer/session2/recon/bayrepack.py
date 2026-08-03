@@ -497,10 +497,38 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
             _NCOL = 0.0
         outs = outs[:NOUT]
 
+        # HOW LATE IS IT WORTH BEING, priced from the instance's own weights.
+        #
+        # windows() offered only tardiness-free entry times, and on the preliminary set that was
+        # right: w1 ran 6,667..21,622 against w3 133..200, so one day of lateness cost at least
+        # 33 preference points and the trade essentially never paid.  The final-round practice
+        # instances invert that -- w1 falls to 333 and w3 rises to 800, where a day of lateness
+        # costs 0.4 preference points.  A block that could reach its preferred bay by waiting one
+        # day is then obviously worth delaying, and the operator could not even consider it.
+        #
+        # The bound is derived, not chosen: delaying block b by d costs w1*d and can gain at most
+        # w3 * (its current preference regret), so no delay beyond w3*regret/w1 can ever pay.
+        #
+        # PRICING, and it is why this cannot simply offer more windows.  cranepack's weight is
+        # per BLOCK (wt[block]), not per column, so it cannot tell a tardy window from an on-time
+        # one -- offering both without adjustment would let it take the late seat for free.  So a
+        # block is offered at most ONE late window and its weight is reduced by that window's
+        # tardiness cost below.  If the late seat is taken the price is exact; if the on-time seat
+        # is taken the block is undervalued, which is conservative rather than wrong.
+        _w1f = float(prob_info["weights"]["w1"]); _w3f = float(prob_info["weights"].get("w3", 0.0))
+        _LATE = os.environ.get("OGC_LATEWIN", "1") != "0"
+
+        def _late_by(b):
+            if not _LATE or _w1f <= 0.0:
+                return 0
+            _reg = max(pref[b]) - pref[b][cur[b]]
+            if _reg <= 0:
+                return 0
+            return max(0, min(int(_CEIL), int(_w3f * _reg / _w1f)))
+
         def windows(b):
-            """Entry times to offer.  Restricted to the tardiness-free window so a repack can
-            never CREATE lateness; if the block is already unavoidably late (window empty, which
-            is the saturated case) it keeps the time it has and only its position is free."""
+            """Entry times to offer.  The tardiness-free window, plus at most one late entry when
+            the instance's own weights say the delay could pay for itself."""
             lo, hi = rel[b], due[b] - pt[b]
             if hi < lo:
                 return [(ent[b], ent[b] + pt[b])]
@@ -509,6 +537,9 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
                 ts.add(ent[b])
             for i in range(max(1, NENT)):
                 ts.add(lo + (hi - lo) * i // max(1, NENT - 1) if NENT > 1 else lo)
+            _d = _late_by(b)
+            if _d > 0:
+                ts.add(hi + _d)
             return [(t, t + pt[b]) for t in sorted(ts)]
 
         cand = list(res) + [b for _, b in outs]
@@ -560,9 +591,11 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
                         key=lambda j: pref[b][TGT] - pref[b][j]) if isres[i] else cur[b])
             if isres[i]:
                 alt = list(cur); alt[b] = fall
-                wts.append(max(1.0, obj_of(alt, ent, ext) - base))
+                _w = max(1.0, obj_of(alt, ent, ext) - base)
             else:
-                wts.append(float(outs[i - len(res)][0]))
+                _w = float(outs[i - len(res)][0])
+            # charge the late window, since the packer's weight cannot distinguish it
+            wts.append(max(1.0, _w - _w1f * _late_by(b)))
 
         warm = [(i, place[b][0], int(place[b][1]), int(place[b][2]))
                 for i, b in enumerate(cand) if isres[i]]
