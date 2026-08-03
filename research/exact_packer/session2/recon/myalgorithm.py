@@ -1835,7 +1835,34 @@ def _worker(args):
     ops = [("beam", _fresh, False, True, 4.0),
            ("grow", _grow, True, True, 4.0),
            ("bal",  lambda t: _balance(prob_info, pool[0][1], t), True, False, 0.5),
-           ("pref", lambda t: _z3_improve(prob_info, pool[0][1], t), True, False, 0.5)]
+           # pref IS a search operator and has been classified as a repair pass since it was
+           # written.  _z3_improve calls Engine.z3_reassign, whose body is
+           #
+           #     hillclimb(); while(elapsed()<budget){ ruin_recreate(rng); hillclimb(); ... }
+           #
+           # -- a ruin-and-recreate loop that runs until its budget is gone, and one that
+           # already trades Z1 against Z3 directly (it scans up to 64 later entry windows per
+           # block and takes one only if w1*dtardy + w3*dpen < 0).  It absorbs whatever it is
+           # given.
+           #
+           # Classified False it gets the repair-pass treatment instead: an opening slice of
+           # budget/(2n) rather than a fifth, and -- worse -- `empty_at`, which records the
+           # incumbent at which it last came back empty and refuses to call it again until the
+           # incumbent moves.  That rule is right for a deterministic pass.  Here the seed is
+           # fixed, so a REPEAT at the same budget does return the same nothing, but a LARGER
+           # slice continues the same trajectory into ground it never reached -- which is
+           # exactly what the search-operator growth rule (x1.3 on empty) provides and the
+           # repair rule denies.
+           #
+           # It matters because of where the objective actually is on the final set: w3*Z3 is
+           # the median 39.5% of it and up to 86% (prob_3), against w2*Z2's median 0.5%, and
+           # pref is the only operator aiming there.
+           #
+           # Env-gated rather than flipped, because this is a search-policy change and the one
+           # thing today established is that policy changes get judged on 40 paired instances,
+           # not on a hunch.
+           ("pref", lambda t: _z3_improve(prob_info, pool[0][1], t), True,
+            os.environ.get("OGC_PREFSEARCH") == "1", 0.5)]
     # pull / pmov / swap / cpas stay DEFINED and UNREGISTERED.  Each was measured: _pull_early
     # bought 0.05% for 22 s, _pref_move fired on nothing, _bay_swap survived no candidate, and
     # _cpassign was 34% worse.  Registered they still draw probe slices, and the roster ablation
