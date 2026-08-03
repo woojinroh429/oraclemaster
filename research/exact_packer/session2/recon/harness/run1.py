@@ -3,6 +3,28 @@ have taken the throwaway copies twice and killed a night's queue each time."""
 import sys, os, json, time
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import importlib
+
+# THE C++ EXTENSIONS ARE NOT OPTIONAL, AND THE FALLBACK IS SILENT.
+#
+# The container came back with /usr/local/bin/python3 = 3.11 where it had been 3.12.  The .so
+# files carry the interpreter's ABI tag in their names, so under 3.11 ogc_fast and cranepack
+# simply do not exist as far as the import system is concerned; myalgorithm caught the
+# ImportError, took the pure-Python path, and returned a legal solution.  On prob_36 that
+# solution scored 4,023,023,953 against the 88,211,571 the same code had returned an hour
+# earlier -- 45x worse, feasible, and printed in the ordinary format with no warning anywhere.
+# It cost an A/B study before the number was questioned.
+#
+# So refuse to run rather than measure the fallback by accident.  Anything comparing against a
+# log in results/ must be on the same engine those logs were made with.
+for _m in ("ogc_fast", "cranepack"):
+    try:
+        importlib.import_module(_m)
+    except ImportError as _e:
+        sys.exit("run1: %s will not import under %s (%s).\n"
+                 "      The .so files are ABI-tagged; build them for this interpreter or run\n"
+                 "      the one they were built for.  Refusing to measure the Python fallback."
+                 % (_m, sys.version.split()[0], _e))
+
 mod = importlib.import_module(sys.argv[1])
 p = int(sys.argv[2]); T = float(sys.argv[3]); tag = sys.argv[4] if len(sys.argv) > 4 else ""
 here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -25,7 +47,8 @@ except AttributeError:
 # a huge objective and could be mistaken for a bad-but-legal run; and arms that screen the
 # objective for speed need the geometric verdict stated out loud rather than inferred.
 _feas = "?" if c is None else ("y" if c.get("feasible") else "NO")
-print("P%-2d %-12s %5.0fs  obj=%-11d Z1=%-8s Z2=%-6s Z3=%-8s  feas=%-3s ran %.0fs"
+print("P%-2d %-12s %5.0fs  obj=%-11d Z1=%-8s Z2=%-6s Z3=%-8s  feas=%-3s ran %.0fs  py%s"
       % (p, tag or sys.argv[1], T, int(o), c.get("obj1") if c else "-",
-         c.get("obj2") if c else "-", c.get("obj3") if c else "-", _feas, el),
+         c.get("obj2") if c else "-", c.get("obj3") if c else "-", _feas, el,
+         ".".join(str(v) for v in sys.version_info[:2])),
       flush=True)
