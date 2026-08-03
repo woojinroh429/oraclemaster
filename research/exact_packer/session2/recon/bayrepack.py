@@ -622,6 +622,19 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
             # 491 s of a 480 s budget once the build stopped being the expensive part.
             _cap = (float(hard) if hard is not None else SL) * 0.85
             _ask = max(_MINASK, SL)
+            # AND THE CALL IS BOUNDED BY THE SLICE, not just its search.  _ask only truncates the
+            # SEARCH; the build is uninterruptible and was charged against _cap, i.e. 85% of the
+            # whole remaining run.  So a call actually cost build + slice, and on the final-round
+            # practice prob_1 that was 26.5 s + 29 s = 55.9 s against a 28.8 s slice -- twice its
+            # allowance, twice in a row, both failing with "could not be rehomed", consuming 63%
+            # of the budget before the bandit could measure brk's rate at all.  Removing brk was
+            # worth 8.9% there, and the submitted run lost that instance's hidden counterpart by
+            # 10.8%.
+            #
+            # total_s bounds build + search against cranepack's OWN MEASURED build, so passing
+            # the slice here is not the predicted-build double charge that cost 7,195 on P3 --
+            # nothing is predicted.  A tier whose build alone will not fit the slice is refused
+            # and the operator steps down a tier, which is the behaviour already built for it.
         # AN ABORTED BUILD STEPS DOWN A TIER INSTEAD OF GIVING UP.
         #
         # The predictor can be wrong -- it was, on P3, the moment the container moved to a host
@@ -640,7 +653,7 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
             r = CP.pack(blocks_in, W, H, STEP, _ask,
                         seed=12345 + 7919 * k, warm=warm or None, frozen=[],
                         weights=[float(x) for x in wts],
-                        total_s=_cap)
+                        total_s=min(_cap, SL))
             if not (len(r) > 9 and int(r[9]) == 1) or not _rest:
                 break
             _tier = _rest.pop(0)
