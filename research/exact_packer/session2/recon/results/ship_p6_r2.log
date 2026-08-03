@@ -18,3 +18,5 @@
     brk cost: ncol~50044 real_ncol=49867 build=123.0s ask=171.8s total=296.5s
     brk cost: tier 3 ncol~50044 real_ncol=49867 build=123.0s total=296.5s  -> rate 4.911e-08 s/col^2
     brk[pressure] tgt=2 res=100 outs=10 displaced b4 could not be rehomed in any other bay
+    brk: declined, smallest tier predicts 24s of 8s
+P6  ship P6 r2     900s  obj=30111690    Z1=4392.0   Z2=1647   Z3=5447.0    feas=y   ran 899s
