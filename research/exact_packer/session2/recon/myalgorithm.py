@@ -1135,6 +1135,7 @@ def _beam_once(prob_info, budget, cfg, share=1.0):
             break
         left = left * frac if step == 1 else left
         try:
+            cfg = _axis_env(cfg)
             r = _contact_beam(prob_info, left, B=(1 if cfg.get("lex") else _beam_width(cfg["Bmul"])),
                               K=(1 if cfg.get("lex") else cfg["K"]),
                               pos_lam=cfg["pos_lam"], order=cfg["order"],
@@ -1169,6 +1170,27 @@ _AXES = [
     dict(Bmul=1.4, K=3, pos_lam=0.10, order="big_first", fut_beta=0.5, prefw=0.0, w3mul=6.0, cohort=0.3, dk=0),
     dict(Bmul=0.5, K=6, pos_lam=0.20, order="defer_big", fut_beta=0.0, prefw=0.0, w3mul=1.5, cohort=0.0, dk=0),
 ]
+
+
+def _axis_env(cfg):
+    """Env overrides for the three ACCESS terms, which every axis currently ships at 0.0.
+
+    shadow / shadoww / hmatch are the only scoring terms that ask whether a placement leaves the
+    crane able to reach later blocks.  With all three at zero the placement rule is contact,
+    position and distance-to-wall, none of which looks ahead -- the likeliest explanation for the
+    yard sitting at 54% utilisation while 64% of waiting blocks have nowhere legal to go.  Their
+    values were rejected on the preliminary instances; the final set is a different problem, so
+    they are worth re-measuring.  Env-only: nothing changes by default.
+    """
+    out = dict(cfg)
+    for k, e in (("shadow", "OGC_SHADOW"), ("shadoww", "OGC_SHADOWW"), ("hmatch", "OGC_HMATCH")):
+        v = os.environ.get(e)
+        if v:
+            try:
+                out[k] = float(v)
+            except Exception:
+                pass
+    return out
 
 
 def _anchor_of(prob_info, sol):
