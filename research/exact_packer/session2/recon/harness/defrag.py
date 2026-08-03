@@ -123,10 +123,22 @@ for b in samp:
 # cranepack is the exact set-packing solver bayrepack already uses: give it the blocks with
 # their windows and it seats the maximum-weight subset that respects the crane rule.  If IT
 # cannot seat everyone, "cannot" finally means something.
+#
+# THE GRID THE PACKER GETS IS NOT THE GRID THE SCAN GETS.  The first run with cranepack asked
+# nothing at all: prob_2 puts 250 blocks in 3 bays, so a window is shared by far more than the
+# 24 residents the cap allowed, and all 120 possible bay-tests were skipped.  "100% genuinely
+# full" was the default, not a measurement -- which is what the skip counter exists to catch.
+#
+# Raising the cap alone does not work, because cranepack's build is O(ncol^2): at the scan's
+# step, forty blocks generate ~50k columns and the build alone runs for tens of minutes.  brk
+# uses step 4-6 with a tier ladder for exactly this reason.  So the packer gets its own, coarser
+# step while the scan keeps its resolution.  A coarse grid can miss a seat a fine one would
+# find, so this still under-reports -- which is the honest direction: a "yes" is real.
 import bayrepack as _R                                     # noqa: E402
 CP = _R._load()
-CAPQ = int(sys.argv[sys.argv.index("--capq") + 1] if "--capq" in sys.argv else 24)
-PACKS = float(sys.argv[sys.argv.index("--packs") + 1] if "--packs" in sys.argv else 3.0)
+CAPQ = int(sys.argv[sys.argv.index("--capq") + 1] if "--capq" in sys.argv else 48)
+PACKS = float(sys.argv[sys.argv.index("--packs") + 1] if "--packs" in sys.argv else 10.0)
+PSTEP = int(sys.argv[sys.argv.index("--pstep") + 1] if "--pstep" in sys.argv else 6)
 
 recover = []
 packed_fail = 0
@@ -148,7 +160,7 @@ for b in samp:
                       [(en, ex)] if q == b else [(ent[q], ext[q])]) for q in cand]
         W = float(prob["bays"][j]["width"]); H = float(prob["bays"][j]["height"])
         try:
-            r = CP.pack(blocks_in, W, H, STEP, PACKS, seed=1, warm=None, frozen=[],
+            r = CP.pack(blocks_in, W, H, PSTEP, PACKS, seed=1, warm=None, frozen=[],
                         weights=[1.0] * len(cand), total_s=PACKS * 3.0)
         except Exception:
             continue
@@ -188,5 +200,7 @@ print("   %-34s %6d %10d   %5.1f%%" % ("   genuinely full", len(stuck),
                                        d_of(stuck), 100.0 * d_of(stuck) / sd))
 print("\n   RECOVERABLE (B+C) = %.1f%% of the sampled delay -- still a LOWER bound: cranepack is"
       % (100.0 * (d_of(fit_now) + d_of(recover)) / sd))
-print("   given %.0fs per bay and %d bay-tests were skipped as too wide (>%d sharers) or aborted"
-      % (PACKS, packed_fail, CAPQ), flush=True)
+print("   cranepack got %.0fs per bay on a step-%d grid; %d of %d bay-tests could not be asked"
+      " (>%d window-sharers, or the build aborted)"
+      % (PACKS, PSTEP, packed_fail, len([b for b in samp if b not in fit_now]) * m, CAPQ),
+      flush=True)
