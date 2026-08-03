@@ -223,3 +223,28 @@ still holds -- trading Z1 and Z2 for Z3 pays where w3 dominates -- but post-hoc 
 not the mechanism: by the time the yard is packed, most preferred bays cannot accept the block.
 Preference has to be weighted during CONSTRUCTION, so the block is placed in the right bay while
 there is still room, rather than moved afterwards.
+
+## More time buys nothing: the search is converged, not starved
+
+Original six-operator roster on stage-2 prob_1:
+
+    240 s   obj 470,530   Z1 19   Z2 7,419   Z3 536   (used 200 s)
+    360 s   obj 470,530   Z1 19   Z2 7,419   Z3 536   (used 320 s)
+
+Fifty percent more budget, identical to the digit in all three components -- and identical to the
+value reached at 180 s once brk was removed. The run also finishes ~40 s early at both budgets,
+because the final improvement pass has nothing left to do.
+
+This closes the "should we switch to GRASP or BRKGA" question from the other side. Those search
+harder, and searching harder is already worth exactly zero here. The algorithm is not
+time-starved; it is stuck at a point its placement rule cannot leave.
+
+Everything measured tonight points at the same place:
+
+* the yard sits at 54% utilisation while 64% of waiting blocks have nowhere legal to go
+* 12 of the 20 blocks with preference regret have no feasible slot in any better bay, ever
+* three separate preference mechanisms -- beam weighting, post-hoc moves, joint CP-SAT
+  assignment -- all failed, and all three assumed that free area means a placeable block
+
+The lever is the placement rule: placing so that descent access survives for what comes later.
+Not more time, and not a different metaheuristic on top of the same rule.
