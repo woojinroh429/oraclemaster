@@ -112,36 +112,54 @@ for b in samp:
         fit_now.append(b)
     E.add(bay[b], b, ori[b], float(px[b]), float(py[b]), ent[b], ext[b])
 
-# ---- C: insert it first, then re-seat everyone it displaced ----------------------------
+# ---- C: can an EXACT packer seat the block plus everyone whose window it shares? --------
+#
+# The first version of this re-seated the displaced residents by first fit, and it returned 0
+# of 40 with every block landing in the same bucket -- which is the shape of a broken test, not
+# of a measurement.  Emptying a bay of dozens of residents and re-inserting them at the first
+# feasible cell is a far worse packer than whatever produced the arrangement in the first
+# place, so a failure said nothing about the yard.
+#
+# cranepack is the exact set-packing solver bayrepack already uses: give it the blocks with
+# their windows and it seats the maximum-weight subset that respects the crane rule.  If IT
+# cannot seat everyone, "cannot" finally means something.
+import bayrepack as _R                                     # noqa: E402
+CP = _R._load()
+CAPQ = int(sys.argv[sys.argv.index("--capq") + 1] if "--capq" in sys.argv else 24)
+PACKS = float(sys.argv[sys.argv.index("--packs") + 1] if "--packs" in sys.argv else 3.0)
+
 recover = []
+packed_fail = 0
 for b in samp:
     if b in fit_now:
         continue
     en = rel[b]; ex = en + pt[b]
     won = False
     for j in range(m):
-        load_state()
-        E.remove(b)
-        # everyone in bay j whose residency overlaps [en, ex)
         occ = [q for q in range(n) if q != b and q in ent and bay[q] == j
                and ent[q] < ex and en < ext[q]]
-        for q in occ:
-            E.remove(q)
-        seat = first_fit(b, [j], en, ex)
-        if not seat:
-            continue                               # not even an empty-ish bay takes it
-        E.add(j, b, seat[1], float(seat[2]), float(seat[3]), en, ex)
-        # re-seat the displaced, biggest first -- a greedy pass, so success is real and
-        # failure is not proof
-        occ.sort(key=lambda q: -(pt[q]))
-        ok = True
-        for q in occ:
-            s2 = first_fit(q, [j], ent[q], ext[q])
-            if not s2:
-                ok = False
-                break
-            E.add(j, q, s2[1], float(s2[2]), float(s2[3]), ent[q], ext[q])
-        if ok:
+        # a window shared with more than CAPQ residents makes the column count explode; those
+        # are counted separately rather than silently called infeasible
+        if len(occ) > CAPQ:
+            packed_fail += 1
+            continue
+        cand = [b] + occ
+        blocks_in = [(_R._layers_bbox(B, q)[0], _R._layers_bbox(B, q)[1],
+                      [(en, ex)] if q == b else [(ent[q], ext[q])]) for q in cand]
+        W = float(prob["bays"][j]["width"]); H = float(prob["bays"][j]["height"])
+        try:
+            r = CP.pack(blocks_in, W, H, STEP, PACKS, seed=1, warm=None, frozen=[],
+                        weights=[1.0] * len(cand), total_s=PACKS * 3.0)
+        except Exception:
+            continue
+        if len(r) > 9 and int(r[9]) == 1:      # build aborted -> no verdict from this bay
+            packed_fail += 1
+            continue
+        # r[1] is the seating: (column index, orient, x, y, entry, exit) per seated block.
+        # Index 0 is the waiting block, so it has to be among them AND nobody may be dropped --
+        # a repack that admits b by evicting a resident is not free and is not what this counts.
+        got = {int(loc) for (loc, _o, _x, _y, _e, _x2) in r[1]}
+        if len(got) == len(cand) and 0 in got:
             won = True
             break
     if won:
@@ -168,5 +186,7 @@ print("   %-34s %6d %10d   %5.1f%%" % ("A  never fits, empty yard", len(never),
                                        d_of(never), 100.0 * d_of(never) / sd))
 print("   %-34s %6d %10d   %5.1f%%" % ("   genuinely full", len(stuck),
                                        d_of(stuck), 100.0 * d_of(stuck) / sd))
-print("\n   RECOVERABLE (B+C) = %.1f%% of the sampled delay -- a LOWER bound, greedy re-seat"
-      % (100.0 * (d_of(fit_now) + d_of(recover)) / sd), flush=True)
+print("\n   RECOVERABLE (B+C) = %.1f%% of the sampled delay -- still a LOWER bound: cranepack is"
+      % (100.0 * (d_of(fit_now) + d_of(recover)) / sd))
+print("   given %.0fs per bay and %d bay-tests were skipped as too wide (>%d sharers) or aborted"
+      % (PACKS, packed_fail, CAPQ), flush=True)
