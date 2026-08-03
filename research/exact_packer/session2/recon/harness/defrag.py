@@ -45,6 +45,7 @@ _DD = sys.argv[sys.argv.index("--data") + 1] if "--data" in sys.argv else "data/
 CAP = int(sys.argv[sys.argv.index("--cap") + 1]) if "--cap" in sys.argv else 60
 STEP = int(sys.argv[sys.argv.index("--step") + 1] if "--step" in sys.argv else 2)
 
+import numpy as _np                                      # noqa: E402
 import myalgorithm as A                                  # noqa: E402
 import utils                                             # noqa: E402
 
@@ -91,9 +92,13 @@ def load_state():
 
 
 def first_fit(b, bays, en, ex):
-    """(bay, oi, x, y) of the first feasible seat, or None."""
-    r = list(E.feasible_scan(b, list(bays), en, ex, STEP))
-    return tuple(r[:4]) if r else None
+    """(bay, oi, x, y) of the first feasible seat, or None.
+
+    feasible_scan hands back an (N, 4) array, so it has to be flattened before the quadruple
+    is read -- taking r[:4] off the raw return gives four ROWS, and float() on a row raises
+    'only 0-dimensional arrays can be converted'."""
+    a = _np.asarray(E.feasible_scan(b, list(bays), en, ex, STEP)).ravel()
+    return tuple(int(v) for v in a[:4]) if a.size >= 4 else None
 
 
 load_state()
