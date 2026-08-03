@@ -1,0 +1,14 @@
+    brk calib: 360:4.01e-07 932:3.39e-08 -> rate 3.39e-08 at 932 cols, growth n^0.000
+    brk tier: room=96s rate=3.39e-08 -> tier 0 (step 4 nout 40 nent 6) ncol~31142 pred=32.9s  [hard=112 slice=40s]
+    brk calib: 366:5.53e-07 956:3.52e-08 -> rate 3.52e-08 at 956 cols, growth n^0.000
+    brk tier: room=95s rate=3.52e-08 -> tier 0 (step 4 nout 40 nent 6) ncol~30782 pred=33.4s  [hard=111 slice=40s]
+    brk calib: 364:6.17e-07 934:3.61e-08 -> rate 3.61e-08 at 934 cols, growth n^0.000
+    brk tier: room=93s rate=3.61e-08 -> tier 0 (step 4 nout 40 nent 6) ncol~30782 pred=34.2s  [hard=110 slice=40s]
+    brk calib: 348:6.98e-07 908:3.51e-08 -> rate 3.51e-08 at 908 cols, growth n^0.000
+    brk tier: room=93s rate=3.51e-08 -> tier 0 (step 4 nout 40 nent 6) ncol~31394 pred=34.6s  [hard=109 slice=40s]
+    brk cost: ncol~31142 real_ncol=30632 build=7.2s ask=39.8s total=48.3s
+    brk cost: tier 0 ncol~31142 real_ncol=30632 build=7.2s total=48.3s  -> rate 7.465e-09 s/col^2
+    brk[pressure] tgt=0 res=54 outs=17 admitted 1, displaced 1, obj 100110 vs base 106700 -> KEEP
+    brk cost: ncol~30782 real_ncol=30436 build=7.4s ask=39.8s total=47.9s
+    brk cost: tier 0 ncol~30782 real_ncol=30436 build=7.4s total=47.9s  -> rate 7.862e-09 s/col^2
+    brk[pressure] tgt=0 res=52 outs=18 admitted 5, displaced 2, obj 94345 vs base 110800 -> KEEP
