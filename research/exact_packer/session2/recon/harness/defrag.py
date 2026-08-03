@@ -189,6 +189,8 @@ PSTEP = int(sys.argv[sys.argv.index("--pstep") + 1] if "--pstep" in sys.argv els
 
 recover = []
 packed_fail = 0
+ctrl_fail = 0
+b_in_only = 0
 for b in samp:
     if b in fit_now:
         continue
@@ -202,6 +204,25 @@ for b in samp:
         if len(occ) > CAPQ:
             packed_fail += 1
             continue
+        # CONTROL, and it decides whether the answer means anything.  The residents are sitting
+        # at positions the beam chose on a fine grid; this packer is being run on a coarse one.
+        # If cranepack cannot re-seat the residents ALONE at step PSTEP, then "cannot seat them
+        # plus b" is a statement about my grid, not about the crane.  So ask that first and
+        # count the bay out when the control itself fails.
+        if occ:
+            bi0 = [(_R._layers_bbox(B, q)[0], _R._layers_bbox(B, q)[1], [(ent[q], ext[q])])
+                   for q in occ]
+            Wc = float(prob["bays"][j]["width"]); Hc = float(prob["bays"][j]["height"])
+            try:
+                r0 = CP.pack(bi0, Wc, Hc, PSTEP, PACKS, seed=1, warm=None, frozen=[],
+                             weights=[1.0] * len(occ), total_s=PACKS * 3.0)
+            except Exception:
+                ctrl_fail += 1
+                continue
+            if (len(r0) > 9 and int(r0[9]) == 1) or len(set(int(l) for (l, *_r) in r0[1])) < len(occ):
+                ctrl_fail += 1
+                continue
+
         cand = [b] + occ
         blocks_in = [(_R._layers_bbox(B, q)[0], _R._layers_bbox(B, q)[1],
                       [(en, ex)] if q == b else [(ent[q], ext[q])]) for q in cand]
@@ -221,6 +242,10 @@ for b in samp:
         if len(got) == len(cand) and 0 in got:
             won = True
             break
+        if 0 in got:
+            # b gets a seat but someone has to leave: not free, and worth counting apart from
+            # "no room for b at all"
+            b_in_only += 1
     if won:
         recover.append(b)
 
@@ -247,7 +272,8 @@ print("   %-34s %6d %10d   %5.1f%%" % ("   genuinely full", len(stuck),
                                        d_of(stuck), 100.0 * d_of(stuck) / sd))
 print("\n   RECOVERABLE (B+C) = %.1f%% of the sampled delay -- still a LOWER bound: cranepack is"
       % (100.0 * (d_of(fit_now) + d_of(recover)) / sd))
-print("   cranepack got %.0fs per bay on a step-%d grid; %d of %d bay-tests could not be asked"
-      " (>%d window-sharers, or the build aborted)"
-      % (PACKS, PSTEP, packed_fail, len([b for b in samp if b not in fit_now]) * m, CAPQ),
-      flush=True)
+_asked = len([b for b in samp if b not in fit_now]) * m
+print("   cranepack: step-%d grid, %.0fs per bay.  of %d bay-tests, %d too wide/aborted, %d had"
+      " the CONTROL fail (residents alone do not re-seat at this grid), %d seated b but had to"
+      " evict a resident."
+      % (PSTEP, PACKS, _asked, packed_fail, ctrl_fail, b_in_only), flush=True)
