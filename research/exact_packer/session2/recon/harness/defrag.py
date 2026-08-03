@@ -95,7 +95,23 @@ print("   examining %d blocks, %s (%.0f%% of the delay)"
 # time, and admission is decided by the busiest instant of the block's own window.  If those two
 # numbers are far apart then the yard was never half empty when it mattered, and the whole
 # fragmentation story is answered before any packing is attempted.
-_AR, _bc, _sc = A._footprint_areas(prob)
+#
+# NOT _footprint_areas.  It returns RASTERISED grid cells, about 8x the polygon area -- the same
+# unit error that made _cpassign read a demand/capacity of 3.62 on an instance whose true ratio
+# is 0.46 and turned every model infeasible.  Used here it drove peak/area above 1 for every
+# block and the free area clamped to exactly 0.0% for all fifteen, max included, which is what a
+# saturated formula looks like rather than a full yard.  Shoelace on the layer-0 polygon is the
+# floor the block actually occupies.
+def _poly_area(bid):
+    L = B[bid]["shape"][0]["layers"][0]
+    s = 0.0
+    for i in range(len(L)):
+        x1, y1 = L[i]; x2, y2 = L[(i + 1) % len(L)]
+        s += x1 * y2 - x2 * y1
+    return abs(s) * 0.5
+
+
+_AR = [_poly_area(b) for b in range(n)]
 occ_at = []
 for b in samp:
     en = rel[b]; ex = en + pt[b]
