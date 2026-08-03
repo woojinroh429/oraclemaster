@@ -93,3 +93,31 @@ slack is exactly what we are failing to exploit. Six of the forty final instance
 
 This is the opposite of where the effort has gone. The sparse-instance work targeted density 0.33,
 which does not occur in the final set at all.
+
+## Correction: only three instances are genuinely saturated
+
+Density above 1.0 is a crude test, and it overstated the case. Applying the shifted-deadline
+energetic bound to all forty instances gives a sharper answer:
+
+    forces tardiness (bound > 0)      12 of 40
+    could in principle reach Z1 = 0   28 of 40
+
+and of the twelve, only three force a substantial amount:
+
+    prob_36  Z1 >= 3,371      prob_18  Z1 >= 125
+    prob_13  Z1 >= 2,803      prob_37  Z1 >= 116
+    prob_25  Z1 >= 2,334      prob_40  Z1 >=  54
+    prob_2   Z1 >=   449      prob_5   Z1 >=  42
+    prob_39  Z1 >=   362      prob_14  Z1 >=  10
+    prob_26  Z1 >=   230      prob_20  Z1 >=   5
+
+So "ten over-capacity instances, the set is P6-shaped" was too strong. Three are saturated, nine
+are barely constrained, and twenty-eight have no forced tardiness at all.
+
+This changes what the set is testing. The bound ignores geometry, so an instance with bound zero
+still incurs tardiness in practice -- through packing loss, not through arithmetic. Any Z1 we
+produce on those twenty-eight is ours, not the instance's. Most of the final round is decided by
+how well the yard is packed and scheduled, which is the opposite of a set where everyone is
+equally stuck.
+
+Measured evidence that the headroom is real: on prob_26 the bound is 230 and we produced 2,682.
