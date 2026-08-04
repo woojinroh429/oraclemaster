@@ -33,9 +33,11 @@ exec 7>/tmp/ogc_experiment.lock 2>/dev/null || exit 0
 flock -n 7 || exit 0
 exec 7>&-
 
-for q in overnight askfix; do
-    pgrep -f "harness/${q}\.sh" >/dev/null 2>&1 && exit 0
-done
+# LIVENESS IS A WORKER, NOT A SCRIPT NAME.  pgrep -f "harness/x.sh" also matches the shell that
+# is running the CHECK, so it can report a queue alive that died hours ago -- that is exactly what
+# happened at 08:14, and five hours of machine time went to nothing while the check kept saying
+# the queue was up.  A real run has a python worker; look for that.
+pgrep -f "run1\.py myalgorithm" >/dev/null 2>&1 && exit 0
 
 # only now, with nothing running, is a rewind safe: local git can be at a pre-restart snapshot
 ( cd ../../.. && git fetch -q origin claude/repair-plan-model-1ig6it 2>/dev/null \
