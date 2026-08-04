@@ -390,6 +390,18 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
                         for _i in range(max(1, _ne)):
                             _ts.add(_lo + (_hi - _lo) * _i // max(1, _ne - 1) if _ne > 1 else _lo)
                         _nt = len(_ts)
+                        # THE LATE LADDER COSTS COLUMNS TOO.  This estimate is what chooses the
+                        # tier, and the tier is what keeps an uninterruptible build inside the
+                        # deadline.  It already omitted the single late window and under-counted
+                        # by one; a ladder of up to three would under-count by three, and that is
+                        # the direction that loses a run rather than a little quality.  An upper
+                        # bound is enough: the exact count needs the block's weight, which is not
+                        # known until after the target bay is fixed.
+                        _pr = prob_info["blocks"][_b].get("bay_preferences") or [0]
+                        _w1e = float(prob_info["weights"]["w1"])
+                        _w3e = float(prob_info["weights"].get("w3", 0.0))
+                        if _w1e > 0.0 and _w3e * (max(_pr) - min(_pr)) >= _w1e:
+                            _nt += max(1, int(os.environ.get("OGC_LATEK", "3")))
                     _, _ob = _layers_bbox(B, _b)
                     for _q in _ob:
                         _dw, _dh = _q[2] - _q[0], _q[3] - _q[1]
@@ -530,9 +542,31 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
                 return 0
             return max(0, min(int(_CEIL), int(_w3f * _reg / _w1f)))
 
+        # HOW MANY LATE WINDOWS, AND WHERE.  The single late window used to be placed at
+        # _late_by(b) = w3*regret/w1, the BREAK-EVEN delay -- and break-even is by definition
+        # where the seat is worth nothing.  Under per-block weights that was forced: one window
+        # was all that could be priced, so it went to the widest opening.  Under per-seat prices
+        # it is simply the worst point on the curve, since price(d) = gain - w1*d falls with d.
+        #
+        # It shows up in the split between the instances per-seat pricing wins and loses:
+        #
+        #     wins  (22)   median dZ3  -6    median w3/w1 0.085   w1*Z1 share 77.9%
+        #     loses (10)   median dZ3 +157   median w3/w1 0.022   w1*Z1 share 87.5%
+        #
+        # The losers are tardiness-dominated instances where preference is four times cheaper,
+        # so a seat at break-even is not merely worthless there, it is reliably worthless -- and
+        # it still costs columns and dilutes the choice.
+        #
+        # The reason a LARGE delay was ever wanted is that the preferred bay may not free up
+        # sooner.  That is an argument for offering several and letting the price decide, which
+        # per-seat weights now make possible: a ladder from one day to break-even, geometric so
+        # the cheap end is sampled densely.  No gate and no tuned constant -- the endpoints come
+        # from the instance's own weights and the count is bounded to keep the column count sane.
+        _LATEK = max(1, int(os.environ.get("OGC_LATEK", "3")))
+
         def windows(b):
-            """Entry times to offer.  The tardiness-free window, plus at most one late entry when
-            the instance's own weights say the delay could pay for itself."""
+            """Entry times to offer: the tardiness-free window, plus a geometric ladder of late
+            entries between one day and the break-even delay this instance's weights imply."""
             lo, hi = rel[b], due[b] - pt[b]
             if hi < lo:
                 return [(ent[b], ent[b] + pt[b])]
@@ -543,7 +577,13 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
                 ts.add(lo + (hi - lo) * i // max(1, NENT - 1) if NENT > 1 else lo)
             _d = _late_by(b)
             if _d > 0:
-                ts.add(hi + _d)
+                if _LATEK <= 1:
+                    ts.add(hi + _d)
+                else:
+                    for _k in range(_LATEK):
+                        # d, d/2, d/4, ...  taken from the far end so break-even stays offered
+                        _dd = max(1, int(_d / (2 ** _k)))
+                        ts.add(hi + _dd)
             return [(t, t + pt[b]) for t in sorted(ts)]
 
         cand = list(res) + [b for _, b in outs]
