@@ -8,3 +8,5 @@ P3  askcap P3      240s  obj=80795       Z1=0.0      Z2=3469   Z3=423.0     feas
 === ac_p6.log (askcap P6) 15:14:27
 P6  askcap P6      900s  obj=30025462    Z1=4374.0   Z2=2138   Z3=5646.0    feas=y   ran 900s
 askcap done 15:29:28
+verified: search bounded by the slice, call bounded by hard, nothing predicted
+askcap done 03:37:33

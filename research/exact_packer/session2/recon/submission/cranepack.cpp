@@ -12,6 +12,10 @@
 #include <cmath>
 #include <algorithm>
 #include <chrono>
+#include <atomic>
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 #include <cstdlib>
 #include <cstdio>
 namespace py = pybind11;
@@ -96,6 +100,20 @@ static bool poly_overlap_off(const Poly& A,const Poly& B,double ox,double oy){
 // ---------- placement column ----------
 struct Col {
     int block, orient, x, y, entry, exit;
+    // PER-COLUMN OBJECTIVE WEIGHT.  It used to be per BLOCK, and that is what made the packer
+    // unable to trade tardiness against preference at all: a block's on-time column and its
+    // ten-days-late column carried the SAME value, so the solver had no way to prefer either
+    // and simply took whichever seated more easily.  Every attempt to express the trade from
+    // outside failed for the same reason -- discounting the block's weight by the late cost
+    // undervalues it when it takes the on-time seat, and at the break-even delay the discount
+    // equals the whole gain, which collapsed the weights of exactly the high-regret blocks to
+    // the 1.0 floor.
+    //
+    // The granularity that is actually needed is the ENTRY VARIANT, not the full column: the
+    // objective reads (bay, entry_time) and nothing else, and one pack() call is one bay, so
+    // x, y and orientation cannot change a column's value.  w is therefore filled from
+    // win_weights[block][entry_variant] and falls back to the per-block weight.
+    double w;
     std::vector<Poly> layers;             // world coords
     double bx0,by0,bx1,by1;
     // PER-LAYER bounding boxes, four doubles each, flat.  The pair filters reject on the COLUMN
@@ -239,18 +257,45 @@ struct Xorshift { uint64_t s;
 //
 // Open addressing, linear probing, one byte per key; past 70% full it stops inserting and the
 // caller simply computes, so a memo that runs out of room degrades into the original code.
+// SHARED ACROSS THREADS, AND IT HAS TO BE.  The memo is where the build's speed lives -- 95.5%
+// reuse on a P3 build, 33.8 s down to 4.8 s.  Giving each thread a private copy quartered that
+// reuse and gave the whole parallel build back: 19.4 s serial against 17.6 s on four cores, a
+// 1.10x that is the parallel win minus the memo loss.
+//
+// Sharing it naively is silently WRONG, not just racy.  This is open addressing: two threads
+// inserting DIFFERENT keys can both see the same empty slot, both write their key, and the loser
+// then returns a pointer into a slot the winner owns.  The loser writes its verdict there and the
+// winner reads it back later -- a wrong conflict answer, which is a wrong edge, which is a
+// different problem being solved.
+//
+// So a slot is claimed by CAS and only by CAS.  The thread whose exchange succeeds owns it;
+// everyone else re-reads and either matches the key or probes on.  Relaxed ordering is enough
+// because the value is a PURE FUNCTION of the key: two threads that race on the same key compute
+// the same verdict and write the same byte, so no ordering between key and value is needed.
 struct ConflictMemo {
-    std::vector<uint64_t> key; std::vector<int8_t> val;
-    uint64_t mask; size_t used, cap;
+    std::vector<std::atomic<uint64_t>> key;
+    std::vector<std::atomic<int8_t>> val;
+    uint64_t mask; std::atomic<size_t> used; size_t cap;
     explicit ConflictMemo(int bits)
-        : key(size_t(1)<<bits, ~0ull), val(size_t(1)<<bits, 0),
-          mask((size_t(1)<<bits)-1), used(0), cap(((size_t(1)<<bits)*7)/10) {}
-    inline int8_t* find(uint64_t k){
+        : key(size_t(1)<<bits), val(size_t(1)<<bits),
+          mask((size_t(1)<<bits)-1), used(0), cap(((size_t(1)<<bits)*7)/10) {
+        for(size_t i=0;i<key.size();i++){ key[i].store(~0ull, std::memory_order_relaxed);
+                                          val[i].store(0, std::memory_order_relaxed); }
+    }
+    inline std::atomic<int8_t>* find(uint64_t k){
         uint64_t h=k*0x9E3779B97F4A7C15ull; h^=h>>29;
         size_t i=(size_t)(h&mask);
         for(;;){
-            if(key[i]==k) return &val[i];
-            if(key[i]==~0ull){ if(used>=cap) return nullptr; key[i]=k; used++; return &val[i]; }
+            uint64_t cur=key[i].load(std::memory_order_relaxed);
+            if(cur==k) return &val[i];
+            if(cur==~0ull){
+                if(used.load(std::memory_order_relaxed)>=cap) return nullptr;
+                uint64_t exp=~0ull;
+                if(key[i].compare_exchange_strong(exp,k,std::memory_order_relaxed)){
+                    used.fetch_add(1,std::memory_order_relaxed); return &val[i];
+                }
+                continue;                      // lost the slot; re-read and probe on
+            }
             i=(i+1)&mask;
         }
     }
@@ -274,7 +319,8 @@ struct ConflictMemo {
 // Negative (the default) keeps the old meaning exactly, so every existing caller is unchanged.
 py::tuple pack(py::list blocks, double W, double H, int step,
                double time_budget_s, uint64_t seed, py::object warm, py::object frozen,
-               py::object weights, double total_s, long max_iters){
+               py::object weights, double total_s, long max_iters,
+               py::object win_weights){
     auto t0=std::chrono::high_resolution_clock::now();
     int nblk = (int)py::len(blocks);
 
@@ -283,6 +329,17 @@ py::tuple pack(py::list blocks, double W, double H, int step,
     std::vector<double> wt(nblk, 1.0);
     if(!weights.is_none()){
         int wi=0; for(auto v : py::cast<py::list>(weights)){ if(wi<nblk) wt[wi]=py::cast<double>(v); wi++; }
+    }
+    // win_weights[b][k] -- what seating block b at its k-th entry variant is worth.  Optional:
+    // absent, every variant inherits wt[b] and the solver behaves exactly as before, which is
+    // what keeps every existing caller byte-identical.
+    std::vector<std::vector<double>> WW(nblk);
+    if(!win_weights.is_none()){
+        int bi=0;
+        for(auto row : py::cast<py::list>(win_weights)){
+            if(bi<nblk){ for(auto v : py::cast<py::list>(row)) WW[bi].push_back(py::cast<double>(v)); }
+            bi++;
+        }
     }
 
     // parse per-block per-orient origin polygons + obb + entry/exit variants
@@ -365,8 +422,9 @@ py::tuple pack(py::list blocks, double W, double H, int step,
     }
 
     std::vector<std::vector<int>> colsOfBlock(nblk);
-    auto make_col=[&](int b,int o,int x,int y,int en,int ex){
+    auto make_col=[&](int b,int o,int x,int y,int en,int ex,int ei){
         Col c; c.block=b;c.orient=o;c.x=x;c.y=y;c.entry=en;c.exit=ex;
+        c.w = (ei>=0 && ei<(int)WW[b].size()) ? WW[b][ei] : wt[b];
         for(auto& P : BL[b][o]){
             Poly Q; Q.reserve(P.size());
             for(auto&p:P) Q.emplace_back(p.first+x,p.second+y);
@@ -392,7 +450,8 @@ py::tuple pack(py::list blocks, double W, double H, int step,
             }
             std::sort(xs.begin(),xs.end()); xs.erase(std::unique(xs.begin(),xs.end()),xs.end());
             std::sort(ys.begin(),ys.end()); ys.erase(std::unique(ys.begin(),ys.end()),ys.end());
-            for(int x:xs) for(int y:ys) for(auto& ee : ENT[b]) make_col(b,o,x,y,ee.first,ee.second);
+            for(int x:xs) for(int y:ys) for(int ei=0;ei<(int)ENT[b].size();ei++)
+                make_col(b,o,x,y,ENT[b][ei].first,ENT[b][ei].second,ei);
         }
     }
     int ncol=(int)cols.size();
@@ -454,7 +513,92 @@ py::tuple pack(py::list blocks, double W, double H, int step,
     ConflictMemo memo(22);
 
     const double build_cap = (total_s > 0.0) ? total_s : -1.0;
-    double _lastel=0.0; int _lasti=0;
+    // PARALLEL BUILD.  This loop is the reason NOUT is 40 and the grid step is 4: both are held
+    // where they are by what the build can afford, and the file already records the conclusion --
+    // "raising it safely requires a FASTER BUILD, not a bigger table".  It has been serial on a
+    // four-core box the whole time.
+    //
+    // Rows are independent: each visits pairs (i,j) with j>i and decides edges.  What is not
+    // independent is where the results go, so each thread keeps its own edge buffer and its own
+    // memo, and both are merged after.  A private memo loses cross-thread reuse; it does not lose
+    // correctness, since a memo miss simply recomputes the same predicate.  For the same reason
+    // the memo's capacity cannot change the answer either -- a full table returns nullptr and the
+    // caller computes.
+    //
+    // THE EDGE SET MUST NOT MOVE.  adj is sorted after the merge, so insertion order does not
+    // matter, and n_edges is returned in the result tuple -- CRANEPACK_SERIAL=1 runs the old
+    // path so the two can be compared on the same input.  A parallel build that changes the graph
+    // is a different problem, which is precisely why the conflict memo's 36-edge disagreement was
+    // treated as disqualifying.
+    static const bool SERIAL=[](){const char*e=getenv("CRANEPACK_SERIAL");return e&&e[0]=='1';}();
+    int NTH = 1;
+#ifdef _OPENMP
+    if(!SERIAL) NTH = std::max(1, std::min(omp_get_max_threads(), 8));
+#endif
+    if(NTH > 1){
+        std::vector<std::vector<std::pair<int,int>>> tedge(NTH);
+        std::atomic<int> rows_done(0);
+        std::atomic<int> abort_flag(0);
+        #pragma omp parallel num_threads(NTH)
+        {
+            int tid=0;
+#ifdef _OPENMP
+            tid = omp_get_thread_num();
+#endif
+            std::vector<std::pair<int,int>>& eb = tedge[tid];
+            int since=0;
+            #pragma omp for schedule(dynamic,32)
+            for(int i=0;i<ncol;i++){
+                if(abort_flag.load(std::memory_order_relaxed)) continue;
+                const int ai=ord[i], ab=sblk[i], aen=sent[i], aex=sext[i];
+                const double ax0=sx0[i], ay0=sy0[i], ax1=sx1[i], ay1=sy1[i];
+                for(int j=i+1;j<ncol;j++){
+                    if(sent[j]>=aex) break;
+                    if(sblk[j]==ab) continue;
+                    if(ax1<=sx0[j]||sx1[j]<=ax0||ay1<=sy0[j]||sy1[j]<=ay0) continue;
+                    if(aen>=sext[j]) continue;
+                    const int bj=ord[j];
+                    const Col& CA=cols[ai]; const Col& CB=cols[bj];
+                    const int tcase=((CA.entry>=CB.entry||CA.exit<=CB.exit)?1:0)
+                                  | ((CB.entry>=CA.entry||CB.exit<=CA.exit)?2:0);
+                    const uint64_t mk =
+                          ((uint64_t)(CA.block*16+CA.orient))
+                        | ((uint64_t)(CB.block*16+CB.orient)<<13)
+                        | ((uint64_t)(CB.x-CA.x+2048)<<26)
+                        | ((uint64_t)(CB.y-CA.y+2048)<<38)
+                        | ((uint64_t)tcase<<50);
+                    std::atomic<int8_t>* mv = NOMEMO ? nullptr : memo.find(mk);
+                    bool hit; int8_t cached = mv ? mv->load(std::memory_order_relaxed) : 0;
+                    if(cached) hit = (cached==2);
+                    else {
+                        hit = crane_conflict_rel(BL[CA.block][CA.orient], OLBB[CA.block][CA.orient],
+                                                 BL[CB.block][CB.orient], OLBB[CB.block][CB.orient],
+                                                 (double)(CB.x-CA.x), (double)(CB.y-CA.y),
+                                                 CA.entry,CA.exit,CB.entry,CB.exit);
+                        if(mv) mv->store(hit?2:1, std::memory_order_relaxed);
+                    }
+                    if(hit) eb.push_back({ai,bj});
+                }
+                int done = rows_done.fetch_add(1, std::memory_order_relaxed) + 1;
+                if(build_cap > 0.0 && (++since & 63) == 0){
+                    double el = std::chrono::duration<double>(
+                                    std::chrono::high_resolution_clock::now()-tcols).count();
+                    // pairs are triangular, so rows done is not the fraction of work done
+                    double fd = (double)done/(double)ncol;
+                    double frac = fd*(2.0-fd);            // 1-(1-fd)^2
+                    if(frac > 1e-6){
+                        double projected = cols_s + el/frac;
+                        if(projected > build_cap) abort_flag.store(1, std::memory_order_relaxed);
+                    }
+                }
+            }
+        }
+        aborted = abort_flag.load() != 0;
+        for(auto& eb : tedge) for(auto& e : eb){
+            adj[e.first].push_back(e.second); adj[e.second].push_back(e.first); nedge++;
+        }
+    } else
+    { double _lastel=0.0; int _lasti=0;
     for(int i=0;i<ncol;i++){
         if(build_cap > 0.0 && (i & 255) == 255){
             double el = std::chrono::duration<double>(
@@ -502,20 +646,21 @@ py::tuple pack(py::list blocks, double W, double H, int step,
                 | ((uint64_t)(CB.x-CA.x+2048)<<26)
                 | ((uint64_t)(CB.y-CA.y+2048)<<38)
                 | ((uint64_t)tcase<<50);
-            int8_t* mv = NOMEMO ? nullptr : memo.find(mk);
-            bool hit;
-            if(mv && *mv) hit = (*mv==2);
+            std::atomic<int8_t>* mv = NOMEMO ? nullptr : memo.find(mk);
+            bool hit; int8_t cached = mv ? mv->load(std::memory_order_relaxed) : 0;
+            if(cached) hit = (cached==2);
             else {
                 hit = crane_conflict_rel(BL[CA.block][CA.orient], OLBB[CA.block][CA.orient],
                                          BL[CB.block][CB.orient], OLBB[CB.block][CB.orient],
                                          (double)(CB.x-CA.x), (double)(CB.y-CA.y),
                                          CA.entry,CA.exit,CB.entry,CB.exit);
-                if(mv) *mv = hit?2:1;
+                if(mv) mv->store(hit?2:1, std::memory_order_relaxed);
             }
             if(hit){
                 adj[ai].push_back(bj); adj[bj].push_back(ai); nedge++;
             }
         }
+    }
     }
     for(auto& v:adj) std::sort(v.begin(),v.end());
     auto t1=std::chrono::high_resolution_clock::now();
@@ -560,21 +705,32 @@ py::tuple pack(py::list blocks, double W, double H, int step,
         for(int b=0;b<nblk;b++) if(sel[b]>=0) rem_col(sel[b]);
     };
     auto count_sel=[&](){ int c2=0; for(int b=0;b<nblk;b++) if(sel[b]>=0) c2++; return c2; };
-    auto wsel=[&](){ double s=0; for(int b=0;b<nblk;b++) if(sel[b]>=0) s+=wt[b]; return s; };
+    auto wsel=[&](){ double s=0; for(int b=0;b<nblk;b++) if(sel[b]>=0) s+=cols[sel[b]].w; return s; };
 
     // greedily extend current selection using a given block order; within a block
     // pick the first column with blocked==0.
     auto greedy_extend=[&](const std::vector<int>& border){
         for(int b:border){
             if(sel[b]>=0) continue;
-            for(int c:colsOfBlock[b]) if(blocked[c]==0){ add_col(c); break; }
+            int bc=-1; double bv=-1e18;
+            for(int c:colsOfBlock[b]) if(blocked[c]==0 && cols[c].w>bv){ bv=cols[c].w; bc=c; }
+            if(bc>=0) add_col(bc);
         }
     };
 
+    // A block's rank is its BEST column now that columns differ in value: with per-window
+    // weights "how much is this block worth" is only well defined as "the most any seat for it
+    // is worth".  Falls back to wt[b] for a block with no columns at all.
+    std::vector<double> blkw(nblk, 0.0);
+    for(int b=0;b<nblk;b++){
+        double m=-1e18;
+        for(int c:colsOfBlock[b]) m=std::max(m,cols[c].w);
+        blkw[b] = (m>-1e17)? m : wt[b];
+    }
     std::vector<int> border(nblk); for(int b=0;b<nblk;b++) border[b]=b;
     // weight-priority order (exploit): high-weight blocks placed first
     std::vector<int> worder(nblk); for(int b=0;b<nblk;b++) worder[b]=b;
-    std::sort(worder.begin(),worder.end(),[&](int a,int b){ return wt[a]>wt[b]; });
+    std::sort(worder.begin(),worder.end(),[&](int a,int b){ return blkw[a]>blkw[b]; });
 
     // (2,1)-swap: remove one selected column s, add TWO freed columns from distinct
     // unplaced blocks that don't conflict with each other -> net +1 block.  Canonical
@@ -587,14 +743,14 @@ py::tuple pack(py::list blocks, double W, double H, int step,
     auto try_swap=[&]()->bool{
         for(int b=0;b<nblk;b++){
             int s=sel[b]; if(s<0) continue;
-            double ws=wt[b];
+            double ws=cols[s].w;
             std::vector<int> freed;
             for(int c:adj[s]) if(!selflag[c] && blocked[c]==1 && sel[cols[c].block]<0) freed.push_back(c);
             int nf=(int)freed.size();
             if(nf==0) continue;
             // (1,1): a single heavier freed block
             for(int i=0;i<nf;i++){
-                int c1=freed[i]; if(wt[cols[c1].block] > ws + 1e-9){ rem_col(s); add_col(c1); return true; }
+                int c1=freed[i]; if(cols[c1].w > ws + 1e-9){ rem_col(s); add_col(c1); return true; }
             }
             if(nf<2) continue;
             // (2,1): two freed from distinct blocks, non-conflicting, combined weight > w_s
@@ -602,7 +758,7 @@ py::tuple pack(py::list blocks, double W, double H, int step,
                 int c1=freed[i], b1=cols[c1].block;
                 for(int k=i+1;k<nf;k++){
                     int c2=freed[k]; if(cols[c2].block==b1) continue;
-                    if(wt[b1]+wt[cols[c2].block] <= ws + 1e-9) continue;
+                    if(cols[c1].w+cols[c2].w <= ws + 1e-9) continue;
                     if(std::binary_search(adj[c1].begin(),adj[c1].end(),c2)) continue;
                     rem_col(s); add_col(c1); add_col(c2);
                     return true;
@@ -636,16 +792,17 @@ py::tuple pack(py::list blocks, double W, double H, int step,
     auto try_eject=[&]()->bool{
         for(int b=0;b<nblk;b++){
             if(sel[b]>=0) continue;
-            double wb=wt[b];
-            if(wb<=1e-9) continue;
+            if(blkw[b]<=1e-9) continue;
             for(int c:colsOfBlock[b]){
                 if(blocked[c]==0) continue;       // greedy_extend already seats these
+                const double wb=cols[c].w;
+                if(wb<=1e-9) continue;
                 double cost=0.0; bool ok=true;
                 ejbuf.clear();
                 for(int d:adj[c]){
                     if(!selflag[d]) continue;
                     ejbuf.push_back(d);
-                    cost+=wt[cols[d].block];
+                    cost+=cols[d].w;
                     if(cost>=wb-1e-9){ ok=false; break; }
                 }
                 if(!ok||ejbuf.empty()) continue;
@@ -1069,5 +1226,6 @@ PYBIND11_MODULE(cranepack,m){
           py::arg("blocks"),py::arg("W"),py::arg("H"),py::arg("step"),
           py::arg("time_budget_s"),py::arg("seed")=12345,py::arg("warm")=py::none(),
           py::arg("frozen")=py::none(),py::arg("weights")=py::none(),
-          py::arg("total_s")=-1.0,py::arg("max_iters")=-1);
+          py::arg("total_s")=-1.0,py::arg("max_iters")=-1,
+          py::arg("win_weights")=py::none());
 }

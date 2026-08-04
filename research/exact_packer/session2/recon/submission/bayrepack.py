@@ -112,7 +112,19 @@ _RATIO = [1.0]
 # fractions below are a ladder SHAPE (full, half, third, sixth); the absolute numbers come from
 # the instance.  On P3 they reproduce 6/3/2/1 exactly, which is the check that this changes
 # nothing where the old table was right.
+# OGC_TIERS overrides the NOUT column of the ladder, and it has to be done HERE rather than
+# through BRK_NOUT.  Setting BRK_NOUT does not adjust the ladder: it takes the forced path, which
+# bypasses the tier chooser AND sets _cap to -1, i.e. no time bound at all.  A sweep over it
+# therefore measures an unbounded run, not a wider candidate list -- both arms timed out.
+# (Fourth environment knob today that did something other than what its name suggests.)
 _TIERS = [(4, 40, 1.0), (4, 40, 0.5), (4, 20, 1.0 / 3.0), (6, 10, 1.0 / 6.0)]
+_TN = os.environ.get("OGC_TIERNOUT")
+if _TN:
+    try:
+        _f = float(_TN)
+        _TIERS = [(_s, max(1, int(round(_n * _f))), _e) for (_s, _n, _e) in _TIERS]
+    except Exception:
+        pass
 # SECONDS PER SQUARED COLUMN.  The tier costs above were measured on P3 and do not transfer:
 # the same table sent a P4 run 240 seconds past a 480-second budget, which at the grader's hard
 # limit is a missing answer rather than a worse one.
@@ -485,10 +497,42 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
             _NCOL = 0.0
         outs = outs[:NOUT]
 
+        # HOW LATE IS IT WORTH BEING, priced from the instance's own weights.
+        #
+        # windows() offered only tardiness-free entry times, and on the preliminary set that was
+        # right: w1 ran 6,667..21,622 against w3 133..200, so one day of lateness cost at least
+        # 33 preference points and the trade essentially never paid.  The final-round practice
+        # instances invert that -- w1 falls to 333 and w3 rises to 800, where a day of lateness
+        # costs 0.4 preference points.  A block that could reach its preferred bay by waiting one
+        # day is then obviously worth delaying, and the operator could not even consider it.
+        #
+        # The bound is derived, not chosen: delaying block b by d costs w1*d and can gain at most
+        # w3 * (its current preference regret), so no delay beyond w3*regret/w1 can ever pay.
+        #
+        # PRICING, and it is why this cannot simply offer more windows.  cranepack's weight is
+        # per BLOCK (wt[block]), not per column, so it cannot tell a tardy window from an on-time
+        # one -- offering both without adjustment would let it take the late seat for free.  So a
+        # block is offered at most ONE late window and its weight is reduced by that window's
+        # tardiness cost below.  If the late seat is taken the price is exact; if the on-time seat
+        # is taken the block is undervalued, which is conservative rather than wrong.
+        _w1f = float(prob_info["weights"]["w1"]); _w3f = float(prob_info["weights"].get("w3", 0.0))
+        _LATE = os.environ.get("OGC_LATEWIN", "1") != "0"
+        # OGC_WINW=0 sends the old per-block weights, so the two pricings can be paired against
+        # each other on the same engine.  Default on: it is the correct price, and cranepack is
+        # byte-identical when the argument is absent.
+        _WINW = os.environ.get("OGC_WINW", "1") != "0"
+
+        def _late_by(b):
+            if not _LATE or _w1f <= 0.0:
+                return 0
+            _reg = max(pref[b]) - pref[b][cur[b]]
+            if _reg <= 0:
+                return 0
+            return max(0, min(int(_CEIL), int(_w3f * _reg / _w1f)))
+
         def windows(b):
-            """Entry times to offer.  Restricted to the tardiness-free window so a repack can
-            never CREATE lateness; if the block is already unavoidably late (window empty, which
-            is the saturated case) it keeps the time it has and only its position is free."""
+            """Entry times to offer.  The tardiness-free window, plus at most one late entry when
+            the instance's own weights say the delay could pay for itself."""
             lo, hi = rel[b], due[b] - pt[b]
             if hi < lo:
                 return [(ent[b], ent[b] + pt[b])]
@@ -497,6 +541,9 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
                 ts.add(ent[b])
             for i in range(max(1, NENT)):
                 ts.add(lo + (hi - lo) * i // max(1, NENT - 1) if NENT > 1 else lo)
+            _d = _late_by(b)
+            if _d > 0:
+                ts.add(hi + _d)
             return [(t, t + pt[b]) for t in sorted(ts)]
 
         cand = list(res) + [b for _, b in outs]
@@ -542,15 +589,38 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
         def _z3c(b, j):
             return w3 * (mxp[b] - pref[b][j])
 
+        # PRICE THE SEAT, NOT THE BLOCK.
+        #
+        # This used to discount the block's weight by the late window's tardiness, because
+        # cranepack indexed weights by BLOCK and could not tell one of its seats from another.
+        # That discount is wrong in both directions: the block is undervalued whenever it takes
+        # the on-time seat, and since the late window is offered at the break-even delay
+        # w3*regret/w1, the discount equals the whole gain -- the highest-regret blocks kept
+        # 0.0% of their value on prob_40 and 8.3% on prob_36 and hit the 1.0 floor, which is
+        # precisely the blocks the repack exists to move.
+        #
+        # cranepack now takes win_weights[i][k], the value of seating candidate i at its k-th
+        # offered window, so each seat carries its own price and nothing has to be discounted.
+        # The delta is exact: relative to where the block sits today, moving its entry to a
+        # window ending at `ex` changes tardiness by max(0, ex - due) - max(0, ext - due), and
+        # that is the only term in the objective an entry time can touch.  A window EARLIER than
+        # today's is priced above the base for the same reason, which the block-weighted version
+        # could not express either.
         wts = []
+        winw = []
         for i, b in enumerate(cand):
             fall = (min((j for j in range(m) if j != TGT),
                         key=lambda j: pref[b][TGT] - pref[b][j]) if isres[i] else cur[b])
             if isres[i]:
                 alt = list(cur); alt[b] = fall
-                wts.append(max(1.0, obj_of(alt, ent, ext) - base))
+                _w = max(1.0, obj_of(alt, ent, ext) - base)
             else:
-                wts.append(float(outs[i - len(res)][0]))
+                _w = float(outs[i - len(res)][0])
+            _t0 = max(0, ext[b] - due[b])
+            _row = [max(1.0, _w - _w1f * (max(0, _ex - due[b]) - _t0))
+                    for (_en, _ex) in blocks_in[i][2]]
+            winw.append(_row)
+            wts.append(max(1.0, max(_row)))       # the block's rank is its best seat
 
         warm = [(i, place[b][0], int(place[b][1]), int(place[b][2]))
                 for i, b in enumerate(cand) if isres[i]]
@@ -622,6 +692,19 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
             # 491 s of a 480 s budget once the build stopped being the expensive part.
             _cap = (float(hard) if hard is not None else SL) * 0.85
             _ask = max(_MINASK, SL)
+            # AND THE CALL IS BOUNDED BY THE SLICE, not just its search.  _ask only truncates the
+            # SEARCH; the build is uninterruptible and was charged against _cap, i.e. 85% of the
+            # whole remaining run.  So a call actually cost build + slice, and on the final-round
+            # practice prob_1 that was 26.5 s + 29 s = 55.9 s against a 28.8 s slice -- twice its
+            # allowance, twice in a row, both failing with "could not be rehomed", consuming 63%
+            # of the budget before the bandit could measure brk's rate at all.  Removing brk was
+            # worth 8.9% there, and the submitted run lost that instance's hidden counterpart by
+            # 10.8%.
+            #
+            # total_s bounds build + search against cranepack's OWN MEASURED build, so passing
+            # the slice here is not the predicted-build double charge that cost 7,195 on P3 --
+            # nothing is predicted.  A tier whose build alone will not fit the slice is refused
+            # and the operator steps down a tier, which is the behaviour already built for it.
         # AN ABORTED BUILD STEPS DOWN A TIER INSTEAD OF GIVING UP.
         #
         # The predictor can be wrong -- it was, on P3, the moment the container moved to a host
@@ -640,7 +723,8 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
             r = CP.pack(blocks_in, W, H, STEP, _ask,
                         seed=12345 + 7919 * k, warm=warm or None, frozen=[],
                         weights=[float(x) for x in wts],
-                        total_s=_cap)
+                        total_s=min(_cap, SL),
+                        **({"win_weights": winw} if _WINW else {}))
             if not (len(r) > 9 and int(r[9]) == 1) or not _rest:
                 break
             _tier = _rest.pop(0)
@@ -656,6 +740,10 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
             blocks_in = [(_layers_bbox(B, _b)[0], _layers_bbox(B, _b)[1], windows(_b))
                          for _b in cand]
             wts = wts[:len(cand)]
+            # the coarser rung offers DIFFERENT windows, so the per-seat prices are stale
+            winw = [[max(1.0, wts[_i] - _w1f * (max(0, _ex - due[cand[_i]])
+                                                - max(0, ext[cand[_i]] - due[cand[_i]])))
+                     for (_en, _ex) in blocks_in[_i][2]] for _i in range(len(cand))]
             warm = [w for w in (warm or []) if w[0] < len(cand)]
             _NCOL = _ncol_est(STEP, NOUT, NENT)
         # the ratio is against what was ASKED, which is what the deflation has to undo

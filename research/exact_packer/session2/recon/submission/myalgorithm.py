@@ -610,6 +610,504 @@ def _z3_improve(prob_info, sol, budget):
         return None
 
 
+def _cpassign(prob_info, budget):
+    """Decide EVERY block's bay at once with CP-SAT, then let the beam realise it geometrically.
+
+    Both attempts at preference so far failed the same way.  Weighting preference harder in the
+    beam made two instances of three worse, and moving blocks afterwards found no slot for 12 of
+    the 20 blocks that wanted one.  The reason is the same in both: blocks are placed one at a
+    time, each wanting its own favourite bay, and whoever arrives first takes the room.  That is
+    not something a per-block weight can fix, because the conflict is between blocks.
+
+    So decide the assignment jointly.  Minimise the objective's own preference term plus its own
+    imbalance term, subject to each bay's space-time capacity -- geometry relaxed to area, which
+    is what makes it a fast integer program rather than the original problem.  The result is
+    handed to the beam as an anchor, so the beam still decides positions, orientations and times
+    and still has to make it feasible; the schedule is never taken on trust.
+
+    Capacity uses layer-0 polygon area times processing time against bay area times horizon, and
+    is deliberately loose (a slack multiplier), because a relaxation that forbids what the packer
+    could actually manage would hand over an anchor worse than the beam's own routing.
+
+    REFUTED AND UNREGISTERED.  Measured at 90 s against the best roster on three instances:
+
+        prob_1        529,770 ->    711,554    +34%
+        prob_24     2,834,203 ->  3,808,723    +34%
+        prob_26    27,393,964 -> 36,791,359    +34%
+
+    Uniformly worse, and worse in the term it was built to improve: prob_1's Z3 went 546 to 969
+    and prob_26's 11,422 to 13,884.  CP-SAT returns an assignment that minimises preference regret
+    under an AREA relaxation, and the beam cannot realise it -- blocks are pushed out of their
+    assigned bays during placement and end up worse off than under the beam's own routing.  The
+    area fits; the crane refuses it.  That is the third mechanism tonight to fail at exactly this
+    point, after weighting preference in the beam and moving blocks afterwards.
+
+    Two unit bugs found on the way, both of which returned None silently rather than failing
+    loudly: _footprint_areas gives rasterised grid cells, ~8x the polygon area, which made
+    demand/capacity 3.62 on an instance whose real ratio is 0.46 so every model was INFEASIBLE;
+    and a CP-SAT expression does not support `expr * k // s`.
+
+    Kept unregistered so the next attempt starts from the measurement rather than the idea.  What
+    it would take to work is a capacity model the packer actually honours -- area is not it.
+    """
+    try:
+        if not HAVE_ORTOOLS:
+            return None
+        from ortools.sat.python import cp_model
+        BL = prob_info["blocks"]; bays = prob_info["bays"]
+        n = len(BL); m = len(bays)
+        if m < 2:
+            return None
+        w = prob_info["weights"]
+        w2 = float(w.get("w2", 0)); w3 = float(w.get("w3", 0))
+        hor = max(int(b["due_date"]) for b in BL)
+        # AREA FROM THE LAYER-0 POLYGON, in the same units as the bay rectangles.
+        # _footprint_areas returns rasterised grid cells, which are ~8x larger here; using them
+        # against W*H*horizon made demand/capacity 3.62 on an instance whose real ratio is 0.46,
+        # so every model was INFEASIBLE and the operator silently returned None.
+        dem = []
+        for i in range(n):
+            L = BL[i]["shape"][0]["layers"][0]
+            a = abs(_Poly(L).area) if len(L) >= 3 else 1.0
+            dem.append(max(1, int(round(a * float(BL[i]["processing_time"])))))
+        capacity = [int(bays[j]["width"] * bays[j]["height"] * hor) for j in range(m)]
+        wl = [int(round(float(BL[i].get("workload", dem[i])))) for i in range(n)]
+
+        md = cp_model.CpModel()
+        x = [[md.NewBoolVar("x%d_%d" % (i, j)) for j in range(m)] for i in range(n)]
+        for i in range(n):
+            md.AddExactlyOne(x[i])
+        # space-time capacity, with slack: the packer does better than pure area accounting
+        SL = float(os.environ.get("OGC_CPSLACK", "1.15"))
+        for j in range(m):
+            md.Add(sum(dem[i] * x[i][j] for i in range(n)) <= int(capacity[j] * SL))
+        # the objective's own preference term
+        reg = []
+        for i in range(n):
+            pr = BL[i]["bay_preferences"]; mx = max(pr)
+            for j in range(m):
+                if mx - pr[j] > 0:
+                    reg.append(int(mx - pr[j]) * x[i][j])
+        # the objective's own imbalance term: spread of normalised bay workload
+        tot = sum(wl) or 1
+        u = [float(sum(bb["width"] * bb["height"] for bb in bays)) / m
+             / max(1.0, bays[j]["width"] * bays[j]["height"]) for j in range(m)]
+        SC = 1000
+        loads = []
+        for j in range(m):
+            lj = md.NewIntVar(0, SC * 10, "L%d" % j)
+            md.Add(lj == sum(int(round(wl[i] * u[j] * SC / tot)) * x[i][j] for i in range(n)))
+            loads.append(lj)
+        hi = md.NewIntVar(0, SC * 10, "hi"); lo = md.NewIntVar(0, SC * 10, "lo")
+        md.AddMaxEquality(hi, loads); md.AddMinEquality(lo, loads)
+        # fold the scaling into an integer COEFFICIENT: (hi - lo) is a CP-SAT expression and
+        # `expr * tot // SC` is not defined on one.
+        _c2 = max(0, int(max(1.0, w2) * tot // SC))
+        md.Minimize(int(w3) * sum(reg) + _c2 * (hi - lo))
+
+        sv = cp_model.CpSolver()
+        sv.parameters.max_time_in_seconds = max(1.0, float(budget) * 0.35)
+        sv.parameters.num_search_workers = 1
+        if sv.Solve(md) not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
+            return None
+        ab = [0] * n
+        for i in range(n):
+            for j in range(m):
+                if sv.Value(x[i][j]):
+                    ab[i] = j; break
+        # dispatch order stays release-then-due; the anchor is about WHERE, not when
+        ao = sorted(range(n), key=lambda i: (int(BL[i]["release_time"]), int(BL[i]["due_date"]), i))
+        left = max(1.0, float(budget) - sv.WallTime())
+        cfg = _AXES[0]
+        cfg = _axis_env(cfg)
+        r = _contact_beam(prob_info, left, B=_beam_width(cfg["Bmul"]), K=cfg["K"],
+                          pos_lam=cfg["pos_lam"], order=cfg["order"], fut_beta=cfg["fut_beta"],
+                          prefw=cfg["prefw"], w3mul=cfg["w3mul"],
+                          anchor_bays=ab, anchor_order=ao, stay_w=0.0,
+                          cohort=cfg.get("cohort", 0.0))
+        return _recs_to_ops(r, n) if r else None
+    except Exception:
+        return None
+
+
+def _w3mul_of(prob_info, base):
+    """Scale the beam's preference routing by the instance's OWN weight ratio.
+
+    The beam ranks bays by w1*tardy + (w3*w3mul)*regret - mu*contact, and w3mul came from the
+    axis table as a fixed 1.0/3.0/6.0 chosen on the preliminary instances.  On the final practice
+    set the weights are far more lopsided: prob_1 has w3 = 600 against w2 = 3, so one unit of
+    preference is worth two hundred units of imbalance, and a fixed multiplier of at most six
+    cannot express that.  A competitor's decomposition on the same instances shows higher Z1 and
+    lower Z3 beating ours on the total, which is the same trade seen from the other side.
+
+    So the multiplier follows the ratio the instance actually specifies, damped by a square root
+    because the beam's score mixes it with contact, which is a heuristic proxy and not in
+    objective units -- a linear response to a 200x ratio would delete contact entirely.  The axis
+    value stays as the shape of the spread across axes; this only sets its scale.
+
+    REFUTED AND UNWIRED -- kept only so the next attempt does not re-derive it.  Measured at 120 s
+    against the fixed table:
+
+        prob_1    602,372 -> 529,770   -12.2%   better
+        prob_24 2,834,203 -> 3,075,229  +8.5%   worse
+        prob_26 27,393,964 -> 27,846,994 +1.7%  worse
+
+    prob_1 and prob_24 have the SAME w3/w2 ratio of 200 and move in opposite directions, so the
+    ratio is not the explanatory variable.  On the two losing instances pushing preference harder
+    made the packing worse rather than the routing better -- prob_24's Z3 went 504 to 882 and
+    prob_26's Z2 went 8,785 to 17,447 -- which is the same wall _pref_move hit: the preferred bay
+    has no room, and insisting only produces a worse placement elsewhere.
+
+    Also recorded: the env knob OGC_W3MUL was already dead.  The axis passes w3mul explicitly and
+    the argument overrides the environment, so a sweep over it measured nothing and returned
+    identical objectives for 1, 8 and 16.
+    """
+    try:
+        if os.environ.get("OGC_W3RATIO") == "0":
+            return base
+        w = prob_info["weights"]
+        w2 = float(w.get("w2", 0)) or 1.0
+        w3 = float(w.get("w3", 0))
+        if w3 <= 0:
+            return base
+        return float(base) * max(1.0, min(8.0, (w3 / w2) ** 0.5 / 4.0))
+    except Exception:
+        return base
+
+
+def _bay_swap(prob_info, sol, budget):
+    """Exchange two blocks' bays -- the move class the portfolio does not have.
+
+    Every preference mechanism tried tonight failed the same way: 12 of the 20 blocks carrying
+    preference regret had "nowhere to go" in any better bay at any time.  That is exactly what a
+    SINGLE-block move reports when the bays are mutually blocked.  A block in bay 1 wanting bay 2
+    and a block in bay 2 wanting bay 1 are each immovable alone, because neither destination has
+    room -- and yet the swap is trivially feasible in space, since each vacates precisely what the
+    other needs.  `bal` already aims at the true objective, Z2 and Z3 together; what it cannot do
+    is move two things at once.
+
+    Pairs are formed between blocks whose residency windows OVERLAP, because that is when the
+    exchange is close to space-neutral, and are tried in order of the preference regret the swap
+    would remove.  Each is scored on the full weighted objective with the real checker: the crane
+    couples operations across a residency window, and two cheaper guards were already wrong once
+    tonight on the entry-pull operator.
+
+    Z2 is not a reason to refuse a swap.  Bounded across the final practice set, w2*Z2 cannot
+    reach w3*Z3 on ANY of the forty instances -- median 5% of it, worst case 77% -- so imbalance is
+    a term to sell.
+
+    REFUTED AND UNREGISTERED.  147 overlapping cross-bay pairs on stage-2 prob_1 carry a positive
+    preference gain, and not one swap survives.  Counting only who is present at the entry INSTANT,
+    37 of the top 60 pass the first leg; counting everyone whose WINDOW overlaps -- which is what
+    the crane requires -- only 23 do, so the loose check overstates by 60%.  Of those, none clears
+    the second leg once the first block is placed.
+
+    So the deadlock this was built for does not exist.  It is not "A blocks B and B blocks A" with
+    a swap waiting to be found; the destination bay simply has no room for the block's whole
+    residency.  That is the fourth mechanism tonight to reach the same conclusion, and this one
+    reaches it from the direction designed to disprove it.
+    """
+    try:
+        if not HAVE_OGC_FAST:
+            return None
+        B = prob_info["blocks"]; n = len(B)
+        ops = (sol or {}).get("operations", {})
+        ent = {}; ext = {}; bay = {}; ori = {}; px = {}; py = {}
+        for tstr, row in ops.items():
+            t = int(tstr)
+            for op in row:
+                b = op["block_id"]
+                if op["type"] == "ENTRY":
+                    ent[b] = t; bay[b] = op["bay_id"]; ori[b] = op["orient_idx"]
+                    px[b] = op["x"]; py[b] = op["y"]
+                else:
+                    ext[b] = t
+        if len(ent) != n or len(ext) != n:
+            return None
+        _c0 = check_feasibility(prob_info, sol)
+        if not _c0.get("feasible"):
+            return None
+        cur = float(_c0["objective"])
+
+        pref = [B[i]["bay_preferences"] for i in range(n)]
+        cand = []
+        for i in range(n):
+            gi = pref[i][bay[i]]
+            for j in range(i + 1, n):
+                if bay[i] == bay[j]:
+                    continue
+                if not (ent[i] < ext[j] and ent[j] < ext[i]):
+                    continue            # windows must overlap for the exchange to be neutral
+                gain = (pref[i][bay[j]] - gi) + (pref[j][bay[i]] - pref[j][bay[j]])
+                if gain > 0:
+                    cand.append((gain, i, j))
+        if not cand:
+            return None
+        cand.sort(reverse=True)
+
+        def snap():
+            return [{"block_id": b, "bay_id": int(bay[b]), "orient_idx": int(ori[b]),
+                     "x": int(round(px[b])), "y": int(round(py[b])),
+                     "entry_time": int(ent[b]), "exit_time": int(ext[b])} for b in range(n)]
+
+        E = _ogc_fast_engine(prob_info)
+        t_end = time.time() + max(0.5, float(budget))
+        moved = 0
+        for _, i, j in cand:
+            if time.time() > t_end:
+                break
+            bi, bj = bay[i], bay[j]
+            # each takes the other's bay; positions are re-scanned, not exchanged blindly
+            E.clear_all()
+            for k in range(n):
+                # WINDOW OVERLAP, not residency at the entry instant.  A block occupies
+                # [ent, ext) and the crane must clear everything that shares any part of that
+                # span; building the state from whoever happened to be present at ent[i] leaves
+                # out every block that enters later in the window, which is why 13 of the top 40
+                # pairs passed this scan and were then rejected by the real checker.
+                if k in (i, j):
+                    continue
+                if ent[k] < ext[i] and ent[i] < ext[k]:
+                    E.add(int(bay[k]), k, int(ori[k]), float(px[k]), float(py[k]),
+                          int(ent[k]), int(ext[k]))
+            ri = E.feasible_scan(i, [bj], ent[i], ext[i], 2)
+            if len(ri) == 0:
+                continue
+            vi = [int(z) for z in ri.reshape(-1)[:4]]
+            E.add(int(vi[0]), i, int(vi[1]), float(vi[2]), float(vi[3]), int(ent[i]), int(ext[i]))
+            rj = E.feasible_scan(j, [bi], ent[j], ext[j], 2)
+            if len(rj) == 0:
+                continue
+            vj = [int(z) for z in rj.reshape(-1)[:4]]
+            keep = (bay[i], ori[i], px[i], py[i], bay[j], ori[j], px[j], py[j])
+            bay[i], ori[i], px[i], py[i] = vi[0], vi[1], vi[2], vi[3]
+            bay[j], ori[j], px[j], py[j] = vj[0], vj[1], vj[2], vj[3]
+            chk = check_feasibility(prob_info, _build_operations(snap()))
+            if chk.get("feasible") and float(chk["objective"]) < cur - 1e-9:
+                cur = float(chk["objective"]); moved += 1
+            else:
+                (bay[i], ori[i], px[i], py[i], bay[j], ori[j], px[j], py[j]) = keep
+        if moved == 0:
+            return None
+        return _build_operations(snap())
+    except Exception:
+        return None
+
+
+def _pref_move(prob_info, sol, budget):
+    """Move blocks to bays they actually prefer -- the operator the portfolio was missing.
+
+    Z3 is the sum over blocks of (best available preference - preference of the assigned bay), so
+    it is zero when every block sits in its favourite bay.  On the final-round practice instances
+    that is often reachable: sending every block to its single most-preferred bay loads the bays
+    of stage-2 prob_1 to 0.20 / 0.45 / 0.57 of capacity, everyone fits, and yet we produce Z3 =
+    536 -- 321,600 of a 470,530 objective at w3 = 600.
+
+    Nothing in the portfolio was aiming at it.  Measured by roster ablation on that instance,
+    `pref` (the C++ z3_reassign pass) changed nothing at all, and `bay` (CP-SAT reassignment) made
+    Z3 WORSE, 696 to 919, because it chases Z1 down and pays in preference.  The only arm that
+    improved Z3 did so as a side effect of load balancing.
+
+    The trade this exploits is instance-specific in the right way -- it reads the instance's own
+    weights rather than a threshold.  Where w3 = 600 against w2 = 3, one unit of preference is
+    worth two hundred units of imbalance, so giving up balance for preference is obviously right;
+    where the weights are reversed it is obviously wrong.  Nothing here decides that: acceptance
+    is on the full weighted objective, so the weights decide.
+
+    Blocks are tried worst-regret first.  For each, every strictly better bay is scanned over a
+    window around its current entry, and the first move the checker accepts AND that lowers the
+    objective is kept.  The real checker is used because the crane couples operations across the
+    whole residency window -- two cheaper guards were tried on the sibling entry-pull operator and
+    both were wrong.
+    """
+    try:
+        if not HAVE_OGC_FAST:
+            return None
+        ops = (sol or {}).get("operations", {})
+        n = len(prob_info["blocks"])
+        blocks = prob_info["blocks"]
+        ent = {}; ext = {}; bay = {}; xx = {}; yy = {}; oo = {}
+        for tstr, row in ops.items():
+            t = int(tstr)
+            for op in row:
+                b = op["block_id"]
+                if op["type"] == "ENTRY":
+                    ent[b] = t; bay[b] = op["bay_id"]; xx[b] = op["x"]; yy[b] = op["y"]
+                    oo[b] = op["orient_idx"]
+                else:
+                    ext[b] = t
+        if len(ent) != n or len(ext) != n:
+            return None
+
+        regret = []
+        for b in range(n):
+            pr = blocks[b]["bay_preferences"]
+            r = max(pr) - pr[int(bay[b])]
+            if r > 0:
+                regret.append((r, b))
+        if not regret:
+            return None
+        regret.sort(reverse=True)
+
+        def snapshot():
+            return [{"block_id": b, "bay_id": int(bay[b]), "orient_idx": int(oo[b]),
+                     "x": int(round(xx[b])), "y": int(round(yy[b])),
+                     "entry_time": int(ent[b]), "exit_time": int(ext[b])} for b in range(n)]
+
+        _c0 = check_feasibility(prob_info, sol)
+        if not _c0.get("feasible"):
+            return None
+        cur_obj = float(_c0["objective"])
+        E = _ogc_fast_engine(prob_info)
+        t_end = time.time() + max(0.5, float(budget))
+        moved = 0
+        for _, b in regret:
+            if time.time() > t_end:
+                break
+            pr = blocks[b]["bay_preferences"]
+            here = int(bay[b])
+            better = sorted((j for j in range(len(pr)) if pr[j] > pr[here]),
+                            key=lambda j: -pr[j])
+            R = int(blocks[b]["release_time"]); P = int(blocks[b]["processing_time"])
+            keep = (bay[b], oo[b], xx[b], yy[b], ent[b], ext[b])
+            done = False
+            for j in better:
+                if done or time.time() > t_end:
+                    break
+                # entering later can only cost Z1, so walk outwards from the current entry
+                for t in sorted(range(R, ent[b] + 1), key=lambda z: abs(z - ent[b])):
+                    if time.time() > t_end:
+                        break
+                    E.clear_all()
+                    for k in range(n):
+                        if k != b and ent[k] <= t < ext[k]:
+                            E.add(int(bay[k]), k, int(oo[k]), float(xx[k]), float(yy[k]),
+                                  int(ent[k]), int(ext[k]))
+                    r = E.feasible_scan(b, [j], t, t + P, 2)
+                    if len(r) == 0:
+                        continue
+                    v = [int(z) for z in r.reshape(-1)[:4]]
+                    bay[b], oo[b], xx[b], yy[b] = v[0], v[1], v[2], v[3]
+                    ent[b] = t; ext[b] = t + P
+                    chk = check_feasibility(prob_info, _build_operations(snapshot()))
+                    if chk.get("feasible") and float(chk["objective"]) < cur_obj - 1e-9:
+                        cur_obj = float(chk["objective"]); moved += 1; done = True
+                        break
+                    bay[b], oo[b], xx[b], yy[b], ent[b], ext[b] = keep
+        if moved == 0:
+            return None
+        return _build_operations(snapshot())
+    except Exception:
+        return None
+
+
+def _pull_early(prob_info, sol, budget):
+    """Move tardy blocks' ENTRY earlier -- the only operator that attacks Z1 directly.
+
+    The objective decomposes as T_i = max(0, EXIT_i - D_i), and measured on a real solution the
+    exit is always entry + processing exactly (overstay was 0 for all 300 blocks), so
+
+        T_i = max(0, (ENTRY_i - R_i) - S_i),    S_i = D_i - R_i - P_i.
+
+    Z1 is therefore entry delay in excess of slack, and nothing else in the portfolio touches it:
+    balance targets Z2, preference targets Z3, repacking rebuilds one bay, and the beam fixes
+    entries once during construction.  Measured on a dense instance, blocks waited a mean of 10.6
+    days while the yard sat at 53.7% utilisation, and 36% of them had a legal placement available
+    on their release day.
+
+    VERIFIED BY THE REAL CHECKER, one move at a time, and that is not laziness.  Two cheaper
+    guards were tried and both were wrong.  The first assumed that moving a block earlier cannot
+    disturb anything because nothing is pushed later -- but an earlier entry makes the block
+    resident throughout the vacated window, and the checker reported "block 236 entry obstructed
+    by block 127".  The second checked entries inside the window against the state at the window's
+    START, which is not the state those entries actually meet, and misses exits entirely.  The
+    crane constraint couples operations across the whole window in both directions, so a partial
+    guard is a guess.  check_feasibility is the ground truth the grader uses; a move it rejects is
+    reverted and the search continues.
+    """
+    try:
+        if not HAVE_OGC_FAST:
+            return None
+        ops = (sol or {}).get("operations", {})
+        n = len(prob_info["blocks"])
+        blocks = prob_info["blocks"]
+        ent = {}; ext = {}; bay = {}; xx = {}; yy = {}; oo = {}
+        for tstr, row in ops.items():
+            t = int(tstr)
+            for op in row:
+                b = op["block_id"]
+                if op["type"] == "ENTRY":
+                    ent[b] = t; bay[b] = op["bay_id"]; xx[b] = op["x"]; yy[b] = op["y"]
+                    oo[b] = op["orient_idx"]
+                else:
+                    ext[b] = t
+        if len(ent) != n or len(ext) != n:
+            return None
+
+        tardy = sorted(((ext[b] - int(blocks[b]["due_date"]), b) for b in range(n)
+                        if ext[b] > int(blocks[b]["due_date"]) and ent[b] > int(blocks[b]["release_time"])),
+                       reverse=True)
+        if not tardy:
+            return None
+
+        def snapshot():
+            return [{"block_id": b, "bay_id": int(bay[b]), "orient_idx": int(oo[b]),
+                     "x": int(round(xx[b])), "y": int(round(yy[b])),
+                     "entry_time": int(ent[b]), "exit_time": int(ext[b])} for b in range(n)]
+
+        E = _ogc_fast_engine(prob_info)
+        t_end = time.time() + max(0.5, float(budget))
+        moved = 0
+        _c0 = check_feasibility(prob_info, sol)
+        if not _c0.get("feasible"):
+            return None
+        cur_obj = float(_c0["objective"])
+        for _, b in tardy:
+            if time.time() > t_end:
+                break
+            R = int(blocks[b]["release_time"]); P = int(blocks[b]["processing_time"])
+            cur = ent[b]
+            keep = (bay[b], oo[b], xx[b], yy[b], ent[b], ext[b])
+            for t in range(R, cur):
+                if time.time() > t_end:
+                    break
+                E.clear_all()
+                for k in range(n):
+                    if k != b and ent[k] <= t < ext[k]:
+                        E.add(int(bay[k]), k, int(oo[k]), float(xx[k]), float(yy[k]),
+                              int(ent[k]), int(ext[k]))
+                # SAME BAY ONLY.  Scanning every bay finds more slots -- 60% of tardy blocks
+                # against 50% -- but an earlier entry in a DIFFERENT bay changes the preference
+                # term, and with w3 up to 800 that cost exceeded the tardiness gain every single
+                # time: scanning all bays, not one move survived the objective test.  Staying in
+                # the block's own bay makes the move a pure Z1 gain with Z3 untouched.
+                r = E.feasible_scan(b, [int(bay[b])], t, t + P, 2)
+                if len(r) == 0:
+                    continue
+                # feasible_scan returns a 2-D (N, 4) array, so list() would give ROWS.
+                v = [int(z) for z in r.reshape(-1)[:4]]
+                bay[b], oo[b], xx[b], yy[b] = v[0], v[1], v[2], v[3]
+                ent[b] = t; ext[b] = t + P
+                cand = _build_operations(snapshot())
+                chk = check_feasibility(prob_info, cand)
+                # ACCEPT ON THE FULL OBJECTIVE, not on Z1.  Entering earlier often means entering
+                # a DIFFERENT bay, and with w3 as high as 800 on the final-round instances the
+                # preference cost of that swap can exceed the tardiness it buys: the first version
+                # accepted any feasible earlier slot, took Z1 from 2,758 to 2,745, and made the
+                # objective 132,698 WORSE.  Z1 is what this operator aims at; the objective is
+                # what decides.
+                if chk.get("feasible") and float(chk["objective"]) < cur_obj - 1e-9:
+                    cur_obj = float(chk["objective"])
+                    moved += 1
+                    break
+                bay[b], oo[b], xx[b], yy[b], ent[b], ext[b] = keep
+        if moved == 0:
+            return None
+        return _build_operations(snapshot())
+    except Exception:
+        return None
+
+
 # ----------------------------------------------------------------------------
 # ALNS improvement
 # ----------------------------------------------------------------------------
@@ -757,6 +1255,7 @@ def _beam_once(prob_info, budget, cfg, share=1.0):
             break
         left = left * frac if step == 1 else left
         try:
+            cfg = _axis_env(cfg)
             r = _contact_beam(prob_info, left, B=(1 if cfg.get("lex") else _beam_width(cfg["Bmul"])),
                               K=(1 if cfg.get("lex") else cfg["K"]),
                               pos_lam=cfg["pos_lam"], order=cfg["order"],
@@ -791,6 +1290,27 @@ _AXES = [
     dict(Bmul=1.4, K=3, pos_lam=0.10, order="big_first", fut_beta=0.5, prefw=0.0, w3mul=6.0, cohort=0.3, dk=0),
     dict(Bmul=0.5, K=6, pos_lam=0.20, order="defer_big", fut_beta=0.0, prefw=0.0, w3mul=1.5, cohort=0.0, dk=0),
 ]
+
+
+def _axis_env(cfg):
+    """Env overrides for the three ACCESS terms, which every axis currently ships at 0.0.
+
+    shadow / shadoww / hmatch are the only scoring terms that ask whether a placement leaves the
+    crane able to reach later blocks.  With all three at zero the placement rule is contact,
+    position and distance-to-wall, none of which looks ahead -- the likeliest explanation for the
+    yard sitting at 54% utilisation while 64% of waiting blocks have nowhere legal to go.  Their
+    values were rejected on the preliminary instances; the final set is a different problem, so
+    they are worth re-measuring.  Env-only: nothing changes by default.
+    """
+    out = dict(cfg)
+    for k, e in (("shadow", "OGC_SHADOW"), ("shadoww", "OGC_SHADOWW"), ("hmatch", "OGC_HMATCH")):
+        v = os.environ.get(e)
+        if v:
+            try:
+                out[k] = float(v)
+            except Exception:
+                pass
+    return out
 
 
 def _anchor_of(prob_info, sol):
@@ -876,6 +1396,7 @@ def _regrow(prob_info, sol, budget, cfg, stay, share=1.0, anchor=None, mum=1.0):
     ab, ao = anchor if anchor is not None else _anchor_of(prob_info, sol)
     B = _beam_width(cfg["Bmul"])
     try:
+        cfg = _axis_env(cfg)
         r = _contact_beam(prob_info, budget, B=B, K=cfg["K"], pos_lam=cfg["pos_lam"],
                           order=cfg["order"], fut_beta=cfg["fut_beta"], prefw=cfg["prefw"],
                           w3mul=cfg["w3mul"], anchor_bays=ab, anchor_order=ao, stay_w=stay,
@@ -1314,7 +1835,40 @@ def _worker(args):
     ops = [("beam", _fresh, False, True, 4.0),
            ("grow", _grow, True, True, 4.0),
            ("bal",  lambda t: _balance(prob_info, pool[0][1], t), True, False, 0.5),
-           ("pref", lambda t: _z3_improve(prob_info, pool[0][1], t), True, False, 0.5)]
+           # pref IS a search operator and has been classified as a repair pass since it was
+           # written.  _z3_improve calls Engine.z3_reassign, whose body is
+           #
+           #     hillclimb(); while(elapsed()<budget){ ruin_recreate(rng); hillclimb(); ... }
+           #
+           # -- a ruin-and-recreate loop that runs until its budget is gone, and one that
+           # already trades Z1 against Z3 directly (it scans up to 64 later entry windows per
+           # block and takes one only if w1*dtardy + w3*dpen < 0).  It absorbs whatever it is
+           # given.
+           #
+           # Classified False it gets the repair-pass treatment instead: an opening slice of
+           # budget/(2n) rather than a fifth, and -- worse -- `empty_at`, which records the
+           # incumbent at which it last came back empty and refuses to call it again until the
+           # incumbent moves.  That rule is right for a deterministic pass.  Here the seed is
+           # fixed, so a REPEAT at the same budget does return the same nothing, but a LARGER
+           # slice continues the same trajectory into ground it never reached -- which is
+           # exactly what the search-operator growth rule (x1.3 on empty) provides and the
+           # repair rule denies.
+           #
+           # It matters because of where the objective actually is on the final set: w3*Z3 is
+           # the median 39.5% of it and up to 86% (prob_3), against w2*Z2's median 0.5%, and
+           # pref is the only operator aiming there.
+           #
+           # Env-gated rather than flipped, because this is a search-policy change and the one
+           # thing today established is that policy changes get judged on 40 paired instances,
+           # not on a hunch.
+           ("pref", lambda t: _z3_improve(prob_info, pool[0][1], t), True,
+            os.environ.get("OGC_PREFSEARCH") == "1", 0.5)]
+    # pull / pmov / swap / cpas stay DEFINED and UNREGISTERED.  Each was measured: _pull_early
+    # bought 0.05% for 22 s, _pref_move fired on nothing, _bay_swap survived no candidate, and
+    # _cpassign was 34% worse.  Registered they still draw probe slices, and the roster ablation
+    # is contaminated by them -- prob_1 at 180 s reads 544,390 with them against 516,577 for the
+    # six-operator roster that was actually submitted.  Keep the code and the measurements; keep
+    # them out of the budget.
     # WHICH INCUMBENT brk GETS.  Every operator here is handed pool[0], the best-scoring
     # solution, and for the repair passes that is right: they are deterministic, so a second
     # look at the same input returns the same nothing.  brk is not.  It is a randomised local
@@ -1436,6 +1990,21 @@ def _worker(args):
         if pool and pool[0][0] < best[0]:
             best = pool[0]
 
+    # WHAT EACH OPERATOR COST AND WHAT IT RETURNED.  The loop already keeps tried/spent/gain
+    # for its own scheduling; it has simply never been printed, so "which operator burns the
+    # budget without ever moving the incumbent" has never had a number.  Off by default and
+    # read-only -- it touches nothing the search uses.
+    if os.environ.get("OGC_OPSTAT") == "1":
+        _el = max(1e-9, time.time() - t0)
+        print("  opstat  %-6s %6s %9s %7s %12s %10s"
+              % ("op", "tried", "seconds", "%budget", "gain", "gain/s"), flush=True)
+        for _i, _o in enumerate(ops):
+            print("  opstat  %-6s %6d %9.1f %6.1f%% %12.0f %10.1f"
+                  % (_o[0], tried[_i], spent[_i], 100.0 * spent[_i] / _el,
+                     gain[_i], gain[_i] / max(1e-9, spent[_i])), flush=True)
+        print("  opstat  %-6s %6d %9.1f %6.1f%% %12s %10s"
+              % ("TOTAL", sum(tried), sum(spent), 100.0 * sum(spent) / _el, "", ""), flush=True)
+
     return best[1]
 
 
@@ -1449,7 +2018,16 @@ def algorithm(prob_info, timelimit=60):
     except Exception:
         nw = 4
     cwd = os.path.dirname(os.path.abspath(__file__))
-    reserve = max(2.0, min(0.20 * timelimit, 40.0))     # for the final polish
+    # RESERVE FOR THE FINAL POLISH, and it was too big.  _z3_improve returns immediately when it
+    # has nothing to do -- measured on the final-round practice set, four different rosters came
+    # back with the beam's solution untouched -- and whatever it does not spend is simply thrown
+    # away.  Runs finished 19% / 17% / 11% short of their 180 / 240 / 360 s budgets.
+    #
+    # The polish still gets everything that is left at the end, so shrinking the reserve does not
+    # starve it; it only stops the WORKER LOOP being cut short to fund time the polish will not
+    # use.  OGC_RESERVE overrides for the A/B.
+    _rv = os.environ.get("OGC_RESERVE")
+    reserve = (max(2.0, float(_rv)) if _rv else max(2.0, min(0.20 * timelimit, 40.0)))
     wbudget = max(4.0, timelimit - reserve - (time.time() - t0) - 1.0)
 
     best = (float("inf"), None)
