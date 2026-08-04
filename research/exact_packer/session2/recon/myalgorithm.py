@@ -2030,21 +2030,45 @@ def algorithm(prob_info, timelimit=60):
     reserve = (max(2.0, float(_rv)) if _rv else max(2.0, min(0.20 * timelimit, 40.0)))
     wbudget = max(4.0, timelimit - reserve - (time.time() - t0) - 1.0)
 
-    best = (float("inf"), None)
+    # ROUNDS: TRADE LENGTH FOR ATTEMPTS.  The answer is already a minimum over nw workers, so
+    # what varies between runs is not the average quality but whether the good basin is FOUND.
+    # Measured on prob_20, three runs of unchanged code: 12,746,324 / 10,628,401 / 10,531,622 --
+    # two of three reach the same solution and one misses it by 20%.  The distribution of a
+    # minimum tightens with the number of draws, so more attempts is the direct lever on that.
+    #
+    # What makes the trade affordable is that the budget is not binding: 240 s and 360 s return
+    # the SAME answer on stage-2 prob_1, giving pref twice its slice changed nothing, and
+    # removing operators that earn nothing does not help either.  Time past convergence is spent,
+    # not used.  R rounds of nw workers at wbudget/R each is the same wall clock for R times the
+    # draws, and wid carries the round so seeds and axis rotations differ -- without that the
+    # later rounds would re-derive the first.
+    #
+    # Default 1 keeps today's behaviour exactly.  Whether the shorter budget costs more than the
+    # extra draws buy is an instance-by-instance question and is measured, not assumed.
     try:
-        if nw > 1:
-            with multiprocessing.Pool(processes=nw) as pool:
-                out = pool.map(_worker, [(prob_info, wbudget, i, cwd, 1.0 / nw) for i in range(nw)])
-        else:
-            out = [_worker((prob_info, wbudget, 0, cwd, 1.0))]
+        _R = max(1, int(os.environ.get("OGC_ROUNDS", "1")))
     except Exception:
-        out = [_worker((prob_info, wbudget, 0, cwd, 1.0))]
-    for s in out:
-        if s is None:
-            continue
-        o, _ = _total(prob_info, s)
-        if o < best[0]:
-            best = (o, s)
+        _R = 1
+    best = (float("inf"), None)
+    _rb = max(4.0, wbudget / _R)
+    for _r in range(_R):
+        if _r > 0 and (timelimit - (time.time() - t0)) < (_rb + reserve):
+            break                                        # no room for another full round
+        try:
+            if nw > 1:
+                with multiprocessing.Pool(processes=nw) as pool:
+                    out = pool.map(_worker, [(prob_info, _rb, _r * nw + i, cwd, 1.0 / nw)
+                                             for i in range(nw)])
+            else:
+                out = [_worker((prob_info, _rb, _r * nw, cwd, 1.0))]
+        except Exception:
+            out = [_worker((prob_info, _rb, _r * nw, cwd, 1.0))]
+        for s in out:
+            if s is None:
+                continue
+            o, _ = _total(prob_info, s)
+            if o < best[0]:
+                best = (o, s)
 
     if best[1] is None:                                  # never leave without an answer
         try:

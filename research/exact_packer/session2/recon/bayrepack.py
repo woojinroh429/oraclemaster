@@ -401,7 +401,7 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
                         _w1e = float(prob_info["weights"]["w1"])
                         _w3e = float(prob_info["weights"].get("w3", 0.0))
                         if _w1e > 0.0 and _w3e * (max(_pr) - min(_pr)) >= _w1e:
-                            _nt += max(1, int(os.environ.get("OGC_LATEK", "3")))
+                            _nt += max(1, int(os.environ.get("OGC_LATEK", "1")))
                     _, _ob = _layers_bbox(B, _b)
                     for _q in _ob:
                         _dw, _dh = _q[2] - _q[0], _q[3] - _q[1]
@@ -562,7 +562,7 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
         # per-seat weights now make possible: a ladder from one day to break-even, geometric so
         # the cheap end is sampled densely.  No gate and no tuned constant -- the endpoints come
         # from the instance's own weights and the count is bounded to keep the column count sane.
-        _LATEK = max(1, int(os.environ.get("OGC_LATEK", "3")))
+        _LATEK = max(1, int(os.environ.get("OGC_LATEK", "1")))
 
         def windows(b):
             """Entry times to offer: the tardiness-free window, plus a geometric ladder of late
