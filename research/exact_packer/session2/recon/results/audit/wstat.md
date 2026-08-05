@@ -46,3 +46,42 @@ constant 0.10 against 70.19M for the portfolio) plus the removal of the 3.2% los
 
 The C++ change is small: AIM is a function-local static read from the environment once, so it
 becomes an Engine member with a setter, plus a flag reporting whether the salvage fired.
+
+## The adaptive-aim attempt, and a retraction
+
+I built the machinery -- the aim is an Engine member with a setter, and the beam reports back
+whether it was salvaged, what fraction of its slice it spent, what fraction of its levels it
+reached and whether it finished at full width -- then tried three rules on it and reported all
+three as falsified. One of those falsifications was wrong and I withdraw it.
+
+What holds:
+
+    used_frac saturates by construction.  ADAPTB widens the beam until it fills whatever the aim
+    allows, so a beam that finishes always reports spending almost exactly its aim.
+    salvaged works in one direction only.  prob_7 at 0.90 salvages 0 of 6, but from 0.10 it
+    salvages 6 of 6, so a worker that starts low is pinned at the floor by its own signal.
+
+What does not hold: I claimed level_frac points the wrong way, comparing prob_25 at 0.90 against
+prob_7 at 0.10. Those were different budgets and the comparison was not fair. Measured properly:
+
+    prob_25  60s 1w   aim 0.90  84,317,000  level 0.84
+                      aim 0.60  83,768,159  level 0.76
+                      aim 0.10  77,495,807  level 0.37     lower aim better
+    prob_7  180s 1w   aim 0.90   1,017,364  level 0.99  salvaged 3/8
+                      aim 0.10     916,107  level 0.99  salvaged 11/23   lower aim better
+
+## Why none of this can settle the question
+
+Every controlled run above is single-worker, and every one of them prefers the low aim -- there is
+no counterexample in the whole set. The only evidence that a high aim ever wins is the four-worker
+measurement at the top of this file, where P7, P22 and P1 go the other way.
+
+So the right aim is not a property of the instance alone; it depends on how large a slice each
+beam call actually gets, which depends on the worker count and the budget as well. Single-worker
+runs are the wrong instrument for designing a rule that has to work in the four-worker product,
+and I used them as if they were.
+
+The honest position: the fixed 0.90/0.10 portfolio is what has been validated (31 better, 6 worse
+over 37 paired instances, p < 0.0001) and it is what shipped. The adaptive variant is unresolved
+rather than refuted, and settling it needs per-worker telemetry from the four-worker
+configuration, which is what harness/adaptaim.sh collects.
