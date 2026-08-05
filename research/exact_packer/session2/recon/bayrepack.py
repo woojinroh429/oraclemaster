@@ -593,16 +593,32 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
                     for _b in (list(res) + [b for _g, b in outs])[:24]:
                         _ol, _ob2 = _layers_bbox(B, _b)
                         _cb.append((_ol, _ob2, [(ent[_b], ext[_b])]))
+                    # REFINE UNTIL THE PAIR LOOP IS THE MEASUREMENT.  Two fixed steps, 24 and 12,
+                    # produced builds 30 ms apart of which the fixed cost was 77% -- and the fit
+                    # takes their DIFFERENCE, so a 10% timing wobble became a 5x error in the
+                    # slope.  It did: on P20 the same machine fitted 3.73e-09 in one arm and
+                    # 1.89e-08 in the next, against a real 2.45e-09, and the 8x-high one declined
+                    # a tier it could afford four times over.
+                    #
+                    # Halve the step until the build is big enough that the pair loop dominates,
+                    # and stop as soon as it is -- which bounds the calibration by its own last
+                    # measurement rather than by a guess about how big a bay might be.  The span
+                    # between the first and last point is then wide enough that the difference is
+                    # signal.
                     _pts = []
                     if _cb:
-                        for _cst in (24, 12):
+                        _cst = 24
+                        while _cst >= 3:
                             _cr = CP.pack(_cb, W, H, _cst, 0.01, seed=1, warm=None, frozen=[],
                                           weights=[1.0] * len(_cb))
                             _cn, _cbuild = float(_cr[2]), float(_cr[4]) / 1000.0
                             if _cn > 200.0 and _cbuild > 0.005:
                                 _pts.append((_cn, _cbuild))
-                    if len(_pts) == 2 and _pts[1][0] > _pts[0][0] * 1.5:
-                        (_n1, _b1), (_n2, _b2) = _pts
+                            if _cbuild > 0.25 or len(_pts) >= 5:
+                                break
+                            _cst //= 2
+                    if len(_pts) >= 2 and _pts[-1][0] > _pts[0][0] * 1.5:
+                        (_n1, _b1), (_n2, _b2) = _pts[0], _pts[-1]
                         _r = (_b2 - _b1) / (_n2 * _n2 - _n1 * _n1)
                         _c = _b1 - _r * _n1 * _n1
                         if _r <= 0.0:
