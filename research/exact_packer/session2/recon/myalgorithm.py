@@ -75,6 +75,12 @@ except Exception:
 # OGC_ADAPTAIM=1 lets each worker tune its own beam aim from the beam's own overrun reports.
 # Off by default until it is measured against the fixed 0.90/0.10 portfolio; see _adapt_aim.
 _ADAPTAIM = bool(os.environ.get("OGC_ADAPTAIM"))
+# OGC_SHARE=1 lets a worker that is far behind the others restart from a fresh seed instead of
+# spending the rest of the budget on a basin the final minimum will discard.  OGC_SHAREGAP is how
+# far behind it has to be, as a fraction; 0.5 means fifty per cent worse than the best other
+# worker.  Off by default until measured on the full set.
+_SHARE = bool(os.environ.get("OGC_SHARE"))
+_SHARE_GAP = float(os.environ.get("OGC_SHAREGAP", "0.5"))
 HAVE_OGC_FAST = False
 try:
     import importlib.util as _ilu_of
@@ -1863,8 +1869,41 @@ def _assign(prob_info, sol, budget):
     return best
 
 
+def _share_read(share_dir, wid, mine):
+    """Publish this worker's incumbent and return the best any OTHER worker has reached.
+
+    One file per worker and each writes only its own, so there is no lock and a torn or missing
+    read costs nothing -- the caller treats None as "no information" and does not act.  The write
+    is a rename onto the final name so a reader never sees a half-written number.
+    """
+    try:
+        import tempfile
+        p = os.path.join(share_dir, "w%d" % wid)
+        fd, tmp = tempfile.mkstemp(dir=share_dir)
+        with os.fdopen(fd, "w") as fh:
+            fh.write("%.6f" % mine)
+        os.replace(tmp, p)
+    except Exception:
+        return None
+    best_other = None
+    try:
+        for nm in os.listdir(share_dir):
+            if not nm.startswith("w") or nm == "w%d" % wid:
+                continue
+            try:
+                with open(os.path.join(share_dir, nm)) as fh:
+                    v = float(fh.read().strip())
+            except Exception:
+                continue
+            if v > 0 and (best_other is None or v < best_other):
+                best_other = v
+    except Exception:
+        return None
+    return best_other
+
+
 def _worker(args):
-    prob_info, budget, wid, cwd, share = args
+    prob_info, budget, wid, cwd, share, share_dir = args
     try:
         import os as _o, sys as _s
         if cwd and cwd not in _s.path:
@@ -1942,6 +1981,7 @@ def _worker(args):
     rng = random.Random(1234 + wid)
     axes = [_AXES[(wid + i) % len(_AXES)] for i in range(len(_AXES))]
     pool = [best] if best[1] is not None else []
+    _seed_bump = [0]                                # bumped when this worker restarts
     band = _Bandit([0.25, 1.0, 4.0], rng)          # crane-contact weight
     w3v = float(prob_info.get("weights", {}).get("w3", 1.0))
     gen = [0]
@@ -2074,6 +2114,42 @@ def _worker(args):
         left = budget - (time.time() - t0)
         if left < 2.0:
             break
+        # A WORKER THAT IS HOPELESSLY BEHIND IS A WASTED CORE, NOT A SAFE ONE.
+        #
+        # The four workers are independent and combined only by a final minimum, so a bad one
+        # costs nothing in the answer -- and that is exactly why it went unnoticed.  Measured per
+        # worker (results/audit/wstat.md), P7's control returned 937,453 / 923,531 / 1,196,169 /
+        # 2,932,676: one core spent the entire budget on something 3.2x behind the winner.  The
+        # minimum hides it, but the draw is gone.
+        #
+        # Restarting that worker from a fresh seed converts it into another draw, and more draws
+        # is precisely what tightens a minimum.  It is not a gate on the instance: a worker
+        # compares itself only with the others on the same instance, so on the large instances,
+        # where the four land within 2.16% of each other, this never fires at all.
+        #
+        # Deliberately conservative.  Once per worker, only in the middle of the run -- late
+        # enough that the gap means something, early enough that a rebuild still has time -- and
+        # only when the gap is large.  Adopting the leader's SOLUTION was the alternative and is
+        # the wrong one: it makes four workers polish one basin, and a minimum over four copies
+        # of the same start is weaker than over four independent ones.
+        if _SHARE and share_dir and _seed_bump[0] == 0 and pool:
+            _frac = (time.time() - t0) / max(1e-9, budget)
+            if 0.30 <= _frac <= 0.60:
+                _lead = _share_read(share_dir, wid, pool[0][0])
+                if _lead is not None and pool[0][0] > _lead * (1.0 + _SHARE_GAP):
+                    if os.environ.get("OGC_WSTAT"):
+                        import sys as _sy
+                        _sy.stderr.write("RESTART wid=%d at %.0f%% mine=%.0f lead=%.0f\n"
+                                         % (wid, 100 * _frac, pool[0][0], _lead))
+                        _sy.stderr.flush()
+                    _seed_bump[0] = 1
+                    rng = random.Random(90001 + 7919 * wid)
+                    pool = [best] if best[1] is not None else []
+                    gain = [0.0] * len(ops); spent = [1e-6] * len(ops); tried = [0] * len(ops)
+                    empty_at = [None] * len(ops)
+                    slot = [(budget - (time.time() - t0)) *
+                            (0.20 if o[3] else 1.0 / (2.0 * len(ops))) for o in ops]
+                    continue
         cur = pool[0][0] if pool else None
         elig = [i for i in range(len(ops))
                 if (pool or not ops[i][2]) and left - 1.0 >= ops[i][4]
@@ -2193,18 +2269,28 @@ def algorithm(prob_info, timelimit=60):
         _R = 1
     best = (float("inf"), None)
     _rb = max(4.0, wbudget / _R)
+    # The channel the workers publish their incumbent on.  A directory rather than a queue
+    # because the workers are processes and the reads are best-effort: a missing or torn value
+    # means "no information" and the reader simply does not act on it.  Created even when the
+    # feature is off so the worker signature does not vary between arms.
+    _shdir = None
+    try:
+        import tempfile as _tf
+        _shdir = _tf.mkdtemp(prefix="ogcshare")
+    except Exception:
+        _shdir = None
     for _r in range(_R):
         if _r > 0 and (timelimit - (time.time() - t0)) < (_rb + reserve):
             break                                        # no room for another full round
         try:
             if nw > 1:
                 with multiprocessing.Pool(processes=nw) as pool:
-                    out = pool.map(_worker, [(prob_info, _rb, _r * nw + i, cwd, 1.0 / nw)
+                    out = pool.map(_worker, [(prob_info, _rb, _r * nw + i, cwd, 1.0 / nw, _shdir)
                                              for i in range(nw)])
             else:
-                out = [_worker((prob_info, _rb, _r * nw, cwd, 1.0))]
+                out = [_worker((prob_info, _rb, _r * nw, cwd, 1.0, _shdir))]
         except Exception:
-            out = [_worker((prob_info, _rb, _r * nw, cwd, 1.0))]
+            out = [_worker((prob_info, _rb, _r * nw, cwd, 1.0, _shdir))]
         # OGC_WSTAT=1 prints what each worker came back with.  The answer is a minimum over the
         # workers, so what the portfolio is worth is entirely the SPREAD between them: four
         # workers that converge to the same solution cost four cores and buy one draw.  Since
@@ -2234,6 +2320,13 @@ def algorithm(prob_info, timelimit=60):
             best = (0.0, _safe_sequential(prob_info))
         except Exception:
             return {"operations": {}}
+
+    if _shdir:                                   # one directory per solve; do not leak them
+        try:
+            import shutil as _sh
+            _sh.rmtree(_shdir, ignore_errors=True)
+        except Exception:
+            pass
 
     left = timelimit - (time.time() - t0) - 1.0
     if left > 3.0:
