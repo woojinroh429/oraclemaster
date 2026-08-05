@@ -73,8 +73,8 @@ answered by completion.
 returning the identical solution, verified per cell rather than by comparing run outcomes.
 \item A $10.5\times$ faster \emph{conflict-graph build}, accepted on an unchanged edge count rather
 than a stopwatch, over a shared memo made safe by compare-and-exchange.
-\item \emph{Offset-relative geometry}, which made the packing predicate position-independent and
-fixed a disagreement we had misdiagnosed as hashing.
+\item \emph{Offset-relative geometry}: the packing predicate became position-independent,
+fixing a disagreement we had misdiagnosed as hashing.
 \item A negative result more useful than any of these: an exact, verified $1.85\times$ speedup that
 made one instance $7.7\%$ worse (Section~\ref{sec:wallclock}).
 \end{itemize}
@@ -330,11 +330,20 @@ the split noted above is visible directly: $Z_1$ is zero on instances 1--20 and 
 
 \begin{table}[t]
 \centering
-\caption{Preliminary-round training set, all forty instances, $60$\,s each. $n$ blocks, $m$
-bays. Tables~\ref{tab:subs} and~\ref{tab:seat} are on final-round data and are labelled as such.}
+\caption{Preliminary-round training set, all forty instances at $60$\,s. $n$ blocks, $m$ bays.}
 \label{tab:train}
-\small
+\footnotesize
 %%TRAINTABLE%%
+\end{table}
+
+\begin{table}[t]
+\centering
+\caption{Final-round training set, all forty instances at $60$\,s, same build. Different instances
+from Table~\ref{tab:train}: $w_1$ spans $333$ to $13{,}559$ against the preliminary $667$ to
+$29{,}630$, and $w_3$ reaches $800$ against $600$.}
+\label{tab:final}
+\footnotesize
+%%FINALTABLE%%
 \end{table}
 
 \begin{table}[t]

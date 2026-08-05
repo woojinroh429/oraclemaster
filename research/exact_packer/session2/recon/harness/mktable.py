@@ -7,7 +7,13 @@ harnesses wrote and committed.
 
 Prints LaTeX ready to paste, and a plain summary to read.
 
-Run: python3.12 harness/mktable.py
+TWO ROUNDS, ONE GENERATOR.  The preliminary and final training sets are different instances --
+different weights, different sizes -- and the report shows both, so the log directory, the log
+prefix and the instance directory are arguments rather than constants.
+
+Run: python3.12 harness/mktable.py [logdir logprefix datadir]
+     defaults:  results/train  t  train        (the preliminary set)
+     final set: results/stage2 f  stage2
 """
 import json
 import os
@@ -29,8 +35,18 @@ def read(path):
     return None
 
 
-def meta(p, sub="train"):
-    f = os.path.join(HERE, "data", sub, "prob_%d.json" % p)
+LOGDIR = sys.argv[1] if len(sys.argv) > 1 else "results/train"
+PREFIX = sys.argv[2] if len(sys.argv) > 2 else "t"
+DATASET = sys.argv[3] if len(sys.argv) > 3 else "train"
+# HOW MANY INSTANCES PER ROW.  The report shows two forty-instance sets and the page limit is ten,
+# so height is the binding constraint: three blocks of fourteen rows instead of two of twenty
+# saves a quarter of the table.  It only fits because n and m come out of the rows -- they are a
+# property of the instance, not a result, and the caption can carry their ranges.
+UP = int(sys.argv[4]) if len(sys.argv) > 4 else 2
+
+
+def meta(p, sub=None):
+    f = os.path.join(HERE, "data", sub or DATASET, "prob_%d.json" % p)
     if not os.path.exists(f):
         return None
     j = json.load(open(f))
@@ -39,7 +55,7 @@ def meta(p, sub="train"):
 
 rows = []
 for p in range(1, 41):
-    r = read(os.path.join(HERE, "results/train/t%d.log" % p))
+    r = read(os.path.join(HERE, LOGDIR, "%s%d.log" % (PREFIX, p)))
     m = meta(p)
     if r and m:
         r["n"], r["m"] = m
@@ -49,7 +65,7 @@ if not rows:
     print("no training logs yet")
     sys.exit(0)
 
-print("%% %d of 40 training instances, 60 s each" % len(rows))
+print("%% %d of 40 %s instances, 60 s each" % (len(rows), DATASET))
 
 
 def fmt(v):
@@ -69,20 +85,24 @@ def fmt(v):
 # SIDE BY SIDE.  Forty rows stacked vertically fill a whole page, which pushed every float in
 # the document to the end and left the tables nowhere near the text that discusses them.  Two
 # blocks of twenty halve the height and read better besides.
-half = (len(rows) + 1) // 2
-left, right = rows[:half], rows[half:]
-cell = lambda r: (r"%d & %d & %d & %s & %s & %s & %s"
-                  % (r["p"], r["n"], r["m"], fmt(r["z1"]), fmt(r["z2"]), fmt(r["z3"]),
-                     fmt(r["obj"])))
-head = r"Inst. & $n$ & $m$ & $Z_1$ & $Z_2$ & $Z_3$ & Obj."
-print(r"\begin{tabular}{rrrrrrr@{\qquad}rrrrrrr}")
+per = (len(rows) + UP - 1) // UP
+blocks = [rows[i * per:(i + 1) * per] for i in range(UP)]
+if UP >= 3:
+    cell = lambda r: r"%d & %s & %s & %s & %s" % (r["p"], fmt(r["z1"]), fmt(r["z2"]),
+                                                  fmt(r["z3"]), fmt(r["obj"]))
+    head, blank, spec = (r"\# & $Z_1$ & $Z_2$ & $Z_3$ & Obj.", " & " * 4, "rrrrr")
+else:
+    cell = lambda r: (r"%d & %d & %d & %s & %s & %s & %s"
+                      % (r["p"], r["n"], r["m"], fmt(r["z1"]), fmt(r["z2"]), fmt(r["z3"]),
+                         fmt(r["obj"])))
+    head, blank, spec = (r"Inst. & $n$ & $m$ & $Z_1$ & $Z_2$ & $Z_3$ & Obj.", " & " * 6,
+                         "rrrrrrr")
+print(r"\begin{tabular}{" + ((r"@{\;}" if UP >= 3 else r"@{\qquad}").join([spec] * UP)) + "}")
 print(r"\toprule")
-print(head + " & " + head + r" \\")
+print(" & ".join([head] * UP) + r" \\")
 print(r"\midrule")
-for i in range(half):
-    a = cell(left[i])
-    b = cell(right[i]) if i < len(right) else " & " * 6
-    print(a + " & " + b + r" \\")
+for i in range(per):
+    print(" & ".join(cell(b[i]) if i < len(b) else blank for b in blocks) + r" \\")
 print(r"\bottomrule")
 print(r"\end{tabular}")
 

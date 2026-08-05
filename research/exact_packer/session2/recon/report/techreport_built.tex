@@ -73,8 +73,8 @@ answered by completion.
 returning the identical solution, verified per cell rather than by comparing run outcomes.
 \item A $10.5\times$ faster \emph{conflict-graph build}, accepted on an unchanged edge count rather
 than a stopwatch, over a shared memo made safe by compare-and-exchange.
-\item \emph{Offset-relative geometry}, which made the packing predicate position-independent and
-fixed a disagreement we had misdiagnosed as hashing.
+\item \emph{Offset-relative geometry}: the packing predicate became position-independent,
+fixing a disagreement we had misdiagnosed as hashing.
 \item A negative result more useful than any of these: an exact, verified $1.85\times$ speedup that
 made one instance $7.7\%$ worse (Section~\ref{sec:wallclock}).
 \end{itemize}
@@ -330,10 +330,9 @@ the split noted above is visible directly: $Z_1$ is zero on instances 1--20 and 
 
 \begin{table}[t]
 \centering
-\caption{Preliminary-round training set, all forty instances, $60$\,s each. $n$ blocks, $m$
-bays. Tables~\ref{tab:subs} and~\ref{tab:seat} are on final-round data and are labelled as such.}
+\caption{Preliminary-round training set, all forty instances at $60$\,s. $n$ blocks, $m$ bays.}
 \label{tab:train}
-\small
+\footnotesize
 \begin{tabular}{rrrrrrr@{\qquad}rrrrrrr}
 \toprule
 Inst. & $n$ & $m$ & $Z_1$ & $Z_2$ & $Z_3$ & Obj. & Inst. & $n$ & $m$ & $Z_1$ & $Z_2$ & $Z_3$ & Obj. \\
@@ -358,6 +357,32 @@ Inst. & $n$ & $m$ & $Z_1$ & $Z_2$ & $Z_3$ & Obj. & Inst. & $n$ & $m$ & $Z_1$ & $
 18 & 300 & 4 & 0 & 4{,}188 & 198 & 43{,}086 & 38 & 250 & 3 & 2{,}607 & 1{,}987 & 4{,}164 & 36{,}012{,}305 \\
 19 & 300 & 4 & 0 & 4{,}604 & 301 & 58{,}449 & 39 & 250 & 3 & 500 & 1{,}218 & 5{,}711 & 7{,}528{,}022 \\
 20 & 300 & 5 & 0 & 2{,}704 & 652 & 97{,}724 & 40 & 250 & 4 & 2{,}629 & 3{,}957 & 7{,}947 & 1{,}860{,}811 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[t]
+\centering
+\caption{Final-round training set, all forty instances at $60$\,s, same build. Different instances
+from Table~\ref{tab:train}: $w_1$ spans $333$ to $13{,}559$ against the preliminary $667$ to
+$29{,}630$, and $w_3$ reaches $800$ against $600$.}
+\label{tab:final}
+\footnotesize
+\begin{tabular}{rrrrrrr@{\qquad}rrrrrrr}
+\toprule
+Inst. & $n$ & $m$ & $Z_1$ & $Z_2$ & $Z_3$ & Obj. & Inst. & $n$ & $m$ & $Z_1$ & $Z_2$ & $Z_3$ & Obj. \\
+\midrule
+1 & 150 & 3 & 17 & 5{,}858 & 799 & 610{,}313 & 12 & 300 & 5 & 11 & 15{,}458 & 5{,}215 & 149{,}496 \\
+2 & 250 & 3 & 4{,}412 & 1{,}774 & 8{,}179 & 60{,}059{,}142 & 13 & 300 & 2 & 9{,}207 & 2{,}120 & 7{,}538 & 67{,}415{,}589 \\
+3 & 200 & 4 & 167 & 6{,}823 & 7{,}746 & 4{,}732{,}990 & 14 & 250 & 4 & 1{,}617 & 2{,}467 & 5{,}171 & 680{,}545 \\
+4 & 250 & 4 & 296 & 1{,}705 & 3{,}165 & 2{,}682{,}038 & 15 & 250 & 3 & 1{,}294 & 2{,}802 & 5{,}947 & 12{,}200{,}902 \\
+5 & 150 & 2 & 2{,}122 & 182 & 2{,}068 & 7{,}901{,}464 & 16 & 300 & 5 & 173 & 1{,}203 & 4{,}813 & 3{,}513{,}468 \\
+6 & 250 & 4 & 344 & 4{,}078 & 5{,}904 & 5{,}392{,}174 & 17 & 250 & 3 & 876 & 631 & 7{,}845 & 5{,}278{,}256 \\
+7 & 150 & 3 & 53 & 715 & 2{,}145 & 1{,}033{,}404 & 18 & 200 & 3 & 2{,}402 & 585 & 3{,}815 & 10{,}434{,}705 \\
+8 & 200 & 4 & 203 & 2{,}383 & 2{,}199 & 129{,}355 & 19 & 200 & 3 & 1{,}129 & 2{,}936 & 8{,}434 & 17{,}589{,}029 \\
+9 & 200 & 3 & 323 & 5{,}960 & 6{,}575 & 6{,}110{,}361 & 20 & 250 & 3 & 1{,}169 & 2{,}984 & 8{,}968 & 9{,}162{,}795 \\
+10 & 150 & 2 & 305 & 7{,}364 & 2{,}176 & 4{,}531{,}221 & 21 & 150 & 2 & 11 & 8{,}212 & 2{,}104 & 1{,}004{,}687 \\
+11 & 250 & 4 & 417 & 8{,}236 & 7{,}304 & 7{,}534{,}737 &  &  &  &  &  &  &  \\
 \bottomrule
 \end{tabular}
 \end{table}

@@ -12,20 +12,28 @@ set -u
 cd "$(dirname "$0")/.." || exit 1
 R=report
 TBL=/tmp/traintable.tex
+FTBL=/tmp/finaltable.tex
 
-python3.12 harness/mktable.py > "$TBL" 2>/dev/null
-grep -q 'end{tabular}' "$TBL" || { echo "no table generated -- is the sweep finished?"; exit 1; }
-# strip the trailing summary comments; only the tabular goes into the document
-sed -n '/\\begin{tabular}/,/\\end{tabular}/p' "$TBL" > "$TBL.clean"
+# TWO ROUNDS, TWO TABLES.  The preliminary and final training sets are different instances and
+# the report shows both, so both are generated from their own logs and injected at their own
+# markers.  Neither is retyped.
+python3.12 harness/mktable.py results/train t train 2 > "$TBL" 2>/dev/null
+python3.12 harness/mktable.py results/stage2 f stage2 2 > "$FTBL" 2>/dev/null
+for f in "$TBL" "$FTBL"; do
+  grep -q 'end{tabular}' "$f" || { echo "no table in $f -- is that sweep finished?"; exit 1; }
+  sed -n '/\\begin{tabular}/,/\\end{tabular}/p' "$f" > "$f.clean"
+done
 
-python3.12 - "$R/techreport.tex" "$TBL.clean" "$R/techreport_built.tex" <<'PY'
+python3.12 - "$R/techreport.tex" "$TBL.clean" "$FTBL.clean" "$R/techreport_built.tex" <<'PY'
 import sys
-doc, tbl, out = sys.argv[1], sys.argv[2], sys.argv[3]
+doc, tbl, ftbl, out = sys.argv[1:5]
 s = open(doc).read()
-t = open(tbl).read().rstrip()
-assert '%%TRAINTABLE%%' in s, 'marker missing from techreport.tex'
-open(out, 'w').write(s.replace('%%TRAINTABLE%%', t))
-print('injected %d table rows' % t.count(r'\\'))
+for marker, path in (('%%TRAINTABLE%%', tbl), ('%%FINALTABLE%%', ftbl)):
+    assert marker in s, marker + ' missing from techreport.tex'
+    t = open(path).read().rstrip()
+    s = s.replace(marker, t)
+    print('injected %d rows at %s' % (t.count(chr(92)*2), marker))
+open(out, 'w').write(s)
 PY
 
 cd "$R" || exit 1
