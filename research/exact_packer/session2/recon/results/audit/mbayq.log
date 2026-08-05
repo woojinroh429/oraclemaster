@@ -96,3 +96,24 @@ P25  nbay=1  0 application(s) in 5s  obj=70202676  +0.00%
       ncol_est per bay ['63230', '59202']  step x[1, 1]  (cand=141 res=141 frozen=159)
     brk: declined, smallest tier predicts 382s of 51s
 P25  nbay=2  0 application(s) in 1s  obj=70202676  +0.00%
+# probe 6
+P6   solved 30s  obj=5485862  (bays=4 blocks=250)
+    brk calib: 892:72.1ms 2210:62.2ms 7046:250.3ms -> fixed 0.069s + 3.65e-09 s/col^2
+    brk tier: room=51s rate=3.65e-09 -> tier 2 (step 4 nout 20 nent 2) ncol~104286 pred=39.8s  [hard=60 slice=60s]
+    brk stick: 40 of 91 residents cannot leave the bay set at all
+    brk: build refused at tier 2 (0.4s) -- stepping down to tier 3
+    brk cost: BUILD ABORTED at 7.3s of a 51.0s cap (tier 3 ncol~47602)
+P6   nbay=1  0 application(s) in 12s  obj=5485862  +0.00%
+    brk calib: 468:37.2ms 902:48.1ms 2402:116.4ms 7386:860.7ms -> fixed 0.034s + 1.52e-08 s/col^2
+      ncol_est per bay ['158232', '113234']  step x[1, 2]  (cand=118 res=91 frozen=83)
+      ncol_est per bay ['145050', '102928']  step x[1, 2]  (cand=118 res=91 frozen=83)
+      ncol_est per bay ['83882', '60206']  step x[1, 2]  (cand=111 res=91 frozen=83)
+      ncol_est per bay ['37944', '27806']  step x[1, 2]  (cand=101 res=91 frozen=83)
+    brk tier: room=51s rate=1.52e-08 -> tier 3 (step 6 nout 10 nent 1) ncol~47042 pred=33.6s  [hard=60 slice=60s]
+    brk stick: 76 of 91 residents cannot leave the bay set at all
+    brk cost: ncol~47042 real_ncol=21545 build=2.8s ask=60.0s total=51.1s
+    brk cost: tier 3 ncol~47042 real_ncol=21545 build=2.8s total=51.1s  -> rate 1.262e-09 s/col^2
+    brk[pressure] bays=[2, 1] res=91 outs=10 displaced 6: [(125, 633), (17, 525), (245, 377), (82, 309), (130, 262), (8, 169)]
+    brk[pressure] bays=[2, 1] res=91 outs=10 rehome pass 0 stuck on b125 -- retrying with it first
+    brk[pressure] bays=[2, 1] res=91 outs=10 displaced b125 could not be rehomed within 16 days, 1 order(s) tried
+P6   nbay=2  0 application(s) in 53s  obj=5485862  +0.00%
