@@ -46,3 +46,17 @@ P20  solved 30s  obj=9748532  (bays=3 blocks=250)
     brk calib: 848:39.1ms 2328:57.3ms 7178:183.8ms 24810:1563.1ms -> fixed 0.037s + 2.48e-09 s/col^2
     brk tier: room=51s rate=2.48e-09 -> tier 3 (step 6 nout 10 nent 1) ncol~79106 pred=15.5s  [hard=60 slice=60s]
     brk stick: 43 of 101 residents cannot leave the bay set at all
+    brk cost: ncol~79106 real_ncol=55032 build=15.9s ask=60.0s total=51.7s
+    brk cost: tier 3 ncol~79106 real_ncol=55032 build=15.9s total=51.7s  -> rate 2.539e-09 s/col^2
+    brk[pressure] bays=[0] res=101 outs=10 displaced 17: [(116, 778), (206, 776), (220, 772), (213, 742), (131, 645), (73, 580), (100, 568), (14, 525), (87, 423), (219, 411), (184, 366), (79, 361), (68, 172), (70, 159), (232, 155), (114, 152), (173, 105)]
+    brk[pressure] bays=[0] res=101 outs=10 rehome pass 0 stuck on b116 -- retrying with it first
+    brk[pressure] bays=[0] res=101 outs=10 displaced b116 could not be rehomed within 16 days, 1 order(s) tried
+P20  nbay=1  0 application(s) in 57s  obj=9748532  +0.00%
+    brk calib: 636:28.2ms 1412:61.7ms 3992:269.2ms -> fixed 0.022s + 1.55e-08 s/col^2
+      ncol_est per bay ['157724', '125232']  step x[1, 2]  (cand=141 res=101 frozen=99)
+      ncol_est per bay ['152572', '119862']  step x[1, 2]  (cand=141 res=101 frozen=99)
+      ncol_est per bay ['127334', '98070']  step x[1, 2]  (cand=121 res=101 frozen=99)
+      ncol_est per bay ['51084', '39760']  step x[1, 2]  (cand=111 res=101 frozen=99)
+      ncol_est per bay ['51084', '39760']  step x[1, 2]  (cand=111 res=101 frozen=99)
+    brk: declined, smallest tier predicts 65s of 51s
+P20  nbay=2  0 application(s) in 0s  obj=9748532  +0.00%
