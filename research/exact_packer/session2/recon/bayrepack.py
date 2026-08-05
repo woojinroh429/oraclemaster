@@ -411,10 +411,12 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
                     _o.append((g, b))
             _o.sort(reverse=True)
             outs = _o
-            if not outs:
-                if os.environ.get("BRK_DEBUG") == "1":
-                    print("    brk: no profitable entrant into %s" % (BAYS,), flush=True)
-                return None
+            # NO OUTSIDERS IS NOT A DEAD END HERE, and on a two-bay instance it is the normal
+            # case: BAYS is then the whole yard and every block is a resident by definition.  The
+            # one-bay operator bails on an empty entrant list because nothing else can change in
+            # a single bay -- with two, the residents can still trade places, which is the move
+            # this exists for.  The test that the bay set is worth repacking at all was already
+            # made when TGT was chosen.
 
         BDIM = [(float(bays[j]["width"]), float(bays[j]["height"])) for j in BAYS]
         W, H = BDIM[0]
@@ -1003,8 +1005,13 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
             for i in displaced:
                 b = cand[i]
                 seated = False
-                for j in sorted((k for k in range(m) if k not in BSET),
-                                key=lambda k: -pref[b][k]):
+                # Outside the repacked set first, in preference order.  If the set IS the whole
+                # yard -- which it is whenever a two-bay instance is repacked jointly -- fall
+                # back to the repacked bays themselves: the packer refused this block on its
+                # COARSE grid, and feasible_scan works on the real one, so a seat it could not
+                # find may still exist.  The engine and then the grader both still have to agree.
+                _order2 = ([k for k in range(m) if k not in BSET] or list(BAYS))
+                for j in sorted(_order2, key=lambda k: -pref[b][k]):
                     r = E.feasible_scan(int(b), [int(j)], int(ent[b]), int(ext[b]), 1)
                     if len(r):
                         E.add(int(j), int(b), int(r[0][1]), float(r[0][2]), float(r[0][3]),
