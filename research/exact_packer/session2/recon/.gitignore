@@ -18,6 +18,14 @@ myalg_prev.py
 # hand into the .md files beside them.  A measurement that is not committed did not happen.
 !results/audit/
 !results/audit/*.log
+# THE SAME BUG, THE SAME DAY, ONE DIRECTORY OVER.  The note above is about results/audit/; the
+# measurement sweeps for the report write to results/stage2/ and results/train2/, and `!results/*.log`
+# does not reach them either.  Forty final-round runs sat untracked through a container restart.
+# Every directory a sweep writes to has to be named here, not just the first one that bit us.
+!results/stage2/
+!results/stage2/*.log
+!results/train2/
+!results/train2/*.log
 myalg_c*.py
 myalg_sh*.py
 myalg_sw*.py
