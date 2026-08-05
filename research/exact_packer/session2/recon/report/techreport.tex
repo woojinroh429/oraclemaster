@@ -18,8 +18,8 @@ bay, an entry time, and a pose that a vertically descending crane can actually r
 starting observation is that the objective $w_1Z_1+w_2Z_2+w_3Z_3$ reads only the pair (bay,
 entry time)---coordinates and orientation appear nowhere in it. Geometry is therefore a
 feasibility constraint that decides how much scheduling freedom exists, not a term to be optimised
-directly. The two training sets do not even share a shape --- half the preliminary instances carry
-no tardiness at all, none of the final forty do --- so we avoid density thresholds and instance
+directly. The two training sets do not even share a shape --- over half the preliminary instances
+carry no tardiness at all, none of the final forty do --- so we avoid density thresholds and instance
 classification entirely: one portfolio of six operators competes for the budget on
 measured payoff per second, and every hot loop lives in one of two C++ extensions. Our main contributions are an exact contact upper bound that skips $40.8\%$ of the
 candidate cells while provably returning the identical solution, a $10.5\times$ faster
@@ -52,8 +52,8 @@ but standing one and two layers high ration space completely differently: the sc
 height, not occupancy, which is why the descent test is layer-by-layer.
 
 \paragraph{The two rounds do not have the same shape.}
-At a uniform $60$\,s the preliminary training set is bimodal: $Z_1$ is exactly zero on twenty of its
-forty instances and strictly positive on the other twenty (Table~\ref{tab:train}). The final-round
+At a uniform $60$\,s the preliminary training set is bimodal: $Z_1$ is exactly zero on twenty-one of
+its forty instances and strictly positive on the rest (Table~\ref{tab:train}). The final-round
 set is not bimodal at all. All forty of its instances are late, and the share of the objective
 carried by tardiness spreads from $2.5\%$ to $97.9\%$ with no gap wider than fifteen points
 anywhere in it (Table~\ref{tab:final}). Where $Z_1$ vanishes the entry times are free and the problem is an
@@ -258,10 +258,11 @@ $9{,}580$, $13{,}510$ and $24{,}100$. A tight solution has no slack left and thi
 slack, so its result follows the incumbent's layout rather than its objective --- yet the roster
 hands it the best-scoring solution every time.
 
-\paragraph{Two optimisations that were simply wrong.}
-The headroom from that build then bought nothing: widening the $40$-outsider candidate cap became
-affordable ($331$\,s of a $180$\,s budget before, $179$\,s after) and scored $3$ better against $4$
-worse, median $+0.17\%$ --- the evidence for wanting it had come from two instances.
+\paragraph{Three changes that did not pay.}
+The headroom from the faster conflict-graph build bought nothing: widening the $40$-outsider
+candidate cap became affordable ($331$\,s of a $180$\,s budget before, $179$\,s after) and scored
+$3$ better against $4$ worse, median $+0.17\%$ --- the evidence for wanting it had come from two
+instances.
 A free-column bitset for the packing search gave identical results and measured
 $1.6$--$1.9\times$ \emph{slower}: its saving scales with columns per block, its cost with edges, and
 we had assumed the wrong line was hot. We also twice predicted the contact bound's benefit from its
@@ -322,8 +323,9 @@ outcome comparisons as evidence.
 Table~\ref{tab:train} reports all forty preliminary-round training instances at a uniform $60$\,s
 budget, decomposed into the three objective components; a uniform budget is the only comparable
 one, since the hidden limits vary and are not disclosed. All forty pass the provided feasibility
-checker, and the split is visible directly: $Z_1$ is zero on instances 1--20 and positive on
-21--40. Table~\ref{tab:final} puts the two rounds side by side.
+checker, and the split is visible directly: $Z_1$ is zero on every instance from 1 to 20 and
+positive on the rest bar instance 29, where this build also reaches zero.
+Table~\ref{tab:final} puts the two rounds side by side.
 
 \begin{table}[t]
 \centering

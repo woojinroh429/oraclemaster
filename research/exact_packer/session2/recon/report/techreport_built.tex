@@ -18,8 +18,8 @@ bay, an entry time, and a pose that a vertically descending crane can actually r
 starting observation is that the objective $w_1Z_1+w_2Z_2+w_3Z_3$ reads only the pair (bay,
 entry time)---coordinates and orientation appear nowhere in it. Geometry is therefore a
 feasibility constraint that decides how much scheduling freedom exists, not a term to be optimised
-directly. The two training sets do not even share a shape --- half the preliminary instances carry
-no tardiness at all, none of the final forty do --- so we avoid density thresholds and instance
+directly. The two training sets do not even share a shape --- over half the preliminary instances
+carry no tardiness at all, none of the final forty do --- so we avoid density thresholds and instance
 classification entirely: one portfolio of six operators competes for the budget on
 measured payoff per second, and every hot loop lives in one of two C++ extensions. Our main contributions are an exact contact upper bound that skips $40.8\%$ of the
 candidate cells while provably returning the identical solution, a $10.5\times$ faster
@@ -52,8 +52,8 @@ but standing one and two layers high ration space completely differently: the sc
 height, not occupancy, which is why the descent test is layer-by-layer.
 
 \paragraph{The two rounds do not have the same shape.}
-At a uniform $60$\,s the preliminary training set is bimodal: $Z_1$ is exactly zero on twenty of its
-forty instances and strictly positive on the other twenty (Table~\ref{tab:train}). The final-round
+At a uniform $60$\,s the preliminary training set is bimodal: $Z_1$ is exactly zero on twenty-one of
+its forty instances and strictly positive on the rest (Table~\ref{tab:train}). The final-round
 set is not bimodal at all. All forty of its instances are late, and the share of the objective
 carried by tardiness spreads from $2.5\%$ to $97.9\%$ with no gap wider than fifteen points
 anywhere in it (Table~\ref{tab:final}). Where $Z_1$ vanishes the entry times are free and the problem is an
@@ -258,10 +258,11 @@ $9{,}580$, $13{,}510$ and $24{,}100$. A tight solution has no slack left and thi
 slack, so its result follows the incumbent's layout rather than its objective --- yet the roster
 hands it the best-scoring solution every time.
 
-\paragraph{Two optimisations that were simply wrong.}
-The headroom from that build then bought nothing: widening the $40$-outsider candidate cap became
-affordable ($331$\,s of a $180$\,s budget before, $179$\,s after) and scored $3$ better against $4$
-worse, median $+0.17\%$ --- the evidence for wanting it had come from two instances.
+\paragraph{Three changes that did not pay.}
+The headroom from the faster conflict-graph build bought nothing: widening the $40$-outsider
+candidate cap became affordable ($331$\,s of a $180$\,s budget before, $179$\,s after) and scored
+$3$ better against $4$ worse, median $+0.17\%$ --- the evidence for wanting it had come from two
+instances.
 A free-column bitset for the packing search gave identical results and measured
 $1.6$--$1.9\times$ \emph{slower}: its saving scales with columns per block, its cost with edges, and
 we had assumed the wrong line was hot. We also twice predicted the contact bound's benefit from its
@@ -322,8 +323,9 @@ outcome comparisons as evidence.
 Table~\ref{tab:train} reports all forty preliminary-round training instances at a uniform $60$\,s
 budget, decomposed into the three objective components; a uniform budget is the only comparable
 one, since the hidden limits vary and are not disclosed. All forty pass the provided feasibility
-checker, and the split is visible directly: $Z_1$ is zero on instances 1--20 and positive on
-21--40. Table~\ref{tab:final} puts the two rounds side by side.
+checker, and the split is visible directly: $Z_1$ is zero on every instance from 1 to 20 and
+positive on the rest bar instance 29, where this build also reaches zero.
+Table~\ref{tab:final} puts the two rounds side by side.
 
 \begin{table}[t]
 \centering
@@ -336,19 +338,20 @@ in Table~\ref{tab:final}.}
 \toprule
 \# & $Z_1$ & $Z_2$ & $Z_3$ & Obj. & \# & $Z_1$ & $Z_2$ & $Z_3$ & Obj. & \# & $Z_1$ & $Z_2$ & $Z_3$ & Obj. \\
 \midrule
-1 & 0 & 157 & 2 & 1{,}499 & 14 & 0 & 1{,}605 & 280 & 45{,}265 & 27 & 1{,}442 & 22 & 4{,}182 & 20{,}899{,}030 \\
-2 & 0 & 144 & 15 & 3{,}690 & 15 & 0 & 4{,}366 & 155 & 42{,}445 & 28 & 57 & 1{,}385 & 1{,}963 & 1{,}353{,}036 \\
-3 & 0 & 2{,}281 & 137 & 43{,}360 & 16 & 0 & 3{,}769 & 145 & 38{,}130 & 29 & 0 & 6{,}364 & 1{,}212 & 382{,}692 \\
-4 & 0 & 2{,}278 & 0 & 15{,}946 & 17 & 0 & 6{,}575 & 213 & 54{,}629 & 30 & 123 & 573 & 1{,}442 & 1{,}930{,}651 \\
-5 & 0 & 1{,}834 & 228 & 47{,}038 & 18 & 0 & 4{,}098 & 218 & 45{,}386 & 31 & 233 & 2{,}807 & 10{,}151 & 5{,}825{,}327 \\
-6 & 0 & 2{,}746 & 133 & 39{,}172 & 19 & 0 & 4{,}350 & 321 & 60{,}093 & 32 & 411 & 1{,}925 & 2{,}337 & 2{,}781{,}688 \\
-7 & 0 & 2{,}514 & 254 & 55{,}698 & 20 & 0 & 3{,}693 & 618 & 99{,}408 & 33 & 839 & 1{,}666 & 4{,}591 & 6{,}298{,}923 \\
-8 & 0 & 2{,}413 & 8 & 11{,}252 & 21 & 19 & 1{,}530 & 2{,}202 & 598{,}927 & 34 & 102 & 1{,}970 & 1{,}368 & 1{,}082{,}900 \\
-9 & 0 & 2{,}147 & 265 & 50{,}485 & 22 & 1 & 2{,}955 & 1{,}792 & 738{,}998 & 35 & 26 & 3{,}991 & 1{,}547 & 598{,}663 \\
-10 & 0 & 1{,}419 & 450 & 69{,}783 & 23 & 90 & 93 & 1{,}560 & 1{,}532{,}961 & 36 & 28 & 4{,}383 & 6{,}813 & 111{,}628 \\
-11 & 0 & 305 & 137 & 20{,}356 & 24 & 2 & 4{,}235 & 717 & 262{,}941 & 37 & 585 & 1{,}783 & 3{,}579 & 4{,}104{,}337 \\
-12 & 0 & 2{,}385 & 450 & 76{,}545 & 25 & 266 & 2{,}772 & 1{,}662 & 213{,}434 & 38 & 2{,}306 & 3{,}683 & 5{,}788 & 32{,}489{,}664 \\
-13 & 0 & 3{,}327 & 476 & 79{,}943 & 26 & 440 & 1{,}216 & 5{,}100 & 6{,}640{,}032 & 39 & 391 & 1{,}219 & 5{,}062 & 5{,}977{,}379 \\
+1 & 0 & 157 & 2 & 1{,}499 & 15 & 0 & 4{,}366 & 155 & 42{,}445 & 29 & 0 & 6{,}364 & 1{,}212 & 382{,}692 \\
+2 & 0 & 144 & 15 & 3{,}690 & 16 & 0 & 3{,}769 & 145 & 38{,}130 & 30 & 123 & 573 & 1{,}442 & 1{,}930{,}651 \\
+3 & 0 & 2{,}281 & 137 & 43{,}360 & 17 & 0 & 6{,}575 & 213 & 54{,}629 & 31 & 233 & 2{,}807 & 10{,}151 & 5{,}825{,}327 \\
+4 & 0 & 2{,}278 & 0 & 15{,}946 & 18 & 0 & 4{,}098 & 218 & 45{,}386 & 32 & 411 & 1{,}925 & 2{,}337 & 2{,}781{,}688 \\
+5 & 0 & 1{,}834 & 228 & 47{,}038 & 19 & 0 & 4{,}350 & 321 & 60{,}093 & 33 & 839 & 1{,}666 & 4{,}591 & 6{,}298{,}923 \\
+6 & 0 & 2{,}746 & 133 & 39{,}172 & 20 & 0 & 3{,}693 & 618 & 99{,}408 & 34 & 102 & 1{,}970 & 1{,}368 & 1{,}082{,}900 \\
+7 & 0 & 2{,}514 & 254 & 55{,}698 & 21 & 19 & 1{,}530 & 2{,}202 & 598{,}927 & 35 & 26 & 3{,}991 & 1{,}547 & 598{,}663 \\
+8 & 0 & 2{,}413 & 8 & 11{,}252 & 22 & 1 & 2{,}955 & 1{,}792 & 738{,}998 & 36 & 28 & 4{,}383 & 6{,}813 & 111{,}628 \\
+9 & 0 & 2{,}147 & 265 & 50{,}485 & 23 & 90 & 93 & 1{,}560 & 1{,}532{,}961 & 37 & 585 & 1{,}783 & 3{,}579 & 4{,}104{,}337 \\
+10 & 0 & 1{,}419 & 450 & 69{,}783 & 24 & 2 & 4{,}235 & 717 & 262{,}941 & 38 & 2{,}306 & 3{,}683 & 5{,}788 & 32{,}489{,}664 \\
+11 & 0 & 305 & 137 & 20{,}356 & 25 & 266 & 2{,}772 & 1{,}662 & 213{,}434 & 39 & 391 & 1{,}219 & 5{,}062 & 5{,}977{,}379 \\
+12 & 0 & 2{,}385 & 450 & 76{,}545 & 26 & 440 & 1{,}216 & 5{,}100 & 6{,}640{,}032 & 40 & 2{,}216 & 3{,}156 & 8{,}947 & 1{,}597{,}539 \\
+13 & 0 & 3{,}327 & 476 & 79{,}943 & 27 & 1{,}442 & 22 & 4{,}182 & 20{,}899{,}030 &  &  &  &  &  \\
+14 & 0 & 1{,}605 & 280 & 45{,}265 & 28 & 57 & 1{,}385 & 1{,}963 & 1{,}353{,}036 &  &  &  &  &  \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -369,12 +372,12 @@ preliminary one, and $w_3$ reaches $800$ against $600$.}
 Blocks $n$ & 200 & 100--300 & 225 & 150--300 \\
 Bays $m$ & 3 & 2--5 & 3 & 2--5 \\
 Tardiness $Z_1$ & 0 & 0--2{,}306 & 480 & 1--10{,}536 \\
-Imbalance $Z_2$ & 2{,}281 & 22--6{,}575 & 2{,}425 & 91--15{,}458 \\
-Preference $Z_3$ & 618 & 0--10{,}151 & 4{,}210 & 196--10{,}614 \\
-Objective & 99{,}408 & 1{,}499--32{,}489{,}664 & 5{,}005{,}623 & 6{,}804--75{,}792{,}403 \\
+Imbalance $Z_2$ & 2{,}333 & 22--6{,}575 & 2{,}425 & 91--15{,}458 \\
+Preference $Z_3$ & 668 & 0--10{,}151 & 4{,}210 & 196--10{,}614 \\
+Objective & 105{,}518 & 1{,}499--32{,}489{,}664 & 5{,}005{,}623 & 6{,}804--75{,}792{,}403 \\
 \midrule
-Instances with $Z_1=0$ & \multicolumn{2}{c}{21 of 39} & \multicolumn{2}{c}{0 of 40} \\
-Feasible & \multicolumn{2}{c}{39 of 39} & \multicolumn{2}{c}{40 of 40} \\
+Instances with $Z_1=0$ & \multicolumn{2}{c}{21 of 40} & \multicolumn{2}{c}{0 of 40} \\
+Feasible & \multicolumn{2}{c}{40 of 40} & \multicolumn{2}{c}{40 of 40} \\
 \bottomrule
 \end{tabular}
 \end{table}
