@@ -1734,7 +1734,39 @@ struct Engine {
         const int Bmax=std::max(1,B), Bstart=ADAPTB?std::max(1,std::min(B,8)):B;
         int Bcur=Bstart; double work=0.0;   // work = sum over levels of (states expanded)
         for(int level=0; level<nord; level++){
-            if(elapsed()>time_budget_s) return {1e18,{}};
+            if(elapsed()>time_budget_s){
+                // FINISH THE BEST PARTIAL INSTEAD OF RETURNING NOTHING.
+                //
+                // This used to return an empty result, and the caller in myalgorithm.py keeps a
+                // beam answer only when it covers every block -- so an overrun threw away every
+                // placement already made and the worker fell back to _safe_sequential.  That is
+                // a cliff, not a slope.  Measured on the shipped build, one run per cell, X =
+                // the floor:
+                //
+                //     blocks          60s  90s 110s 130s 150s 180s
+                //     prob_36  300     X    X    X   ok   ok   ok
+                //     prob_20  250     X    X   ok   ok   ok   ok
+                //     prob_24  150    ok   ok   ok   ok   ok   ok
+                //
+                // prob_36 at 110 s returns 4,023,023,433 against 96,871,459 at 130 s -- 42x --
+                // and prob_20 at 90 s is 143x.  The comment a few lines below already recorded
+                // this failure ("the beam returns NOTHING when it overruns ... every worker then
+                // returned the greedy floor"); the adaptive width narrowed the window but did not
+                // close it, because four workers sharing four cores still cross it on 300 blocks.
+                //
+                // greedy_contact_from completes a partial state under the same contact scoring
+                // the beam itself uses, so nothing new is trusted.  Only the best-ranked state is
+                // finished: we are already past the deadline, and one rollout is the affordable
+                // amount of overrun where B of them would not be.
+                if(!beam.empty() && !beam[0].flat.empty()){
+                    auto _sv = timeline;
+                    auto _fin = greedy_contact_from(beam[0].flat, order, step, pos_lam,
+                                                    prefw, mu, w1, w3, fut_beta, mean_proc);
+                    timeline = _sv;
+                    if((int)_fin.second.size() == 7*nb) return _fin;
+                }
+                return {1e18,{}};
+            }
             if(ADAPTB && level>0 && work>0.0){
                 double per=elapsed()/work;                       // seconds per state-level
                 double left=time_budget_s*0.90-elapsed();
