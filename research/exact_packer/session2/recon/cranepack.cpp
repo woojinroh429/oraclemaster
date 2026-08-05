@@ -27,6 +27,9 @@ extern "C" const char CRANEPACK_SRC_TAG[] = "OGCSRC=" OGC_SRC_SHA;
 #endif
 #include <cstdlib>
 #include <cstdio>
+#include <set>
+#include <map>
+#include <tuple>
 namespace py = pybind11;
 typedef std::vector<std::pair<double,double>> Poly;
 
@@ -464,6 +467,32 @@ py::tuple pack(py::list blocks, double W, double H, int step,
         }
     }
     int ncol=(int)cols.size();
+    // WHAT IS ncol ACTUALLY MADE OF?
+    //
+    // Columns are generated as (block, orient, x, y) x (entry window), and every column in one of
+    // those groups has IDENTICAL geometry -- only its time window differs.  The exact crane test
+    // is already shared across the group by the memo, but the EDGES are not: a conflicting
+    // geometric pair is stored once for every (ei_A, ei_B) whose windows overlap.  So the edge
+    // count carries a multiplicative factor that the enumeration does not, and that factor is
+    // what decides whether storing conflicts at the geometry level is worth the rework.
+    //
+    // CRANEPACK_COLSTAT=1 prints it rather than leaving it to be guessed at.
+    if(const char* _cs=getenv("CRANEPACK_COLSTAT")){ if(_cs[0]=='1'){
+        std::set<std::tuple<int,int,int,int>> geo;
+        std::map<int,int> per_block_ent;
+        for(const auto& c : cols){
+            geo.insert(std::make_tuple(c.block,c.orient,c.x,c.y));
+            per_block_ent[c.block] = (int)ENT[c.block].size();
+        }
+        long tot_ent=0; int mx_ent=0;
+        for(auto& kv : per_block_ent){ tot_ent+=kv.second; mx_ent=std::max(mx_ent,kv.second); }
+        fprintf(stderr,
+            "COLSTAT ncol=%d geom_slots=%zu ratio=%.2f blocks=%zu entries_per_block avg=%.2f max=%d\n",
+            ncol, geo.size(), geo.empty()?0.0:(double)ncol/(double)geo.size(),
+            per_block_ent.size(),
+            per_block_ent.empty()?0.0:(double)tot_ent/(double)per_block_ent.size(), mx_ent);
+        fflush(stderr);
+    }}
     // Column generation is over; the pair loop is what the projection below is about, and it has
     // to be timed from HERE.  Timing it from t0 charges the pair loop for the seconds spent
     // building columns, and since the projection scales that elapsed time by ~58x at the first
