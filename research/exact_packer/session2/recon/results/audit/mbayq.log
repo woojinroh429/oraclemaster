@@ -1,0 +1,30 @@
+# probe 3
+P3   solved 30s  obj=4678986  (bays=4 blocks=200)
+    brk calib: 556:41.2ms 1180:53.1ms 3960:222.0ms 13310:1486.8ms -> fixed 0.039s + 8.17e-09 s/col^2
+    brk tier: room=51s rate=8.17e-09 -> tier 3 (step 6 nout 10 nent 2) ncol~29472 pred=7.1s  [hard=60 slice=60s]
+    brk stick: 9 of 52 residents cannot leave the bay set at all
+    brk cost: ncol~29472 real_ncol=20895 build=6.7s ask=60.0s total=51.2s
+    brk cost: tier 3 ncol~29472 real_ncol=20895 build=6.7s total=51.2s  -> rate 7.672e-09 s/col^2
+    brk[pressure] bays=[3] res=52 outs=10 displaced 5: [(177, 420), (31, 414), (170, 141), (57, 95), (185, 85)]
+    brk[pressure] bays=[3] res=52 outs=10 rehome pass 0 stuck on b185 -- retrying with it first
+    brk[pressure] bays=[3] res=52 outs=10 rehome pass 1 stuck on b177 -- retrying with it first
+    brk[pressure] bays=[3] res=52 outs=10 admitted 3, moved 3, displaced 5, obj 4721727 vs base 4678986 -> reject
+P3   nbay=1  0 application(s) in 58s  obj=4678986  +0.00%
+    brk calib: 370:26.3ms 692:59.3ms 1812:216.7ms 5588:1307.3ms -> fixed 0.021s + 4.12e-08 s/col^2
+      ncol_est per bay ['122274', '101276']  step x[1, 4]  (cand=92 res=52 frozen=69)
+      ncol_est per bay ['106550', '87436']  step x[1, 4]  (cand=92 res=52 frozen=69)
+      ncol_est per bay ['67916', '54840']  step x[1, 4]  (cand=72 res=52 frozen=69)
+      ncol_est per bay ['19114', '15384']  step x[1, 4]  (cand=62 res=52 frozen=69)
+    brk tier: room=51s rate=4.12e-08 -> tier 3 (step 6 nout 10 nent 2) ncol~24536 pred=24.8s  [hard=60 slice=60s]
+    brk stick: 43 of 52 residents cannot leave the bay set at all
+    brk cost: ncol~24536 real_ncol=4927 build=0.7s ask=60.0s total=51.0s
+    brk cost: tier 3 ncol~24536 real_ncol=4927 build=0.7s total=51.0s  -> rate 1.139e-09 s/col^2
+    brk[pressure] bays=[3, 0] res=52 outs=10 displaced 1: [(165, 107)]
+    brk[pressure] bays=[3, 0] res=52 outs=10 admitted 1, moved 1, displaced 1, obj 4674388 vs base 4678986 -> KEEP
+      ncol_est per bay ['118050', '99392']  step x[1, 4]  (cand=92 res=52 frozen=69)
+      ncol_est per bay ['103184', '86140']  step x[1, 4]  (cand=92 res=52 frozen=69)
+      ncol_est per bay ['64986', '53760']  step x[1, 4]  (cand=72 res=52 frozen=69)
+      ncol_est per bay ['17788', '15324']  step x[1, 4]  (cand=62 res=52 frozen=69)
+      ncol_est per bay ['17788', '15324']  step x[1, 4]  (cand=62 res=52 frozen=69)
+    brk: declined, smallest tier predicts 12s of 4s
+P3   nbay=2  1 application(s) in 55s  obj=4674388  -0.10%
