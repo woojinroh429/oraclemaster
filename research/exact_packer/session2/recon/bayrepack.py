@@ -1392,8 +1392,12 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
                 for b, (j, o, x, y, en, ex) in sorted(keep.items())]
         out = build_fn(recs)
         o, _c = total_fn(prob_info, out)
-        _say("admitted %d, moved %d, displaced %d, obj %d vs base %d -> %s"
-             % (len(admitted), len(moved), len(displaced), int(o), int(base),
+        # o is +inf when the grader refuses the rebuild, and int(inf) raises -- which turned a
+        # rejected repack into an exception that the blanket catch then reported as an ordinary
+        # None.  The trace has to survive the case it exists to describe.
+        _say("admitted %d, moved %d, displaced %d, obj %s vs base %d -> %s"
+             % (len(admitted), len(moved), len(displaced),
+                ("%.0f" % o) if o < float("inf") else "INFEASIBLE", int(base),
                 "KEEP" if o < base - 1e-9 else "reject"))
         return out if o < base - 1e-9 else None
     except Exception:
