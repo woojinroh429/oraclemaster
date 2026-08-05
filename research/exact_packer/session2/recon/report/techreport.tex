@@ -40,7 +40,7 @@ properties of the version posed here shaped everything we built.
 \paragraph{The objective and the constraints read different variables.}
 Tardiness, workload imbalance and preference are all functions of which bay a block occupies and
 when it enters; $x$, $y$ and orientation appear in none of them. Geometry enters only through
-feasibility: a layout that cannot accommodate a block pushes its entry later, and that is the only
+feasibility. A layout that cannot accommodate a block pushes its entry later, and that is the only
 channel through which packing quality becomes objective value. Treating tightness as an objective
 term is a modelling error we made early. Weighting contact more heavily does not buy a better
 schedule, it buys a denser layout whose scheduling consequences are unmeasured.
@@ -48,8 +48,8 @@ schedule, it buys a denser layout whose scheduling consequences are unmeasured.
 \paragraph{The crane makes the packing three-dimensional.}
 A block is lowered vertically, so a placement is legal only if every layer of the descending block
 clears everything present along the whole descent. Two neighbours occupying the same floor cells
-but standing one and two layers high ration space completely differently: the scarce resource is
-height, not occupancy, which is why the descent test is layer-by-layer.
+but standing one and two layers high ration space completely differently. The scarce resource is
+height, not occupancy, and that is why the descent test goes layer by layer.
 
 \paragraph{The two rounds do not have the same shape.}
 At a uniform $60$\,s the preliminary training set is bimodal: $Z_1$ is exactly zero on twenty-one of
@@ -95,19 +95,19 @@ enforced inside the operators and re-checked outside them --- one acceptance fun
 provided checker on anything that beats the incumbent and returns $+\infty$ if it fails. An operator
 may be wrong about feasibility; a wrong answer cannot be accepted.
 
-Six operators are available: a contact-beam construction; an evolutionary re-growth with
-crossover and path-relinking over (bay, dispatch-order) anchors, decoded by the same beam; a
-workload-balance repair; a preference repair; a CP-SAT bay reassignment; and the
-exact bay repacking of Section~\ref{sec:repack}. Each receives one probe to establish a rate, after
-which the budget goes to whichever has the highest realised objective gain per second, with $15\%$
+There are six operators. A contact-beam construction. An evolutionary re-growth with crossover and
+path-relinking over (bay, dispatch-order) anchors, decoded by the same beam. A workload-balance
+repair, a preference repair, a CP-SAT bay reassignment, and the exact bay repacking of
+Section~\ref{sec:repack}. Each receives one probe to establish a rate, and the budget then goes to
+whichever has the highest realised objective gain per second. Fifteen percent is held back for
 exploration so a slow starter can recover. The arrangement is an adaptive large neighbourhood
-search~\cite{ropke2006} whose adaptive weights score realised objective gain per second
-rather than a tally of accepted moves.
+search~\cite{ropke2006}, with one difference. Its adaptive weights score realised objective gain
+per second, where the usual form counts accepted moves.
 
 \paragraph{Selection and sizing are different questions.}
 Slice size is deliberately not driven by the selection signal, because sizing on payoff spirals
-downwards: a construction returning a good solution that merely fails to beat the incumbent scores
-zero gain, shrinks, and can then no longer finish at all. We measured fourteen calls returning four
+downwards. A construction that returns a good solution but merely fails to beat the incumbent
+scores zero gain. It shrinks, and then it can no longer finish at all. We measured fourteen calls returning four
 solutions while the objective moved from $48{,}840$ to $56{,}841$. Size is a completion question instead: an operator
 that returned nothing was starved and is given more, one that returned anything fitted, and a
 repair pass is given what it used.
@@ -134,14 +134,15 @@ wanted; with a per-layer bound the choice would likely go the other way.
 
 \paragraph{An exact contact upper bound.}
 Profiling showed $86\%$ of scored cells were evaluated after the best cell of that scan had already
-been found. Bounding the positional term fired zero times in $112.9$ million cells: the score is
-contact-dominated by more than an order of magnitude (ranges of $\approx 2.3$ against $\approx 60$),
-so a bound knowing only the sweep coordinate is never competitive.
+been found. Bounding the positional term fired zero times in $112.9$ million cells. The score is
+contact-dominated by more than an order of magnitude, with ranges of about $2.3$ against about
+$60$, so a bound that knows only the sweep coordinate is never competitive.
 
-Bounding the contact itself inverts this. Contact counts, for each occupied footprint cell, its
-four neighbours: one for a neighbour outside the bay, nothing for one inside the same footprint,
-and its weight for an occupied one. Every cell that can contribute therefore lies inside the
-footprint bounding box dilated by one and counts at most once per direction, giving
+Bounding the contact itself inverts this. Contact counts the four neighbours of each occupied
+footprint cell. A neighbour outside the bay scores one, a neighbour inside the same footprint
+scores nothing, and an occupied neighbour scores its weight. Every cell that can contribute
+therefore lies inside the footprint bounding box dilated by one, and counts at most once per
+direction, giving
 \begin{equation}
 \mathrm{ct}(i_x,i_y) \;\le\; W(i_x,i_y) \;+\; 4\,w_{\max}\,
 \bigl|\,\mathcal{O} \cap B^{+1}(i_x,i_y)\,\bigr| ,
@@ -154,7 +155,7 @@ The bound is applied only where it is proved, which is what excludes the per-lay
 
 \paragraph{A cliff at the bottom of the beam, and the axis that came out of it.}
 The beam checked its deadline at each level and returned nothing when it passed, so every worker
-fell back to the sequential floor. The failure was not gradual: on a $300$-block instance the
+fell back to the sequential floor. The failure was not gradual. On a $300$-block instance the
 answer was $4.02\times10^9$ at $110$\,s against $9.69\times10^7$ at $130$\,s, a factor of $42$, and
 $143$ on a $250$-block one, at a threshold that moves with instance size while the hidden limits
 are undisclosed. The repair needed no new machinery, since the beam already completes a partial
@@ -181,14 +182,14 @@ The repacking operator --- which lifts every block out of one bay and re-seats t
 exactly, and is described in Section~\ref{sec:repack} --- begins with an $O(n_{\text{col}}^2)$
 conflict graph that cannot be interrupted. Two columns conflict only while both are present, so sorting by entry time and
 breaking the inner loop once the later entry passes the earlier exit skips $83\%$ of pairs without
-visiting them; the fields the filter reads moved into flat arrays. Neither change can alter which
-pairs conflict, so the edge count had to come out identical, and that, not the clock, was the
-acceptance test. The same configuration now builds in $10.7$--$14.2$\,s against about $90$\,s
+visiting them, and the fields the filter reads moved into flat arrays. Neither change can alter
+which pairs conflict. The edge count therefore had to come out identical, and that was the
+acceptance test, not the clock. The same configuration now builds in $10.7$--$14.2$\,s against about $90$\,s
 before. The build also projects its own completion every $256$ rows and steps down to a cheaper
 configuration it can finish rather than losing the call.
 
-The rows are independent, so the loop is finally parallel. What is not independent is where the
-results go: each thread keeps its own edge list, and the memo on the conflict predicate is shared.
+The rows are independent, so the loop is finally parallel. Where the results go is not independent.
+Each thread keeps its own edge list, and the memo on the conflict predicate is shared.
 Sharing it naively is not merely racy but silently wrong, because the table is open-addressed and
 two threads inserting different keys can both claim one empty slot, the loser then writing its
 verdict into the winner's entry. A slot is therefore claimed by compare-and-exchange, with relaxed
@@ -217,16 +218,17 @@ the weights of precisely the high-regret blocks collapse to the floor. Across th
 discounting is indistinguishable from never offering a late window at all: $9$ better against $21$
 worse, median $+0.00\%$.
 
-Attaching the weight to the entry variant removes the workaround rather than tuning it. Each
-offered window is priced by the only term an entry time can move,
+Attaching the weight to the entry variant removes the workaround instead of tuning it. Each offered
+window is priced by the only term an entry time can move,
 \begin{equation}
 p(w) \;=\; g \;-\; w_1\bigl(\max(0,\,e_w - d) - \max(0,\,e_0 - d)\bigr),
 \end{equation}
 with $g$ the gain of the move, $e_w$ the exit under window $w$, $e_0$ the current exit and $d$ the
-due date. It is exact in both directions, so a window \emph{earlier} than the block's current entry
-prices above the base and the solver can be paid for pulling a block forward, which a per-block
-weight cannot represent at all. On $39$ final instances the priced form is $20$ better against $9$
-worse (sign test $p\approx0.03$, mean $-0.74\%$) and does no harm where no late window can open.
+due date. The expression is exact in both directions. A window \emph{earlier} than the block's
+current entry therefore prices above the base, and the solver can be paid for pulling a block
+forward. A per-block weight cannot represent that at all. On $39$ final instances the priced form is
+$20$ better against $9$ worse (sign test $p\approx0.03$, mean $-0.74\%$), and it does no harm where
+no late window can open.
 
 \subsection{Key Ideas that Failed}
 \label{sec:failed}
@@ -254,9 +256,9 @@ disabled: $-7.7\%$ against $+2.2\%$ is a losing trade.
 
 \paragraph{A better incumbent can repack worse.}
 Incumbents worth $97{,}570$, $100{,}685$ and $107{,}195$ yielded repacking improvements of
-$9{,}580$, $13{,}510$ and $24{,}100$. A tight solution has no slack left and this operator eats
-slack, so its result follows the incumbent's layout rather than its objective --- yet the roster
-hands it the best-scoring solution every time.
+$9{,}580$, $13{,}510$ and $24{,}100$. A tight solution has no slack left, and this operator eats
+slack. Its result follows the incumbent's layout, not its objective. The roster nevertheless hands
+it the best-scoring solution every time.
 
 \paragraph{Three changes that did not pay.}
 The headroom from the faster conflict-graph build bought nothing: widening the $40$-outsider
@@ -273,16 +275,16 @@ geometric test. Cell counts are not seconds.
 \subsection{Further Improvement Plan}
 \label{sec:plan}
 
-The first item is to remove the wall clock from the schedule's decisions. We localised where it
-enters: with the deadline lifted the construction returns identical placements with and without the
-bound, but under the deadline it receives the two diverge, so the divergence begins in the
-construction's stopping rule rather than the operator loop. The packing solver already takes an
-iteration cap for exactly this reason. Once the schedule depends on work done rather than seconds
-elapsed, the contact bound can be re-enabled and contribute its speed instead of a trajectory.
+The first item is to remove the wall clock from the schedule's decisions. We have localised where
+it enters. With the deadline lifted, the construction returns identical placements with and without
+the bound; under the deadline it receives, the two diverge. The divergence therefore begins in the
+construction's stopping rule, not in the operator loop. The packing solver already takes an
+iteration cap for this reason. Once the schedule depends on work done instead of seconds elapsed,
+the contact bound can be re-enabled and contribute its speed rather than a trajectory.
 
-Second, the repacking operator should sample the solution pool rather than always taking its best
-member, since its yield depends on slack rather than quality; the re-growth operator already
-samples the pool, so the mechanism exists.
+Second, the repacking operator should sample the solution pool instead of always taking its best
+member. Its yield depends on slack, not on quality. The re-growth operator already samples the
+pool, so the mechanism is there to reuse.
 
 Third, that operator's cost model deserves the scrutiny its search has had. It declines a
 configuration whose predicted build will not fit the budget, and the prediction charges a fixed
@@ -374,11 +376,11 @@ Total & 74{,}003{,}416 & 73{,}283{,}064 & 73{,}981{,}407 & $-0.0\%$ \\
 
 \paragraph{Across submissions.}
 Table~\ref{tab:subs} gives what each of our three submissions returned on the eight final-round
-instances. It does not separate the changes from the noise: every per-instance move is smaller than
-the spread the algorithm produces against itself --- three replicates of one unchanged build spread
-$29.3\%$, against a largest move here of $7.2\%$ --- and both shipping steps bundled two changes.
-What it records is direction: five of eight improved from the first submission to the third, and
-the total is flat.
+instances. It does not separate the changes from the noise. Every per-instance move is smaller than
+the spread the algorithm produces against itself; three replicates of one unchanged build spread
+$29.3\%$, against a largest move here of $7.2\%$. Both shipping steps also bundled two changes.
+What the table does record is direction. Five of eight instances improved from the first submission
+to the third, and the total is flat.
 
 \paragraph{Per-seat pricing, on the final practice set.}
 The change described in Section~\ref{sec:succeeded} was judged on all forty final practice
@@ -425,14 +427,15 @@ to this report.
 
 \section{AI Use Declaration}
 
-One tool was used, substantially: Anthropic Claude, through its command-line coding interface, as
-an interactive coding and analysis assistant throughout development. It wrote and refactored the
-two C++ extensions and the Python scheduler from specifications settled in discussion; derived the
-contact bound of Section~\ref{sec:succeeded} and its validity conditions; built the measurement
-harnesses; ran the experiments; diagnosed defects, among them the position-dependent geometric
-predicate; and drafted this report. Algorithmic direction, prioritisation and every decision to
-accept or reject a change remained with the authors, and every number here came from executing the
-submitted code --- none was generated or estimated by a language model.
+One tool was used, and substantially. Anthropic Claude, through its command-line coding interface,
+served as an interactive coding and analysis assistant throughout development. It wrote and
+refactored the two C++ extensions and the Python scheduler from specifications settled in
+discussion, derived the contact bound of Section~\ref{sec:succeeded} together with its validity
+conditions, built the measurement harnesses, ran the experiments, diagnosed defects among them the
+position-dependent geometric predicate, and drafted this report. Algorithmic direction,
+prioritisation and every decision to accept or reject a change remained with the authors. Every
+number here came from executing the submitted code. None was generated or estimated by a language
+model.
 
 \begin{thebibliography}{4}
 
