@@ -1891,8 +1891,13 @@ def _worker(args):
     # Set through the environment because the C++ reads it once per process into a static, and
     # every worker IS a separate process -- so this has to happen before the first beam call,
     # which is what being here guarantees.  OGC_BEAMAIM set by the caller wins, for the A/B.
+    #
+    # The split itself is a set rather than a constant pair, so the alternative -- spreading the
+    # four workers across the range instead of stacking them on its two ends -- is one env away
+    # and can be measured instead of argued about.  Default is the measured 2:2.
     if "OGC_BEAMAIM" not in os.environ:
-        os.environ["OGC_BEAMAIM"] = "0.10" if (wid % 2) else "0.90"
+        _aims = [a for a in os.environ.get("OGC_AIMSET", "0.90,0.10").split(",") if a.strip()]
+        os.environ["OGC_BEAMAIM"] = _aims[wid % len(_aims)].strip()
 
     rng = random.Random(1234 + wid)
     axes = [_AXES[(wid + i) % len(_AXES)] for i in range(len(_AXES))]
