@@ -317,15 +317,16 @@ as evidence and began testing the property itself.
 
 \section{Computational Results}
 
-Table~\ref{tab:train} reports all forty training instances at a uniform $60$\,s budget, decomposed
-into the three objective components; a uniform budget is the only comparable one, since the hidden
-limits vary and are not disclosed. All forty solutions pass the provided feasibility checker, and
+Table~\ref{tab:train} reports all forty preliminary-round training instances at a uniform
+$60$\,s budget, decomposed into the three objective components; a uniform budget is the only
+comparable one, since the hidden limits vary and are not disclosed. All forty solutions pass the provided feasibility checker, and
 the split noted above is visible directly: $Z_1$ is zero on instances 1--20 and positive on
 21--40.
 
 \begin{table}[t]
 \centering
-\caption{Training instances, $60$\,s each. $n$ blocks, $m$ bays.}
+\caption{Preliminary-round training set, all forty instances, $60$\,s each. $n$ blocks, $m$
+bays. Tables~\ref{tab:subs} and~\ref{tab:seat} are on final-round data and are labelled as such.}
 \label{tab:train}
 \small
 %%TRAINTABLE%%
@@ -376,8 +377,9 @@ no single pair can resolve an effect of this size.
 
 \begin{table}[t]
 \centering
-\caption{Late entry windows: $39$ final practice instances paired at $180$\,s against the same
-solver with no late window offered, split by whether the instance's weights permit one at all.}
+\caption{Late entry windows on the final-round training set: $39$ instances paired at $180$\,s
+against the same solver with no late window offered, split by whether the instance's weights
+permit one at all.}
 \label{tab:seat}
 \begin{tabular}{lrrrr}
 \toprule
