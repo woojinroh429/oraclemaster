@@ -11,6 +11,13 @@ myalg_base.py
 myalg_prev.py
 !results/
 !results/*.log
+# ...and the audit logs one level down.  `!results/*.log` does not reach results/audit/, which is
+# where every measurement queue actually writes, so those logs were untracked all day and four
+# container rewinds took them: mix40.log at 74 of 80 runs, rep722.log after all twelve had
+# finished, and twice before that.  The numbers survived only because they had been copied by
+# hand into the .md files beside them.  A measurement that is not committed did not happen.
+!results/audit/
+!results/audit/*.log
 myalg_c*.py
 myalg_sh*.py
 myalg_sw*.py

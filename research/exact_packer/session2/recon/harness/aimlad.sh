@@ -20,7 +20,7 @@ touch $L
 run(){ grep -q "\[$1\]" $L 2>/dev/null && return
        env $3 timeout 400 /usr/bin/python3.12 harness/run1.py myalgorithm $2 180 "[$1]" \
            --data data/stage2 >> $L 2>&1
-       ( cd ../../.. && git add research/exact_packer/session2/recon/results/audit/aimlad.log \
+       ( cd "$(git rev-parse --show-toplevel)" && git add research/exact_packer/session2/recon/results/audit/aimlad.log \
          && git commit -q -m "in-flight: aimlad $1" ) >/dev/null 2>&1 ; }
 
 for p in 7 13 22 25 1 36 5 20 3 30 11 2 9 4 27 38; do
@@ -28,3 +28,4 @@ for p in 7 13 22 25 1 36 5 20 3 30 11 2 9 4 27 38; do
     run "lad.$p" $p "OGC_AIMSET=0.90,0.60,0.30,0.10"
 done
 echo "AIMLADDONE $(grep -c '^P' $L)"
+echo idle > "$(dirname "$0")/CURRENT"   # do not let the restart hook re-run a finished queue

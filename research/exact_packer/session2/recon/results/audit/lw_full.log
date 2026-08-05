@@ -1,0 +1,25 @@
+prob_3 latewin=0 P3  lw             180s  obj=4402327     Z1=142.0    Z2=6667   Z3=7284.0    feas=y   ran 159s
+prob_3 latewin=1 P3  lw             180s  obj=4385374     Z1=151.0    Z2=5899   Z3=7206.0    feas=y   ran 179s
+prob_4 latewin=0 P4  lw             180s  obj=2647859     Z1=279.0    Z2=1511   Z3=3209.0    feas=y   ran 179s
+prob_4 latewin=1 P4  lw             180s  obj=2647859     Z1=279.0    Z2=1511   Z3=3209.0    feas=y   ran 179s
+prob_5 latewin=0 P5  lw             180s  obj=7796336     Z1=2199.0   Z2=341    Z3=1160.0    feas=y   ran 160s
+prob_5 latewin=1 P5  lw             180s  obj=7796336     Z1=2199.0   Z2=341    Z3=1160.0    feas=y   ran 160s
+prob_18 latewin=0 P18 lw             180s  obj=11422285    Z1=2791.0   Z2=2279   Z3=3249.0    feas=y   ran 158s
+prob_18 latewin=1 P18 lw             180s  obj=11422285    Z1=2791.0   Z2=2279   Z3=3249.0    feas=y   ran 158s
+prob_27 latewin=0 P27 lw             180s  obj=823358      Z1=133.0    Z2=1757   Z3=690.0     feas=y   ran 151s
+prob_27 latewin=1 P27 lw             180s  obj=823358      Z1=133.0    Z2=1757   Z3=690.0     feas=y   ran 151s
+prob_37 latewin=0 P37 lw             180s  obj=17944421    Z1=2601.0   Z2=306    Z3=3004.0    feas=y   ran 158s
+prob_37 latewin=1 P37 lw             180s  obj=17701116    Z1=2573.0   Z2=1125   Z3=2684.0    feas=y   ran 162s
+prob_40 latewin=0 P40 lw             180s  obj=9512078     Z1=2342.0   Z2=1096   Z3=2130.0    feas=y   ran 151s
+prob_40 latewin=1 P40 lw             180s  obj=9512078     Z1=2342.0   Z2=1096   Z3=2130.0    feas=y   ran 151s
+prob_13 latewin=0 P13 lw             180s  obj=74889311    Z1=10389.0  Z2=1848   Z3=7030.0    feas=y   ran 174s
+prob_13 latewin=1 P13 lw             180s  obj=74413762    Z1=10338.0  Z2=2316   Z3=6860.0    feas=y   ran 162s
+prob_26 latewin=0 P26 lw             180s  obj=27282253    Z1=2758.0   Z2=6667   Z3=11110.0   feas=y   ran 159s
+prob_26 latewin=1 P26 lw             180s  obj=27081364    Z1=2710.0   Z2=8994   Z3=11256.0   feas=y   ran 160s
+prob_36 latewin=0 P36 lw             180s  obj=88211571    Z1=12644.0  Z2=2023   Z3=4890.0    feas=y   ran 180s
+prob_36 latewin=1 P36 lw             180s  obj=88816008    Z1=12613.0  Z2=1937   Z3=5904.0    feas=y   ran 170s
+prob_9 latewin=0 P9  lw             180s  obj=5714075     Z1=259.0    Z2=4361   Z3=6631.0    feas=y   ran 150s
+prob_9 latewin=1 P9  lw             180s  obj=5714075     Z1=259.0    Z2=4361   Z3=6631.0    feas=y   ran 150s
+prob_15 latewin=0 P15 lw             180s  obj=12185859    Z1=1299.0   Z2=1713   Z3=5870.0    feas=y   ran 179s
+prob_15 latewin=1 P15 lw             180s  obj=12167992    Z1=1300.0   Z2=546    Z3=5833.0    feas=y   ran 180s
+LWFULLDONE

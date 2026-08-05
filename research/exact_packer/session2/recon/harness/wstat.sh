@@ -25,7 +25,7 @@ run(){ grep -q "^# \[$1\]" $L 2>/dev/null && return
        echo "# [$1]" >> $L
        env $3 OGC_WSTAT=1 timeout 400 /usr/bin/python3.12 harness/run1.py myalgorithm $2 180 "[$1]" \
            --data data/stage2 >> $L 2>&1
-       ( cd ../../.. && git add research/exact_packer/session2/recon/results/audit/wstat.log \
+       ( cd "$(git rev-parse --show-toplevel)" && git add research/exact_packer/session2/recon/results/audit/wstat.log \
          && git commit -q -m "in-flight: wstat $1" ) >/dev/null 2>&1 ; }
 
 # small and large alternating, so a truncated log is still balanced across sizes.
@@ -34,3 +34,4 @@ for p in 7 25 22 13 1 36 5 20; do
     run "mix.$p" $p "OGC_NOTHING=1"
 done
 echo "WSTATDONE $(grep -c '^WSTAT' $L)"
+echo idle > "$(dirname "$0")/CURRENT"   # do not let the restart hook re-run a finished queue

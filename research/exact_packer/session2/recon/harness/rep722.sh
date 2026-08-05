@@ -14,7 +14,7 @@ L=results/audit/rep722.log; touch $L
 run(){ grep -q "\[$1\]" $L 2>/dev/null && return
        env $3 timeout 400 /usr/bin/python3.12 harness/run1.py myalgorithm $2 180 "[$1]" \
            --data data/stage2 >> $L 2>&1
-       ( cd ../../.. && git add -A research/exact_packer/session2/recon/results/audit/rep722.log \
+       ( cd "$(git rev-parse --show-toplevel)" && git add -A research/exact_packer/session2/recon/results/audit/rep722.log \
          && git commit -q -m "in-flight: rep722 $1" 2>/dev/null ) ; }
 for r in 1 2 3; do
   for p in 7 22; do
@@ -23,3 +23,4 @@ for r in 1 2 3; do
   done
 done
 echo "REP722DONE $(date -u +%H:%M)" >> $L
+echo idle > "$(dirname "$0")/CURRENT"   # do not let the restart hook re-run a finished queue

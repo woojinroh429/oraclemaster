@@ -1,0 +1,5 @@
+P36 p312.r1        180s  obj=94481685    Z1=13583.0  Z2=624    Z3=4904.0    feas=y   ran 174s  py3.12
+P36 p311.r1        180s  obj=96932428    Z1=13932.0  Z2=2984   Z3=5056.0    feas=y   ran 176s  py3.11
+P36 p312.r2        180s  obj=95903563    Z1=13758.0  Z2=1377   Z3=5222.0    feas=y   ran 169s  py3.12
+P36 p311.r2        180s  obj=93879310    Z1=13477.0  Z2=951    Z3=5034.0    feas=y   ran 176s  py3.11
+PARITYDONE

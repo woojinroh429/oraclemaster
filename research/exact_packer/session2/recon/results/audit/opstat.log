@@ -1,0 +1,31 @@
+===== prob_36 =====
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        3      48.3   34.2%   3934496512 81462839.6
+  opstat  grow        2      41.8   29.6%      1276955    30580.8
+  opstat  bal         3       0.8    0.5%        32216    42164.5
+  opstat  pref        1      12.3    8.7%       153966    12552.7
+  opstat  bay         1      36.1   25.6%           22        0.6
+  opstat  brk         1       0.1    0.1%            0        0.0
+  opstat  TOTAL      11     139.3   98.8%                        
+P36 ops.36         180s  obj=86875454    Z1=12312.0  Z2=950    Z3=5988.0    feas=y   ran 179s  py3.12
+===== prob_24 =====
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        8     101.7   72.0%    644972933  6340663.2
+  opstat  grow        2      17.4   12.3%            0        0.0
+  opstat  bal         2       0.1    0.0%        41885   594789.8
+  opstat  pref        1       8.9    6.3%        42298     4727.4
+  opstat  bay         1      12.3    8.7%            0        0.0
+  opstat  brk         1       0.4    0.3%            0        0.0
+  opstat  TOTAL      15     140.9   99.6%                        
+P24 ops.24         180s  obj=2838115     Z1=668.0    Z2=1753   Z3=999.0     feas=y   ran 151s  py3.12
+===== prob_15 =====
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        2      29.6   20.9%   2854626263 96311851.8
+  opstat  grow        1      25.8   18.2%            0        0.0
+  opstat  bal         1       0.1    0.1%        11176   107300.8
+  opstat  pref        2      22.8   16.1%       101911     4466.4
+  opstat  bay         1      33.4   23.5%            0        0.0
+  opstat  brk         1      29.3   20.6%            0        0.0
+  opstat  TOTAL       8     141.1   99.3%                        
+P15 ops.15         180s  obj=12213818    Z1=1398.0   Z2=3076   Z3=4812.0    feas=y   ran 155s  py3.12
+OPSTATDONE
