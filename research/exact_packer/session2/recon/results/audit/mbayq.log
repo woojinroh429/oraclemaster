@@ -176,3 +176,18 @@ P4   nbay=1  0 application(s) in 11s  obj=3069313  +0.00%
       ncol_est per bay ['75492', '23256']  step x[1, 1]  (cand=85 res=75 frozen=41)
     brk: declined, smallest tier predicts 59s of 51s
 P4   nbay=2  0 application(s) in 1s  obj=3069313  +0.00%
+# probe 36
+P36  solved 30s  obj=82137730  (bays=2 blocks=300)
+    brk calib: 384:38.4ms 1126:45.1ms 3548:86.7ms 12774:510.4ms -> fixed 0.038s + 2.89e-09 s/col^2
+    brk tier: room=51s rate=2.89e-09 -> tier 3 (step 6 nout 10 nent 2) ncol~65404 pred=12.4s  [hard=60 slice=60s]
+    brk stick: 126 of 152 residents cannot leave the bay set at all
+    brk cost: BUILD ABORTED at 0.8s of a 51.0s cap (tier 3 ncol~65404)
+P36  nbay=1  0 application(s) in 4s  obj=82137730  +0.00%
+    brk calib: 378:40.5ms 1092:74.3ms 3608:350.0ms -> fixed 0.037s + 2.4e-08 s/col^2
+      ncol_est per bay ['225366', '192254']  step x[1, 1]  (cand=152 res=152 frozen=148)
+      ncol_est per bay ['211336', '181456']  step x[1, 1]  (cand=152 res=152 frozen=148)
+      ncol_est per bay ['184576', '159780']  step x[1, 1]  (cand=152 res=152 frozen=148)
+      ncol_est per bay ['62040', '57426']  step x[1, 1]  (cand=152 res=152 frozen=148)
+      ncol_est per bay ['62040', '57426']  step x[1, 1]  (cand=152 res=152 frozen=148)
+    brk: declined, smallest tier predicts 172s of 51s
+P36  nbay=2  0 application(s) in 1s  obj=82137730  +0.00%
