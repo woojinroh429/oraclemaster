@@ -1,4 +1,1 @@
-idle
-# The SessionStart hook relaunches whatever this names.  It said "rep722" after that queue had
-# already finished, so the restart at 10:53 re-ran a settled twelve-run experiment from scratch
-# and burned all four cores until it was noticed.  A queue must clear this file when it finishes.
+wstat
