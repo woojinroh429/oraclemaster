@@ -71,6 +71,10 @@ except Exception:
 # ogc_fast: the from-scratch search-loop engine (exact geometry, NFP-aware).
 # Detected here (find_spec only, fork-safe); imported lazily inside the engine
 # builder.  When present and enabled, construction runs entirely in C++.
+#
+# OGC_ADAPTAIM=1 lets each worker tune its own beam aim from the beam's own overrun reports.
+# Off by default until it is measured against the fixed 0.90/0.10 portfolio; see _adapt_aim.
+_ADAPTAIM = bool(os.environ.get("OGC_ADAPTAIM"))
 HAVE_OGC_FAST = False
 try:
     import importlib.util as _ilu_of
@@ -320,6 +324,41 @@ def _footprint_areas(prob):
     _SCHED_AREA_CACHE[key] = out
     return out
 
+def _adapt_aim(E):
+    """Move the beam's aim toward the one this instance needs, using only the beam's own report.
+
+    Measured per worker on eight instances (results/audit/wstat.md): half the portfolio is 8-40%
+    behind on every instance, and which half is behind is NOT the instance's size.  The low aim
+    wins on a 150-block instance whose blocks carry three or more layers and loses on the flat
+    150-block ones, because layers make the descent test expensive and it is total work, not block
+    count, that decides whether the beam can finish.  No property we can read off the instance
+    separates those cases, so nothing is gated on one: the beam reports whether it had to be
+    salvaged, which is its own behaviour, and the aim follows.
+
+    Multiplicative decrease, additive increase.  Overrunning is the expensive direction -- it is
+    the failure the salvage exists to catch -- so back off hard and creep back slowly.  Clamped to
+    the range the sweep covered; the portfolio's two starting points are inside it, so a worker
+    that is already right barely moves.
+
+    The raise condition is the beam's FINAL WIDTH, not how much of its slice it used.  The first
+    version tested the slice and could only ever ratchet down: the adaptive width widens the beam
+    until it fills whatever the aim allows, so a beam that finishes always reports having spent
+    almost exactly its aim, at 0.10 as much as at 0.90.  A beam that finished at the full
+    requested width, on the other hand, was not constrained by the aim at all, and that is the
+    case where raising it buys real search.
+    """
+    if not _ADAPTAIM:
+        return
+    try:
+        aim = E.get_beam_aim()
+        if E.beam_salvaged():
+            E.set_beam_aim(max(0.10, aim * 0.60))
+        elif E.beam_width_capped():
+            E.set_beam_aim(min(0.90, aim + 0.10))
+    except Exception:
+        pass
+
+
 def _contact_beam(prob_info, deadline_s, B=24, K=4, pos_lam=0.1, prefw=0.0, order="edd", mum=1.0,
                   cohort=0.0, shadow=0.0, span=0.0, lex=0, shadoww=0.0, conw=1.0, swy=1.0, swx=0.01, span2=0.0,
                   hmatch=0.0,
@@ -432,6 +471,7 @@ def _contact_beam(prob_info, deadline_s, B=24, K=4, pos_lam=0.1, prefw=0.0, orde
                                                 float(w1), float(w2), float(w3_route), float(fut_beta),
                                                 float(_meanp), float(deadline_s), [], [],
                                                 float(_sc), float(swy), float(swx), float(cohort), float(shadow), float(span), int(lex), float(shadoww), float(conw), float(span2), float(hmatch))
+                _adapt_aim(E)
                 if _flat and len(_flat) == 7 * n:
                     return {int(_flat[i]): {"block_id": int(_flat[i]), "bay_id": int(_flat[i + 1]),
                                             "orient_idx": int(_flat[i + 2]), "x": int(_flat[i + 3]),
