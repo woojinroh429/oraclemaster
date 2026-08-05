@@ -188,9 +188,27 @@ def _layers_bbox(B, bid):
     return ol, ob
 
 
+# HOW MANY BAYS GO INTO ONE REPACK.  One is the operator as it has always run.
+#
+# WHY MORE THAN ONE.  A one-bay repack can only admit an outsider by displacing a resident, and
+# the displaced block must then find a seat in some other bay AT ITS OWN UNCHANGED TIMES against
+# a state it cannot influence.  So a trade that needs both bays to move at once -- b leaves A for
+# B while c leaves B for A, each fitting only in the hole the other opens -- is not merely hard
+# for the one-bay neighbourhood, it is OUTSIDE it, and no amount of budget reaches it.  Two bays
+# in one pack makes that trade a single decision of the set-packing search.
+#
+# WHY IT IS AFFORDABLE.  Columns in different bays can never conflict, so the conflict graph is
+# the two per-bay graphs side by side: measured on a 53,252-column stress case, a second identical
+# bay took n_cols 53,252 -> 106,504 and n_edges 95,965,518 -> 191,931,036, both exactly 2x.  The
+# choice of bay costs nothing extra because the packer already admits at most one column per
+# block, so which bay a block lands in is a selection the search was already making.
+_NBAY = max(1, int(os.environ.get("OGC_BRKBAYS", "1")))
+
+
 def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
-           nout=None, step=None, nent=None, hard=None):
-    """One repack of the most contested bay.  Returns a better operations dict, or None.
+           nout=None, step=None, nent=None, hard=None, nbay=None):
+    """One repack of the most contested bay (or of the most contested nbay bays together).
+    Returns a better operations dict, or None.
 
     total_fn(prob_info, sol) -> (objective, checkdict)   the caller's own scorer, so this
     module never decides what "better" means.
@@ -343,9 +361,63 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
             if os.environ.get("BRK_DEBUG") == "1":
                 print("    brk: no bay has a profitable entrant anywhere", flush=True)
             return None
-        res = [b for b in range(n) if cur[b] == TGT]
 
-        W, H = float(bays[TGT]["width"]), float(bays[TGT]["height"])
+        # THE PARTNER BAYS.  With NB == 1 this loop does not run and everything below is the
+        # one-bay operator unchanged.
+        #
+        # A partner is worth having in proportion to how much TRADE it has with TGT, in both
+        # directions -- what TGT's residents would gain by moving there plus what its own
+        # residents would gain by moving here.  Pressure is the wrong measure for the second bay
+        # for the same reason it was the wrong measure for the first: a heavily loaded bay that
+        # nobody wants to cross into contributes no decision the packer can make.  Summing the
+        # POSITIVE single-move gains both ways is the cheapest quantity that answers the right
+        # question, and it is exactly the trade the joint neighbourhood exists to find.
+        NB = int(nbay) if nbay is not None else _NBAY
+        NB = max(1, min(NB, m))
+        BAYS = [TGT]
+        if NB > 1:
+            _sc = []
+            for j in range(m):
+                if j == TGT:
+                    continue
+                s = 0.0
+                for b in range(n):
+                    if cur[b] == TGT:
+                        alt = list(cur); alt[b] = j
+                        s += max(0.0, base - obj_of(alt, ent, ext))
+                    elif cur[b] == j:
+                        alt = list(cur); alt[b] = TGT
+                        s += max(0.0, base - obj_of(alt, ent, ext))
+                if any(cur[b] == j for b in range(n)):
+                    _sc.append((s, j))
+            _sc.sort(reverse=True)
+            BAYS += [j for _s, j in _sc[:NB - 1]]
+        BSET = set(BAYS)
+        res = [b for b in range(n) if cur[b] in BSET]
+
+        # OUTSIDERS, RE-RANKED OVER THE WHOLE BAY SET.  `outs` was built against TGT alone; with
+        # a partner in play a block's value is the best it can do in ANY of the repacked bays,
+        # and one that only wants the partner was not on the list at all.
+        if NB > 1:
+            _o = []
+            for b in range(n):
+                if cur[b] in BSET:
+                    continue
+                g = 0.0
+                for jj in BAYS:
+                    alt = list(cur); alt[b] = jj
+                    g = max(g, base - obj_of(alt, ent, ext))
+                if g > 0:
+                    _o.append((g, b))
+            _o.sort(reverse=True)
+            outs = _o
+            if not outs:
+                if os.environ.get("BRK_DEBUG") == "1":
+                    print("    brk: no profitable entrant into %s" % (BAYS,), flush=True)
+                return None
+
+        BDIM = [(float(bays[j]["width"]), float(bays[j]["height"])) for j in BAYS]
+        W, H = BDIM[0]
 
         # NOW the tier can be chosen, because the column count is computable.  cranepack builds
         # its conflict graph with an O(ncol^2) double loop that never looks at the clock, so an
@@ -377,7 +449,23 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
                 can use is (W - w) / step, not W / step.  Ignoring its footprint over-counted by
                 2.5x on P3 -- estimate 28,672 against a real 11,282 -- and squaring that made the
                 predicted build 52.6 s where it measured 7.7 s, which is why every tier still
-                looked unaffordable."""
+                looked unaffordable.
+
+                BAYS: with more than one bay the same block is offered positions in each, so the
+                count is summed over BDIM.  What is RETURNED, though, is not that sum -- the cost
+                model squares its argument, and the pair loop's work is the sum of the per-bay
+                triangles, not the triangle of the total, because cross-bay pairs are never
+                enumerated.  Returning sqrt(sum of squares) is the column count whose SQUARE is
+                the real work, which is what _pred is about to multiply.  Getting this wrong is
+                not conservative in a harmless direction: it would predict 4x for a 2x build and
+                make the chooser step down a tier it could afford."""
+                _sq = 0.0
+                for _W, _H in BDIM:
+                    _sq += _ncol_est_bay(_st, _no, _ne, _W, _H) ** 2
+                return math.sqrt(_sq)
+
+            def _ncol_est_bay(_st, _no, _ne, W, H):
+                """Columns one bay of size (W,H) would generate at this tier."""
                 _tot = 0
                 for _b in res + [b for _, b in outs[:_no]]:
                     _lo, _hi = rel[_b], due[_b] - pt[_b]
@@ -646,23 +734,51 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
         # that is the only term in the objective an entry time can touch.  A window EARLIER than
         # today's is priced above the base for the same reason, which the block-weighted version
         # could not express either.
-        wts = []
-        winw = []
-        for i, b in enumerate(cand):
-            fall = (min((j for j in range(m) if j != TGT),
-                        key=lambda j: pref[b][TGT] - pref[b][j]) if isres[i] else cur[b])
-            if isres[i]:
-                alt = list(cur); alt[b] = fall
-                _w = max(1.0, obj_of(alt, ent, ext) - base)
-            else:
-                _w = float(outs[i - len(res)][0])
-            _t0 = max(0, ext[b] - due[b])
-            _row = [max(1.0, _w - _w1f * (max(0, _ex - due[b]) - _t0))
-                    for (_en, _ex) in blocks_in[i][2]]
-            winw.append(_row)
-            wts.append(max(1.0, max(_row)))       # the block's rank is its best seat
+        # WITH SEVERAL BAYS THE SEAT IS (BAY, WINDOW), not the window alone -- bay is what Z3
+        # reads, so the same block at the same time is worth different amounts in each.  The row
+        # is laid out bay-major, cranepack indexes it bay*len(windows) + variant, and at one bay
+        # that index is the variant and the layout is the one that was there before.
+        #
+        # The value of a seat is what it is worth ABOVE THE BLOCK'S FALLBACK -- where the block
+        # ends up if the packer does not take it.  For an outsider that is where it sits today;
+        # for a resident of one of the repacked bays it is the best bay OUTSIDE the set, because
+        # that is where the rehoming step will actually put it.  With one bay both reduce to the
+        # expressions this replaces, exactly.
+        _out_of = [j for j in range(m) if j not in BSET]
 
-        warm = [(i, place[b][0], int(place[b][1]), int(place[b][2]))
+        def _fallback(b, is_res):
+            if not is_res:
+                return cur[b]
+            if not _out_of:
+                return cur[b]
+            return max(_out_of, key=lambda j: pref[b][j])
+
+        def _price(cand_l, isres_l, blocks_l):
+            """(block weights, per-seat weights) for a candidate list and its offered windows.
+
+            A function rather than a block because the tier step-down rebuilds the windows and
+            therefore has to re-price.  It used to re-derive the rows from the OLD wts, which is
+            stale by one rung; here it is simply called again."""
+            _wts, _winw = [], []
+            for _i, _b in enumerate(cand_l):
+                _af = list(cur); _af[_b] = _fallback(_b, isres_l[_i])
+                _of = obj_of(_af, ent, ext)
+                _t0 = max(0, ext[_b] - due[_b])
+                _row = []
+                for _j in BAYS:
+                    _aj = list(cur); _aj[_b] = _j
+                    _w = _of - obj_of(_aj, ent, ext)
+                    if isres_l[_i]:
+                        _w = max(1.0, _w)
+                    _row += [max(1.0, _w - _w1f * (max(0, _ex - due[_b]) - _t0))
+                             for (_en, _ex) in blocks_l[_i][2]]
+                _winw.append(_row)
+                _wts.append(max(1.0, max(_row)))   # the block's rank is its best seat
+            return _wts, _winw
+
+        wts, winw = _price(cand, isres, blocks_in)
+
+        warm = [(i, place[b][0], int(place[b][1]), int(place[b][2]), BAYS.index(cur[b]))
                 for i, b in enumerate(cand) if isres[i]]
         t0 = time.time()
         # ASK FOR LESS THAN WE HAVE.  cranepack overruns whatever it is told, so the deadline
@@ -764,7 +880,10 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
                         seed=12345 + 7919 * k, warm=warm or None, frozen=[],
                         weights=[float(x) for x in wts],
                         total_s=min(_cap, SL),
-                        **({"win_weights": winw} if _WINW else {}))
+                        **({"win_weights": winw} if _WINW else {}),
+                        # only when there is more than one, so the single-bay call is the call
+                        # that has always been made -- proved identical by harness/cpequiv.py
+                        **({"bays": BDIM} if len(BDIM) > 1 else {}))
             if not (len(r) > 9 and int(r[9]) == 1) or not _rest:
                 break
             _tier = _rest.pop(0)
@@ -779,11 +898,8 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
             isres = [True] * len(res) + [False] * len(outs)
             blocks_in = [(_layers_bbox(B, _b)[0], _layers_bbox(B, _b)[1], windows(_b))
                          for _b in cand]
-            wts = wts[:len(cand)]
             # the coarser rung offers DIFFERENT windows, so the per-seat prices are stale
-            winw = [[max(1.0, wts[_i] - _w1f * (max(0, _ex - due[cand[_i]])
-                                                - max(0, ext[cand[_i]] - due[cand[_i]])))
-                     for (_en, _ex) in blocks_in[_i][2]] for _i in range(len(cand))]
+            wts, winw = _price(cand, isres, blocks_in)
             warm = [w for w in (warm or []) if w[0] < len(cand)]
             _NCOL = _ncol_est(STEP, NOUT, NENT)
         # the ratio is against what was ASKED, which is what the deflation has to undo
@@ -828,7 +944,9 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
                 print("    brk cost: tier %d ncol~%.0f real_ncol=%s build=%.1fs total=%.1fs"
                       "  -> rate %.4g s/col^2"
                       % (_tier, _NCOL, (r[2] if len(r) > 2 else "?"), _build, _el, _r), flush=True)
-        got = {loc: (o, x, y, en, ex) for (loc, o, x, y, en, ex) in r[1]}
+        # the 7th element is the bay, and it is present exactly when more than one was offered
+        got = {int(p[0]): (int(p[1]), float(p[2]), float(p[3]), int(p[4]), int(p[5]),
+                           BAYS[int(p[6])] if len(p) > 6 else TGT) for p in r[1]}
 
         # WHERE IT STOPS.  repack has seven exits that all look like None to the caller, and a
         # None tells you nothing about which one fired -- the directed and undirected variants
@@ -838,13 +956,20 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
 
         def _say(msg):
             if _dbg:
-                print("    brk[%s] tgt=%d res=%d outs=%d %s"
-                      % ("pressure", TGT, len(res), len(outs), msg),
+                print("    brk[%s] bays=%s res=%d outs=%d %s"
+                      % ("pressure", BAYS, len(res), len(outs), msg),
                       flush=True)
 
+        # DID ANYTHING ACTUALLY MOVE.  This used to ask whether an OUTSIDER was admitted, which
+        # is the right question when the pack covers one bay: nothing else can change there.
+        # With two bays a resident of one that lands in the other has changed bay without being
+        # an outsider, and that swap is precisely the move the joint neighbourhood was built to
+        # find -- so the test is "some block ended up somewhere else", which is the same test
+        # with one bay and the only one that admits the new move with two.
         admitted = [i for i in range(len(cand)) if not isres[i] and i in got]
-        if not admitted:
-            _say("packer admitted NO outsider (seated %d of %d columns offered)"
+        moved = [i for i in range(len(cand)) if i in got and got[i][5] != cur[cand[i]]]
+        if not moved:
+            _say("packer moved NO block between bays (seated %d of %d columns offered)"
                  % (len(got), len(cand)))
             return None
         # DISPLACED RESIDENTS.  An earlier version of this rejected any repack that failed to
@@ -862,11 +987,12 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
         # this whole night proved unsafe.  It kills the repack.
         displaced = [i for i in range(len(cand)) if isres[i] and i not in got]
         keep = {b: (cur[b], place[b][0], place[b][1], place[b][2], ent[b], ext[b])
-                for b in range(n) if cur[b] != TGT and b not in {cand[i] for i in admitted}}
+                for b in range(n)
+                if cur[b] not in BSET and b not in {cand[i] for i in admitted}}
         for i, b in enumerate(cand):
             if i in got:
-                o, x, y, en, ex = got[i]
-                keep[b] = (TGT, int(o), float(x), float(y), int(en), int(ex))
+                o, x, y, en, ex, jb = got[i]
+                keep[b] = (jb, int(o), float(x), float(y), int(en), int(ex))
         if displaced:
             if engine_fn is None:
                 return None
@@ -877,7 +1003,8 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
             for i in displaced:
                 b = cand[i]
                 seated = False
-                for j in sorted((k for k in range(m) if k != TGT), key=lambda k: -pref[b][k]):
+                for j in sorted((k for k in range(m) if k not in BSET),
+                                key=lambda k: -pref[b][k]):
                     r = E.feasible_scan(int(b), [int(j)], int(ent[b]), int(ext[b]), 1)
                     if len(r):
                         E.add(int(j), int(b), int(r[0][1]), float(r[0][2]), float(r[0][3]),
@@ -897,8 +1024,8 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
                 for b, (j, o, x, y, en, ex) in sorted(keep.items())]
         out = build_fn(recs)
         o, _c = total_fn(prob_info, out)
-        _say("admitted %d, displaced %d, obj %d vs base %d -> %s"
-             % (len(admitted), len(displaced), int(o), int(base),
+        _say("admitted %d, moved %d, displaced %d, obj %d vs base %d -> %s"
+             % (len(admitted), len(moved), len(displaced), int(o), int(base),
                 "KEEP" if o < base - 1e-9 else "reject"))
         return out if o < base - 1e-9 else None
     except Exception:
