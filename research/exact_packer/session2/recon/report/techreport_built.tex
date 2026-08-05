@@ -66,9 +66,10 @@ unmeasured.
 A block is lowered vertically, so a placement is legal only if every layer of the descending block
 clears everything already present along the whole descent. Two neighbours occupying the same floor
 cells but standing one and two layers high ration space completely differently. The scarce
-resource is height, not occupancy, and our contact measure is accumulated per layer for exactly
-this reason: a block standing beside a shorter one earns nothing for the layers that face open
-air.
+resource is height, not occupancy, which is why the descent test itself is layer-by-layer; the
+contact heuristic that guides the search is discussed in Section~\ref{sec:succeeded}, where the
+choice between a flat and a per-layer measure turns out to be decided by what can be bounded
+rather than by which describes the geometry better.
 
 \paragraph{Instances are not on a spectrum.}
 The training set splits cleanly rather than gradually: $Z_1$ is exactly zero on twenty of the
@@ -127,15 +128,22 @@ slices are asymmetric for the same reason, search operators taking a fifth of th
 repair passes $\text{budget}/2n$; both symmetric alternatives were measured and both are worse.
 
 \subsection{Key Ideas that Succeeded}
+\label{sec:succeeded}
 
-\paragraph{Contact beam with per-layer tightness.}
+\paragraph{Contact beam, and why its contact measure is flat.}
 The construction is a beam search over dispatch order. Each state places the next block at the
 position minimising a weighted sum of negative contact, a positional sweep term and a preference
-penalty; survivors are completed by a rollout and ranked on the exact objective. Contact is
-accumulated per layer and normalised by the layer count, so a neighbour of matching height scores
-what a flat count would give and a mismatched one only a fraction. Summing layers without
-normalising inflates tightness by $1.35$--$1.95\times$ against a fixed tardiness weight, and was
-measurably harmful.
+penalty; survivors are completed by a rollout and ranked on the exact objective.
+
+Contact admits two measures. A per-layer one is the better description of the geometry---a block
+beside a shorter neighbour earns nothing for the layers that face open air---and it is implemented.
+The submitted configuration nevertheless uses the flat measure, and the reason is the bound in the
+next paragraph: it is derived against a flat occupancy prefix sum, which does not dominate
+per-layer occupancy, so the two cannot both be switched on. Measured on the final instances the
+bound is worth $1.09$--$1.85\times$ in scanned cells at an identical placement digest, and a
+sharper heuristic that forfeits it loses more search than it directs. We record this as a
+constraint we accepted rather than a property we wanted: with a per-layer bound the choice would
+likely go the other way, and that derivation is left undone.
 
 \paragraph{An exact contact upper bound.}
 Profiling showed $86\%$ of scored cells were evaluated after the best cell of that scan had
@@ -157,8 +165,34 @@ where $W$ counts cell--direction pairs pointing out of the bay, $\mathcal{O}$ is
 and $B^{+1}$ the dilated box. A two-dimensional occupancy prefix sum, built once per (bay, time
 window) at the same asymptotic cost as the occupancy map it accompanies, answers the rectangle in
 four reads; a cell whose best possible score cannot beat the incumbent is then skipped without any
-geometric test. The bound is applied only where it is proved, so the layered contact variant,
-which counts against per-layer occupancy that a flat prefix sum does not dominate, is excluded.
+geometric test. The bound is applied only where it is proved, which is what excludes the per-layer
+contact variant discussed above.
+
+\paragraph{A cliff at the bottom of the beam, and the axis that came out of it.}
+The beam checked its deadline at each level and returned nothing when it passed, so every worker
+fell back to the sequential floor and the failure was not gradual: on a $300$-block instance the
+answer was $4.02\times10^9$ at $110$\,s against $9.69\times10^7$ at $130$\,s, a factor of $42$, and
+$143$ on a $250$-block one. The threshold moves with instance size, and the hidden time limits are
+not disclosed. The repair uses machinery already present---the beam completes a partial state by
+rollout at every level in order to rank survivors---so on expiry it now completes the incumbent
+instead of discarding it.
+
+That exposes a knob rather than a patch: the fraction of its slice the beam claims before handing
+the remainder to the rollout. Sweeping it down is monotone improvement on large instances
+($-24.3\%$ to $-11.9\%$ at one tenth, on four $250$--$300$-block instances) and monotone harm on
+small ones, where the beam finishes anyway and a low aim only narrows it ($+25.09\%$ at $150$
+blocks). We did not resolve that by testing instance size. The workers are already a portfolio
+whose minimum is the answer, so half run the low aim and half the high one, each group carrying
+the instances the other loses, and nothing is gated. Over $37$ paired final instances this is $31$
+better against $6$ worse, median $-3.44\%$, sign test $p<0.0001$: $17$--$2$ on the large group and
+$14$--$4$ on the small one. Our prediction that the small group would pay was wrong---true of a
+constant, false of an axis. A portfolio does not need every member to be good; it needs them to
+fail on different instances.
+
+The two small instances that lost by more than $10\%$ were then replicated three times each. Both
+shrank to a median of $+3.2\%$, and one arm of the first swings $29.3\%$ against itself, wider than
+either gap between the arms. A single paired draw on a $150$-block instance is worth its sign and
+not its magnitude, which is why the table above is a sign count.
 
 \paragraph{A conflict-graph build that watches its own clock.}
 The repacking operator begins with an $O(n_{\text{col}}^2)$ conflict graph that cannot be
@@ -170,6 +204,53 @@ that---not the clock---was the acceptance test. In production the same configura
 $10.7$--$14.2$\,s where it previously cost about $90$\,s. The build additionally projects its own
 completion every $256$ rows and abandons a configuration it cannot finish, stepping down to a
 cheaper one rather than losing the call.
+
+The rows are independent, so the loop is finally parallel. What is not independent is where the
+results go: each thread accumulates its own edge list, and the memo on the conflict predicate is
+shared. Sharing it naively is not merely racy but silently wrong---the table is open-addressed, so
+two threads inserting different keys can both claim one empty slot and the loser then writes its
+verdict into the winner's entry---so a slot is claimed by compare-and-exchange and only by that.
+Relaxed ordering suffices because the value is a pure function of the key: two threads racing on
+the same key compute the same verdict. A private memo per thread was tried first and gave almost
+all the parallel gain back ($1.10\times$), since reuse is where this loop's speed lives; sharing it
+correctly reaches $1.43\times$ on four cores, $19.3\,\mathrm{s}\rightarrow13.5\,\mathrm{s}$ on a
+$43\,320$-column build. The edge count was $133\,863\,098$ in every arm.
+
+The use we expected for that headroom did not materialise. The candidate list is capped at $40$
+outsiders---$31$--$70\%$ of the profitable entrants on $300$-block instances---because widening it
+once took $331$\,s of a $180$\,s budget. That barrier is gone (now $179$\,s), but the wider list
+then scored $3$ better and $4$ worse over eight instances, median $+0.17\%$: the earlier evidence
+for wanting it came from two instances and did not survive the larger sample.
+
+\paragraph{Pricing a seat, not a block.}
+The repacking operator hands the set-packing solver a list of candidate placements---a
+\emph{column} is one block at one orientation, position and entry time---and asks for the
+maximum-weight conflict-free selection. The weight was attached to the \emph{block}. Since the
+objective reads only (bay, entry time), and one call concerns one bay, that is exactly the
+granularity at which a block's alternatives differ: an on-time column and a ten-days-late column
+into a preferred bay carried the same number, so the solver had no way to prefer either and took
+whichever seated more easily.
+
+This is why the operator could not trade tardiness against preference, and every attempt to
+express the trade from outside failed for the same reason. Discounting a block's weight by the
+cost of its late seat undervalues it when it takes the on-time one; and at the break-even delay,
+which is the only principled place to put the offer, the discount equals the entire gain, so the
+weights of precisely the high-regret blocks---the ones the operator exists to move---collapse to
+the floor. Measured across the final instances, the discounted form is indistinguishable from
+never offering a late window at all: $9$ better against $21$ worse, median $+0.00\%$.
+
+Attaching the weight to the entry variant removes the workaround rather than tuning it. Each
+offered window is priced by the only term an entry time can move,
+\begin{equation}
+p(w) \;=\; g \;-\; w_1\bigl(\max(0,\,e_w - d) - \max(0,\,e_0 - d)\bigr),
+\end{equation}
+with $g$ the gain of the move, $e_w$ the exit under window $w$, $e_0$ the current exit and $d$ the
+due date. It is exact in both directions, so a window \emph{earlier} than the block's current
+entry is priced above the base and the solver can now be paid for pulling a block forward---a
+thing a per-block weight cannot represent at all. On the $39$ final instances measured, the priced
+form is $20$ better against $9$ worse (sign test $p\approx0.03$, mean $-0.74\%$), and it does no
+harm on the instances where no late window can open. The largest single gain is $-6.30\%$ on the
+one instance where our submitted entry had been furthest behind.
 
 \paragraph{Offset-relative geometry.}
 Memoising the conflict predicate initially produced $36$ extra edges. We assumed key aliasing;
@@ -332,11 +413,46 @@ $+$ contact bound enabled (\emph{not shipped})              & 86\,975 & 29\,566\
 \end{tabular}
 \end{table}
 
+\paragraph{Per-seat pricing, on the final practice set.}
+The change described in Section~\ref{sec:succeeded} was judged on all forty final practice
+instances, paired, at $180$\,s, against two controls: no late window offered at all, and the late
+window offered under the old per-block weight. Judging by sign count over the set rather than
+instance by instance is deliberate---a single instance answers the same question with a spread of
+about $3\%$, and an $8.4\%$ shift was observed between two runs of unchanged code an hour apart on
+this machine, so no single pair can resolve an effect of this size.
+
+\begin{table}[htbp]
+\centering
+\caption{Late entry windows, $39$ final practice instances paired at $180$\,s, against the same
+solver with no late window offered. Instances are split by whether the instance's own weights
+permit any late window at all; where they do not, the two arms execute identical code.}
+\label{tab:seat}
+\begin{tabular}{lrrrr}
+\toprule
+& Better & Worse & Same & Mean \\
+\midrule
+\multicolumn{5}{l}{\emph{trade available (35 instances)}} \\
+\quad per-block weight (previous) & 9  & 21 & 5 & $+0.62\%$ \\
+\quad per-seat price              & 20 & 9  & 6 & $-0.74\%$ \\
+\multicolumn{5}{l}{\emph{no trade available (4 instances)}} \\
+\quad per-seat price              & 2  & 1  & 1 & $-0.53\%$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The per-block form is not merely weaker; it is indistinguishable from never opening the window,
+with a median of $+0.00\%$. The priced form is $20$--$9$ and, on the four instances where no
+window can open, does no harm---which was the condition we set in advance for enabling it by
+default. We also record that the effect shrank as the sample grew, from $-1.61\%$ at twelve
+instances to $-0.74\%$ at thirty-nine: the first twelve were selected as the most favourable for
+the trade, so the early figure was optimistic by construction and the final one is the honest one.
+
 Two cautions belong with these numbers rather than after them. Run-to-run spread on the densest
-instance is approximately $112\,000$ on unchanged code, so differences smaller than that are
-noise. On the sparsest instance the reported objective is a minimum over the repacking operator's
-independent attempts within a run, and we therefore quote the reproducible value---reached in
-three runs of four---rather than a single sample.
+instance is about $112\,000$ on unchanged code, so smaller differences are noise. The sparsest
+instance is not stable at all: its objective is a minimum over the repacking operator's attempts
+within a run, that operator's improvement varies from $6\,590$ to $31\,315$ with the incumbent it
+is handed, and the best value we quote appeared in four runs of seven on unchanged code. It is a
+mode of a distribution, not a reproducible figure.
 
 \paragraph{Speed, measured at identical work.}
 A fixed-time A/B cannot evaluate an accelerated search, because both arms consume the same budget
@@ -386,15 +502,14 @@ Generative AI was used substantially in this work, as an interactive coding and 
 (Anthropic Claude, through its command-line coding interface) throughout development.
 
 Concretely, it implemented and refactored the C++ extension modules and the Python scheduler from
-specifications settled in discussion; derived the contact upper bound of Section~2.2 together with
-the conditions under which it is valid; wrote the measurement harnesses, including the per-cell
+specifications settled in discussion; derived the contact upper bound of Section~2.2 and the
+conditions under which it is valid; wrote the measurement harnesses, including the per-cell
 soundness check and the identical-work replay behind Table~\ref{tab:bound}; executed experiments
 and tabulated results; diagnosed defects, among them the position-dependence of the geometric
 predicate and a double-charged time budget; and drafted this report.
 
-Algorithmic direction, prioritisation between competing ideas, and every decision to accept or
-reject a change remained with the authors. Every number reported here was produced by executing
-the submitted code on the challenge instances; no result in this report was generated or estimated
-by a language model.
+Algorithmic direction, prioritisation, and every decision to accept or reject a change remained
+with the authors. Every number reported here was produced by executing the submitted code on the
+challenge instances; none was generated or estimated by a language model.
 
 \end{document}
