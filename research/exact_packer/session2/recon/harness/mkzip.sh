@@ -103,10 +103,17 @@ d = json.load(open(sys.argv[0] if False else "/home/user/oraclemaster/research/e
 s = myalgorithm.algorithm(d, 25)
 import utils
 c = utils.check_feasibility(d, s)
-# A smoke test, not a quality check.  25 s is far under any real budget and the answer it
-# produces is a preference-greedy one (Z3 1, Z1 194,385) worth 647,922,415 -- the SAME number
-# the tree returns at 25 s, which is the point: the zip reproduces the tree exactly.
-print("  P24 25s  obj=%.0f  feasible=%s   (tree at 25s: 647922415)" % (c["objective"], c["feasible"]))
+# A smoke test, not a quality check: 25 s is far under any real budget.  It asserts only
+# feasibility, because the value is not stable across engine changes and should not be.
+#
+# It moved once, and the move is worth recording.  Before the beam learned to complete its
+# best partial on expiry, this returned 647,922,415 -- a preference-greedy answer with Z3 1
+# and Z1 194,385, which is what a worker falls back to when the beam gives it nothing.  It
+# now returns 2,788,156, a factor of 232.  prob_24 is 150 blocks and results/audit/cliff.md
+# had it clearing the cliff by 60 s; at 25 s it evidently did not, so the salvage moved the
+# usable floor further down than that table measured.
+print("  P24 25s  obj=%.0f  feasible=%s   (pre-salvage build at 25s: 647,922,415)"
+      % (c["objective"], c["feasible"]))
 assert c["feasible"]
 PY
 echo "== 완료 =="

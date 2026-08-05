@@ -10,6 +10,18 @@
 //   placement_feasible(bay,bid,orient,x,y,en,ex) find_best_placement(bid,bays,ets)
 //   set_nfp_provider (stored; candidate gen here is NFP-free grid+corner scan)
 // env: RASTER (default on), GRIDDIV (default 4).
+//
+// SOURCE STAMP.  A CPython extension carries the interpreter's ABI tag in its filename, so the
+// four builds this package ships are four separate files that nothing keeps in step.  Twice now a
+// subset was rebuilt and the rest went out stale -- once silently losing the beam's salvage and
+// the OGC_BEAMAIM knob on every interpreter but 3.12.  The build stamps the source hash in here
+// and the packager greps every .so for the hash of the .cpp beside it, so a stale binary fails
+// the build instead of shipping.  extern "C" and non-static keep it out of the linker's bin.
+#ifndef OGC_SRC_SHA
+#define OGC_SRC_SHA "unstamped"
+#endif
+extern "C" const char OGC_SRC_TAG[] = "OGCSRC=" OGC_SRC_SHA;
+
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
 #include <pybind11/stl.h>
@@ -1731,13 +1743,54 @@ struct Engine {
         // budget is known too.  Narrow when behind (completion is guaranteed), widen when
         // ahead (the budget is actually spent).  env OGC_ADAPTB=0 pins the width.
         static const bool ADAPTB=[](){const char*e=getenv("OGC_ADAPTB");return !(e&&e[0]=='0');}();
+        // HOW MUCH OF THE SLICE THE BEAM AIMS TO USE, leaving the rest for the salvage rollout.
+        //
+        // The adaptive width narrows to finish inside time_budget_s*AIM.  At 0.90 it leaves 10%,
+        // and a 300-block rollout does not fit in 10% -- measured, the salvage pushed prob_25's
+        // 180 s runs to 220 s and 226 s.  The quality it buys is real (prob_13 -11.4%, prob_36
+        // -8.0%, prob_25 -9.0% against the shipped build at the same 180 s), so the fix is to
+        // budget for it rather than to drop it: a lower aim narrows the beam, which finishes
+        // sooner, and hands the difference to the rollout that finishes the job.
+        static const double AIM=[](){const char*e=getenv("OGC_BEAMAIM");return e?atof(e):0.90;}();
         const int Bmax=std::max(1,B), Bstart=ADAPTB?std::max(1,std::min(B,8)):B;
         int Bcur=Bstart; double work=0.0;   // work = sum over levels of (states expanded)
         for(int level=0; level<nord; level++){
-            if(elapsed()>time_budget_s) return {1e18,{}};
+            if(elapsed()>time_budget_s*AIM){
+                // FINISH THE BEST PARTIAL INSTEAD OF RETURNING NOTHING.
+                //
+                // This used to return an empty result, and the caller in myalgorithm.py keeps a
+                // beam answer only when it covers every block -- so an overrun threw away every
+                // placement already made and the worker fell back to _safe_sequential.  That is
+                // a cliff, not a slope.  Measured on the shipped build, one run per cell, X =
+                // the floor:
+                //
+                //     blocks          60s  90s 110s 130s 150s 180s
+                //     prob_36  300     X    X    X   ok   ok   ok
+                //     prob_20  250     X    X   ok   ok   ok   ok
+                //     prob_24  150    ok   ok   ok   ok   ok   ok
+                //
+                // prob_36 at 110 s returns 4,023,023,433 against 96,871,459 at 130 s -- 42x --
+                // and prob_20 at 90 s is 143x.  The comment a few lines below already recorded
+                // this failure ("the beam returns NOTHING when it overruns ... every worker then
+                // returned the greedy floor"); the adaptive width narrowed the window but did not
+                // close it, because four workers sharing four cores still cross it on 300 blocks.
+                //
+                // greedy_contact_from completes a partial state under the same contact scoring
+                // the beam itself uses, so nothing new is trusted.  Only the best-ranked state is
+                // finished: we are already past the deadline, and one rollout is the affordable
+                // amount of overrun where B of them would not be.
+                if(!beam.empty() && !beam[0].flat.empty()){
+                    auto _sv = timeline;
+                    auto _fin = greedy_contact_from(beam[0].flat, order, step, pos_lam,
+                                                    prefw, mu, w1, w3, fut_beta, mean_proc);
+                    timeline = _sv;
+                    if((int)_fin.second.size() == 7*nb) return _fin;
+                }
+                return {1e18,{}};
+            }
             if(ADAPTB && level>0 && work>0.0){
                 double per=elapsed()/work;                       // seconds per state-level
-                double left=time_budget_s*0.90-elapsed();
+                double left=time_budget_s*AIM-elapsed();
                 int rem=nord-level;
                 int fit=(per>1e-12&&rem>0)? (int)(left/(per*(double)rem)) : Bmax;
                 if(fit<1) fit=1;
@@ -1753,7 +1806,7 @@ struct Engine {
             static const bool ADAPTK=[](){const char*e=getenv("OGC_ADAPTK");return !(e&&e[0]=='0');}();
             int Kuse=K;
             if(ADAPTK && ADAPTB && level>0 && work>0.0){
-                double per=elapsed()/work, left2=time_budget_s*0.90-elapsed();
+                double per=elapsed()/work, left2=time_budget_s*AIM-elapsed();
                 int rem2=nord-level;
                 if(per>1e-12 && rem2>0){
                     double afford=left2/(per*(double)rem2);      // states we could still expand

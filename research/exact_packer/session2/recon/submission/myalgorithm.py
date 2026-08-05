@@ -438,8 +438,35 @@ def _contact_beam(prob_info, deadline_s, B=24, K=4, pos_lam=0.1, prefw=0.0, orde
                                             "y": int(_flat[i + 4]), "entry_time": int(_flat[i + 5]),
                                             "exit_time": int(_flat[i + 6])}
                             for i in range(0, len(_flat), 7)}
-            except Exception:
-                pass
+                # SALVAGE A PARTIAL BEAM.  The C++ beam returns what it has when its deadline
+                # hits, and this discarded anything short of all n blocks -- which is the whole
+                # cliff.  Measured on the shipped build, one run per cell, X = _safe_sequential:
+                #
+                #     blocks          60s  90s 110s 130s 150s 180s
+                #     prob_36  300     X    X    X   ok   ok   ok
+                #     prob_20  250     X    X   ok   ok   ok   ok
+                #     prob_24  150    ok   ok   ok   ok   ok   ok
+                #
+                # prob_36 at 110 s is 4,023,023,433 against 96,871,459 at 130 s -- 42x -- and it
+                # is a cliff rather than a slope precisely because a partial answer is thrown
+                # away rather than finished.
+                #
+                # greedy_contact_from completes a partial state by rollout; it is the same call
+                # the Python beam uses to rank its survivors, so nothing new is being trusted.
+                _bdbg("contact_beam returned %d of %d blocks" % (len(_flat) // 7, n))
+                if _flat and len(_flat) >= 7:
+                    _v, _f2 = E.greedy_contact_from(list(_flat), order_ids, step, pos_lam,
+                                                    prefw, mu, w1, w3, fut_beta, _meanp)
+                    if _f2 and len(_f2) == 7 * n:
+                        _bdbg("salvaged to %d blocks" % (len(_f2) // 7))
+                        return {int(_f2[i]): {"block_id": int(_f2[i]), "bay_id": int(_f2[i + 1]),
+                                              "orient_idx": int(_f2[i + 2]), "x": int(_f2[i + 3]),
+                                              "y": int(_f2[i + 4]), "entry_time": int(_f2[i + 5]),
+                                              "exit_time": int(_f2[i + 6])}
+                                for i in range(0, len(_f2), 7)}
+                    _bdbg("salvage rollout gave %d blocks" % (len(_f2) // 7 if _f2 else 0))
+            except Exception as _e:
+                _bdbg("contact_beam path raised %r" % (_e,))
             return None
 
         def reconstruct(recs):
@@ -451,11 +478,37 @@ def _contact_beam(prob_info, deadline_s, B=24, K=4, pos_lam=0.1, prefw=0.0, orde
             vals = [u[j] * loads[j] for j in range(m)]
             return (max(vals) - min(vals)) if m > 1 else 0.0
 
+        # SALVAGE INSTEAD OF DISCARD.  This loop used to `return None` the moment it ran past its
+        # deadline, throwing away every block it had already placed.  The caller then had nothing
+        # but _safe_sequential, and that is a cliff rather than a slope -- measured on the shipped
+        # build, one run per cell:
+        #
+        #     blocks          60s  90s 110s 130s 150s 180s
+        #     prob_36  300     X    X    X   ok   ok   ok      110-130 s
+        #     prob_20  250     X    X   ok   ok   ok   ok       90-110 s
+        #     prob_24  150    ok   ok   ok   ok   ok   ok      under 60 s
+        #
+        # prob_36 at 110 s returns 4,023,023,433 against 96,871,459 at 130 s -- 42x -- and
+        # prob_20 at 90 s is 143x.  The hidden per-instance limits are not disclosed and this
+        # machine's own speed moved 8.4% within an hour, so the margin is not comfortable.
+        #
+        # Nothing new is needed to fix it: the block below already completes surviving states by
+        # contact rollout, because that is how it ranks them.  Breaking out and falling through
+        # gives the caller a real solution built from what was placed.  Only the best-ranked state
+        # is completed in that case -- we are already past the deadline, so one rollout is the
+        # affordable amount of overrun, where B of them would not be.
+        _SALV = os.environ.get("OGC_SALVAGE", "1") != "0"
+        _bailed = False
         t0 = _t.time()
         beam = [({}, [0.0] * m, 0.0)]   # (recs, loads, cum_contact)
         for bi in order_ids:
             if _t.time() - t0 > deadline_s:
-                return None   # ran out of budget mid-construction -> caller falls back
+                if not _SALV:
+                    return None
+                _bailed = True
+                _bdbg("salvage: bailed after %d/%d blocks, %.1fs of %.1fs"
+                      % (len(beam[0][0]) if beam else 0, n, _t.time() - t0, deadline_s))
+                break
             cur = rel[bi]; newbeam = []
             for (recs, loads, cumC) in beam:
                 reconstruct(recs)
@@ -494,7 +547,7 @@ def _contact_beam(prob_info, deadline_s, B=24, K=4, pos_lam=0.1, prefw=0.0, orde
             beam = [(r, l, c) for _, r, l, c in scored[:B]]
         # complete surviving states via contact rollout; keep min exact objective
         best_obj = float("inf"); best_recs = None
-        for (recs, loads, cumC) in beam:
+        for (recs, loads, cumC) in (beam[:1] if _bailed else beam):
             reconstruct(recs); st = []
             for r in recs.values():
                 st.extend((r[0], r[1], r[2], r[3], r[4], r[5], r[6]))
@@ -510,12 +563,16 @@ def _contact_beam(prob_info, deadline_s, B=24, K=4, pos_lam=0.1, prefw=0.0, orde
             if ob < best_obj:
                 best_obj = ob; best_recs = rr
         if best_recs is None:
+            _bdbg("completion produced nothing (bailed=%s)" % _bailed)
             return None
+        if _bailed:
+            _bdbg("salvage completed, obj=%.0f" % best_obj)
         return {b: {"block_id": b, "bay_id": best_recs[b][1], "x": int(best_recs[b][3]),
                     "y": int(best_recs[b][4]), "orient_idx": best_recs[b][2],
                     "entry_time": best_recs[b][5], "exit_time": best_recs[b][6]}
                 for b in best_recs}
-    except Exception:
+    except Exception as _e:
+        _bdbg("contact_beam raised %r" % (_e,))
         return None
 
 def _safe_sequential(prob_info):
@@ -1230,6 +1287,12 @@ def _draw_order(prob_info, cfg, k):
     return out
 
 
+def _bdbg(msg):
+    import os as _o, sys as _sy
+    if _o.environ.get("OGC_SALVDBG") == "1":
+        _sy.stderr.write("    beam: %s\n" % msg); _sy.stderr.flush()
+
+
 def _beam_once(prob_info, budget, cfg, share=1.0):
     """One beam run, with a coarser position grid held in reserve.
 
@@ -1261,12 +1324,18 @@ def _beam_once(prob_info, budget, cfg, share=1.0):
                               pos_lam=cfg["pos_lam"], order=cfg["order"],
                               fut_beta=cfg["fut_beta"], prefw=cfg["prefw"],
                               w3mul=cfg["w3mul"], mum=cfg.get("mum", 1.0), cohort=cfg.get("cohort", 0.0), shadow=cfg.get("shadow", 0.0), span=cfg.get("span", 0.0), lex=cfg.get("lex", 0.0), shadoww=cfg.get("shadoww", 0.0), span2=cfg.get("span2", 0.0), hmatch=cfg.get("hmatch", 0.0), conw=cfg.get("conw", 1.0), swy=cfg.get("swy", 1.0), swx=cfg.get("swx", 0.01), step=step)
-        except Exception:
-            r = None
+        except Exception as _e:
+            _bdbg("step %d raised %s" % (step, _e)); r = None
         if r:
             s = _recs_to_ops(r, n)
-            if s is not None and _total(prob_info, s)[0] < float("inf"):
+            if s is None:
+                _bdbg("step %d: recs_to_ops None" % step)
+            elif _total(prob_info, s)[0] >= float("inf"):
+                _bdbg("step %d: infeasible" % step)
+            else:
                 return s          # a coarse step can land infeasible -- keep only real answers
+        else:
+            _bdbg("step %d: no recs (left=%.1fs of budget %.1fs)" % (step, left, budget))
     return None
 
 
@@ -1797,6 +1866,39 @@ def _worker(args):
     #    after that the budget goes to whichever is actually paying, in objective units per
     #    second, with a little exploration so a slow starter can recover.  A hand-drawn
     #    density threshold would have to guess this; a measured rate cannot be wrong about it.
+    # THE BEAM'S AIM AS A PORTFOLIO AXIS, not a constant and not a size test.
+    #
+    # How much of its slice the beam claims before the contact rollout finishes the job is worth
+    # a lot and points in opposite directions by instance.  Measured at 180 s against the shipped
+    # 0.90, monotone all the way down on the large ones:
+    #
+    #     inst  blocks    0.90         0.45         0.20         0.10
+    #     P25    300   83,469,231   77,800,747   69,865,266   68,973,666
+    #     P13    300   75,460,745   72,861,873   68,648,923   66,618,791
+    #     P36    300   89,254,771   84,214,242   75,600,230   73,339,019
+    #     P20    250   10,553,084    9,826,336    9,543,763    9,255,809
+    #
+    # -24.3% to -11.9% against the shipped build.  But on prob_1 (150 blocks) the same 0.10 is
+    # +25.09%, because there the beam FINISHES: the salvage never runs and the lower aim only
+    # takes width away.
+    #
+    # The workers are already a portfolio over diversification axes and algorithm() returns their
+    # MINIMUM, so the two settings can simply both be in it.  Odd workers run the low aim, even
+    # ones today's.  A large instance is carried by the low-aim workers and a small one by the
+    # high-aim workers, no instance is ever measured for its size, and a worker that loses is
+    # discarded by the min rather than gated out in advance.
+    #
+    # Set through the environment because the C++ reads it once per process into a static, and
+    # every worker IS a separate process -- so this has to happen before the first beam call,
+    # which is what being here guarantees.  OGC_BEAMAIM set by the caller wins, for the A/B.
+    #
+    # The split itself is a set rather than a constant pair, so the alternative -- spreading the
+    # four workers across the range instead of stacking them on its two ends -- is one env away
+    # and can be measured instead of argued about.  Default is the measured 2:2.
+    if "OGC_BEAMAIM" not in os.environ:
+        _aims = [a for a in os.environ.get("OGC_AIMSET", "0.90,0.10").split(",") if a.strip()]
+        os.environ["OGC_BEAMAIM"] = _aims[wid % len(_aims)].strip()
+
     rng = random.Random(1234 + wid)
     axes = [_AXES[(wid + i) % len(_AXES)] for i in range(len(_AXES))]
     pool = [best] if best[1] is not None else []
@@ -2030,21 +2132,62 @@ def algorithm(prob_info, timelimit=60):
     reserve = (max(2.0, float(_rv)) if _rv else max(2.0, min(0.20 * timelimit, 40.0)))
     wbudget = max(4.0, timelimit - reserve - (time.time() - t0) - 1.0)
 
-    best = (float("inf"), None)
+    # ROUNDS: TRADE LENGTH FOR ATTEMPTS.  The answer is already a minimum over nw workers, so
+    # what varies between runs is not the average quality but whether the good basin is FOUND.
+    # Measured on prob_20, three runs of unchanged code: 12,746,324 / 10,628,401 / 10,531,622 --
+    # two of three reach the same solution and one misses it by 20%.  The distribution of a
+    # minimum tightens with the number of draws, so more attempts is the direct lever on that.
+    #
+    # What makes the trade affordable is that the budget is not binding: 240 s and 360 s return
+    # the SAME answer on stage-2 prob_1, giving pref twice its slice changed nothing, and
+    # removing operators that earn nothing does not help either.  Time past convergence is spent,
+    # not used.  R rounds of nw workers at wbudget/R each is the same wall clock for R times the
+    # draws, and wid carries the round so seeds and axis rotations differ -- without that the
+    # later rounds would re-derive the first.
+    #
+    # Default 1 keeps today's behaviour exactly.  Whether the shorter budget costs more than the
+    # extra draws buy is an instance-by-instance question and is measured, not assumed.
     try:
-        if nw > 1:
-            with multiprocessing.Pool(processes=nw) as pool:
-                out = pool.map(_worker, [(prob_info, wbudget, i, cwd, 1.0 / nw) for i in range(nw)])
-        else:
-            out = [_worker((prob_info, wbudget, 0, cwd, 1.0))]
+        _R = max(1, int(os.environ.get("OGC_ROUNDS", "1")))
     except Exception:
-        out = [_worker((prob_info, wbudget, 0, cwd, 1.0))]
-    for s in out:
-        if s is None:
-            continue
-        o, _ = _total(prob_info, s)
-        if o < best[0]:
-            best = (o, s)
+        _R = 1
+    best = (float("inf"), None)
+    _rb = max(4.0, wbudget / _R)
+    for _r in range(_R):
+        if _r > 0 and (timelimit - (time.time() - t0)) < (_rb + reserve):
+            break                                        # no room for another full round
+        try:
+            if nw > 1:
+                with multiprocessing.Pool(processes=nw) as pool:
+                    out = pool.map(_worker, [(prob_info, _rb, _r * nw + i, cwd, 1.0 / nw)
+                                             for i in range(nw)])
+            else:
+                out = [_worker((prob_info, _rb, _r * nw, cwd, 1.0))]
+        except Exception:
+            out = [_worker((prob_info, _rb, _r * nw, cwd, 1.0))]
+        # OGC_WSTAT=1 prints what each worker came back with.  The answer is a minimum over the
+        # workers, so what the portfolio is worth is entirely the SPREAD between them: four
+        # workers that converge to the same solution cost four cores and buy one draw.  Since
+        # single-draw swings are the dominant per-instance risk we have (P7 moved 38% one way and
+        # 11% the other between two runs of the same build), the spread is the thing to measure
+        # before adding any more diversity.  stderr, because stdout is swallowed in subprocesses.
+        _ws = []
+        for s in out:
+            if s is None:
+                _ws.append(None)
+                continue
+            o, _ = _total(prob_info, s)
+            _ws.append(o)
+            if o < best[0]:
+                best = (o, s)
+        if os.environ.get("OGC_WSTAT"):
+            import sys as _sy
+            _f = [w for w in _ws if w is not None]
+            _lo, _hi = (min(_f), max(_f)) if _f else (0.0, 0.0)
+            _sy.stderr.write("WSTAT round=%d n=%d %s  spread=%.2f%%\n" % (
+                _r, len(_f), " ".join("-" if w is None else "%.0f" % w for w in _ws),
+                (100.0 * (_hi - _lo) / _lo) if _f and _lo > 0 else 0.0))
+            _sy.stderr.flush()
 
     if best[1] is None:                                  # never leave without an answer
         try:
