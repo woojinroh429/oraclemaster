@@ -169,29 +169,30 @@ geometric test. The bound is applied only where it is proved, which is what excl
 contact variant discussed above.
 
 \paragraph{A cliff at the bottom of the beam, and the axis that came out of it.}
-The beam checked its deadline at each level and returned nothing when it passed. Every worker then
-fell back to the sequential floor, so the failure was not gradual: on a $300$-block instance the
-answer was $4.02\times 10^9$ at $110$\,s against $9.69\times 10^7$ at $130$\,s, a factor of $42$,
-and $143$ on a $250$-block one. The cliff sat between $110$ and $130$\,s at $300$ blocks and below
-$60$\,s at $150$, so it is a function of size, and the hidden time limits are not disclosed.
-
-The repair is that the beam already knows how to finish a partial state---it completes one by
+The beam checked its deadline at each level and returned nothing when it passed, so every worker
+fell back to the sequential floor and the failure was not gradual: on a $300$-block instance the
+answer was $4.02\times10^9$ at $110$\,s against $9.69\times10^7$ at $130$\,s, a factor of $42$, and
+$143$ on a $250$-block one. The threshold moves with instance size, and the hidden time limits are
+not disclosed. The repair uses machinery already present---the beam completes a partial state by
 rollout at every level in order to rank survivors---so on expiry it now completes the incumbent
-instead of returning nothing. What that exposes is a knob rather than a patch: the fraction of its
-slice the beam claims before handing the remainder to the rollout. Sweeping it downward is monotone
-improvement on large instances ($-24.3\%$, $-22.1\%$, $-17.6\%$, $-11.9\%$ at one tenth on four
-$250$--$300$-block instances) and monotone harm on small ones, where the beam finishes on its own
-and a low aim only narrows it: $+25.09\%$ on a $150$-block instance.
+instead of discarding it.
 
-We did not resolve that by testing instance size. The workers are already a portfolio and their
-minimum is the answer, so half now run the low aim and half the high one; the large instances are
-carried by one half, the small by the other, and nothing is ever gated. Over $37$ paired final
-instances this is $31$ better against $6$ worse, mean $-3.26\%$, median $-3.44\%$, sign test
-$p<0.0001$; split by size it is $17$--$2$ on the large group and $14$--$4$ on the small one. The
-prediction that the small group would pay for this was ours, and it was wrong---measured as a
-constant it held, measured as an axis it did not, and the small group's mean improved
-monotonically as the sample grew. A portfolio does not need every member to be good; it needs the
-members to fail on different instances.
+That exposes a knob rather than a patch: the fraction of its slice the beam claims before handing
+the remainder to the rollout. Sweeping it down is monotone improvement on large instances
+($-24.3\%$ to $-11.9\%$ at one tenth, on four $250$--$300$-block instances) and monotone harm on
+small ones, where the beam finishes anyway and a low aim only narrows it ($+25.09\%$ at $150$
+blocks). We did not resolve that by testing instance size. The workers are already a portfolio
+whose minimum is the answer, so half run the low aim and half the high one, each group carrying
+the instances the other loses, and nothing is gated. Over $37$ paired final instances this is $31$
+better against $6$ worse, median $-3.44\%$, sign test $p<0.0001$: $17$--$2$ on the large group and
+$14$--$4$ on the small one. Our prediction that the small group would pay was wrong---true of a
+constant, false of an axis. A portfolio does not need every member to be good; it needs them to
+fail on different instances.
+
+The two small instances that lost by more than $10\%$ were then replicated three times each. Both
+shrank to a median of $+3.2\%$, and one arm of the first swings $29.3\%$ against itself, wider than
+either gap between the arms. A single paired draw on a $150$-block instance is worth its sign and
+not its magnitude, which is why the table above is a sign count.
 
 \paragraph{A conflict-graph build that watches its own clock.}
 The repacking operator begins with an $O(n_{\text{col}}^2)$ conflict graph that cannot be
@@ -422,13 +423,11 @@ instances to $-0.74\%$ at thirty-nine: the first twelve were selected as the mos
 the trade, so the early figure was optimistic by construction and the final one is the honest one.
 
 Two cautions belong with these numbers rather than after them. Run-to-run spread on the densest
-instance is approximately $112\,000$ on unchanged code, so differences smaller than that are
-noise. The sparsest instance is not stable at all, and we prefer to say so: its reported objective
-is the minimum over the repacking operator's independent attempts within a run, that operator's
-improvement varies from $6\,590$ to $31\,315$ depending on which incumbent it is handed, and the
-best value we quote was reached in four runs of seven on unchanged code. It is a mode of the
-distribution rather than a reproducible figure, and treating it as reproducible is precisely the
-error that a single lucky run invites.
+instance is about $112\,000$ on unchanged code, so smaller differences are noise. The sparsest
+instance is not stable at all: its objective is a minimum over the repacking operator's attempts
+within a run, that operator's improvement varies from $6\,590$ to $31\,315$ with the incumbent it
+is handed, and the best value we quote appeared in four runs of seven on unchanged code. It is a
+mode of a distribution, not a reproducible figure.
 
 \paragraph{Speed, measured at identical work.}
 A fixed-time A/B cannot evaluate an accelerated search, because both arms consume the same budget
@@ -478,15 +477,14 @@ Generative AI was used substantially in this work, as an interactive coding and 
 (Anthropic Claude, through its command-line coding interface) throughout development.
 
 Concretely, it implemented and refactored the C++ extension modules and the Python scheduler from
-specifications settled in discussion; derived the contact upper bound of Section~2.2 together with
-the conditions under which it is valid; wrote the measurement harnesses, including the per-cell
+specifications settled in discussion; derived the contact upper bound of Section~2.2 and the
+conditions under which it is valid; wrote the measurement harnesses, including the per-cell
 soundness check and the identical-work replay behind Table~\ref{tab:bound}; executed experiments
 and tabulated results; diagnosed defects, among them the position-dependence of the geometric
 predicate and a double-charged time budget; and drafted this report.
 
-Algorithmic direction, prioritisation between competing ideas, and every decision to accept or
-reject a change remained with the authors. Every number reported here was produced by executing
-the submitted code on the challenge instances; no result in this report was generated or estimated
-by a language model.
+Algorithmic direction, prioritisation, and every decision to accept or reject a change remained
+with the authors. Every number reported here was produced by executing the submitted code on the
+challenge instances; none was generated or estimated by a language model.
 
 \end{document}
