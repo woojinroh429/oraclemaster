@@ -13,3 +13,6 @@ P25 [mix.25]       180s  obj=70194618    Z1=10306.0  Z2=1129   Z3=7400.0    feas
 # [ctl.22]
 WSTAT round=0 n=4 6061 4776 6005 5793  spread=26.91%
 P22 [ctl.22]       180s  obj=4776        Z1=2.0      Z2=468    Z3=121.0     feas=y   ran 179s  py3.12
+# [mix.22]
+WSTAT round=0 n=4 4929 5875 9834 9834  spread=99.51%
+P22 [mix.22]       180s  obj=4929        Z1=4.0      Z2=1053   Z3=84.0      feas=y   ran 179s  py3.12
