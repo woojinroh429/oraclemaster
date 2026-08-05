@@ -395,6 +395,52 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
         BSET = set(BAYS)
         res = [b for b in range(n) if cur[b] in BSET]
 
+        # A WINDOW OVER THE BAY SET, NOT BOTH BAYS WHOLE.
+        #
+        # Lifting every resident of every bay in the set is not a neighbourhood, it is the
+        # instance.  The cost is worth stating exactly, because the 2x figure measured in
+        # harness/cpequiv.py is easy to misread: THAT measurement held the candidate set fixed and
+        # added a bay, and it is 2x.  The operator does not hold it fixed -- a second bay brings
+        # its own residents -- so candidates double as well, and the pair work is 2 bays x (2x
+        # candidates)^2 = 8x.  Traced on P20 with the old cost model: the smallest tier predicted
+        # 65.7 s at one bay and 1,028 s at two, and the operator declined.
+        #
+        # So the joint pack takes as many candidates as the ONE-BAY pack would have, drawn from
+        # both bays, and FREEZES the rest where they stand.  That is 2 bays x (same candidates)^2
+        # = 2x, which is the affordable figure and the one that was measured.  Frozen blocks are
+        # real obstacles -- cranepack drops any column that crane-conflicts with them -- so the
+        # result is still a legal packing of the whole bay, not of a cleared one.
+        #
+        # WHICH residents.  A cross-bay trade is local in TIME: two blocks can only take each
+        # other's space if they are in the yard together.  So the window is anchored on the block
+        # with the most to gain by changing bay, and filled with the co-present residents of both
+        # bays in gain order.  Nothing here is tuned -- the cap is the one-bay operator's own
+        # resident count, and the anchor is chosen by the objective.
+        frozen_res = []
+        if NB > 1:
+            _cap0 = max(1, int(round(len([b for b in range(n) if cur[b] == TGT])
+                                     * float(os.environ.get("OGC_BRKCAP", "1.0")))))
+            if _cap0 < len(res):
+                _g = []
+                for b in res:
+                    _bg = 0.0
+                    for j in BAYS:
+                        if j == cur[b]:
+                            continue
+                        alt = list(cur); alt[b] = j
+                        _bg = max(_bg, base - obj_of(alt, ent, ext))
+                    _g.append((_bg, b))
+                _g.sort(reverse=True)
+                _anch = _g[0][1]
+                _lo, _hi = ent[_anch], ext[_anch]
+                _pick = [b for _v, b in _g if ent[b] < _hi and _lo < ext[b]][:_cap0]
+                if len(_pick) < _cap0:
+                    _have = set(_pick)
+                    _pick += [b for _v, b in _g if b not in _have][:_cap0 - len(_pick)]
+                _ps = set(_pick)
+                frozen_res = [b for b in res if b not in _ps]
+                res = _pick
+
         # OUTSIDERS, RE-RANKED OVER THE WHOLE BAY SET.  `outs` was built against TGT alone; with
         # a partner in play a block's value is the best it can do in ANY of the repacked bays,
         # and one that only wants the partner was not on the list at all.
@@ -517,17 +563,32 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
             if _PAIRRATE[0] is not None and not _CALIB[0]:
                 _CALIB[0] = True
                 try:
-                    # TWO POINTS, because the rate is not a constant in ncol.  Measured:
+                    # TWO POINTS, AND A FIXED COST.  The two points were here to give a growth
+                    # EXPONENT -- small column sets fit in cache and large ones do not, so the
+                    # rate was expected to rise with n and a single micro-build to be optimistic.
+                    # Measured on the real instances, the fit came out the other way every time:
                     #
-                    #       932 cols -> 5.2e-08      11,580 -> 6.19e-08
-                    #    24,318      -> 6.61e-08     30,017 -> ~1.0e-07     61,619 -> 1.4e-07
+                    #     P20   848 cols -> 5.28e-08     2,328 -> 1.05e-08
+                    #     P13   502      -> 1.61e-07     1,420 -> 2.36e-08
                     #
-                    # It grows -- small column sets fit in cache and large ones do not -- so a
-                    # single micro-build is optimistic by 1.4x at the sizes that matter, which is
-                    # the direction that costs a deadline.  Two builds an octave apart give the
-                    # exponent as well as the level, and the exponent is itself a property of the
-                    # machine: between 932 and 30,017 columns it is 0.19 on this host and 0.09 on
-                    # the one this morning.
+                    # The rate FALLS 5-7x over an octave, the exponent clamps at zero, and the
+                    # larger point is taken.  That is not cache behaviour reversing, it is the fit
+                    # being wrong: build_ms covers PARSING and column generation as well as the
+                    # pair loop, and at 848 columns those are nearly all of it.  848 cols took
+                    # 38.0 ms and 2,328 took 56.9 ms -- 7.5x the pairs for 1.5x the time, which
+                    # is a constant with a small slope on top, and dividing a constant by n^2
+                    # manufactures a rate that falls like 1/n^2.
+                    #
+                    # The consequence was not a small error.  On P20 the fitted rate predicted
+                    # 65.7 s for a build that took 15.0 s, so the chooser dropped to the smallest
+                    # tier; on P13 it predicted 129 s against 102 s of room and DECLINED TO RUN AT
+                    # ALL, at a 120 s budget.  brk has been switched off on these instances by its
+                    # own cost model, which is what "repack returned nothing" was really reporting.
+                    #
+                    # Two points and two unknowns: build(n) = c + r*n^2, solved rather than
+                    # assumed.  On the P20 numbers that is 0.035 s + 4.03e-09/col^2, predicting
+                    # 25.2 s where the old model said 65.7 s and the truth was 15.0 s -- still
+                    # conservative, which is the safe direction, but no longer by 4.4x.
                     _cb = []
                     for _b in (list(res) + [b for _g, b in outs])[:24]:
                         _ol, _ob2 = _layers_bbox(B, _b)
@@ -539,20 +600,24 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
                                           weights=[1.0] * len(_cb))
                             _cn, _cbuild = float(_cr[2]), float(_cr[4]) / 1000.0
                             if _cn > 200.0 and _cbuild > 0.005:
-                                _pts.append((_cn, _cbuild / (_cn * _cn)))
+                                _pts.append((_cn, _cbuild))
                     if len(_pts) == 2 and _pts[1][0] > _pts[0][0] * 1.5:
-                        (_n1, _r1), (_n2, _r2) = _pts
-                        _g = math.log(max(1e-12, _r2 / _r1)) / math.log(_n2 / _n1)
-                        _g = min(0.5, max(0.0, _g))       # growth only, and never explosive
-                        _CALIB[1] = (_n2, _r2, _g)
-                        _PAIRRATE[0] = _r2
+                        (_n1, _b1), (_n2, _b2) = _pts
+                        _r = (_b2 - _b1) / (_n2 * _n2 - _n1 * _n1)
+                        _c = _b1 - _r * _n1 * _n1
+                        if _r <= 0.0:
+                            # the slope did not survive the noise; charge it all to the rate,
+                            # which is the old behaviour and errs high
+                            _r, _c = _b2 / (_n2 * _n2), 0.0
+                        _CALIB[1] = (max(0.0, _c), _r)
+                        _PAIRRATE[0] = _r
                     elif _pts:
-                        _CALIB[1] = (_pts[-1][0], _pts[-1][1], 0.0)
-                        _PAIRRATE[0] = _pts[-1][1]
+                        _CALIB[1] = (0.0, _pts[-1][1] / (_pts[-1][0] ** 2))
+                        _PAIRRATE[0] = _CALIB[1][1]
                     if os.environ.get("BRK_DEBUG") == "1" and _CALIB[1]:
-                        print("    brk calib: %s -> rate %.3g at %d cols, growth n^%.3f"
-                              % (" ".join("%d:%.3g" % (int(n), r) for n, r in _pts),
-                                 _CALIB[1][1], int(_CALIB[1][0]), _CALIB[1][2]), flush=True)
+                        print("    brk calib: %s -> fixed %.3fs + %.3g s/col^2"
+                              % (" ".join("%d:%.1fms" % (int(n), 1000.0 * b) for n, b in _pts),
+                                 _CALIB[1][0], _CALIB[1][1]), flush=True)
                 except Exception as _e:
                     # never silent: a calibration that cannot run leaves the seeded rate in
                     # place, and the seed is exactly what was wrong the last time this mattered
@@ -564,8 +629,8 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
                 """Seconds the build will take at _nc columns, on THIS machine."""
                 if _CALIB[1] is None:
                     return _PAIRRATE[0] * _nc * _nc
-                _n0, _r0, _g = _CALIB[1]
-                return _r0 * ((_nc / _n0) ** _g) * _nc * _nc
+                _c0, _r0 = _CALIB[1]
+                return _c0 + _r0 * _nc * _nc
 
             _pick = None
             for _ti, (_st, _no, _fr) in enumerate(_TIERS):
@@ -782,6 +847,20 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
 
         warm = [(i, place[b][0], int(place[b][1]), int(place[b][2]), BAYS.index(cur[b]))
                 for i, b in enumerate(cand) if isres[i]]
+
+        # THE RESIDENTS THAT STAY PUT, as obstacles in world coordinates.  cranepack drops any
+        # generated column that crane-conflicts with one, so the window is repacked AROUND them
+        # rather than into space they occupy.  The incumbent placement of every candidate survives
+        # this by construction -- it coexists with these blocks in the solution being repacked --
+        # so the warm start is never filtered away.
+        froz_in = []
+        if frozen_res:
+            import numpy as _np
+            for b in frozen_res:
+                _ol = _layers_bbox(B, b)[0][place[b][0]]
+                _off = _np.asarray([place[b][1], place[b][2]], dtype=float)
+                froz_in.append(([_np.ascontiguousarray(_L + _off) for _L in _ol],
+                                int(ent[b]), int(ext[b]), BAYS.index(cur[b])))
         t0 = time.time()
         # ASK FOR LESS THAN WE HAVE.  cranepack overruns whatever it is told, so the deadline
         # handed to it is deflated by the observed ratio rather than being the time remaining.
@@ -879,7 +958,7 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
         while True:
             _pt = time.time()
             r = CP.pack(blocks_in, W, H, STEP, _ask,
-                        seed=12345 + 7919 * k, warm=warm or None, frozen=[],
+                        seed=12345 + 7919 * k, warm=warm or None, frozen=froz_in,
                         weights=[float(x) for x in wts],
                         total_s=min(_cap, SL),
                         **({"win_weights": winw} if _WINW else {}),
@@ -942,6 +1021,15 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
             _build = float(r[4]) / 1000.0 if len(r) > 4 else _el
             _r = _build / (_NCOL * _NCOL)
             _PAIRRATE[0] = _r if _PAIRRATE[0] is None else 0.5 * _PAIRRATE[0] + 0.5 * _r
+            # AND FEED IT BACK INTO THE FIT.  A real build at a real size is worth more than the
+            # micro-builds the calibration could afford, and it is the only measurement taken at
+            # the scale the prediction is actually made at.  The fixed cost is kept -- it is a
+            # property of parsing the same blocks -- and the slope is re-derived from it.
+            if _CALIB[1] is not None:
+                _c0 = _CALIB[1][0]
+                _rn = max(0.0, _build - _c0) / (_NCOL * _NCOL)
+                if _rn > 0.0:
+                    _CALIB[1] = (_c0, 0.5 * _CALIB[1][1] + 0.5 * _rn)
             if os.environ.get("BRK_DEBUG") == "1":
                 print("    brk cost: tier %d ncol~%.0f real_ncol=%s build=%.1fs total=%.1fs"
                       "  -> rate %.4g s/col^2"
@@ -987,14 +1075,22 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
         # against the finished new state.  One that cannot is not "priced at its next-best bay"
         # -- that is the assumption the earlier diagnostics made and it is exactly the assumption
         # this whole night proved unsafe.  It kills the repack.
+        # EVERY BLOCK ENDS UP IN EXACTLY ONE OF THREE PLACES.  Not a candidate -- which now
+        # includes the residents frozen out of the window -- means it never moved.  A candidate
+        # the packer seated takes the seat it was given.  A candidate it did not seat either stays
+        # where it is (an outsider that was simply not admitted) or has to be rehomed (a resident
+        # whose place was taken).  Stated this way rather than as a filter on the target bay,
+        # because with a window there are now residents that are neither candidates nor movable.
         displaced = [i for i in range(len(cand)) if isres[i] and i not in got]
+        _cset = set(cand)
         keep = {b: (cur[b], place[b][0], place[b][1], place[b][2], ent[b], ext[b])
-                for b in range(n)
-                if cur[b] not in BSET and b not in {cand[i] for i in admitted}}
+                for b in range(n) if b not in _cset}
         for i, b in enumerate(cand):
             if i in got:
                 o, x, y, en, ex, jb = got[i]
                 keep[b] = (jb, int(o), float(x), float(y), int(en), int(ex))
+            elif not isres[i]:
+                keep[b] = (cur[b], place[b][0], place[b][1], place[b][2], ent[b], ext[b])
         if displaced:
             if engine_fn is None:
                 return None
