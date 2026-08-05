@@ -10,6 +10,18 @@
 //   placement_feasible(bay,bid,orient,x,y,en,ex) find_best_placement(bid,bays,ets)
 //   set_nfp_provider (stored; candidate gen here is NFP-free grid+corner scan)
 // env: RASTER (default on), GRIDDIV (default 4).
+//
+// SOURCE STAMP.  A CPython extension carries the interpreter's ABI tag in its filename, so the
+// four builds this package ships are four separate files that nothing keeps in step.  Twice now a
+// subset was rebuilt and the rest went out stale -- once silently losing the beam's salvage and
+// the OGC_BEAMAIM knob on every interpreter but 3.12.  The build stamps the source hash in here
+// and the packager greps every .so for the hash of the .cpp beside it, so a stale binary fails
+// the build instead of shipping.  extern "C" and non-static keep it out of the linker's bin.
+#ifndef OGC_SRC_SHA
+#define OGC_SRC_SHA "unstamped"
+#endif
+extern "C" const char OGC_SRC_TAG[] = "OGCSRC=" OGC_SRC_SHA;
+
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
 #include <pybind11/stl.h>

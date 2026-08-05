@@ -13,6 +13,25 @@
 # THAT directory and not to the source tree.
 set -e
 cd "$(dirname "$0")/.."
+
+# A third silent failure, caught before it shipped: ogc_fast.cpp gained the beam's salvage and the
+# OGC_BEAMAIM knob, only the 3.12 binary was rebuilt, and the 3.10/3.11/3.13 files sat two days
+# stale in the tree.  Packaging copies from the tree, so all three would have gone out -- and on
+# any grader that is not 3.12 the portfolio axis validated at 31-6 would simply not exist.  Every
+# .so now carries the hash of the source it was built from; refuse to package a set that disagrees.
+echo "== 확장 모듈이 지금 소스에서 나온 것인지 =="
+for m in ogc_fast cranepack; do
+  SHA=$(sha1sum "$m.cpp" | cut -c1-12)
+  n=0
+  for f in $m.cpython-3*.so; do
+    n=$((n+1))
+    if grep -qa "OGCSRC=$SHA" "$f"; then echo "  OK    $f  $SHA"
+    else echo "  STALE $f  (소스는 $SHA)"; STALE=1; fi
+  done
+  [ $n -ge 4 ] || { echo "  ABI $n 개뿐 -- 4개 필요"; STALE=1; }
+done
+[ -z "${STALE:-}" ] || { echo "빌드 중단: bash harness/buildabi.sh 를 먼저 돌리십시오"; exit 1; }
+
 S=submission
 rm -rf $S && mkdir -p $S
 cp myalgorithm.py bayrepack.py utils.py cranepack.cpp ogc_fast.cpp $S/

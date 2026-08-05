@@ -5,6 +5,15 @@
 //           (fastconf j>=k rule, VALIDATED) -> maximise # distinct blocks placed.
 //   solve : iterated-greedy + force/repair local search on the conflict graph
 //           (no Gurobi; grader has no license).  Returns the chosen placements.
+//
+// SOURCE STAMP -- see the same block in ogc_fast.cpp for why it exists.  The build passes the
+// hash of this file and the packager checks every ABI's .so for it, so a subset rebuild cannot
+// ship the rest stale.
+#ifndef OGC_SRC_SHA
+#define OGC_SRC_SHA "unstamped"
+#endif
+extern "C" const char CRANEPACK_SRC_TAG[] = "OGCSRC=" OGC_SRC_SHA;
+
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
 #include <pybind11/stl.h>
