@@ -772,8 +772,18 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
             if hi < lo:
                 return [(ent[b], ent[b] + pt[b])]
             ts = {lo, hi}
-            if lo <= ent[b] <= hi:
-                ts.add(ent[b])
+            # THE BLOCK'S OWN SEAT IS ALWAYS OFFERED.  This used to be conditional on the current
+            # entry lying inside the tardiness-free window, which quietly excluded every block
+            # that is ALREADY LATE -- and those are exactly the blocks a repack is called on to
+            # deal with.  A resident whose current time is not offered cannot be seated where it
+            # already sits, so the packer has no way to reproduce the incumbent for it and drops
+            # it; the operator then has to rehome it, and if it cannot, the whole repack dies.
+            #
+            # Measured on P3: 12 of 52 residents displaced at one bay and 14 at two, which is not
+            # a legalisation edge case, it is a quarter of the bay being evicted for no reason.
+            # An operator must always be able to return what it was given.  ent[b] >= rel[b] holds
+            # because the solution being repacked is feasible.
+            ts.add(ent[b])
             for i in range(max(1, NENT)):
                 ts.add(lo + (hi - lo) * i // max(1, NENT - 1) if NENT > 1 else lo)
             _d = _late_by(b)
@@ -866,6 +876,56 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
                 return cur[b]
             return max(_out_of, key=lambda j: pref[b][j])
 
+        # WHICH RESIDENTS HAVE NOWHERE TO GO.
+        #
+        # The packer prices a resident at what evicting it would cost -- the objective of putting
+        # it in its next-best bay -- and is free to drop the cheap ones to admit a valuable
+        # entrant.  That pricing assumes the next-best bay will TAKE it, and the measurement says
+        # that assumption is what breaks: on P3 the operator displaced eight residents, could not
+        # rehome one of them, and the whole repack was thrown away.  Retrying in a different order
+        # settled the question -- placed FIRST, into a yard holding only the blocks that had not
+        # moved, b101 still fitted in no bay on any of sixteen days.  It is not the order.  There
+        # is no seat, and no pricing of a seat that does not exist can be right.
+        #
+        # So ask, before the pack: can this resident leave at all?  Against a yard emptied of every
+        # block in the repacked bays, which is MORE room than it will really have, so a block that
+        # fails here fails for certain.  Those get a weight no combination of entrants can outbid;
+        # they can still move within the repacked bays, which is where the packing gain comes from,
+        # but they cannot be evicted from them.  Nothing is frozen and nothing is gated -- the
+        # weight is derived from the entrants' own gains, so on an instance where everyone has
+        # somewhere to go this changes nothing at all.
+        _STICK = set()
+        if engine_fn is not None and os.environ.get("OGC_BRKSTICK", "1") != "0":
+            _oth = [j for j in range(m) if j not in BSET]
+            if _oth:
+                try:
+                    _E0 = engine_fn(prob_info)
+                    _E0.clear_all()
+                    for q in range(n):
+                        if cur[q] not in BSET:
+                            _E0.add(int(cur[q]), int(q), int(place[q][0]), float(place[q][1]),
+                                    float(place[q][2]), int(ent[q]), int(ext[q]))
+                    _pk = max(1, int(os.environ.get("OGC_BRKPRECHK", "4")))
+                    for _b in res:
+                        _ok = False
+                        for _d in range(_pk):
+                            for _j in _oth:
+                                if len(_E0.feasible_scan(int(_b), [int(_j)], int(ent[_b] + _d),
+                                                         int(ext[_b] + _d), 1)):
+                                    _ok = True
+                                    break
+                            if _ok:
+                                break
+                        if not _ok:
+                            _STICK.add(_b)
+                except Exception:
+                    _STICK = set()
+        # bigger than every entrant put together, so no set of admissions pays for one eviction
+        _STICKY = 1.0 + sum(float(_g) for _g, _ in outs) + float(len(res))
+        if os.environ.get("BRK_DEBUG") == "1":
+            print("    brk stick: %d of %d residents cannot leave the bay set at all"
+                  % (len(_STICK), len(res)), flush=True)
+
         def _price(cand_l, isres_l, blocks_l):
             """(block weights, per-seat weights) for a candidate list and its offered windows.
 
@@ -882,7 +942,7 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
                     _aj = list(cur); _aj[_b] = _j
                     _w = _of - obj_of(_aj, ent, ext)
                     if isres_l[_i]:
-                        _w = max(1.0, _w)
+                        _w = _STICKY if _b in _STICK else max(1.0, _w)
                     _row += [max(1.0, _w - _w1f * (max(0, _ex - due[_b]) - _t0))
                              for (_en, _ex) in blocks_l[_i][2]]
                 _winw.append(_row)
@@ -1179,29 +1239,72 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
             # asks for; the engine still has to agree and the grader still has to agree after it.
             _order2 = list(range(m))
             _RETRY = max(1, int(os.environ.get("OGC_BRKRETRY", "16")))
+            # HARDEST FIRST.  Rehoming is sequential and each block that lands becomes an obstacle
+            # for the next, so the order is not a detail: a small block placed early can take the
+            # only opening a large one had.  Largest footprint first is the standard remedy and it
+            # costs nothing to apply.  The trace names the whole displaced set, because "one block
+            # could not be rehomed" does not say whether the yard is full or the order was wrong.
+            _area = {}
             for i in displaced:
-                b = cand[i]
-                seated = False
-                _dur = ext[b] - ent[b]
-                _bo = sorted(_order2, key=lambda k: -pref[b][k])
-                for _d in range(_RETRY):
-                    _en, _ex = ent[b] + _d, ext[b] + _d
-                    for j in _bo:
-                        rr = E.feasible_scan(int(b), [int(j)], int(_en), int(_ex), 1)
-                        if len(rr):
-                            E.add(int(j), int(b), int(rr[0][1]), float(rr[0][2]),
-                                  float(rr[0][3]), int(_en), int(_ex))
-                            keep[b] = (j, int(rr[0][1]), float(rr[0][2]), float(rr[0][3]),
-                                       _en, _ex)
-                            seated = True
+                _b2 = cand[i]
+                _, _ob3 = _layers_bbox(B, _b2)
+                _area[i] = max((_q[2] - _q[0]) * (_q[3] - _q[1]) for _q in _ob3)
+            displaced.sort(key=lambda i: -_area[i])
+            _say("displaced %d: %s" % (len(displaced),
+                                       [(cand[i], int(_area[i])) for i in displaced]))
+
+            # FIRST-FAIL-FIRST, because the order is what fails and not the yard.  Largest-first
+            # is a good guess and it is only a guess: on P3 it seated b177 (420) and b31 (414) and
+            # then could not seat b101 (253), so the opening b101 needed had been taken by a
+            # SMALLER block placed earlier.  When a block cannot be seated, put it at the front and
+            # start the whole rehoming again from the post-pack state -- the classic repair for a
+            # sequential placement that is sensitive to order, and cheap here because a pass is
+            # only feasible_scan calls against a C++ engine.  Bounded by the number of displaced
+            # blocks, so it terminates; each pass promotes a block that has never been promoted.
+            _front, _seen = [], set()
+            _base_state = dict(keep)
+            _placed = None
+            for _pass in range(1 + len(displaced)):
+                keep = dict(_base_state)
+                E.clear_all()
+                for q, (j, o, x, y, en, ex) in keep.items():
+                    E.add(int(j), int(q), int(o), float(x), float(y), int(en), int(ex))
+                _ordD = _front + [i for i in displaced if i not in set(_front)]
+                _fail = None
+                for i in _ordD:
+                    b = cand[i]
+                    seated = False
+                    _bo = sorted(_order2, key=lambda k: -pref[b][k])
+                    for _d in range(_RETRY):
+                        _en, _ex = ent[b] + _d, ext[b] + _d
+                        for j in _bo:
+                            rr = E.feasible_scan(int(b), [int(j)], int(_en), int(_ex), 1)
+                            if len(rr):
+                                E.add(int(j), int(b), int(rr[0][1]), float(rr[0][2]),
+                                      float(rr[0][3]), int(_en), int(_ex))
+                                keep[b] = (j, int(rr[0][1]), float(rr[0][2]), float(rr[0][3]),
+                                           _en, _ex)
+                                seated = True
+                                break
+                        if seated:
                             break
-                    if seated:
-                        if _d and _dbg:
-                            _say("displaced b%d rehomed %d day(s) late" % (b, _d))
+                    if not seated:
+                        _fail = i
                         break
-                if not seated:
-                    _say("displaced b%d could not be rehomed within %d days" % (b, _RETRY))
-                    return None
+                if _fail is None:
+                    _placed = keep
+                    break
+                if _fail in _seen:
+                    break                       # promoting it again would repeat this pass
+                _seen.add(_fail)
+                _front = [_fail] + _front
+                _say("rehome pass %d stuck on b%d -- retrying with it first"
+                     % (_pass, cand[_fail]))
+            if _placed is None:
+                _say("displaced b%d could not be rehomed within %d days, %d order(s) tried"
+                     % (cand[_fail], _RETRY, len(_seen)))
+                return None
+            keep = _placed
         if len(keep) != n:
             _say("rebuilt %d of %d blocks" % (len(keep), n))
             return None
