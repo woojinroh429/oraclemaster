@@ -26,3 +26,5 @@ P13 [mix.13]       180s  obj=66421226    Z1=9034.0   Z2=1148   Z3=7738.0    feas
 WSTAT round=0 n=4 610313 564079 645609 1020924  spread=80.99%
 P1  [ctl.1]        180s  obj=564079      Z1=13.0     Z2=1936   Z3=786.0     feas=y   ran 150s  py3.12
 # [mix.1]
+WSTAT round=0 n=4 571248 774104 552772 877830  spread=58.81%
+P1  [mix.1]        180s  obj=552772      Z1=28.0     Z2=7232   Z3=574.0     feas=y   ran 146s  py3.12
