@@ -29,6 +29,12 @@ print('injected %d table rows' % t.count(r'\\'))
 PY
 
 cd "$R" || exit 1
+# DELETE THE OLD PDF FIRST.  "did a PDF come out" is not the same question as "did THIS compile
+# produce one", and the difference is not academic: a missing tcolorbox.sty aborted the run with
+# a fatal error, the August 3rd PDF was still sitting there, and this script reported 8 pages and
+# a passing anonymity check -- all of it measured on the previous build.  A failed compile must
+# leave nothing behind to be mistaken for a result.
+rm -f techreport_built.pdf
 for i in 1 2; do pdflatex -interaction=nonstopmode techreport_built.tex > /tmp/tex$i.log 2>&1; done
 if [ ! -s techreport_built.pdf ]; then
     echo "COMPILE FAILED"; grep -m5 "^! " /tmp/tex2.log; exit 1

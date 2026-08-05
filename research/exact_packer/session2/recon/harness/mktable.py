@@ -53,11 +53,14 @@ print("%% %d of 40 training instances, 60 s each" % len(rows))
 
 
 def fmt(v):
+    """Group thousands with a comma.  Braced, because these cells are sometimes read in math
+    mode and there a bare comma is punctuation: TeX puts a space after it and 1,499 sets as
+    "1, 499".  Bracing makes it an ordinary symbol, and in text mode the braces are inert."""
     s = "%d" % int(round(float(v)))
     out, c = "", 0
     for ch in reversed(s):
         if c and c % 3 == 0:
-            out = r"\," + out
+            out = "{,}" + out
         out = ch + out
         c += 1
     return out

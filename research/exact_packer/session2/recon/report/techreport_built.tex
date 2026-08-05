@@ -1,27 +1,11 @@
-% OGC2026 Technical Report
-%
-% ANONYMITY: no team name, member names, affiliation, repository link or address appears in
-% this file.  The Team Members' Contributions section deliberately uses "Member A/B" -- the
-% submission rules forbid member names in the report itself.
-%
-% Guidance boxes are excluded via \showguidancefalse, as required for the final submission.
-%
+% OGC2026 Technical Report.  Anonymous: the contributions section uses "Member A/B" by design.
 \documentclass[runningheads]{llncs}
 
 \usepackage[T1]{fontenc}
 \usepackage{graphicx}
 \usepackage{amsmath}
 \usepackage{booktabs}
-\usepackage{url}
-\usepackage{xcolor}
-\usepackage[most]{tcolorbox}
-\usepackage{comment}
-
-\urlstyle{rm}
-
-\newif\ifshowguidance
-\showguidancefalse
-\ifshowguidance\else\excludecomment{guidance}\fi
+\usepackage[protrusion=true,expansion=false]{microtype}
 
 \begin{document}
 
@@ -74,7 +58,7 @@ rather than by which describes the geometry better.
 \paragraph{Instances are not on a spectrum.}
 The training set splits cleanly rather than gradually: $Z_1$ is exactly zero on twenty of the
 forty instances and strictly positive on the other twenty (Table~\ref{tab:train}), and the
-objective spans $1\,499$ to $36\,012\,305$, a factor of twenty-four thousand. On the final
+objective spans $1{,}499$ to $36{,}012{,}305$, a factor of twenty-four thousand. On the final
 instances the tardiness share of the objective runs from $0\%$ to $97.4\%$ with nothing in
 between. Where $Z_1$ vanishes the entry times are free and the problem is an assignment problem
 dominated by preference; where the yard is saturated the entry times are the whole objective. A
@@ -121,7 +105,7 @@ exploration so a slow starter can recover.
 Slice size is deliberately not driven by the selection signal. Sizing on payoff death-spirals: a
 construction that returns a perfectly good solution which merely fails to beat the incumbent
 scores zero gain, shrinks, and then can no longer finish at all---we measured fourteen calls
-returning four solutions while the objective moved from $48\,840$ to $56\,841$. Size is instead a
+returning four solutions while the objective moved from $48{,}840$ to $56{,}841$. Size is instead a
 completion question: a search operator that returned nothing was starved and is given more, one
 that returned anything fitted, and a repair pass is given what it actually used. The opening
 slices are asymmetric for the same reason, search operators taking a fifth of the budget and
@@ -214,7 +198,7 @@ Relaxed ordering suffices because the value is a pure function of the key: two t
 the same key compute the same verdict. A private memo per thread was tried first and gave almost
 all the parallel gain back ($1.10\times$), since reuse is where this loop's speed lives; sharing it
 correctly reaches $1.43\times$ on four cores, $19.3\,\mathrm{s}\rightarrow13.5\,\mathrm{s}$ on a
-$43\,320$-column build. The edge count was $133\,863\,098$ in every arm.
+$43{,}320$-column build. The edge count was $133{,}863{,}098$ in every arm.
 
 The use we expected for that headroom did not materialise. The candidate list is capped at $40$
 outsiders---$31$--$70\%$ of the profitable entrants on $300$-block instances---because widening it
@@ -273,9 +257,9 @@ what to run next, and for how long, from elapsed seconds. A faster scan therefor
 into the same budget, which shifts the diversification axis rotation, the contents of the solution
 pool, and the repacking operator's own call counter and hence its random seed. The repacking
 operator is handed a different incumbent, and on that instance one particular incumbent---worth
-$107\,195$ before repacking---is the only one from which the operator ever reaches $83\,095$, and
-$83\,095$ is in turn the only route to the best solution we have ever recorded there. Across the
-whole day, every run reaching that solution had $83\,095$ in its log and every run that did not,
+$107{,}195$ before repacking---is the only one from which the operator ever reaches $83{,}095$, and
+$83{,}095$ is in turn the only route to the best solution we have ever recorded there. Across the
+whole day, every run reaching that solution had $83{,}095$ in its log and every run that did not,
 did not. With the bound off we reproduce it three times in four; with it on, never in two.
 
 The lesson generalises beyond this bound. Making a time-budgeted portfolio faster does not make it
@@ -286,8 +270,8 @@ correct repair is to stop the schedule depending on a clock, which is Section~\r
 
 \paragraph{A better incumbent can repack worse.}
 The same investigation produced a second surprise. Handing the repacking operator solutions of
-increasing quality does not produce increasing improvements: incumbents worth $97\,570$,
-$100\,685$ and $107\,195$ yielded improvements of $9\,580$, $13\,510$ and $24\,100$ respectively.
+increasing quality does not produce increasing improvements: incumbents worth $97{,}570$,
+$100{,}685$ and $107{,}195$ yielded improvements of $9{,}580$, $13{,}510$ and $24{,}100$ respectively.
 A tight solution has no slack left to reclaim, and the repacking operator eats slack. Its result
 is a function of the incumbent's layout, not of the incumbent's objective---yet the roster hands
 it the best-scoring solution every time.
@@ -372,26 +356,26 @@ instances 1--20 and positive on 21--40, and no instance lies between the two reg
 \toprule
 Inst. & $n$ & $m$ & $Z_1$ & $Z_2$ & $Z_3$ & Obj. & Inst. & $n$ & $m$ & $Z_1$ & $Z_2$ & $Z_3$ & Obj. \\
 \midrule
-1 & 100 & 2 & 0 & 157 & 2 & 1\,499 & 21 & 100 & 3 & 8 & 2\,032 & 2\,693 & 530\,934 \\
-2 & 100 & 3 & 0 & 144 & 15 & 3\,690 & 22 & 100 & 2 & 2 & 2\,391 & 1\,748 & 733\,039 \\
-3 & 100 & 3 & 0 & 1\,542 & 186 & 43\,320 & 23 & 100 & 2 & 83 & 1\,237 & 1\,284 & 1\,390\,856 \\
-4 & 100 & 2 & 0 & 2\,278 & 0 & 15\,946 & 24 & 100 & 3 & 1 & 4\,553 & 661 & 234\,398 \\
-5 & 150 & 3 & 0 & 1\,654 & 228 & 45\,778 & 25 & 100 & 2 & 317 & 397 & 1\,792 & 247\,676 \\
-6 & 150 & 3 & 0 & 2\,346 & 173 & 42\,372 & 26 & 150 & 3 & 523 & 1\,197 & 4\,150 & 7\,604\,038 \\
-7 & 150 & 3 & 0 & 2\,335 & 239 & 52\,195 & 27 & 150 & 2 & 1\,695 & 845 & 4\,422 & 24\,369\,925 \\
-8 & 150 & 2 & 0 & 2\,413 & 8 & 11\,252 & 28 & 150 & 3 & 17 & 2\,371 & 1\,892 & 801\,374 \\
-9 & 200 & 3 & 0 & 2\,047 & 271 & 50\,885 & 29 & 150 & 3 & 1 & 7\,860 & 969 & 327\,613 \\
-10 & 200 & 4 & 0 & 2\,225 & 400 & 68\,775 & 30 & 150 & 2 & 123 & 573 & 1\,442 & 1\,930\,651 \\
-11 & 200 & 4 & 0 & 923 & 96 & 19\,229 & 31 & 200 & 4 & 121 & 1\,025 & 10\,436 & 4\,402\,780 \\
-12 & 200 & 4 & 0 & 2\,205 & 387 & 66\,906 & 32 & 200 & 3 & 415 & 2\,080 & 2\,065 & 2\,632\,595 \\
-13 & 250 & 4 & 0 & 3\,905 & 297 & 59\,026 & 33 & 200 & 3 & 955 & 1\,824 & 4\,977 & 7\,131\,775 \\
-14 & 250 & 4 & 0 & 1\,106 & 350 & 52\,080 & 34 & 200 & 4 & 44 & 2\,051 & 1\,256 & 830\,457 \\
-15 & 250 & 4 & 0 & 4\,276 & 100 & 34\,680 & 35 & 200 & 3 & 21 & 2\,032 & 1\,485 & 512\,903 \\
-16 & 250 & 4 & 0 & 3\,294 & 139 & 34\,957 & 36 & 250 & 4 & 18 & 4\,500 & 6\,496 & 100\,954 \\
-17 & 300 & 4 & 0 & 6\,563 & 238 & 57\,906 & 37 & 250 & 3 & 614 & 4\,506 & 3\,154 & 3\,956\,886 \\
-18 & 300 & 4 & 0 & 4\,188 & 198 & 43\,086 & 38 & 250 & 3 & 2\,607 & 1\,987 & 4\,164 & 36\,012\,305 \\
-19 & 300 & 4 & 0 & 4\,604 & 301 & 58\,449 & 39 & 250 & 3 & 500 & 1\,218 & 5\,711 & 7\,528\,022 \\
-20 & 300 & 5 & 0 & 2\,704 & 652 & 97\,724 & 40 & 250 & 4 & 2\,629 & 3\,957 & 7\,947 & 1\,860\,811 \\
+1 & 100 & 2 & 0 & 157 & 2 & 1{,}499 & 21 & 100 & 3 & 8 & 2{,}032 & 2{,}693 & 530{,}934 \\
+2 & 100 & 3 & 0 & 144 & 15 & 3{,}690 & 22 & 100 & 2 & 2 & 2{,}391 & 1{,}748 & 733{,}039 \\
+3 & 100 & 3 & 0 & 1{,}542 & 186 & 43{,}320 & 23 & 100 & 2 & 83 & 1{,}237 & 1{,}284 & 1{,}390{,}856 \\
+4 & 100 & 2 & 0 & 2{,}278 & 0 & 15{,}946 & 24 & 100 & 3 & 1 & 4{,}553 & 661 & 234{,}398 \\
+5 & 150 & 3 & 0 & 1{,}654 & 228 & 45{,}778 & 25 & 100 & 2 & 317 & 397 & 1{,}792 & 247{,}676 \\
+6 & 150 & 3 & 0 & 2{,}346 & 173 & 42{,}372 & 26 & 150 & 3 & 523 & 1{,}197 & 4{,}150 & 7{,}604{,}038 \\
+7 & 150 & 3 & 0 & 2{,}335 & 239 & 52{,}195 & 27 & 150 & 2 & 1{,}695 & 845 & 4{,}422 & 24{,}369{,}925 \\
+8 & 150 & 2 & 0 & 2{,}413 & 8 & 11{,}252 & 28 & 150 & 3 & 17 & 2{,}371 & 1{,}892 & 801{,}374 \\
+9 & 200 & 3 & 0 & 2{,}047 & 271 & 50{,}885 & 29 & 150 & 3 & 1 & 7{,}860 & 969 & 327{,}613 \\
+10 & 200 & 4 & 0 & 2{,}225 & 400 & 68{,}775 & 30 & 150 & 2 & 123 & 573 & 1{,}442 & 1{,}930{,}651 \\
+11 & 200 & 4 & 0 & 923 & 96 & 19{,}229 & 31 & 200 & 4 & 121 & 1{,}025 & 10{,}436 & 4{,}402{,}780 \\
+12 & 200 & 4 & 0 & 2{,}205 & 387 & 66{,}906 & 32 & 200 & 3 & 415 & 2{,}080 & 2{,}065 & 2{,}632{,}595 \\
+13 & 250 & 4 & 0 & 3{,}905 & 297 & 59{,}026 & 33 & 200 & 3 & 955 & 1{,}824 & 4{,}977 & 7{,}131{,}775 \\
+14 & 250 & 4 & 0 & 1{,}106 & 350 & 52{,}080 & 34 & 200 & 4 & 44 & 2{,}051 & 1{,}256 & 830{,}457 \\
+15 & 250 & 4 & 0 & 4{,}276 & 100 & 34{,}680 & 35 & 200 & 3 & 21 & 2{,}032 & 1{,}485 & 512{,}903 \\
+16 & 250 & 4 & 0 & 3{,}294 & 139 & 34{,}957 & 36 & 250 & 4 & 18 & 4{,}500 & 6{,}496 & 100{,}954 \\
+17 & 300 & 4 & 0 & 6{,}563 & 238 & 57{,}906 & 37 & 250 & 3 & 614 & 4{,}506 & 3{,}154 & 3{,}956{,}886 \\
+18 & 300 & 4 & 0 & 4{,}188 & 198 & 43{,}086 & 38 & 250 & 3 & 2{,}607 & 1{,}987 & 4{,}164 & 36{,}012{,}305 \\
+19 & 300 & 4 & 0 & 4{,}604 & 301 & 58{,}449 & 39 & 250 & 3 & 500 & 1{,}218 & 5{,}711 & 7{,}528{,}022 \\
+20 & 300 & 5 & 0 & 2{,}704 & 652 & 97{,}724 & 40 & 250 & 4 & 2{,}629 & 3{,}957 & 7{,}947 & 1{,}860{,}811 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -405,10 +389,10 @@ not claimed as improvements.}
 \toprule
 Configuration & Sparse instance & Dense instance \\
 \midrule
-Portfolio without the repacking operator                    & 96\,990 & --- \\
-$+$ exact bay repacking                                     & 80\,795 & 29\,651\,637 \\
-$+$ faster build, derived configuration ladder              & 80\,795 & 29\,566\,129 \\
-$+$ contact bound enabled (\emph{not shipped})              & 86\,975 & 29\,566\,129 \\
+Portfolio without the repacking operator                    & 96{,}990 & --- \\
+$+$ exact bay repacking                                     & 80{,}795 & 29{,}651{,}637 \\
+$+$ faster build, derived configuration ladder              & 80{,}795 & 29{,}566{,}129 \\
+$+$ contact bound enabled (\emph{not shipped})              & 86{,}975 & 29{,}566{,}129 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -448,9 +432,9 @@ instances to $-0.74\%$ at thirty-nine: the first twelve were selected as the mos
 the trade, so the early figure was optimistic by construction and the final one is the honest one.
 
 Two cautions belong with these numbers rather than after them. Run-to-run spread on the densest
-instance is about $112\,000$ on unchanged code, so smaller differences are noise. The sparsest
+instance is about $112{,}000$ on unchanged code, so smaller differences are noise. The sparsest
 instance is not stable at all: its objective is a minimum over the repacking operator's attempts
-within a run, that operator's improvement varies from $6\,590$ to $31\,315$ with the incumbent it
+within a run, that operator's improvement varies from $6{,}590$ to $31{,}315$ with the incumbent it
 is handed, and the best value we quote appeared in four runs of seven on unchanged code. It is a
 mode of a distribution, not a reproducible figure.
 
