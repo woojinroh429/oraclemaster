@@ -19,3 +19,6 @@ RESTART wid=2 at 37% mine=13156 lead=6107
 RESTART wid=3 at 44% mine=9834 lead=6107
 WSTAT round=0 n=4 6061 6107 11128 9834  spread=83.60%
 P22 [shr.22]       180s  obj=6061        Z1=10.0     Z2=541    Z3=71.0      feas=y   ran 179s  py3.12
+# [fix.13]
+WSTAT round=0 n=4 76446640 69313438 78045392 68172643  spread=14.48%
+P13 [fix.13]       180s  obj=68172643    Z1=9244.0   Z2=2095   Z3=8176.0    feas=y   ran 189s  py3.12
