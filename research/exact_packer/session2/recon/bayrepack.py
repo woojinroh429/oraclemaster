@@ -466,6 +466,15 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
 
         BDIM = [(float(bays[j]["width"]), float(bays[j]["height"])) for j in BAYS]
         W, H = BDIM[0]
+        # GRID RESOLUTION PER BAY, in proportion to sqrt(area).  A single step across bays of
+        # different sizes is a resolution chosen for the target bay and inherited by the partner,
+        # and on P3 that made the partner 8.4x the cost of the target (159,430 columns against
+        # 18,884) for no reason other than being bigger.  Scaling the step keeps the column counts
+        # comparable, and a bigger bay loses less by being sampled coarsely because it has more
+        # room to be wrong in.  The target bay always keeps the tier's own step, so a single-bay
+        # pack is unaffected.
+        _a0 = max(1.0, BDIM[0][0] * BDIM[0][1])
+        BMUL = [max(1, int(round(math.sqrt((_W * _H) / _a0)))) for _W, _H in BDIM]
 
         # NOW the tier can be chosen, because the column count is computable.  cranepack builds
         # its conflict graph with an O(ncol^2) double loop that never looks at the clock, so an
@@ -507,10 +516,14 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
                 the real work, which is what _pred is about to multiply.  Getting this wrong is
                 not conservative in a harmless direction: it would predict 4x for a 2x build and
                 make the chooser step down a tier it could afford."""
-                _sq = 0.0
-                for _W, _H in BDIM:
-                    _sq += _ncol_est_bay(_st, _no, _ne, _W, _H) ** 2
-                return math.sqrt(_sq)
+                _per = [_ncol_est_bay(_st * BMUL[_i], _no, _ne, _W, _H)
+                        for _i, (_W, _H) in enumerate(BDIM)]
+                if len(_per) > 1 and os.environ.get("BRK_DEBUG") == "1":
+                    print("      ncol_est per bay %s  step x%s  (cand=%d res=%d frozen=%d)"
+                          % (["%.0f" % _v for _v in _per], BMUL,
+                             len(res) + min(len(outs), _no), len(res), len(frozen_res)),
+                          flush=True)
+                return math.sqrt(sum(_v * _v for _v in _per))
 
             def _ncol_est_bay(_st, _no, _ne, W, H):
                 """Columns one bay of size (W,H) would generate at this tier."""
@@ -980,7 +993,9 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
                         **({"win_weights": winw} if _WINW else {}),
                         # only when there is more than one, so the single-bay call is the call
                         # that has always been made -- proved identical by harness/cpequiv.py
-                        **({"bays": BDIM} if len(BDIM) > 1 else {}))
+                        **({"bays": [(_W, _H, STEP * BMUL[_i])
+                                     for _i, (_W, _H) in enumerate(BDIM)]}
+                           if len(BDIM) > 1 else {}))
             if not (len(r) > 9 and int(r[9]) == 1) or not _rest:
                 break
             _tier = _rest.pop(0)

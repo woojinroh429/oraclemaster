@@ -369,15 +369,24 @@ py::tuple pack(py::list blocks, double W, double H, int step,
     int nblk = (int)py::len(blocks);
 
     // ---- bays.  One entry, (W,H), unless the caller asked for several. ----
+    // A bay is (W,H) or (W,H,step).  The PER-BAY STEP exists because the bays are not the same
+    // size and one grid resolution across all of them is a resolution chosen for whichever bay
+    // happens to be first.  Measured on P3: repacking bay 3 jointly with its best trading partner
+    // generated 18,884 columns for the target and 159,430 for the partner -- 8.4x, entirely
+    // because the partner is bigger, and enough to make the joint pack unaffordable on its own.
+    // A grid coarse in proportion to sqrt(area) gives every bay a comparable column count, and a
+    // bigger bay loses proportionally less by being sampled coarsely because it has more room.
     std::vector<double> BW, BH;
+    std::vector<int> BST;
     const bool MULTIBAY = !bays.is_none();
     if(MULTIBAY){
         for(auto it : py::cast<py::list>(bays)){
             py::tuple t=py::cast<py::tuple>(it);
             BW.push_back(py::cast<double>(t[0])); BH.push_back(py::cast<double>(t[1]));
+            BST.push_back(py::len(t)>2 ? std::max(1,py::cast<int>(t[2])) : step);
         }
     }
-    if(BW.empty()){ BW.push_back(W); BH.push_back(H); }
+    if(BW.empty()){ BW.push_back(W); BH.push_back(H); BST.push_back(step); }
     const int nbay=(int)BW.size();
 
     // per-block objective weight (maximise Sum of placed weights).  Default all 1.0 ->
@@ -506,6 +515,7 @@ py::tuple pack(py::list blocks, double W, double H, int step,
     // just means the sort has nothing to do on the single-bay path.
     for(int jb=0;jb<nbay;jb++){
         const double BWj=BW[jb], BHj=BH[jb];
+        const int stj=BST[jb];
         for(int b=0;b<nblk;b++){
             for(int o=0;o<(int)BL[b].size();o++){
                 double x0=OBB[b][o][0],y0=OBB[b][o][1],x1=OBB[b][o][2],y1=OBB[b][o][3];
@@ -513,8 +523,8 @@ py::tuple pack(py::list blocks, double W, double H, int step,
                 int ylo=(int)std::ceil(-y0), yhi=(int)std::floor(BHj-y1);
                 if(xlo>xhi||ylo>yhi) continue;
                 std::vector<int> xs, ys;
-                for(int x=xlo;x<=xhi;x+=step) xs.push_back(x);
-                for(int y=ylo;y<=yhi;y+=step) ys.push_back(y);
+                for(int x=xlo;x<=xhi;x+=stj) xs.push_back(x);
+                for(int y=ylo;y<=yhi;y+=stj) ys.push_back(y);
                 for(auto& wp : warmp) if(wp[0]==b&&wp[1]==o&&wp[4]==jb){
                     if(wp[2]>=xlo&&wp[2]<=xhi) xs.push_back(wp[2]);
                     if(wp[3]>=ylo&&wp[3]<=yhi) ys.push_back(wp[3]);
@@ -645,6 +655,18 @@ py::tuple pack(py::list blocks, double W, double H, int step,
         std::vector<std::vector<std::pair<int,int>>> tedge(NTH);
         std::atomic<int> rows_done(0);
         std::atomic<int> abort_flag(0);
+        // THE LAST CHECKPOINT, so the projection can be made from the RECENT rate.  The serial
+        // path below already does this and says why: the conflict memo is cold at the start and
+        // warm after, so the first rows pay for every polygon test and the rest mostly read a
+        // byte.  A CUMULATIVE average therefore prices the whole build at the cold rate.
+        //
+        // That fix was only ever applied to the serial path, and the serial path is not the one
+        // that runs -- NTH is min(cores,8) whenever OpenMP is present.  Measured, with a cost
+        // model accurate to 1%: on P20 the fit costs the build at 26 s against a 102 s cap and
+        // the parallel projection aborted it at 2.2 s; on P13, at 19.1 s.  The operator was
+        // refusing builds it could afford four times over, which is brk switched off.
+        std::atomic<int>    chk_rows(0);
+        std::atomic<double> chk_el(0.0);
         #pragma omp parallel num_threads(NTH)
         {
             int tid=0;
@@ -690,11 +712,18 @@ py::tuple pack(py::list blocks, double W, double H, int step,
                 if(build_cap > 0.0 && (++since & 63) == 0){
                     double el = std::chrono::duration<double>(
                                     std::chrono::high_resolution_clock::now()-tcols).count();
-                    // pairs are triangular, so rows done is not the fraction of work done
-                    double fd = (double)done/(double)ncol;
-                    double frac = fd*(2.0-fd);            // 1-(1-fd)^2
-                    if(frac > 1e-6){
-                        double projected = cols_s + el/frac;
+                    // The last chunk is the honest estimate of what the remaining rows cost --
+                    // same form as the serial path.  Whichever thread reaches a checkpoint claims
+                    // the interval by swapping in its own reading; a thread that loses the race
+                    // sees dr <= 0 and simply skips, which costs one checkpoint and never a wrong
+                    // verdict.  Rows are ALSO not triangular here: the entry sort breaks the inner
+                    // loop at the co-presence horizon, so work per row is roughly flat and a
+                    // measured chunk rate needs no shape assumption at all.
+                    int    pr = chk_rows.exchange(done, std::memory_order_relaxed);
+                    double pe = chk_el.exchange(el, std::memory_order_relaxed);
+                    double dr = (double)(done - pr), dt = el - pe;
+                    if(dr > 0.0 && dt > 0.0){
+                        double projected = cols_s + el + (double)(ncol-done)*(dt/dr);
                         if(projected > build_cap) abort_flag.store(1, std::memory_order_relaxed);
                     }
                 }
