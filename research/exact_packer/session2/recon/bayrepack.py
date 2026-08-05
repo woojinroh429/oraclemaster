@@ -479,6 +479,24 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
         # 4 and the multiplier came out 2 where 3 was needed.  _ncol_est_bay already answers the
         # question exactly, so ask it instead of modelling it.  Per tier, because the step it is
         # scaling is the tier's.
+        # THE RESIDENTS THAT STAY PUT, as obstacles in world coordinates.  cranepack drops any
+        # generated column that crane-conflicts with one, so the window is repacked AROUND them
+        # rather than into space they occupy.  The incumbent placement of every candidate survives
+        # this by construction -- it coexists with these blocks in the solution being repacked --
+        # so the warm start is never filtered away.
+        #
+        # Built HERE, before the tier is chosen, because the calibration below has to pack the
+        # same shape: obstacles remove columns, and a rate calibrated without them is a rate for a
+        # different problem.
+        froz_in = []
+        if frozen_res:
+            import numpy as _np
+            for _fb in frozen_res:
+                _fol = _layers_bbox(B, _fb)[0][place[_fb][0]]
+                _foff = _np.asarray([place[_fb][1], place[_fb][2]], dtype=float)
+                froz_in.append(([_np.ascontiguousarray(_L + _foff) for _L in _fol],
+                                int(ent[_fb]), int(ext[_fb]), BAYS.index(cur[_fb])))
+
         BMUL = [1] * len(BDIM)
         _BMC = {}
 
@@ -499,8 +517,23 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
 
         def _ncol_est_bay(_st, _no, _ne, W, H):
             """Columns one bay of size (W,H) would generate at this tier."""
+            return _ncol_est_of(res + [b for _, b in outs[:_no]], _st, _ne, W, H)
+
+        def _ncol_est_of(_blocks, _st, _ne, W, H, _one_time=False):
+            """The same count for an explicit block list.  _one_time is for the calibration, which
+            offers each block a single entry variant rather than a window ladder."""
             _tot = 0
-            for _b in res + [b for _, b in outs[:_no]]:
+            for _b in _blocks:
+                if _one_time:
+                    _nt = 1
+                    _, _ob = _layers_bbox(B, _b)
+                    for _q in _ob:
+                        _dw, _dh = _q[2] - _q[0], _q[3] - _q[1]
+                        _nx = int((W - _dw) // _st) + 1
+                        _ny = int((H - _dh) // _st) + 1
+                        if _nx > 0 and _ny > 0:
+                            _tot += _nx * _ny
+                    continue
                 _lo, _hi = rel[_b], due[_b] - pt[_b]
                 if _hi < _lo:
                     _nt = 1
@@ -619,10 +652,11 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
                     # assumed.  On the P20 numbers that is 0.035 s + 4.03e-09/col^2, predicting
                     # 25.2 s where the old model said 65.7 s and the truth was 15.0 s -- still
                     # conservative, which is the safe direction, but no longer by 4.4x.
-                    _cb = []
+                    _cb, _cbb = [], []
                     for _b in (list(res) + [b for _g, b in outs])[:24]:
                         _ol, _ob2 = _layers_bbox(B, _b)
                         _cb.append((_ol, _ob2, [(ent[_b], ext[_b])]))
+                        _cbb.append((_b,))
                     # REFINE UNTIL THE PAIR LOOP IS THE MEASUREMENT.  Two fixed steps, 24 and 12,
                     # produced builds 30 ms apart of which the fixed cost was 77% -- and the fit
                     # takes their DIFFERENCE, so a 10% timing wobble became a 5x error in the
@@ -635,13 +669,32 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
                     # measurement rather than by a guess about how big a bay might be.  The span
                     # between the first and last point is then wide enough that the difference is
                     # signal.
+                    # AND IN THE ESTIMATOR'S OWN UNITS, against the same obstacles.
+                    #
+                    # The rate was fitted against cranepack's REAL column count and then used to
+                    # predict from _ncol_est, which is an upper bound -- it counts positions the
+                    # packer discards, and now also the columns the frozen residents kill.  The
+                    # units did not match, and _pred squares its argument, so the mismatch is
+                    # squared too.  Measured across eight instances:
+                    #
+                    #     one bay, no obstacles     est/real 1.08 to 1.44     -> 1.2x to 2.1x high
+                    #     two bays, with obstacles  est/real 3.30 and 4.95    -> 11x to 25x high
+                    #
+                    # 25x is why the two-bay arm declined on five of eight instances while the
+                    # build it was refusing measured 0.7 s.  Fitting against OUR OWN estimate makes
+                    # the bias part of the constant instead of part of the answer, and packing the
+                    # calibration against the same obstacles keeps the shape the same as well --
+                    # a rate calibrated on an unobstructed bay is a rate for a different problem.
+                    _cfroz = [_f for _f in froz_in if _f[3] == 0]
                     _pts = []
                     if _cb:
                         _cst = 24
                         while _cst >= 3:
-                            _cr = CP.pack(_cb, W, H, _cst, 0.01, seed=1, warm=None, frozen=[],
-                                          weights=[1.0] * len(_cb))
-                            _cn, _cbuild = float(_cr[2]), float(_cr[4]) / 1000.0
+                            _cr = CP.pack(_cb, W, H, _cst, 0.01, seed=1, warm=None,
+                                          frozen=_cfroz, weights=[1.0] * len(_cb))
+                            _cn = _ncol_est_of([_q[0] for _q in _cbb], _cst, 1, W, H,
+                                               _one_time=True)
+                            _cbuild = float(_cr[4]) / 1000.0
                             if _cn > 200.0 and _cbuild > 0.005:
                                 _pts.append((_cn, _cbuild))
                             if _cbuild > 0.25 or len(_pts) >= 5:
@@ -954,19 +1007,6 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
         warm = [(i, place[b][0], int(place[b][1]), int(place[b][2]), BAYS.index(cur[b]))
                 for i, b in enumerate(cand) if isres[i]]
 
-        # THE RESIDENTS THAT STAY PUT, as obstacles in world coordinates.  cranepack drops any
-        # generated column that crane-conflicts with one, so the window is repacked AROUND them
-        # rather than into space they occupy.  The incumbent placement of every candidate survives
-        # this by construction -- it coexists with these blocks in the solution being repacked --
-        # so the warm start is never filtered away.
-        froz_in = []
-        if frozen_res:
-            import numpy as _np
-            for b in frozen_res:
-                _ol = _layers_bbox(B, b)[0][place[b][0]]
-                _off = _np.asarray([place[b][1], place[b][2]], dtype=float)
-                froz_in.append(([_np.ascontiguousarray(_L + _off) for _L in _ol],
-                                int(ent[b]), int(ext[b]), BAYS.index(cur[b])))
         t0 = time.time()
         # ASK FOR LESS THAN WE HAVE.  cranepack overruns whatever it is told, so the deadline
         # handed to it is deflated by the observed ratio rather than being the time remaining.

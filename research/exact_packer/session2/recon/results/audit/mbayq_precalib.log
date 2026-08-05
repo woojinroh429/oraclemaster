@@ -191,3 +191,10 @@ P36  nbay=1  0 application(s) in 4s  obj=82137730  +0.00%
       ncol_est per bay ['62040', '57426']  step x[1, 1]  (cand=152 res=152 frozen=148)
     brk: declined, smallest tier predicts 172s of 51s
 P36  nbay=2  0 application(s) in 1s  obj=82137730  +0.00%
+# probe 30
+P30  solved 30s  obj=2179018  (bays=5 blocks=300)
+    brk calib: 632:40.0ms 1894:71.7ms 5982:246.6ms 21346:2350.2ms -> fixed 0.038s + 5.07e-09 s/col^2
+    brk tier: room=51s rate=5.07e-09 -> tier 1 (step 4 nout 40 nent 3) ncol~88232 pred=39.5s  [hard=60 slice=60s]
+    brk stick: 26 of 64 residents cannot leave the bay set at all
+    brk: build refused at tier 1 (0.7s) -- stepping down to tier 2
+    brk: build refused at tier 2 (0.7s) -- stepping down to tier 3
