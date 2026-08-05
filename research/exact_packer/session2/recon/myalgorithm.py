@@ -2165,12 +2165,29 @@ def algorithm(prob_info, timelimit=60):
                 out = [_worker((prob_info, _rb, _r * nw, cwd, 1.0))]
         except Exception:
             out = [_worker((prob_info, _rb, _r * nw, cwd, 1.0))]
+        # OGC_WSTAT=1 prints what each worker came back with.  The answer is a minimum over the
+        # workers, so what the portfolio is worth is entirely the SPREAD between them: four
+        # workers that converge to the same solution cost four cores and buy one draw.  Since
+        # single-draw swings are the dominant per-instance risk we have (P7 moved 38% one way and
+        # 11% the other between two runs of the same build), the spread is the thing to measure
+        # before adding any more diversity.  stderr, because stdout is swallowed in subprocesses.
+        _ws = []
         for s in out:
             if s is None:
+                _ws.append(None)
                 continue
             o, _ = _total(prob_info, s)
+            _ws.append(o)
             if o < best[0]:
                 best = (o, s)
+        if os.environ.get("OGC_WSTAT"):
+            import sys as _sy
+            _f = [w for w in _ws if w is not None]
+            _lo, _hi = (min(_f), max(_f)) if _f else (0.0, 0.0)
+            _sy.stderr.write("WSTAT round=%d n=%d %s  spread=%.2f%%\n" % (
+                _r, len(_f), " ".join("-" if w is None else "%.0f" % w for w in _ws),
+                (100.0 * (_hi - _lo) / _lo) if _f and _lo > 0 else 0.0))
+            _sy.stderr.flush()
 
     if best[1] is None:                                  # never leave without an answer
         try:
