@@ -466,15 +466,64 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
 
         BDIM = [(float(bays[j]["width"]), float(bays[j]["height"])) for j in BAYS]
         W, H = BDIM[0]
-        # GRID RESOLUTION PER BAY, in proportion to sqrt(area).  A single step across bays of
-        # different sizes is a resolution chosen for the target bay and inherited by the partner,
-        # and on P3 that made the partner 8.4x the cost of the target (159,430 columns against
-        # 18,884) for no reason other than being bigger.  Scaling the step keeps the column counts
-        # comparable, and a bigger bay loses less by being sampled coarsely because it has more
-        # room to be wrong in.  The target bay always keeps the tier's own step, so a single-bay
-        # pack is unaffected.
-        _a0 = max(1.0, BDIM[0][0] * BDIM[0][1])
-        BMUL = [max(1, int(round(math.sqrt((_W * _H) / _a0)))) for _W, _H in BDIM]
+        # GRID RESOLUTION PER BAY.  A single step across bays of different sizes is a resolution
+        # chosen for the target and inherited by the partner, and on P3 that made the partner 8.4x
+        # the cost of the target -- 159,430 columns against 18,884 -- for no reason other than
+        # being bigger.  A bigger bay loses proportionally less by being sampled coarsely, because
+        # it has more room to be wrong in, so the partner's step is raised until it costs no more
+        # than the target.
+        #
+        # DERIVED FROM THE COLUMN COUNT, NOT FROM THE AREA.  sqrt(area) was the obvious scale and
+        # it undershot: columns go as (W-w)(H-h), and in a big bay the block's own footprint
+        # subtracts proportionally less, so an 8.4x column ratio came from an area ratio of about
+        # 4 and the multiplier came out 2 where 3 was needed.  _ncol_est_bay already answers the
+        # question exactly, so ask it instead of modelling it.  Per tier, because the step it is
+        # scaling is the tier's.
+        BMUL = [1] * len(BDIM)
+        _BMC = {}
+
+        def _bmul(_st, _no, _ne):
+            _key = (_st, _no, _ne, len(res), len(outs))
+            _hit = _BMC.get(_key)
+            if _hit is not None:
+                return _hit
+            _n0 = _ncol_est_bay(_st, _no, _ne, BDIM[0][0], BDIM[0][1])
+            _out = [1]
+            for _W, _H in BDIM[1:]:
+                _mm = 1
+                while _mm < 16 and _ncol_est_bay(_st * _mm, _no, _ne, _W, _H) > _n0:
+                    _mm += 1
+                _out.append(_mm)
+            _BMC[_key] = _out
+            return _out
+
+        def _ncol_est_bay(_st, _no, _ne, W, H):
+            """Columns one bay of size (W,H) would generate at this tier."""
+            _tot = 0
+            for _b in res + [b for _, b in outs[:_no]]:
+                _lo, _hi = rel[_b], due[_b] - pt[_b]
+                if _hi < _lo:
+                    _nt = 1
+                else:
+                    _ts = {_lo, _hi}
+                    if _lo <= ent[_b] <= _hi:
+                        _ts.add(ent[_b])
+                    for _i in range(max(1, _ne)):
+                        _ts.add(_lo + (_hi - _lo) * _i // max(1, _ne - 1) if _ne > 1 else _lo)
+                    _nt = len(_ts)
+                    _pr = prob_info["blocks"][_b].get("bay_preferences") or [0]
+                    _w1e = float(prob_info["weights"]["w1"])
+                    _w3e = float(prob_info["weights"].get("w3", 0.0))
+                    if _w1e > 0.0 and _w3e * (max(_pr) - min(_pr)) >= _w1e:
+                        _nt += max(1, int(os.environ.get("OGC_LATEK", "1")))
+                _, _ob = _layers_bbox(B, _b)
+                for _q in _ob:
+                    _dw, _dh = _q[2] - _q[0], _q[3] - _q[1]
+                    _nx = int((W - _dw) // _st) + 1
+                    _ny = int((H - _dh) // _st) + 1
+                    if _nx > 0 and _ny > 0:
+                        _tot += _nx * _ny * _nt
+            return float(_tot)
 
         # NOW the tier can be chosen, because the column count is computable.  cranepack builds
         # its conflict graph with an O(ncol^2) double loop that never looks at the clock, so an
@@ -516,7 +565,9 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
                 the real work, which is what _pred is about to multiply.  Getting this wrong is
                 not conservative in a harmless direction: it would predict 4x for a 2x build and
                 make the chooser step down a tier it could afford."""
-                _per = [_ncol_est_bay(_st * BMUL[_i], _no, _ne, _W, _H)
+                _mu = _bmul(_st, _no, _ne)
+                BMUL[:] = _mu
+                _per = [_ncol_est_bay(_st * _mu[_i], _no, _ne, _W, _H)
                         for _i, (_W, _H) in enumerate(BDIM)]
                 if len(_per) > 1 and os.environ.get("BRK_DEBUG") == "1":
                     print("      ncol_est per bay %s  step x%s  (cand=%d res=%d frozen=%d)"
@@ -525,40 +576,6 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
                           flush=True)
                 return math.sqrt(sum(_v * _v for _v in _per))
 
-            def _ncol_est_bay(_st, _no, _ne, W, H):
-                """Columns one bay of size (W,H) would generate at this tier."""
-                _tot = 0
-                for _b in res + [b for _, b in outs[:_no]]:
-                    _lo, _hi = rel[_b], due[_b] - pt[_b]
-                    if _hi < _lo:
-                        _nt = 1
-                    else:
-                        _ts = {_lo, _hi}
-                        if _lo <= ent[_b] <= _hi:
-                            _ts.add(ent[_b])
-                        for _i in range(max(1, _ne)):
-                            _ts.add(_lo + (_hi - _lo) * _i // max(1, _ne - 1) if _ne > 1 else _lo)
-                        _nt = len(_ts)
-                        # THE LATE LADDER COSTS COLUMNS TOO.  This estimate is what chooses the
-                        # tier, and the tier is what keeps an uninterruptible build inside the
-                        # deadline.  It already omitted the single late window and under-counted
-                        # by one; a ladder of up to three would under-count by three, and that is
-                        # the direction that loses a run rather than a little quality.  An upper
-                        # bound is enough: the exact count needs the block's weight, which is not
-                        # known until after the target bay is fixed.
-                        _pr = prob_info["blocks"][_b].get("bay_preferences") or [0]
-                        _w1e = float(prob_info["weights"]["w1"])
-                        _w3e = float(prob_info["weights"].get("w3", 0.0))
-                        if _w1e > 0.0 and _w3e * (max(_pr) - min(_pr)) >= _w1e:
-                            _nt += max(1, int(os.environ.get("OGC_LATEK", "1")))
-                    _, _ob = _layers_bbox(B, _b)
-                    for _q in _ob:
-                        _dw, _dh = _q[2] - _q[0], _q[3] - _q[1]
-                        _nx = int((W - _dw) // _st) + 1
-                        _ny = int((H - _dh) // _st) + 1
-                        if _nx > 0 and _ny > 0:
-                            _tot += _nx * _ny * _nt
-                return float(_tot)
 
             # CALIBRATE THE RATE ON THIS MACHINE, ONCE, BEFORE CHOOSING.
             #
@@ -1129,26 +1146,55 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
             E.clear_all()
             for q, (j, o, x, y, en, ex) in keep.items():
                 E.add(int(j), int(q), int(o), float(x), float(y), int(en), int(ex))
+            # REHOMING MAY MOVE THE CLOCK, NOT ONLY THE BAY.
+            #
+            # This step used to demand a seat at the block's OWN UNCHANGED entry and exit, in some
+            # other bay, and killed the whole repack when it could not find one.  Measured, that
+            # is where the operator actually dies -- three instances, three different bay counts,
+            # every one of them the same line:
+            #
+            #     P3   one bay  built 7.0 s, searched 44 s -> displaced b63  could not be rehomed
+            #     P20  one bay  built 15.4 s, searched 87 s -> displaced b14  could not be rehomed
+            #     P3   two bays built 0.6 s, searched 50 s -> displaced b194 could not be rehomed
+            #
+            # In each case the packer HAD a better arrangement and it was thrown away at the
+            # legalisation step, over one block.  The packer's model is what makes this happen: it
+            # prices seating a block and is free to leave the cheapest one out, but the problem
+            # does not allow a block to be left out -- so the block it dropped has to go somewhere,
+            # and demanding the same day as well as a different bay is a harder question than the
+            # objective ever asks.
+            #
+            # Lateness is PRICED, not forbidden: w1 per day of tardiness, and the rebuilt solution
+            # is scored by the real grader before it is returned.  So try the block's own time
+            # first -- across every bay, since a free move is always better -- and only then walk
+            # the entry forward a day at a time.  Never earlier: that could breach release_time,
+            # which is a constraint rather than a cost.  A repack that pays for the delay survives
+            # the final comparison and one that does not is still rejected, so the bound on the
+            # walk is about cost, not about safety.
+            _order2 = ([k for k in range(m) if k not in BSET] or list(BAYS))
+            _RETRY = max(1, int(os.environ.get("OGC_BRKRETRY", "16")))
             for i in displaced:
                 b = cand[i]
                 seated = False
-                # Outside the repacked set first, in preference order.  If the set IS the whole
-                # yard -- which it is whenever a two-bay instance is repacked jointly -- fall
-                # back to the repacked bays themselves: the packer refused this block on its
-                # COARSE grid, and feasible_scan works on the real one, so a seat it could not
-                # find may still exist.  The engine and then the grader both still have to agree.
-                _order2 = ([k for k in range(m) if k not in BSET] or list(BAYS))
-                for j in sorted(_order2, key=lambda k: -pref[b][k]):
-                    r = E.feasible_scan(int(b), [int(j)], int(ent[b]), int(ext[b]), 1)
-                    if len(r):
-                        E.add(int(j), int(b), int(r[0][1]), float(r[0][2]), float(r[0][3]),
-                              int(ent[b]), int(ext[b]))
-                        keep[b] = (j, int(r[0][1]), float(r[0][2]), float(r[0][3]),
-                                   ent[b], ext[b])
-                        seated = True
+                _dur = ext[b] - ent[b]
+                _bo = sorted(_order2, key=lambda k: -pref[b][k])
+                for _d in range(_RETRY):
+                    _en, _ex = ent[b] + _d, ext[b] + _d
+                    for j in _bo:
+                        rr = E.feasible_scan(int(b), [int(j)], int(_en), int(_ex), 1)
+                        if len(rr):
+                            E.add(int(j), int(b), int(rr[0][1]), float(rr[0][2]),
+                                  float(rr[0][3]), int(_en), int(_ex))
+                            keep[b] = (j, int(rr[0][1]), float(rr[0][2]), float(rr[0][3]),
+                                       _en, _ex)
+                            seated = True
+                            break
+                    if seated:
+                        if _d and _dbg:
+                            _say("displaced b%d rehomed %d day(s) late" % (b, _d))
                         break
                 if not seated:
-                    _say("displaced b%d could not be rehomed in any other bay" % b)
+                    _say("displaced b%d could not be rehomed within %d days" % (b, _RETRY))
                     return None
         if len(keep) != n:
             _say("rebuilt %d of %d blocks" % (len(keep), n))
