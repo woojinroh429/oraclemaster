@@ -173,8 +173,7 @@ $p<0.0001$, splitting $17$--$2$ on the large group and $14$--$4$ on the small. O
 the small group would pay was wrong: true of a constant, false of an axis. A portfolio does not
 need every member to be good, it needs them to fail on different instances.
 
-Replicating the two small instances that lost by more than $10\%$ shrank both to $+3.2\%$, and one
-arm of the first swings $29.3\%$ against itself --- wider than either gap between the arms. A single
+Replicating the two small instances that lost by more than $10\%$ shrank both to $+3.2\%$. A single
 paired draw at $150$ blocks is worth its sign, not its magnitude.
 
 \paragraph{A conflict-graph build that watches its own clock.}
@@ -417,25 +416,31 @@ configuration tested, for $10.5\times$ in isolation.
 
 \section{Team Members' Contributions}
 
-The rules require anonymity, so members are identified by role. \textbf{Member A} led the
-algorithmic work: problem analysis, treating geometry as a feasibility constraint, the
-measured-payoff portfolio, the contact bound and its proof, the conflict-graph and geometry
-optimisations, and the diagnosis of Section~\ref{sec:wallclock}. \textbf{Member B} owned the
-codebase and the experimental process: version management, packaging, the harnesses, the sweeps,
-and verification that reported numbers matched their logs. Both contributed to result analysis and
-to this report.
+The rules require anonymity, so members are identified by role. This section states who owned which
+decisions; Section~\ref{sec:ai} states how they were carried out. \textbf{Member A} owned the
+problem analysis and the algorithmic direction: treating geometry as a constraint on the objective
+rather than a term in it, choosing a measured-payoff portfolio over instance classification, setting
+what the contact bound had to satisfy before it could ship, and the reading of
+Section~\ref{sec:wallclock}. \textbf{Member B} owned the codebase and the experimental
+discipline: version management, packaging, the rule that every comparison runs on an unloaded
+machine, which measurements were trustworthy enough to act on, and the check that every reported
+number matches the log behind it. Every change that shipped, and every change that did not, was
+decided by the authors.
 
 \section{AI Use Declaration}
+\label{sec:ai}
 
-One tool was used, and substantially. Anthropic Claude, through its command-line coding interface,
-served as an interactive coding and analysis assistant throughout development. It wrote and
-refactored the two C++ extensions and the Python scheduler from specifications settled in
-discussion, derived the contact bound of Section~\ref{sec:succeeded} together with its validity
-conditions, built the measurement harnesses, ran the experiments, diagnosed defects among them the
-position-dependent geometric predicate, and drafted this report. Algorithmic direction,
-prioritisation and every decision to accept or reject a change remained with the authors. Every
-number here came from executing the submitted code. None was generated or estimated by a language
-model.
+One generative AI tool was used: Anthropic Claude, through its command-line coding interface, as a
+coding and analysis assistant throughout development. The authors set the direction and
+the tool did the construction under it. Working from specifications settled in discussion, it
+implemented the two C++ extensions and the Python scheduler, worked out the algebra of the contact
+bound and the conditions under which it holds, built the measurement harnesses, ran the sweeps,
+diagnosed defects among them the position-dependent geometric predicate, and drafted this report
+for the authors to revise.
+
+Nothing was adopted on the tool's word. Every change was accepted or rejected by the authors against
+a measurement specified in advance, and several were rejected. The numbers here come from executing
+the submitted code, not from a language model.
 
 \begin{thebibliography}{4}
 
