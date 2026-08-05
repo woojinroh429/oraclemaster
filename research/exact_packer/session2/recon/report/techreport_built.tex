@@ -19,8 +19,8 @@ starting observation is that the objective $w_1Z_1+w_2Z_2+w_3Z_3$ reads only the
 entry time)---coordinates and orientation appear nowhere in it. Geometry is therefore a
 feasibility constraint that decides how much scheduling freedom exists, not a term to be optimised
 directly. The two training sets do not even share a shape --- half the preliminary instances carry
-no tardiness at all and none of the final ones are free of it --- so we avoid density thresholds
-and instance classification entirely: one portfolio of six operators competes for the budget on
+no tardiness at all, none of the final forty do --- so we avoid density thresholds and instance
+classification entirely: one portfolio of six operators competes for the budget on
 measured payoff per second, and every hot loop lives in one of two C++ extensions. Our main contributions are an exact contact upper bound that skips $40.8\%$ of the
 candidate cells while provably returning the identical solution, a $10.5\times$ faster
 conflict-graph build verified by an unchanged edge count, and a position-independent geometric
@@ -54,9 +54,9 @@ height, not occupancy, which is why the descent test is layer-by-layer.
 \paragraph{The two rounds do not have the same shape.}
 At a uniform $60$\,s the preliminary training set is bimodal: $Z_1$ is exactly zero on twenty of its
 forty instances and strictly positive on the other twenty (Table~\ref{tab:train}). The final-round
-training set is not bimodal at all --- every instance is late, and the share of the objective
-carried by tardiness spreads continuously across the whole range with no gap
-(Table~\ref{tab:final}). Where $Z_1$ vanishes the entry times are free and the problem is an
+set is not bimodal at all. All forty of its instances are late, and the share of the objective
+carried by tardiness spreads from $2.5\%$ to $97.9\%$ with no gap wider than fifteen points
+anywhere in it (Table~\ref{tab:final}). Where $Z_1$ vanishes the entry times are free and the problem is an
 assignment dominated by preference; where the yard is saturated they are the whole objective.
 Neither shape admits a threshold --- in the first the classes are separate but the boundary is
 unobservable, in the second there are no classes --- so we built a scheduler that measures which
@@ -372,13 +372,13 @@ preliminary one, and $w_3$ reaches $800$ against $600$.}
 \midrule
 Blocks $n$ & 200 & 100--300 & 225 & 150--300 \\
 Bays $m$ & 3 & 2--5 & 3 & 2--5 \\
-Tardiness $Z_1$ & 0 & 0--2{,}629 & 432 & 1--10{,}536 \\
+Tardiness $Z_1$ & 0 & 0--2{,}629 & 480 & 1--10{,}536 \\
 Imbalance $Z_2$ & 2{,}142 & 144--7{,}860 & 2{,}425 & 91--15{,}458 \\
-Preference $Z_3$ & 656 & 0--10{,}436 & 4{,}708 & 196--10{,}614 \\
-Objective & 99{,}339 & 1{,}499--36{,}012{,}305 & 4{,}632{,}106 & 6{,}804--75{,}792{,}403 \\
+Preference $Z_3$ & 656 & 0--10{,}436 & 4{,}210 & 196--10{,}614 \\
+Objective & 99{,}339 & 1{,}499--36{,}012{,}305 & 5{,}005{,}623 & 6{,}804--75{,}792{,}403 \\
 \midrule
-Instances with $Z_1=0$ & \multicolumn{2}{c}{20 of 40} & \multicolumn{2}{c}{0 of 38} \\
-Feasible & \multicolumn{2}{c}{40 of 40} & \multicolumn{2}{c}{38 of 38} \\
+Instances with $Z_1=0$ & \multicolumn{2}{c}{20 of 40} & \multicolumn{2}{c}{0 of 40} \\
+Feasible & \multicolumn{2}{c}{40 of 40} & \multicolumn{2}{c}{40 of 40} \\
 \bottomrule
 \end{tabular}
 \end{table}
