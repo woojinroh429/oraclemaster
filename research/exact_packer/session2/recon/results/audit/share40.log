@@ -14,3 +14,8 @@ P25 [shr.25]       180s  obj=70175674    Z1=10278.0  Z2=1762   Z3=8226.0    feas
 # [fix.22]
 WSTAT round=0 n=4 6061 5875 6566 9834  spread=67.39%
 P22 [fix.22]       180s  obj=5378        Z1=3.0      Z2=1241   Z3=104.0     feas=y   ran 179s  py3.12
+# [shr.22]
+RESTART wid=2 at 37% mine=13156 lead=6107
+RESTART wid=3 at 44% mine=9834 lead=6107
+WSTAT round=0 n=4 6061 6107 11128 9834  spread=83.60%
+P22 [shr.22]       180s  obj=6061        Z1=10.0     Z2=541    Z3=71.0      feas=y   ran 179s  py3.12
