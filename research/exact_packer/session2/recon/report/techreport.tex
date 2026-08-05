@@ -61,9 +61,9 @@ instances and strictly positive on the other twenty (Table~\ref{tab:train}), the
 $1{,}499$ to $36{,}012{,}305$, and on the final instances the tardiness share runs from $0\%$ to
 $97.4\%$ with nothing in between. Where $Z_1$ vanishes the entry times are free and the problem is
 an assignment dominated by preference; where the yard is saturated they are the whole objective. A
-hand-drawn density threshold has to guess where that switch lies and the observed distribution
-gives no evidence about it, so we built a scheduler that measures which operator is paying rather
-than one that classifies the instance.
+hand-drawn threshold has to guess where that switch lies and the distribution gives no evidence
+about it, so we built a scheduler that measures which operator is paying rather than one that
+classifies the instance.
 
 \subsection{Contributions}
 
@@ -100,12 +100,11 @@ rather than a tally of accepted moves.
 
 \paragraph{Selection and sizing are different questions.}
 Slice size is deliberately not driven by the selection signal. Sizing on payoff death-spirals: a
-construction returning a perfectly good solution that merely fails to beat the incumbent scores
-zero gain, shrinks, and can then no longer finish at all. We measured fourteen calls returning four
-solutions while the objective moved from $48{,}840$ to $56{,}841$. Size is instead a completion
-question: an operator that returned nothing was starved and is given more, one that returned
-anything fitted, and a repair pass is given what it used. The opening slices are asymmetric for the
-same reason, and both symmetric alternatives measured worse.
+construction returning a good solution that merely fails to beat the incumbent scores zero gain,
+shrinks, and can then no longer finish at all --- fourteen calls returning four solutions while the
+objective moved from $48{,}840$ to $56{,}841$. Size is a completion question instead: an operator
+that returned nothing was starved and is given more, one that returned anything fitted, and a
+repair pass is given what it used.
 
 \subsection{Key Ideas that Succeeded}
 \label{sec:succeeded}
@@ -121,17 +120,15 @@ Contact admits two measures. A per-layer one describes the geometry better, sinc
 shorter neighbour earns nothing for the layers facing open air, and it is implemented. The
 submitted configuration nevertheless uses the flat measure, because the bound below is derived
 against a flat occupancy prefix sum, which does not dominate per-layer occupancy: the two cannot
-both be on. The bound is worth $1.09$--$1.85\times$ in scanned cells at an identical placement
-digest, and a sharper heuristic that forfeits it loses more search than it directs. This is a
-constraint we accepted rather than a property we wanted; with a per-layer bound the choice would
-likely go the other way, and that derivation is left undone.
+both be on, and the bound is worth $1.09$--$1.85\times$ in scanned cells at an identical placement
+digest. This is a constraint we accepted rather than a property we wanted; with a per-layer bound
+the choice would likely go the other way, and that derivation is left undone.
 
 \paragraph{An exact contact upper bound.}
-Profiling showed $86\%$ of scored cells were evaluated after the best cell of that scan had
-already been found. Bounding the positional term fired zero times in $112.9$ million cells: the
-score is contact-dominated by more than an order of magnitude (a positional range of $\approx 2.3$
-against a contact range of $\approx 60$), so a bound that knows only the sweep coordinate is never
-competitive.
+Profiling showed $86\%$ of scored cells were evaluated after the best cell of that scan had already
+been found. Bounding the positional term fired zero times in $112.9$ million cells: the score is
+contact-dominated by more than an order of magnitude (ranges of $\approx 2.3$ against $\approx 60$),
+so a bound knowing only the sweep coordinate is never competitive.
 
 Bounding the contact itself inverts this. Contact counts, for each occupied footprint cell, its
 four neighbours: one for a neighbour outside the bay, nothing for one inside the same footprint,
@@ -157,16 +154,15 @@ state by rollout to rank survivors: on expiry it completes the incumbent rather 
 it.
 
 That exposes a knob rather than a patch: the fraction of its slice the beam claims before handing
-the remainder to the rollout. Sweeping it down improves large instances monotonically ($-24.3\%$
-to $-11.9\%$ at one tenth, on four $250$--$300$-block instances) and harms small ones
-monotonically, since the beam finishes anyway there and a low aim only narrows it ($+25.09\%$ at
-$150$ blocks). We did not resolve that by testing instance size. The workers are already a
-portfolio whose minimum is the answer, so half run the low aim and half the high one, each group
-carrying the instances the other loses, and nothing is gated. Over $37$ paired final instances this
-is $31$ better against $6$ worse, median $-3.44\%$, sign test $p<0.0001$, splitting $17$--$2$ on
-the large group and $14$--$4$ on the small one. Our prediction that the small group would pay was
-wrong: true of a constant, false of an axis. A portfolio does not need every member to be good, it
-needs them to fail on different instances.
+the remainder to the rollout. Sweeping it down improves large instances monotonically ($-24.3\%$ to
+$-11.9\%$ at one tenth) and harms small ones monotonically, since the beam finishes anyway there
+and a low aim only narrows it ($+25.09\%$ at $150$ blocks). We did not resolve that by testing
+instance size. The workers are already a portfolio whose minimum is the answer, so half run the low
+aim and half the high one, each group carrying the instances the other loses, and nothing is gated.
+Over $37$ paired final instances this is $31$ better against $6$ worse, median $-3.44\%$, sign test
+$p<0.0001$, splitting $17$--$2$ on the large group and $14$--$4$ on the small. Our prediction that
+the small group would pay was wrong: true of a constant, false of an axis. A portfolio does not
+need every member to be good, it needs them to fail on different instances.
 
 Replicating the two small instances that lost by more than $10\%$ shrank both to a median of
 $+3.2\%$, and one arm of the first swings $29.3\%$ against itself, wider than either gap between the
@@ -184,15 +180,14 @@ before. The build also projects its own completion every $256$ rows and steps do
 configuration it can finish rather than losing the call.
 
 The rows are independent, so the loop is finally parallel. What is not independent is where the
-results go: each thread accumulates its own edge list, and the memo on the conflict predicate is
-shared. Sharing it naively is not merely racy but silently wrong, because the table is
-open-addressed and two threads inserting different keys can both claim one empty slot, the loser
-then writing its verdict into the winner's entry. A slot is therefore claimed by
-compare-and-exchange and only by that. Relaxed ordering suffices because the value is a pure
-function of the key. A private memo per thread was tried first and gave almost all the parallel
-gain back ($1.10\times$), since reuse is where this loop's speed lives; sharing it correctly
-reaches $1.43\times$ on four cores, $19.3\,\mathrm{s}\rightarrow13.5\,\mathrm{s}$ on a
-$43{,}320$-column build, at an edge count of $133{,}863{,}098$ in every arm.
+results go: each thread keeps its own edge list, and the memo on the conflict predicate is shared.
+Sharing it naively is not merely racy but silently wrong, because the table is open-addressed and
+two threads inserting different keys can both claim one empty slot, the loser then writing its
+verdict into the winner's entry. A slot is therefore claimed by compare-and-exchange and only by
+that; relaxed ordering suffices because the value is a pure function of the key. A private memo per
+thread gave almost all the parallel gain back ($1.10\times$), since reuse is where this loop's
+speed lives, while sharing it correctly reaches $1.43\times$ on four cores at an edge count of
+$133{,}863{,}098$ in every arm.
 
 We then failed to spend the headroom. Widening the $40$-outsider candidate cap had once cost
 $331$\,s of a $180$\,s budget and now costs $179$\,s, but the wider list scored $3$ better against
@@ -220,18 +215,16 @@ offered window is priced by the only term an entry time can move,
 p(w) \;=\; g \;-\; w_1\bigl(\max(0,\,e_w - d) - \max(0,\,e_0 - d)\bigr),
 \end{equation}
 with $g$ the gain of the move, $e_w$ the exit under window $w$, $e_0$ the current exit and $d$ the
-due date. It is exact in both directions, so a window \emph{earlier} than the block's current
-entry is priced above the base and the solver can now be paid for pulling a block forward---a
-thing a per-block weight cannot represent at all. On the $39$ final instances measured, the priced
-form is $20$ better against $9$ worse (sign test $p\approx0.03$, mean $-0.74\%$), and it does no
-harm on the instances where no late window can open. The largest single gain is $-6.30\%$ on the
-one instance where our submitted entry had been furthest behind.
+due date. It is exact in both directions, so a window \emph{earlier} than the block's current entry
+prices above the base and the solver can be paid for pulling a block forward, which a per-block
+weight cannot represent at all. On $39$ final instances the priced form is $20$ better against $9$
+worse (sign test $p\approx0.03$, mean $-0.74\%$) and does no harm where no late window can open.
 
 \paragraph{Offset-relative geometry.}
-Memoising the conflict predicate initially produced $36$ extra edges. We assumed key aliasing;
-dumping the disagreements showed the predicate itself was position-dependent through
-floating-point rounding. Comparing origin outlines plus an offset makes the verdict independent of
-absolute position, which fixed the memo by fixing the predicate.
+Memoising the conflict predicate produced $36$ extra edges. We assumed key aliasing; dumping the
+disagreements showed the predicate itself was position-dependent through floating-point rounding.
+Comparing origin outlines plus an offset makes the verdict independent of absolute position, which
+fixed the memo by fixing the predicate.
 
 \subsection{Key Ideas that Failed}
 \label{sec:failed}
@@ -258,20 +251,18 @@ better. We priced that per instance, as the competition scores, and shipped with
 disabled: $-7.7\%$ against $+2.2\%$ is a losing trade.
 
 \paragraph{A better incumbent can repack worse.}
-The same investigation produced a second surprise. Incumbents worth $97{,}570$, $100{,}685$ and
-$107{,}195$ yielded repacking improvements of $9{,}580$, $13{,}510$ and $24{,}100$: better
-incumbents repack worse. A tight solution has no slack left, and this operator eats slack. Its
-result is a function of the incumbent's layout, not of its objective, yet the roster hands it the
-best-scoring solution every time.
+Incumbents worth $97{,}570$, $100{,}685$ and $107{,}195$ yielded repacking improvements of
+$9{,}580$, $13{,}510$ and $24{,}100$: better incumbents repack worse. A tight solution has no slack
+left and this operator eats slack, so its result is a function of the incumbent's layout rather
+than its objective --- yet the roster hands it the best-scoring solution every time.
 
 \paragraph{Two optimisations that were simply wrong.}
 A free-column bitset for the packing search was proved to give identical results and then measured
-$1.6$--$1.9\times$ \emph{slower}: its saving scales with columns per block, its cost with edges,
-and we had assumed the wrong line was hot. Separately, we twice predicted the contact bound's
-benefit from its firing rate ($1.3\%$ and $3.4\%$ of cells) and were wrong in the same direction
-both times ($1.09\times$ and $1.66\times$ actual). Most cells are rejected by a cheap bitmap probe,
-while the cells a bound removes are exactly those that would have reached the exact geometric test.
-Cell counts are not seconds.
+$1.6$--$1.9\times$ \emph{slower}: its saving scales with columns per block, its cost with edges, and
+we had assumed the wrong line was hot. We also twice predicted the contact bound's benefit from its
+firing rate ($1.3\%$ and $3.4\%$ of cells) and were wrong in the same direction both times. Most
+cells are rejected by a cheap bitmap probe, while the cells a bound removes are exactly those that
+would have reached the exact geometric test. Cell counts are not seconds.
 
 \subsection{Further Improvement Plan}
 \label{sec:plan}
@@ -289,11 +280,9 @@ member, since its yield depends on slack rather than quality; the re-growth oper
 samples the pool, so the mechanism exists.
 
 Third, that operator's cost model deserves the scrutiny its search has had. It declines a
-configuration whose predicted build will not fit the budget, from a rate fitted to two
-micro-builds, and both terms of the fit are suspect: it charges a fixed parsing cost to the
-quadratic term, and calibrates against the solver's true column count while being applied to our
-own upper bound on it. Each error is squared by the prediction and both push the same way, towards
-declining work the budget could afford.
+configuration whose predicted build will not fit the budget, and the prediction charges a fixed
+parsing cost to a quadratic term and mixes two different column counts. Both errors are squared,
+and both push towards declining work the budget could afford.
 
 \section{Implementation Details}
 \label{sec:implementation}
@@ -308,24 +297,23 @@ nested.
 \paragraph{The repacking operator.}
 \label{sec:repack}
 This operator lifts every block out of the most contested bay, adds the outside blocks that might
-want to enter it, and hands the set to a maximum-weight set-packing solver over space--time
-columns weighted in objective units. Destroying a whole bay and rebuilding it is ruin and
+want to enter it, and hands the set to a maximum-weight set-packing solver over space--time columns
+weighted in objective units. Destroying a bay and rebuilding it is ruin and
 recreate~\cite{schrimpf2000} with an exact recreate step, and the selection is a maximum-weight
-independent set over the conflict graph, searched by the swap-based scheme of Andrade et
-al.~\cite{andrade2012}. A call has two phases of different
-character: an uninterruptible conflict-graph build and a deadline-honouring local search. The
+independent set searched by the swap-based scheme of Andrade et al.~\cite{andrade2012}. A call has
+two phases of different character: an uninterruptible build and a deadline-honouring search. The
 solver takes a total-time bound and enforces it against its own measured build cost rather than a
 predicted one; an earlier version subtracted a predicted build from the search budget as well,
 double-charging it. The configuration ladder is expressed as fractions of each instance's own
-entry-time ceiling, so window widths are derived from the instance rather than fitted to it.
+entry-time ceiling, so window widths come from the instance rather than being fitted to it.
 
 \paragraph{Verification instrumentation.}
 The engines carry counters for cells visited, exact tests, cheap rejections, cells scored after the
 best was found and cells skipped by the bound, plus a soundness mode that scores every cell the
-bound wanted to skip and counts those that would have won. On three instances of very different
-density that count was zero out of $45.9$, $11.6$ and $9.3$ million skipped cells. An earlier bound
-had passed an identity check that was meaningless because the branch never executed, so we stopped
-accepting outcome comparisons as evidence and began testing the property itself.
+bound wanted to skip and counts those that would have won: zero out of $45.9$, $11.6$ and $9.3$
+million on three instances of very different density. An earlier bound had passed an identity check
+that was meaningless because the branch never executed, so we stopped accepting outcome comparisons
+as evidence and began testing the property itself.
 
 \section{Computational Results}
 
@@ -345,20 +333,38 @@ the split noted above is visible directly: $Z_1$ is zero on instances 1--20 and 
 
 \begin{table}[t]
 \centering
-\caption{Successive changes. Differences inside the run-to-run spreads quoted in the text are
-not claimed as improvements.}
-\label{tab:progress}
-\begin{tabular}{lrr}
+\caption{Objective returned on the eight final-round instances by each of our three submissions.
+Between the first and the second we shipped per-seat window pricing and the parallel
+conflict-graph build; between the second and the third, the beam salvage of
+Section~\ref{sec:succeeded} and the split-aim worker portfolio.}
+\label{tab:subs}
+\begin{tabular}{lrrrr}
 \toprule
-Configuration & Sparse instance & Dense instance \\
+Instance & Submission 1 & Submission 2 & Submission 3 & 1 to 3 \\
 \midrule
-Portfolio without the repacking operator                    & 96{,}990 & --- \\
-$+$ exact bay repacking                                     & 80{,}795 & 29{,}651{,}637 \\
-$+$ faster build, derived configuration ladder              & 80{,}795 & 29{,}566{,}129 \\
-$+$ contact bound enabled (\emph{not shipped})              & 86{,}975 & 29{,}566{,}129 \\
+1     & 3{,}068{,}862  & 3{,}328{,}237  & 2{,}847{,}060  & $-7.2\%$ \\
+2     & 19{,}829{,}534 & 20{,}337{,}489 & 20{,}063{,}787 & $+1.2\%$ \\
+3     & 5{,}886{,}589  & 5{,}867{,}652  & 5{,}613{,}271  & $-4.6\%$ \\
+4     & 4{,}421{,}375  & 4{,}283{,}430  & 4{,}681{,}440  & $+5.9\%$ \\
+5     & 6{,}308{,}099  & 6{,}104{,}015  & 6{,}148{,}480  & $-2.5\%$ \\
+6     & 1{,}024{,}046  & 1{,}053{,}770  & 968{,}674      & $-5.4\%$ \\
+7     & 16{,}385{,}030 & 16{,}285{,}457 & 16{,}310{,}765 & $-0.5\%$ \\
+8     & 17{,}079{,}881 & 16{,}023{,}014 & 17{,}347{,}930 & $+1.6\%$ \\
+\midrule
+Total & 74{,}003{,}416 & 73{,}283{,}064 & 73{,}981{,}407 & $-0.0\%$ \\
 \bottomrule
 \end{tabular}
 \end{table}
+
+\paragraph{Across submissions.}
+Table~\ref{tab:subs} gives the objective each of our three submissions returned on the eight
+final-round instances. The honest reading is that it does not separate the changes from the noise.
+Every per-instance move is smaller than the spread the algorithm produces against itself: three
+replicates of one unchanged build on a $150$-block instance returned $1{,}075{,}322$, $831{,}362$
+and $923{,}531$, a range of $29.3\%$, against a largest move here of $7.2\%$. Both shipping steps
+also bundled two changes, so neither is a controlled comparison. What the table does record is the
+direction: five of eight instances improved from the first submission to the third, and the total
+is flat.
 
 \paragraph{Per-seat pricing, on the final practice set.}
 The change described in Section~\ref{sec:succeeded} was judged on all forty final practice
@@ -386,10 +392,10 @@ solver with no late window offered, split by whether the instance's weights perm
 \end{tabular}
 \end{table}
 
-The priced form is $20$--$9$ and does no harm on the four instances where no window can open, which
-was the condition we set in advance for enabling it by default. The effect shrank as the sample
-grew, from $-1.61\%$ at twelve instances to $-0.74\%$ at thirty-nine: the first twelve had been
-chosen as the most favourable for the trade, so the early figure was optimistic by construction.
+The priced form is $20$--$9$ and does no harm on the four instances where no window can open, the
+condition we had set in advance for enabling it by default. The effect shrank as the sample grew,
+from $-1.61\%$ at twelve instances to $-0.74\%$ at thirty-nine: the first twelve had been chosen as
+the most favourable for the trade.
 
 Two cautions belong with these numbers rather than after them. Run-to-run spread on the densest
 instance is about $112{,}000$ on unchanged code, so smaller differences are noise. The sparsest is
@@ -400,24 +406,14 @@ reproducible figure.
 
 \paragraph{Speed, measured at identical work.}
 A fixed-time A/B cannot evaluate an accelerated search: both arms consume the same budget, so the
-faster one legitimately reaches a different solution. We replay a single construction call with
-identical arguments and no deadline, and compare a digest over every returned placement.
+faster one legitimately reaches a different solution. We replay one construction call with
+identical arguments and no deadline, and compare a digest hashing every returned placement, so
+``identical'' means the whole solution. On a sparse, a mid-density and a dense instance the bound
+skipped $45.9$\,M ($40.8\%$), $11.6$\,M ($3.4\%$) and $9.3$\,M ($1.3\%$) candidate cells, none of
+them unsound, for $103.52\rightarrow55.99$\,s, $27.43\rightarrow16.55$\,s and
+$102.72\rightarrow94.61$\,s at an identical digest in all three: $1.85\times$, $1.66\times$ and
+$1.09\times$.
 
-\begin{table}[t]
-\centering
-\caption{Contact bound: one construction call, identical arguments, deadline lifted. The digest
-hashes every returned placement, so ``identical'' means the whole solution.}
-\label{tab:bound}
-\begin{tabular}{lrrrrl}
-\toprule
-Instance & cells skipped & unsound skips & without (s) & with (s) & result \\
-\midrule
-Sparse & 45.9\,M\;(40.8\%) & 0 & 103.52 & 55.99 & identical, $1.85\times$ \\
-Mid    & 11.6\,M\;(3.4\%)  & 0 &  27.43 & 16.55 & identical, $1.66\times$ \\
-Dense  &  9.3\,M\;(1.3\%)  & 0 & 102.72 & 94.61 & identical, $1.09\times$ \\
-\bottomrule
-\end{tabular}
-\end{table}
 
 The conflict-graph build was accepted only after its edge count was confirmed unchanged on every
 configuration tested, for a $10.5\times$ speedup in isolation.
@@ -427,14 +423,12 @@ configuration tested, for a $10.5\times$ speedup in isolation.
 The rules require anonymity, so members are identified by role.
 
 \textbf{Member A} led the algorithmic work: problem analysis, the decision to treat geometry as a
-feasibility constraint rather than an objective term, the measured-payoff portfolio, the contact
-bound and its proof, the conflict-graph and geometry optimisations, and the diagnosis of the
-wall-clock dependence of Section~\ref{sec:wallclock}.
-
-\textbf{Member B} owned the codebase and the experimental process: version management, packaging,
-the harnesses and the discipline of running every comparison on an unloaded machine, the training
-and validation sweeps, and verification that reported numbers matched the logs behind them. Both
-contributed to result analysis and to this report.
+feasibility constraint, the measured-payoff portfolio, the contact bound and its proof, the
+conflict-graph and geometry optimisations, and the diagnosis of the wall-clock dependence of
+Section~\ref{sec:wallclock}. \textbf{Member B} owned the codebase and the experimental process:
+version management, packaging, the harnesses and the discipline of running every comparison on an
+unloaded machine, the sweeps, and verification that reported numbers matched the logs behind them.
+Both contributed to result analysis and to this report.
 
 \section{AI Use Declaration}
 
@@ -442,9 +436,9 @@ Generative AI was used substantially, as an interactive coding and analysis assi
 Claude, through its command-line coding interface) throughout development. It implemented and
 refactored the two C++ extensions and the Python scheduler from specifications settled in
 discussion, derived the contact bound of Section~\ref{sec:succeeded} and its validity conditions,
-wrote the measurement harnesses including the per-cell soundness check and the identical-work
-replay behind Table~\ref{tab:bound}, ran the experiments, diagnosed defects among them the
-position-dependence of the geometric predicate, and drafted this report.
+wrote the harnesses including the per-cell soundness check and the identical-work replay behind
+the contact-bound figures, ran the experiments, diagnosed defects among them the position-dependence of
+the geometric predicate, and drafted this report.
 
 Algorithmic direction, prioritisation and every decision to accept or reject a change remained
 with the authors. Every number reported here was produced by executing the submitted code on the
