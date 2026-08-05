@@ -438,8 +438,35 @@ def _contact_beam(prob_info, deadline_s, B=24, K=4, pos_lam=0.1, prefw=0.0, orde
                                             "y": int(_flat[i + 4]), "entry_time": int(_flat[i + 5]),
                                             "exit_time": int(_flat[i + 6])}
                             for i in range(0, len(_flat), 7)}
-            except Exception:
-                pass
+                # SALVAGE A PARTIAL BEAM.  The C++ beam returns what it has when its deadline
+                # hits, and this discarded anything short of all n blocks -- which is the whole
+                # cliff.  Measured on the shipped build, one run per cell, X = _safe_sequential:
+                #
+                #     blocks          60s  90s 110s 130s 150s 180s
+                #     prob_36  300     X    X    X   ok   ok   ok
+                #     prob_20  250     X    X   ok   ok   ok   ok
+                #     prob_24  150    ok   ok   ok   ok   ok   ok
+                #
+                # prob_36 at 110 s is 4,023,023,433 against 96,871,459 at 130 s -- 42x -- and it
+                # is a cliff rather than a slope precisely because a partial answer is thrown
+                # away rather than finished.
+                #
+                # greedy_contact_from completes a partial state by rollout; it is the same call
+                # the Python beam uses to rank its survivors, so nothing new is being trusted.
+                _bdbg("contact_beam returned %d of %d blocks" % (len(_flat) // 7, n))
+                if _flat and len(_flat) >= 7:
+                    _v, _f2 = E.greedy_contact_from(list(_flat), order_ids, step, pos_lam,
+                                                    prefw, mu, w1, w3, fut_beta, _meanp)
+                    if _f2 and len(_f2) == 7 * n:
+                        _bdbg("salvaged to %d blocks" % (len(_f2) // 7))
+                        return {int(_f2[i]): {"block_id": int(_f2[i]), "bay_id": int(_f2[i + 1]),
+                                              "orient_idx": int(_f2[i + 2]), "x": int(_f2[i + 3]),
+                                              "y": int(_f2[i + 4]), "entry_time": int(_f2[i + 5]),
+                                              "exit_time": int(_f2[i + 6])}
+                                for i in range(0, len(_f2), 7)}
+                    _bdbg("salvage rollout gave %d blocks" % (len(_f2) // 7 if _f2 else 0))
+            except Exception as _e:
+                _bdbg("contact_beam path raised %r" % (_e,))
             return None
 
         def reconstruct(recs):
@@ -479,6 +506,8 @@ def _contact_beam(prob_info, deadline_s, B=24, K=4, pos_lam=0.1, prefw=0.0, orde
                 if not _SALV:
                     return None
                 _bailed = True
+                _bdbg("salvage: bailed after %d/%d blocks, %.1fs of %.1fs"
+                      % (len(beam[0][0]) if beam else 0, n, _t.time() - t0, deadline_s))
                 break
             cur = rel[bi]; newbeam = []
             for (recs, loads, cumC) in beam:
@@ -534,12 +563,16 @@ def _contact_beam(prob_info, deadline_s, B=24, K=4, pos_lam=0.1, prefw=0.0, orde
             if ob < best_obj:
                 best_obj = ob; best_recs = rr
         if best_recs is None:
+            _bdbg("completion produced nothing (bailed=%s)" % _bailed)
             return None
+        if _bailed:
+            _bdbg("salvage completed, obj=%.0f" % best_obj)
         return {b: {"block_id": b, "bay_id": best_recs[b][1], "x": int(best_recs[b][3]),
                     "y": int(best_recs[b][4]), "orient_idx": best_recs[b][2],
                     "entry_time": best_recs[b][5], "exit_time": best_recs[b][6]}
                 for b in best_recs}
-    except Exception:
+    except Exception as _e:
+        _bdbg("contact_beam raised %r" % (_e,))
         return None
 
 def _safe_sequential(prob_info):
@@ -1254,6 +1287,12 @@ def _draw_order(prob_info, cfg, k):
     return out
 
 
+def _bdbg(msg):
+    import os as _o, sys as _sy
+    if _o.environ.get("OGC_SALVDBG") == "1":
+        _sy.stderr.write("    beam: %s\n" % msg); _sy.stderr.flush()
+
+
 def _beam_once(prob_info, budget, cfg, share=1.0):
     """One beam run, with a coarser position grid held in reserve.
 
@@ -1285,12 +1324,18 @@ def _beam_once(prob_info, budget, cfg, share=1.0):
                               pos_lam=cfg["pos_lam"], order=cfg["order"],
                               fut_beta=cfg["fut_beta"], prefw=cfg["prefw"],
                               w3mul=cfg["w3mul"], mum=cfg.get("mum", 1.0), cohort=cfg.get("cohort", 0.0), shadow=cfg.get("shadow", 0.0), span=cfg.get("span", 0.0), lex=cfg.get("lex", 0.0), shadoww=cfg.get("shadoww", 0.0), span2=cfg.get("span2", 0.0), hmatch=cfg.get("hmatch", 0.0), conw=cfg.get("conw", 1.0), swy=cfg.get("swy", 1.0), swx=cfg.get("swx", 0.01), step=step)
-        except Exception:
-            r = None
+        except Exception as _e:
+            _bdbg("step %d raised %s" % (step, _e)); r = None
         if r:
             s = _recs_to_ops(r, n)
-            if s is not None and _total(prob_info, s)[0] < float("inf"):
+            if s is None:
+                _bdbg("step %d: recs_to_ops None" % step)
+            elif _total(prob_info, s)[0] >= float("inf"):
+                _bdbg("step %d: infeasible" % step)
+            else:
                 return s          # a coarse step can land infeasible -- keep only real answers
+        else:
+            _bdbg("step %d: no recs (left=%.1fs of budget %.1fs)" % (step, left, budget))
     return None
 
 
