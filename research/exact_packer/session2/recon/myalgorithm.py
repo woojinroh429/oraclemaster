@@ -451,11 +451,35 @@ def _contact_beam(prob_info, deadline_s, B=24, K=4, pos_lam=0.1, prefw=0.0, orde
             vals = [u[j] * loads[j] for j in range(m)]
             return (max(vals) - min(vals)) if m > 1 else 0.0
 
+        # SALVAGE INSTEAD OF DISCARD.  This loop used to `return None` the moment it ran past its
+        # deadline, throwing away every block it had already placed.  The caller then had nothing
+        # but _safe_sequential, and that is a cliff rather than a slope -- measured on the shipped
+        # build, one run per cell:
+        #
+        #     blocks          60s  90s 110s 130s 150s 180s
+        #     prob_36  300     X    X    X   ok   ok   ok      110-130 s
+        #     prob_20  250     X    X   ok   ok   ok   ok       90-110 s
+        #     prob_24  150    ok   ok   ok   ok   ok   ok      under 60 s
+        #
+        # prob_36 at 110 s returns 4,023,023,433 against 96,871,459 at 130 s -- 42x -- and
+        # prob_20 at 90 s is 143x.  The hidden per-instance limits are not disclosed and this
+        # machine's own speed moved 8.4% within an hour, so the margin is not comfortable.
+        #
+        # Nothing new is needed to fix it: the block below already completes surviving states by
+        # contact rollout, because that is how it ranks them.  Breaking out and falling through
+        # gives the caller a real solution built from what was placed.  Only the best-ranked state
+        # is completed in that case -- we are already past the deadline, so one rollout is the
+        # affordable amount of overrun, where B of them would not be.
+        _SALV = os.environ.get("OGC_SALVAGE", "1") != "0"
+        _bailed = False
         t0 = _t.time()
         beam = [({}, [0.0] * m, 0.0)]   # (recs, loads, cum_contact)
         for bi in order_ids:
             if _t.time() - t0 > deadline_s:
-                return None   # ran out of budget mid-construction -> caller falls back
+                if not _SALV:
+                    return None
+                _bailed = True
+                break
             cur = rel[bi]; newbeam = []
             for (recs, loads, cumC) in beam:
                 reconstruct(recs)
@@ -494,7 +518,7 @@ def _contact_beam(prob_info, deadline_s, B=24, K=4, pos_lam=0.1, prefw=0.0, orde
             beam = [(r, l, c) for _, r, l, c in scored[:B]]
         # complete surviving states via contact rollout; keep min exact objective
         best_obj = float("inf"); best_recs = None
-        for (recs, loads, cumC) in beam:
+        for (recs, loads, cumC) in (beam[:1] if _bailed else beam):
             reconstruct(recs); st = []
             for r in recs.values():
                 st.extend((r[0], r[1], r[2], r[3], r[4], r[5], r[6]))
