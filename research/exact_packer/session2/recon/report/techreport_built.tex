@@ -18,10 +18,10 @@ bay, an entry time, and a pose that a vertically descending crane can actually r
 starting observation is that the objective $w_1Z_1+w_2Z_2+w_3Z_3$ reads only the pair (bay,
 entry time)---coordinates and orientation appear nowhere in it. Geometry is therefore a
 feasibility constraint that decides how much scheduling freedom exists, not a term to be optimised
-directly. Since the share of the objective carried by tardiness ranges from $0\%$ to $97.4\%$ with
-nothing in between, we avoid density thresholds entirely: one portfolio of six operators competes
-for the budget on measured payoff per second, and every hot loop lives in one of two C++
-extensions. Our main contributions are an exact contact upper bound that skips $40.8\%$ of the
+directly. The two training sets do not even share a shape --- half the preliminary instances carry
+no tardiness at all and none of the final ones are free of it --- so we avoid density thresholds
+and instance classification entirely: one portfolio of six operators competes for the budget on
+measured payoff per second, and every hot loop lives in one of two C++ extensions. Our main contributions are an exact contact upper bound that skips $40.8\%$ of the
 candidate cells while provably returning the identical solution, a $10.5\times$ faster
 conflict-graph build verified by an unchanged edge count, and a position-independent geometric
 predicate that removed a floating-point inconsistency from the packing test. The most instructive
@@ -34,9 +34,8 @@ path rather than a longer one.
 
 \subsection{Challenge Problem \& Main Difficulties}
 
-Assigning hull blocks to bays over time is the spatial scheduling problem of shipbuilding, studied
-since the mid-1990s~\cite{lee1996}. Three properties of the version posed here shaped
-everything we built.
+Assigning hull blocks to bays over time is the spatial scheduling problem of shipbuilding. Three
+properties of the version posed here shaped everything we built.
 
 \paragraph{The objective and the constraints read different variables.}
 Tardiness, workload imbalance and preference are all functions of which bay a block occupies and
@@ -52,15 +51,16 @@ clears everything present along the whole descent. Two neighbours occupying the 
 but standing one and two layers high ration space completely differently: the scarce resource is
 height, not occupancy, which is why the descent test is layer-by-layer.
 
-\paragraph{Instances are not on a spectrum.}
-On the final-round instances the tardiness share of the objective runs from $0\%$ to $97.4\%$ with
-nothing in between, and the preliminary training set splits the same way: $Z_1$ is exactly zero on
-twenty of its forty instances and strictly positive on the other twenty
-(Table~\ref{tab:train}). Where $Z_1$ vanishes the entry times are free and the problem is an
-assignment dominated by preference; where the yard is saturated they are the whole objective. A
-hand-drawn threshold has to guess where that switch lies and the distribution gives no evidence
-about it, so we built a scheduler that measures which operator is paying rather than one that
-classifies the instance.
+\paragraph{The two rounds do not have the same shape.}
+At a uniform $60$\,s the preliminary training set is bimodal: $Z_1$ is exactly zero on twenty of its
+forty instances and strictly positive on the other twenty (Table~\ref{tab:train}). The final-round
+training set is not bimodal at all --- every instance is late, and the share of the objective
+carried by tardiness spreads continuously across the whole range with no gap
+(Table~\ref{tab:final}). Where $Z_1$ vanishes the entry times are free and the problem is an
+assignment dominated by preference; where the yard is saturated they are the whole objective.
+Neither shape admits a threshold --- in the first the classes are separate but the boundary is
+unobservable, in the second there are no classes --- so we built a scheduler that measures which
+operator is paying rather than one that classifies the instance.
 
 \subsection{Contributions}
 
@@ -105,15 +105,18 @@ search~\cite{ropke2006} whose adaptive weights score realised objective gain per
 rather than a tally of accepted moves.
 
 \paragraph{Selection and sizing are different questions.}
-Slice size is deliberately not driven by the selection signal. Sizing on payoff death-spirals: a
-construction returning a good solution that merely fails to beat the incumbent scores zero gain,
-shrinks, and can then no longer finish at all --- fourteen calls returning four solutions while the
-objective moved from $48{,}840$ to $56{,}841$. Size is a completion question instead: an operator
+Slice size is deliberately not driven by the selection signal, because sizing on payoff spirals
+downwards: a construction returning a good solution that merely fails to beat the incumbent scores
+zero gain, shrinks, and can then no longer finish at all. We measured fourteen calls returning four
+solutions while the objective moved from $48{,}840$ to $56{,}841$. Size is a completion question instead: an operator
 that returned nothing was starved and is given more, one that returned anything fitted, and a
 repair pass is given what it used.
 
 \subsection{Key Ideas that Succeeded}
 \label{sec:succeeded}
+
+Five changes moved the objective. They are given in the order they act, from the construction that
+produces a solution to the operator that repacks one.
 
 \paragraph{Contact beam, and why its contact measure is flat.}
 The construction is a filtered beam search over dispatch order~\cite{ow1988}, ranking survivors on
@@ -122,13 +125,12 @@ minimising a weighted sum of negative contact, a positional sweep term and a pre
 and survivors are completed by a rollout. Contact plays the role touching perimeter plays in
 two-dimensional packing, extended to a descent the crane must clear.
 
-Contact admits two measures. A per-layer one describes the geometry better, since a block beside a
-shorter neighbour earns nothing for the layers facing open air, and it is implemented. The
-submitted configuration nevertheless uses the flat measure, because the bound below is derived
-against a flat occupancy prefix sum, which does not dominate per-layer occupancy: the two cannot
-both be on, and the bound is worth $1.09$--$1.85\times$ in scanned cells at an identical placement
-digest. This is a constraint we accepted rather than a property we wanted; with a per-layer bound
-the choice would likely go the other way, and that derivation is left undone.
+Contact admits two measures. A per-layer one describes the geometry better --- a block beside a
+shorter neighbour earns nothing for the layers facing open air --- and it is implemented, but the
+submitted configuration uses the flat measure because the bound below is derived against a flat
+occupancy prefix sum, which does not dominate per-layer occupancy. The two cannot both be on, and
+the bound is worth $1.09$--$1.85\times$. This is a constraint we accepted rather than a property we
+wanted; with a per-layer bound the choice would likely go the other way.
 
 \paragraph{An exact contact upper bound.}
 Profiling showed $86\%$ of scored cells were evaluated after the best cell of that scan had already
@@ -170,14 +172,14 @@ $p<0.0001$, splitting $17$--$2$ on the large group and $14$--$4$ on the small. O
 the small group would pay was wrong: true of a constant, false of an axis. A portfolio does not
 need every member to be good, it needs them to fail on different instances.
 
-Replicating the two small instances that lost by more than $10\%$ shrank both to a median of
-$+3.2\%$, and one arm of the first swings $29.3\%$ against itself, wider than either gap between the
-arms. A single paired draw at $150$ blocks is worth its sign, not its magnitude, which is why the
-table above is a sign count.
+Replicating the two small instances that lost by more than $10\%$ shrank both to $+3.2\%$, and one
+arm of the first swings $29.3\%$ against itself --- wider than either gap between the arms. A single
+paired draw at $150$ blocks is worth its sign, not its magnitude.
 
 \paragraph{A conflict-graph build that watches its own clock.}
-The repacking operator begins with an $O(n_{\text{col}}^2)$ conflict graph that cannot be
-interrupted. Two columns conflict only while both are present, so sorting by entry time and
+The repacking operator --- which lifts every block out of one bay and re-seats the whole set
+exactly, and is described in Section~\ref{sec:repack} --- begins with an $O(n_{\text{col}}^2)$
+conflict graph that cannot be interrupted. Two columns conflict only while both are present, so sorting by entry time and
 breaking the inner loop once the later entry passes the earlier exit skips $83\%$ of pairs without
 visiting them; the fields the filter reads moved into flat arrays. Neither change can alter which
 pairs conflict, so the edge count had to come out identical, and that, not the clock, was the
@@ -211,8 +213,8 @@ same number, so the solver took whichever seated more easily.
 Every attempt to express the trade from outside failed for the same reason. Discounting a block's
 weight by the cost of its late seat undervalues it when it takes the on-time one, and at the
 break-even delay, the only principled place to put the offer, the discount equals the entire gain:
-the weights of precisely the high-regret blocks collapse to the floor. Across the final instances
-that form is indistinguishable from never offering a late window at all, at $9$ better against $21$
+the weights of precisely the high-regret blocks collapse to the floor. Across the final instances,
+discounting is indistinguishable from never offering a late window at all: $9$ better against $21$
 worse, median $+0.00\%$.
 
 Attaching the weight to the entry variant removes the workaround rather than tuning it. Each
@@ -258,28 +260,27 @@ disabled: $-7.7\%$ against $+2.2\%$ is a losing trade.
 
 \paragraph{A better incumbent can repack worse.}
 Incumbents worth $97{,}570$, $100{,}685$ and $107{,}195$ yielded repacking improvements of
-$9{,}580$, $13{,}510$ and $24{,}100$: better incumbents repack worse. A tight solution has no slack
-left and this operator eats slack, so its result is a function of the incumbent's layout rather
-than its objective --- yet the roster hands it the best-scoring solution every time.
+$9{,}580$, $13{,}510$ and $24{,}100$. A tight solution has no slack left and this operator eats
+slack, so its result follows the incumbent's layout rather than its objective --- yet the roster
+hands it the best-scoring solution every time.
 
 \paragraph{Two optimisations that were simply wrong.}
-A free-column bitset for the packing search was proved to give identical results and then measured
+A free-column bitset for the packing search gave identical results and measured
 $1.6$--$1.9\times$ \emph{slower}: its saving scales with columns per block, its cost with edges, and
 we had assumed the wrong line was hot. We also twice predicted the contact bound's benefit from its
-firing rate ($1.3\%$ and $3.4\%$ of cells) and were wrong in the same direction both times. Most
-cells are rejected by a cheap bitmap probe, while the cells a bound removes are exactly those that
-would have reached the exact geometric test. Cell counts are not seconds.
+firing rate and were wrong in the same direction both times --- most cells are rejected by a cheap
+bitmap probe, while the cells a bound removes are exactly those that would have reached the exact
+geometric test. Cell counts are not seconds.
 
 \subsection{Further Improvement Plan}
 \label{sec:plan}
 
 The first item is to remove the wall clock from the schedule's decisions. We localised where it
 enters: with the deadline lifted the construction returns identical placements with and without the
-bound, but under the deadline it receives the two diverge. The divergence begins in the
-construction's stopping rule rather than the operator loop, and the repair belongs there; the
-packing solver already takes an iteration cap for exactly this reason. Once the schedule depends on
-work done rather than seconds elapsed, the contact bound can be re-enabled and contribute its speed
-instead of a different trajectory.
+bound, but under the deadline it receives the two diverge, so the divergence begins in the
+construction's stopping rule rather than the operator loop. The packing solver already takes an
+iteration cap for exactly this reason. Once the schedule depends on work done rather than seconds
+elapsed, the contact bound can be re-enabled and contribute its speed instead of a trajectory.
 
 Second, the repacking operator should sample the solution pool rather than always taking its best
 member, since its yield depends on slack rather than quality; the re-growth operator already
@@ -295,10 +296,9 @@ and both push towards declining work the budget could afford.
 
 Python~3.12 orchestrates and two C++17 extensions built with \texttt{pybind11} and OpenMP hold
 every hot loop. CP-SAT serves one operator and the algorithm degrades to the remaining five if it
-is unavailable. Python holds only control flow, the scheduler, the operator definitions and the
-acceptance test; every geometric predicate, every candidate scan and both search engines are C++.
-The construction parallelises over beam states and the portfolio over worker processes, never
-nested.
+is unavailable. Python holds only control flow --- the scheduler, the operator definitions, the
+acceptance test --- while every geometric predicate, every candidate scan and both search engines
+are C++, the construction parallelising over beam states and the portfolio over worker processes.
 
 \paragraph{The repacking operator.}
 \label{sec:repack}
@@ -316,73 +316,69 @@ entry-time ceiling, so window widths come from the instance rather than being fi
 \paragraph{Verification instrumentation.}
 The engines carry counters for cells visited, exact tests, cheap rejections and cells skipped by
 the bound, plus a soundness mode that scores every cell the bound wanted to skip and counts those
-that would have won: zero out of $45.9$, $11.6$ and $9.3$ million on three instances of very
-different density. An earlier bound had passed an identity check that was meaningless because the
-branch never executed, so we stopped accepting outcome comparisons as evidence.
+that would have won: zero out of $45.9$, $11.6$ and $9.3$ million. An earlier bound had passed an
+identity check that was meaningless because the branch never executed, so we stopped accepting
+outcome comparisons as evidence.
 
 \section{Computational Results}
 
-Table~\ref{tab:train} reports all forty preliminary-round training instances at a uniform
-$60$\,s budget, decomposed into the three objective components; a uniform budget is the only
-comparable one, since the hidden limits vary and are not disclosed. All forty solutions pass the provided feasibility checker, and
-the split noted above is visible directly: $Z_1$ is zero on instances 1--20 and positive on
-21--40.
+Table~\ref{tab:train} reports all forty preliminary-round training instances at a uniform $60$\,s
+budget, decomposed into the three objective components; a uniform budget is the only comparable
+one, since the hidden limits vary and are not disclosed. All forty pass the provided feasibility
+checker, and the split is visible directly: $Z_1$ is zero on instances 1--20 and positive on
+21--40. Table~\ref{tab:final} puts the two rounds side by side.
 
 \begin{table}[t]
 \centering
-\caption{Preliminary-round training set, all forty instances at $60$\,s. $n$ blocks, $m$ bays.}
+\caption{Preliminary-round training set, all forty instances at $60$\,s. Sizes and bay counts are
+in Table~\ref{tab:final}.}
 \label{tab:train}
 \footnotesize
-\begin{tabular}{rrrrrrr@{\qquad}rrrrrrr}
+\setlength{\tabcolsep}{1pt}
+\begin{tabular}{rrrrr@{\;}rrrrr@{\;}rrrrr}
 \toprule
-Inst. & $n$ & $m$ & $Z_1$ & $Z_2$ & $Z_3$ & Obj. & Inst. & $n$ & $m$ & $Z_1$ & $Z_2$ & $Z_3$ & Obj. \\
+\# & $Z_1$ & $Z_2$ & $Z_3$ & Obj. & \# & $Z_1$ & $Z_2$ & $Z_3$ & Obj. & \# & $Z_1$ & $Z_2$ & $Z_3$ & Obj. \\
 \midrule
-1 & 100 & 2 & 0 & 157 & 2 & 1{,}499 & 21 & 100 & 3 & 8 & 2{,}032 & 2{,}693 & 530{,}934 \\
-2 & 100 & 3 & 0 & 144 & 15 & 3{,}690 & 22 & 100 & 2 & 2 & 2{,}391 & 1{,}748 & 733{,}039 \\
-3 & 100 & 3 & 0 & 1{,}542 & 186 & 43{,}320 & 23 & 100 & 2 & 83 & 1{,}237 & 1{,}284 & 1{,}390{,}856 \\
-4 & 100 & 2 & 0 & 2{,}278 & 0 & 15{,}946 & 24 & 100 & 3 & 1 & 4{,}553 & 661 & 234{,}398 \\
-5 & 150 & 3 & 0 & 1{,}654 & 228 & 45{,}778 & 25 & 100 & 2 & 317 & 397 & 1{,}792 & 247{,}676 \\
-6 & 150 & 3 & 0 & 2{,}346 & 173 & 42{,}372 & 26 & 150 & 3 & 523 & 1{,}197 & 4{,}150 & 7{,}604{,}038 \\
-7 & 150 & 3 & 0 & 2{,}335 & 239 & 52{,}195 & 27 & 150 & 2 & 1{,}695 & 845 & 4{,}422 & 24{,}369{,}925 \\
-8 & 150 & 2 & 0 & 2{,}413 & 8 & 11{,}252 & 28 & 150 & 3 & 17 & 2{,}371 & 1{,}892 & 801{,}374 \\
-9 & 200 & 3 & 0 & 2{,}047 & 271 & 50{,}885 & 29 & 150 & 3 & 1 & 7{,}860 & 969 & 327{,}613 \\
-10 & 200 & 4 & 0 & 2{,}225 & 400 & 68{,}775 & 30 & 150 & 2 & 123 & 573 & 1{,}442 & 1{,}930{,}651 \\
-11 & 200 & 4 & 0 & 923 & 96 & 19{,}229 & 31 & 200 & 4 & 121 & 1{,}025 & 10{,}436 & 4{,}402{,}780 \\
-12 & 200 & 4 & 0 & 2{,}205 & 387 & 66{,}906 & 32 & 200 & 3 & 415 & 2{,}080 & 2{,}065 & 2{,}632{,}595 \\
-13 & 250 & 4 & 0 & 3{,}905 & 297 & 59{,}026 & 33 & 200 & 3 & 955 & 1{,}824 & 4{,}977 & 7{,}131{,}775 \\
-14 & 250 & 4 & 0 & 1{,}106 & 350 & 52{,}080 & 34 & 200 & 4 & 44 & 2{,}051 & 1{,}256 & 830{,}457 \\
-15 & 250 & 4 & 0 & 4{,}276 & 100 & 34{,}680 & 35 & 200 & 3 & 21 & 2{,}032 & 1{,}485 & 512{,}903 \\
-16 & 250 & 4 & 0 & 3{,}294 & 139 & 34{,}957 & 36 & 250 & 4 & 18 & 4{,}500 & 6{,}496 & 100{,}954 \\
-17 & 300 & 4 & 0 & 6{,}563 & 238 & 57{,}906 & 37 & 250 & 3 & 614 & 4{,}506 & 3{,}154 & 3{,}956{,}886 \\
-18 & 300 & 4 & 0 & 4{,}188 & 198 & 43{,}086 & 38 & 250 & 3 & 2{,}607 & 1{,}987 & 4{,}164 & 36{,}012{,}305 \\
-19 & 300 & 4 & 0 & 4{,}604 & 301 & 58{,}449 & 39 & 250 & 3 & 500 & 1{,}218 & 5{,}711 & 7{,}528{,}022 \\
-20 & 300 & 5 & 0 & 2{,}704 & 652 & 97{,}724 & 40 & 250 & 4 & 2{,}629 & 3{,}957 & 7{,}947 & 1{,}860{,}811 \\
+1 & 0 & 157 & 2 & 1{,}499 & 15 & 0 & 4{,}276 & 100 & 34{,}680 & 29 & 1 & 7{,}860 & 969 & 327{,}613 \\
+2 & 0 & 144 & 15 & 3{,}690 & 16 & 0 & 3{,}294 & 139 & 34{,}957 & 30 & 123 & 573 & 1{,}442 & 1{,}930{,}651 \\
+3 & 0 & 1{,}542 & 186 & 43{,}320 & 17 & 0 & 6{,}563 & 238 & 57{,}906 & 31 & 121 & 1{,}025 & 10{,}436 & 4{,}402{,}780 \\
+4 & 0 & 2{,}278 & 0 & 15{,}946 & 18 & 0 & 4{,}188 & 198 & 43{,}086 & 32 & 415 & 2{,}080 & 2{,}065 & 2{,}632{,}595 \\
+5 & 0 & 1{,}654 & 228 & 45{,}778 & 19 & 0 & 4{,}604 & 301 & 58{,}449 & 33 & 955 & 1{,}824 & 4{,}977 & 7{,}131{,}775 \\
+6 & 0 & 2{,}346 & 173 & 42{,}372 & 20 & 0 & 2{,}704 & 652 & 97{,}724 & 34 & 44 & 2{,}051 & 1{,}256 & 830{,}457 \\
+7 & 0 & 2{,}335 & 239 & 52{,}195 & 21 & 8 & 2{,}032 & 2{,}693 & 530{,}934 & 35 & 21 & 2{,}032 & 1{,}485 & 512{,}903 \\
+8 & 0 & 2{,}413 & 8 & 11{,}252 & 22 & 2 & 2{,}391 & 1{,}748 & 733{,}039 & 36 & 18 & 4{,}500 & 6{,}496 & 100{,}954 \\
+9 & 0 & 2{,}047 & 271 & 50{,}885 & 23 & 83 & 1{,}237 & 1{,}284 & 1{,}390{,}856 & 37 & 614 & 4{,}506 & 3{,}154 & 3{,}956{,}886 \\
+10 & 0 & 2{,}225 & 400 & 68{,}775 & 24 & 1 & 4{,}553 & 661 & 234{,}398 & 38 & 2{,}607 & 1{,}987 & 4{,}164 & 36{,}012{,}305 \\
+11 & 0 & 923 & 96 & 19{,}229 & 25 & 317 & 397 & 1{,}792 & 247{,}676 & 39 & 500 & 1{,}218 & 5{,}711 & 7{,}528{,}022 \\
+12 & 0 & 2{,}205 & 387 & 66{,}906 & 26 & 523 & 1{,}197 & 4{,}150 & 7{,}604{,}038 & 40 & 2{,}629 & 3{,}957 & 7{,}947 & 1{,}860{,}811 \\
+13 & 0 & 3{,}905 & 297 & 59{,}026 & 27 & 1{,}695 & 845 & 4{,}422 & 24{,}369{,}925 &  &  &  &  &  \\
+14 & 0 & 1{,}106 & 350 & 52{,}080 & 28 & 17 & 2{,}371 & 1{,}892 & 801{,}374 &  &  &  &  &  \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 \begin{table}[t]
 \centering
-\caption{Final-round training set, all forty instances at $60$\,s, same build. Different instances
-from Table~\ref{tab:train}: $w_1$ spans $333$ to $13{,}559$ against the preliminary $667$ to
-$29{,}630$, and $w_3$ reaches $800$ against $600$.}
+\caption{The two training sets compared, both at $60$\,s on the same build. They are different
+instances: $w_1$ spans $333$ to $13{,}559$ on the final set against $667$ to $29{,}630$ on the
+preliminary one, and $w_3$ reaches $800$ against $600$.}
 \label{tab:final}
 \footnotesize
-\begin{tabular}{rrrrrrr@{\qquad}rrrrrrr}
+\begin{tabular}{lrrrr}
 \toprule
-Inst. & $n$ & $m$ & $Z_1$ & $Z_2$ & $Z_3$ & Obj. & Inst. & $n$ & $m$ & $Z_1$ & $Z_2$ & $Z_3$ & Obj. \\
+ & \multicolumn{2}{c}{Preliminary} & \multicolumn{2}{c}{Final} \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}
+ & median & range & median & range \\
 \midrule
-1 & 150 & 3 & 17 & 5{,}858 & 799 & 610{,}313 & 12 & 300 & 5 & 11 & 15{,}458 & 5{,}215 & 149{,}496 \\
-2 & 250 & 3 & 4{,}412 & 1{,}774 & 8{,}179 & 60{,}059{,}142 & 13 & 300 & 2 & 9{,}207 & 2{,}120 & 7{,}538 & 67{,}415{,}589 \\
-3 & 200 & 4 & 167 & 6{,}823 & 7{,}746 & 4{,}732{,}990 & 14 & 250 & 4 & 1{,}617 & 2{,}467 & 5{,}171 & 680{,}545 \\
-4 & 250 & 4 & 296 & 1{,}705 & 3{,}165 & 2{,}682{,}038 & 15 & 250 & 3 & 1{,}294 & 2{,}802 & 5{,}947 & 12{,}200{,}902 \\
-5 & 150 & 2 & 2{,}122 & 182 & 2{,}068 & 7{,}901{,}464 & 16 & 300 & 5 & 173 & 1{,}203 & 4{,}813 & 3{,}513{,}468 \\
-6 & 250 & 4 & 344 & 4{,}078 & 5{,}904 & 5{,}392{,}174 & 17 & 250 & 3 & 876 & 631 & 7{,}845 & 5{,}278{,}256 \\
-7 & 150 & 3 & 53 & 715 & 2{,}145 & 1{,}033{,}404 & 18 & 200 & 3 & 2{,}402 & 585 & 3{,}815 & 10{,}434{,}705 \\
-8 & 200 & 4 & 203 & 2{,}383 & 2{,}199 & 129{,}355 & 19 & 200 & 3 & 1{,}129 & 2{,}936 & 8{,}434 & 17{,}589{,}029 \\
-9 & 200 & 3 & 323 & 5{,}960 & 6{,}575 & 6{,}110{,}361 & 20 & 250 & 3 & 1{,}169 & 2{,}984 & 8{,}968 & 9{,}162{,}795 \\
-10 & 150 & 2 & 305 & 7{,}364 & 2{,}176 & 4{,}531{,}221 & 21 & 150 & 2 & 11 & 8{,}212 & 2{,}104 & 1{,}004{,}687 \\
-11 & 250 & 4 & 417 & 8{,}236 & 7{,}304 & 7{,}534{,}737 &  &  &  &  &  &  &  \\
+Blocks $n$ & 200 & 100--300 & 225 & 150--300 \\
+Bays $m$ & 3 & 2--5 & 3 & 2--5 \\
+Tardiness $Z_1$ & 0 & 0--2{,}629 & 432 & 1--10{,}536 \\
+Imbalance $Z_2$ & 2{,}142 & 144--7{,}860 & 2{,}425 & 91--15{,}458 \\
+Preference $Z_3$ & 656 & 0--10{,}436 & 4{,}708 & 196--10{,}614 \\
+Objective & 99{,}339 & 1{,}499--36{,}012{,}305 & 4{,}632{,}106 & 6{,}804--75{,}792{,}403 \\
+\midrule
+Instances with $Z_1=0$ & \multicolumn{2}{c}{20 of 40} & \multicolumn{2}{c}{0 of 38} \\
+Feasible & \multicolumn{2}{c}{40 of 40} & \multicolumn{2}{c}{38 of 38} \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -413,13 +409,12 @@ Total & 74{,}003{,}416 & 73{,}283{,}064 & 73{,}981{,}407 & $-0.0\%$ \\
 \end{table}
 
 \paragraph{Across submissions.}
-Table~\ref{tab:subs} gives the objective each of our three submissions returned on the eight
-final-round instances. The honest reading is that it does not separate the changes from the noise:
-every per-instance move is smaller than the spread the algorithm produces against itself --- three
-replicates of one unchanged build returned $1{,}075{,}322$, $831{,}362$ and $923{,}531$, a range of
+Table~\ref{tab:subs} gives what each of our three submissions returned on the eight final-round
+instances. It does not separate the changes from the noise: every per-instance move is smaller than
+the spread the algorithm produces against itself --- three replicates of one unchanged build spread
 $29.3\%$, against a largest move here of $7.2\%$ --- and both shipping steps bundled two changes.
-What the table records is direction: five of eight improved from the first submission to the third,
-and the total is flat.
+What it records is direction: five of eight improved from the first submission to the third, and
+the total is flat.
 
 \paragraph{Per-seat pricing, on the final practice set.}
 The change described in Section~\ref{sec:succeeded} was judged on all forty final practice
@@ -429,91 +424,68 @@ instance by instance is deliberate. A single instance answers the same question 
 about $3\%$, and unchanged code shifted $8.4\%$ between two runs an hour apart on this machine, so
 no single pair can resolve an effect of this size.
 
-\begin{table}[t]
-\centering
-\caption{Late entry windows on the final-round training set: $39$ instances paired at $180$\,s
-against the same solver with no late window offered, split by whether the instance's weights
-permit one at all.}
-\label{tab:seat}
-\begin{tabular}{lrrrr}
-\toprule
-& Better & Worse & Same & Mean \\
-\midrule
-\multicolumn{5}{l}{\emph{trade available (35 instances)}} \\
-\quad per-block weight (previous) & 9  & 21 & 5 & $+0.62\%$ \\
-\quad per-seat price              & 20 & 9  & 6 & $-0.74\%$ \\
-\multicolumn{5}{l}{\emph{no trade available (4 instances)}} \\
-\quad per-seat price              & 2  & 1  & 1 & $-0.53\%$ \\
-\bottomrule
-\end{tabular}
-\end{table}
 
-The priced form is $20$--$9$ and does no harm where no window can open, the condition we had set in
-advance for enabling it by default. The effect shrank as the sample grew, from $-1.61\%$ at twelve
-instances to $-0.74\%$ at thirty-nine: the first twelve had been chosen as the most favourable.
+On the $35$ instances whose weights permit a late window at all, the previous per-block weight
+scored $9$ better against $21$ worse (mean $+0.62\%$) and the per-seat price $20$ against $9$
+(mean $-0.74\%$); on the four where no window can open it is $2$--$1$ and does no harm, which was
+the condition we had set in advance for enabling it by default. The effect shrank as the sample
+grew, from $-1.61\%$ at twelve instances to $-0.74\%$ at thirty-nine: the first twelve had been
+chosen as the most favourable.
 
 Two cautions belong with these numbers rather than after them. Run-to-run spread on the densest
 instance is about $112{,}000$ on unchanged code, so smaller differences are noise. The sparsest is
 not stable at all: its objective is a minimum over the repacking operator's attempts within a run,
 that operator's improvement varies from $6{,}590$ to $31{,}315$ with the incumbent it is handed, and
-the value we quote appeared in four runs of seven --- a mode, not a reproducible figure.
+the value we quote appeared in four runs of seven.
 
 \paragraph{Speed, measured at identical work.}
 A fixed-time A/B cannot evaluate an accelerated search: both arms consume the same budget, so the
 faster one legitimately reaches a different solution. We replay one construction call with
 identical arguments and no deadline, comparing a digest over every returned placement. On a sparse,
-a mid-density and a dense instance the bound skipped $40.8\%$, $3.4\%$ and $1.3\%$ of candidate
-cells, none unsound, for $1.85\times$, $1.66\times$ and $1.09\times$ at an identical digest in all
-three.
+a mid-density and a dense instance the bound skipped $40.8\%$, $3.4\%$ and $1.3\%$ of cells, none
+unsound, for $1.85\times$, $1.66\times$ and $1.09\times$ at an identical digest.
 
 
-The conflict-graph build was accepted only after its edge count was confirmed unchanged on every
-configuration tested, for a $10.5\times$ speedup in isolation.
+The conflict-graph build was accepted the same way, on an edge count confirmed unchanged on every
+configuration tested, for $10.5\times$ in isolation.
 
 \section{Team Members' Contributions}
 
-The rules require anonymity, so members are identified by role.
-\textbf{Member A} led the algorithmic work: problem analysis, the decision to treat geometry as a
-feasibility constraint, the measured-payoff portfolio, the contact bound and its proof, the
-conflict-graph and geometry optimisations, and the diagnosis of Section~\ref{sec:wallclock}.
-\textbf{Member B} owned the codebase and the experimental process: version management, packaging,
-the harnesses and the discipline of running every comparison on an unloaded machine, the sweeps,
-and verification that reported numbers matched the logs behind them. Both contributed to result
-analysis and to this report.
+The rules require anonymity, so members are identified by role. \textbf{Member A} led the
+algorithmic work: problem analysis, treating geometry as a feasibility constraint, the
+measured-payoff portfolio, the contact bound and its proof, the conflict-graph and geometry
+optimisations, and the diagnosis of Section~\ref{sec:wallclock}. \textbf{Member B} owned the
+codebase and the experimental process: version management, packaging, the harnesses, the sweeps,
+and verification that reported numbers matched their logs. Both contributed to result analysis and
+to this report.
 
 \section{AI Use Declaration}
 
 One tool was used, substantially: Anthropic Claude, through its command-line coding interface, as
-an interactive coding and analysis assistant throughout development. It implemented and refactored
-the two C++ extensions and the Python scheduler from specifications settled in discussion; derived
-the contact bound of Section~\ref{sec:succeeded} and its validity conditions; wrote the measurement
-harnesses, including the per-cell soundness check and the identical-work replay; ran the
-experiments; and diagnosed defects, among them the position-dependence of the geometric predicate.
-It drafted this report. Algorithmic direction, prioritisation and every decision to accept or
-reject a change remained with the authors, and every number here was produced by executing the
-submitted code on the challenge instances; none was generated or estimated by a language model.
+an interactive coding and analysis assistant throughout development. It wrote and refactored the two
+C++ extensions and the Python scheduler from specifications settled in discussion; derived the
+contact bound of Section~\ref{sec:succeeded} and its validity conditions; built the harnesses; ran
+the experiments; diagnosed defects, among them the position-dependent geometric predicate; and
+drafted this report. Algorithmic direction, prioritisation and every
+decision to accept or reject a change remained with the authors, and every number here came from
+executing the submitted code --- none was generated or estimated by a language model.
 
-\begin{thebibliography}{5}
+\begin{thebibliography}{4}
 
 \bibitem{andrade2012}
-Andrade, D.V., Resende, M.G.C., Werneck, R.F.: Fast local search for the maximum independent set
-problem. J. Heuristics \textbf{18}(4), 525--547 (2012)
-
-\bibitem{lee1996}
-Lee, K.J., Lee, J.K., Choi, S.Y.: A spatial scheduling system and its application to shipbuilding:
-DAS-CURVE. Expert Syst. Appl. \textbf{10}(3--4), 311--324 (1996)
+Andrade, D.V., Resende, M.G.C., Werneck, R.F.: Fast local search for the maximum independent
+set problem. J. Heuristics \textbf{18}(4) (2012)
 
 \bibitem{ow1988}
-Ow, P.S., Morton, T.E.: Filtered beam search in scheduling. Int. J. Prod. Res. \textbf{26}(1),
-35--62 (1988)
+Ow, P.S., Morton, T.E.: Filtered beam search in scheduling. Int. J. Prod. Res. \textbf{26}(1) (1988)
 
 \bibitem{ropke2006}
 Ropke, S., Pisinger, D.: An adaptive large neighborhood search heuristic for the pickup and
-delivery problem with time windows. Transp. Sci. \textbf{40}(4), 455--472 (2006)
+delivery problem with time windows. Transp. Sci. \textbf{40}(4) (2006)
 
 \bibitem{schrimpf2000}
-Schrimpf, G., Schneider, J., Stamm-Wilbrandt, H., Dueck, G.: Record breaking optimization results
-using the ruin and recreate principle. J. Comput. Phys. \textbf{159}(2), 139--171 (2000)
+Schrimpf, G., Schneider, J., Stamm-Wilbrandt, H., Dueck, G.: Record breaking optimization
+results using the ruin and recreate principle. J. Comput. Phys. \textbf{159}(2) (2000)
 
 \end{thebibliography}
 

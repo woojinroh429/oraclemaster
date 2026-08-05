@@ -1,12 +1,11 @@
 \relax 
-\citation{lee1996}
 \@writefile{toc}{\contentsline {title}{OGC2026 Technical Report}{1}{}\protected@file@percent }
 \@writefile{toc}{\contentsline {section}{\numberline {1}Introduction}{1}{}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {1.1}Challenge Problem \& Main Difficulties}{1}{}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{The objective and the constraints read different variables.}{1}{}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{The crane makes the packing three-dimensional.}{1}{}\protected@file@percent }
 \citation{ropke2006}
-\@writefile{toc}{\contentsline {paragraph}{Instances are not on a spectrum.}{2}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{The two rounds do not have the same shape.}{2}{}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {1.2}Contributions}{2}{}\protected@file@percent }
 \@writefile{toc}{\contentsline {section}{\numberline {2}Algorithm Description}{2}{}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {2.1}Overall Algorithm Framework}{2}{}\protected@file@percent }
@@ -19,7 +18,7 @@
 \@writefile{toc}{\contentsline {paragraph}{A cliff at the bottom of the beam, and the axis that came out of it.}{4}{}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{A conflict-graph build that watches its own clock.}{4}{}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{Pricing a seat, not a block.}{5}{}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Offset-relative geometry.}{5}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Offset-relative geometry.}{6}{}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {2.3}Key Ideas that Failed}{6}{}\protected@file@percent }
 \newlabel{sec:failed}{{2.3}{6}{}{}{}}
 \newlabel{sec:wallclock}{{2.3}{6}{}{}{}}
@@ -35,23 +34,20 @@
 \newlabel{sec:repack}{{3}{7}{}{}{}}
 \@writefile{toc}{\contentsline {paragraph}{The repacking operator.}{7}{}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{Verification instrumentation.}{7}{}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces Preliminary-round training set, all forty instances at $60$\,s. $n$ blocks, $m$ bays.}}{8}{}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces Preliminary-round training set, all forty instances at $60$\,s. Sizes and bay counts are in Table~\ref {tab:final}.}}{8}{}\protected@file@percent }
 \newlabel{tab:train}{{1}{8}{}{}{}}
 \@writefile{toc}{\contentsline {section}{\numberline {4}Computational Results}{8}{}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{Across submissions.}{8}{}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{Per-seat pricing, on the final practice set.}{8}{}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces Final-round training set, all forty instances at $60$\,s, same build. Different instances from Table~\ref {tab:train}: $w_1$ spans $333$ to $13{,}559$ against the preliminary $667$ to $29{,}630$, and $w_3$ reaches $800$ against $600$.}}{9}{}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces The two training sets compared, both at $60$\,s on the same build. They are different instances: $w_1$ spans $333$ to $13{,}559$ on the final set against $667$ to $29{,}630$ on the preliminary one, and $w_3$ reaches $800$ against $600$.}}{9}{}\protected@file@percent }
 \newlabel{tab:final}{{2}{9}{}{}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces Objective returned on the eight final-round instances by each of our three submissions. Between the first and the second we shipped per-seat window pricing and the parallel conflict-graph build; between the second and the third, the beam salvage of Section~\ref {sec:succeeded} and the split-aim worker portfolio.}}{9}{}\protected@file@percent }
+\newlabel{tab:subs}{{3}{9}{}{}{}}
 \@writefile{toc}{\contentsline {paragraph}{Speed, measured at identical work.}{9}{}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {5}Team Members' Contributions}{9}{}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces Objective returned on the eight final-round instances by each of our three submissions. Between the first and the second we shipped per-seat window pricing and the parallel conflict-graph build; between the second and the third, the beam salvage of Section~\ref {sec:succeeded} and the split-aim worker portfolio.}}{10}{}\protected@file@percent }
-\newlabel{tab:subs}{{3}{10}{}{}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {4}{\ignorespaces Late entry windows on the final-round training set: $39$ instances paired at $180$\,s against the same solver with no late window offered, split by whether the instance's weights permit one at all.}}{10}{}\protected@file@percent }
-\newlabel{tab:seat}{{4}{10}{}{}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {6}AI Use Declaration}{10}{}\protected@file@percent }
 \bibcite{andrade2012}{1}
-\bibcite{lee1996}{2}
-\bibcite{ow1988}{3}
-\bibcite{ropke2006}{4}
-\bibcite{schrimpf2000}{5}
-\gdef \@abspage@last{11}
+\bibcite{ow1988}{2}
+\bibcite{ropke2006}{3}
+\bibcite{schrimpf2000}{4}
+\@writefile{toc}{\contentsline {section}{\numberline {5}Team Members' Contributions}{10}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {6}AI Use Declaration}{10}{}\protected@file@percent }
+\gdef \@abspage@last{10}

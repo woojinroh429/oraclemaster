@@ -17,8 +17,8 @@ FTBL=/tmp/finaltable.tex
 # TWO ROUNDS, TWO TABLES.  The preliminary and final training sets are different instances and
 # the report shows both, so both are generated from their own logs and injected at their own
 # markers.  Neither is retyped.
-python3.12 harness/mktable.py results/train t train 2 > "$TBL" 2>/dev/null
-python3.12 harness/mktable.py results/stage2 f stage2 2 > "$FTBL" 2>/dev/null
+python3.12 harness/mktable.py results/train t train 3 > "$TBL" 2>/dev/null
+python3.12 harness/mksummary.py > "$FTBL" 2>/dev/null
 for f in "$TBL" "$FTBL"; do
   grep -q 'end{tabular}' "$f" || { echo "no table in $f -- is that sweep finished?"; exit 1; }
   sed -n '/\\begin{tabular}/,/\\end{tabular}/p' "$f" > "$f.clean"
