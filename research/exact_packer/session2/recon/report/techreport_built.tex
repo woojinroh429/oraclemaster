@@ -191,16 +191,16 @@ The rows are independent, so the loop is finally parallel. What is not independe
 results go: each thread keeps its own edge list, and the memo on the conflict predicate is shared.
 Sharing it naively is not merely racy but silently wrong, because the table is open-addressed and
 two threads inserting different keys can both claim one empty slot, the loser then writing its
-verdict into the winner's entry. A slot is therefore claimed by compare-and-exchange and only by
-that; relaxed ordering suffices because the value is a pure function of the key. A private memo per
-thread gave almost all the parallel gain back ($1.10\times$), since reuse is where this loop's
-speed lives, while sharing it correctly reaches $1.43\times$ on four cores at an edge count of
-$133{,}863{,}098$ in every arm.
+verdict into the winner's entry. A slot is therefore claimed by compare-and-exchange, with relaxed
+ordering, since the value is a pure function of the key. A private memo per thread gave almost all
+the parallel gain back ($1.10\times$), reuse being where this loop's speed lives, while sharing it
+correctly reaches $1.43\times$ on four cores at an edge count of $133{,}863{,}098$ in every arm.
 
-We then failed to spend the headroom. Widening the $40$-outsider candidate cap had once cost
-$331$\,s of a $180$\,s budget and now costs $179$\,s, but the wider list scored $3$ better against
-$4$ worse, median $+0.17\%$: the evidence for wanting it came from two instances and did not
-survive a larger sample.
+An identical edge count is also what made the memo usable: its first version produced $36$ extra
+edges, and dumping the disagreements showed the predicate itself was position-dependent through
+floating-point rounding, not the key aliasing we assumed. Comparing origin outlines plus an offset
+makes the verdict a function of relative position alone, fixing the memo by fixing the predicate.
+
 
 \paragraph{Pricing a seat, not a block.}
 The operator hands the solver a list of candidate placements, a \emph{column} being one block at
@@ -228,12 +228,6 @@ prices above the base and the solver can be paid for pulling a block forward, wh
 weight cannot represent at all. On $39$ final instances the priced form is $20$ better against $9$
 worse (sign test $p\approx0.03$, mean $-0.74\%$) and does no harm where no late window can open.
 
-\paragraph{Offset-relative geometry.}
-Memoising the conflict predicate produced $36$ extra edges. We assumed key aliasing; dumping the
-disagreements showed the predicate itself was position-dependent through floating-point rounding.
-Comparing origin outlines plus an offset makes the verdict independent of absolute position, which
-fixed the memo by fixing the predicate.
-
 \subsection{Key Ideas that Failed}
 \label{sec:failed}
 
@@ -245,13 +239,13 @@ $1.66\times$ and $1.09\times$ faster on three instances of very different densit
 and one instance got $7.7\%$ worse.
 
 The bound is not at fault, and neither is anything else in the search. The operator loop decides
-what to run next, and for how long, from elapsed seconds. A faster scan fits more calls into the
-same budget, which shifts the diversification axis rotation, the contents of the solution pool,
-and the repacking operator's call counter and hence its random seed. That operator is then handed
-a different incumbent, and on this instance exactly one incumbent, worth $107{,}195$, ever leads it
-to $83{,}095$, which is in turn the only route to the best solution we have recorded there. Across
-the whole day every run reaching that solution had $83{,}095$ in its log and every run that did
-not, did not. With the bound off we reproduce it three times in four; with it on, never in two.
+what to run next, and for how long, from elapsed seconds, so a faster scan fits more calls into the
+same budget and shifts the diversification axis rotation, the solution pool, and the repacking
+operator's call counter and hence its seed. That operator is handed a different incumbent, and on
+this instance exactly one incumbent, worth $107{,}195$, ever leads it to $83{,}095$, which is in
+turn the only route to the best solution we have recorded there. Every run reaching that solution
+had $83{,}095$ in its log and every run that did not, did not. With the bound off we reproduce it
+three times in four; with it on, never in two.
 
 The lesson generalises beyond this bound. Making a time-budgeted portfolio faster does not make it
 search longer along the same path, it makes it take a different path, and the new one need not be
@@ -265,6 +259,9 @@ slack, so its result follows the incumbent's layout rather than its objective --
 hands it the best-scoring solution every time.
 
 \paragraph{Two optimisations that were simply wrong.}
+The headroom from that build then bought nothing: widening the $40$-outsider candidate cap became
+affordable ($331$\,s of a $180$\,s budget before, $179$\,s after) and scored $3$ better against $4$
+worse, median $+0.17\%$ --- the evidence for wanting it had come from two instances.
 A free-column bitset for the packing search gave identical results and measured
 $1.6$--$1.9\times$ \emph{slower}: its saving scales with columns per block, its cost with edges, and
 we had assumed the wrong line was hot. We also twice predicted the contact bound's benefit from its
@@ -462,13 +459,13 @@ to this report.
 \section{AI Use Declaration}
 
 One tool was used, substantially: Anthropic Claude, through its command-line coding interface, as
-an interactive coding and analysis assistant throughout development. It wrote and refactored the two
-C++ extensions and the Python scheduler from specifications settled in discussion; derived the
-contact bound of Section~\ref{sec:succeeded} and its validity conditions; built the harnesses; ran
-the experiments; diagnosed defects, among them the position-dependent geometric predicate; and
-drafted this report. Algorithmic direction, prioritisation and every
-decision to accept or reject a change remained with the authors, and every number here came from
-executing the submitted code --- none was generated or estimated by a language model.
+an interactive coding and analysis assistant throughout development. It wrote and refactored the
+two C++ extensions and the Python scheduler from specifications settled in discussion; derived the
+contact bound of Section~\ref{sec:succeeded} and its validity conditions; built the measurement
+harnesses; ran the experiments; diagnosed defects, among them the position-dependent geometric
+predicate; and drafted this report. Algorithmic direction, prioritisation and every decision to
+accept or reject a change remained with the authors, and every number here came from executing the
+submitted code --- none was generated or estimated by a language model.
 
 \begin{thebibliography}{4}
 
