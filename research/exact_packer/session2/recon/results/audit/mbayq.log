@@ -28,3 +28,16 @@ P3   nbay=1  0 application(s) in 58s  obj=4678986  +0.00%
       ncol_est per bay ['17788', '15324']  step x[1, 4]  (cand=62 res=52 frozen=69)
     brk: declined, smallest tier predicts 12s of 4s
 P3   nbay=2  1 application(s) in 55s  obj=4674388  -0.10%
+# probe 13
+P13  solved 30s  obj=69211432  (bays=2 blocks=300)
+    brk calib: 1048:39.9ms 3184:58.6ms 10448:233.1ms 36276:2594.9ms -> fixed 0.038s + 1.94e-09 s/col^2
+    brk: declined, smallest tier predicts 117s of 51s
+P13  nbay=1  0 application(s) in 3s  obj=69211432  +0.00%
+    brk calib: 1108:52.8ms 2714:124.6ms 8490:754.5ms -> fixed 0.041s + 9.9e-09 s/col^2
+      ncol_est per bay ['772388', '324202']  step x[1, 1]  (cand=188 res=188 frozen=112)
+      ncol_est per bay ['725034', '305872']  step x[1, 1]  (cand=188 res=188 frozen=112)
+      ncol_est per bay ['627598', '265824']  step x[1, 1]  (cand=188 res=188 frozen=112)
+      ncol_est per bay ['213410', '92406']  step x[1, 1]  (cand=188 res=188 frozen=112)
+      ncol_est per bay ['213410', '92406']  step x[1, 1]  (cand=188 res=188 frozen=112)
+    brk: declined, smallest tier predicts 536s of 51s
+P13  nbay=2  0 application(s) in 1s  obj=69211432  +0.00%
