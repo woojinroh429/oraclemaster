@@ -60,3 +60,24 @@ P20  nbay=1  0 application(s) in 57s  obj=9748532  +0.00%
       ncol_est per bay ['51084', '39760']  step x[1, 2]  (cand=111 res=101 frozen=99)
     brk: declined, smallest tier predicts 65s of 51s
 P20  nbay=2  0 application(s) in 0s  obj=9748532  +0.00%
+# probe 12
+P12  solved 30s  obj=151971  (bays=5 blocks=300)
+    brk calib: 328:34.6ms 978:46.3ms 3050:116.1ms 10704:704.0ms -> fixed 0.034s + 5.85e-09 s/col^2
+    brk tier: room=51s rate=5.85e-09 -> tier 0 (step 4 nout 40 nent 7) ncol~85294 pred=42.6s  [hard=60 slice=60s]
+    brk stick: 3 of 64 residents cannot leave the bay set at all
+    brk: build refused at tier 0 (0.3s) -- stepping down to tier 1
+    brk: build refused at tier 1 (0.7s) -- stepping down to tier 2
+    brk: build refused at tier 2 (18.2s) -- stepping down to tier 3
+    brk cost: ncol~25760 real_ncol=18067 build=4.1s ask=60.0s total=51.1s
+    brk cost: tier 3 ncol~25760 real_ncol=18067 build=4.1s total=51.1s  -> rate 6.147e-09 s/col^2
+    brk[pressure] bays=[3] res=64 outs=10 displaced 12: [(81, 370), (49, 204), (228, 201), (108, 182), (149, 174), (68, 168), (20, 167), (71, 118), (85, 118), (216, 106), (140, 64), (52, 56)]
+    brk[pressure] bays=[3] res=64 outs=10 admitted 5, moved 5, displaced 12, obj 150574 vs base 151971 -> KEEP
+P12  nbay=1  1 application(s) in 73s  obj=150574  -0.92%
+    brk calib: 296:29.4ms 828:84.3ms 2550:369.8ms -> fixed 0.025s + 5.31e-08 s/col^2
+      ncol_est per bay ['79178', '39726']  step x[1, 3]  (cand=104 res=64 frozen=58)
+      ncol_est per bay ['73796', '73700']  step x[1, 2]  (cand=104 res=64 frozen=58)
+      ncol_est per bay ['48114', '47446']  step x[1, 2]  (cand=84 res=64 frozen=58)
+      ncol_est per bay ['21130', '20870']  step x[1, 2]  (cand=74 res=64 frozen=58)
+      ncol_est per bay ['21130', '20870']  step x[1, 2]  (cand=74 res=64 frozen=58)
+    brk: declined, smallest tier predicts 47s of 51s
+P12  nbay=2  0 application(s) in 1s  obj=151971  +0.00%
