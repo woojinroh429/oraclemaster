@@ -13,6 +13,7 @@ Reads the same logs as mktable.py, so nothing is retyped here either.
 
 Run: python3.12 harness/mksummary.py
 """
+import glob
 import json
 import os
 import re
@@ -68,7 +69,10 @@ def rng(rows, key):
     return "%s & %s--%s" % (fmt(med(xs)), fmt(min(xs)), fmt(max(xs)))
 
 
-A = load("results/train", "t", "train")
+# Same preference as mkreport.sh: the submitted build's logs when they exist.
+_PRE = "results/train2" if len(glob.glob(os.path.join(HERE, "results/train2/t*.log"))) == 40 \
+    else "results/train"
+A = load(_PRE, "t", "train")
 B = load("results/stage2", "f", "stage2")
 if not A or not B:
     sys.exit("missing logs: preliminary %d, final %d" % (len(A), len(B)))

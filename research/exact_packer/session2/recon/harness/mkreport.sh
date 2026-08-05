@@ -17,7 +17,14 @@ FTBL=/tmp/finaltable.tex
 # TWO ROUNDS, TWO TABLES.  The preliminary and final training sets are different instances and
 # the report shows both, so both are generated from their own logs and injected at their own
 # markers.  Neither is retyped.
-python3.12 harness/mktable.py results/train t train 3 > "$TBL" 2>/dev/null
+# THE PRELIMINARY TABLE COMES FROM THE SUBMITTED BUILD ONCE IT HAS BEEN MEASURED ON IT.
+# results/train holds an older build's logs; results/train2 is the same forty instances re-run on
+# the code in the submission zip.  Two tables placed side by side have to differ in the data, not
+# in the binary, so prefer train2 the moment it is complete and say which was used.
+PRELIM=results/train
+if [ "$(ls results/train2/t*.log 2>/dev/null | wc -l)" -eq 40 ]; then PRELIM=results/train2; fi
+echo "preliminary table from $PRELIM"
+python3.12 harness/mktable.py "$PRELIM" t train 3 > "$TBL" 2>/dev/null
 python3.12 harness/mksummary.py > "$FTBL" 2>/dev/null
 for f in "$TBL" "$FTBL"; do
   grep -q 'end{tabular}' "$f" || { echo "no table in $f -- is that sweep finished?"; exit 1; }
