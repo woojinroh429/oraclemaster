@@ -50,44 +50,50 @@ schedule, it buys a denser layout whose scheduling consequences are unmeasured.
 A block is lowered vertically, so a placement is legal only if every layer of the descending block
 clears everything present along the whole descent. Two neighbours occupying the same floor cells
 but standing one and two layers high ration space completely differently: the scarce resource is
-height, not occupancy, which is why the descent test is layer-by-layer. The contact heuristic that
-guides the search is discussed in Section~\ref{sec:succeeded}, where the choice between a flat and
-a per-layer measure turns out to be decided by what can be bounded rather than by which describes
-the geometry better.
+height, not occupancy, which is why the descent test is layer-by-layer.
 
 \paragraph{Instances are not on a spectrum.}
-The training set splits cleanly rather than gradually. $Z_1$ is exactly zero on twenty of the forty
-instances and strictly positive on the other twenty (Table~\ref{tab:train}), the objective spans
-$1{,}499$ to $36{,}012{,}305$, and on the final instances the tardiness share runs from $0\%$ to
-$97.4\%$ with nothing in between. Where $Z_1$ vanishes the entry times are free and the problem is
-an assignment dominated by preference; where the yard is saturated they are the whole objective. A
+On the final-round instances the tardiness share of the objective runs from $0\%$ to $97.4\%$ with
+nothing in between, and the preliminary training set splits the same way: $Z_1$ is exactly zero on
+twenty of its forty instances and strictly positive on the other twenty
+(Table~\ref{tab:train}). Where $Z_1$ vanishes the entry times are free and the problem is an
+assignment dominated by preference; where the yard is saturated they are the whole objective. A
 hand-drawn threshold has to guess where that switch lies and the distribution gives no evidence
 about it, so we built a scheduler that measures which operator is paying rather than one that
 classifies the instance.
 
 \subsection{Contributions}
 
-We contribute a gate-free operator portfolio whose selection is by realised objective gain per
-second and whose slice sizing is a separate question answered by completion; an exact contact
-bound verified per candidate cell rather than by comparing run outcomes; a $10.5\times$ faster
-conflict-graph build accepted on an unchanged edge count rather than a stopwatch; and
-offset-relative geometry, which made the packing predicate position-independent and fixed a
-floating-point disagreement we had misdiagnosed as a hashing problem. We also contribute a negative
-result we think more useful than any of these, in Section~\ref{sec:wallclock}.
+\begin{itemize}
+\itemsep0pt
+\item A \emph{gate-free operator portfolio}: six operators compete for the budget on realised
+objective gain per second, with no density threshold anywhere; slice sizing is a separate question
+answered by completion.
+\item An \emph{exact contact upper bound} skipping $40.8\%$ of candidate cells while provably
+returning the identical solution, verified per cell rather than by comparing run outcomes.
+\item A $10.5\times$ faster \emph{conflict-graph build}, accepted on an unchanged edge count rather
+than a stopwatch, over a shared memo made safe by compare-and-exchange.
+\item \emph{Offset-relative geometry}, which made the packing predicate position-independent and
+fixed a disagreement we had misdiagnosed as hashing.
+\item A negative result more useful than any of these: an exact, verified $1.85\times$ speedup that
+made one instance $7.7\%$ worse (Section~\ref{sec:wallclock}).
+\end{itemize}
 
 \section{Algorithm Description}
 
 \subsection{Overall Algorithm Framework}
 
-The entry point reserves $\min(0.2T, 40\,\mathrm{s})$ of the time limit for a final
-preference-repair pass and spends the rest on four independent worker processes. Each seeds a pool
-with a cheap always-feasible sequential schedule, the one guarantee that the algorithm never
-returns nothing and the reason every other fallback path could be deleted, then runs an operator
-loop until its budget is exhausted. Workers differ in random seed and in their starting offset into
-six diversification axes; the best objective across them is polished and returned. Feasibility is
-enforced inside the operators and re-checked outside: the single acceptance function re-runs the
-provided checker on anything that beats the incumbent and returns $+\infty$ if it fails. An
-operator may be wrong about feasibility, but a wrong answer cannot be accepted.
+Four stages, and no preprocessing worth the name. \emph{Initial solution:} each of four independent
+worker processes seeds a pool with a cheap always-feasible sequential schedule --- the one guarantee
+that the algorithm never returns nothing, and the reason every other fallback path could be
+deleted. \emph{Improvement:} each worker then runs an operator loop until its budget is exhausted,
+differing from the others in random seed and in its starting offset into six diversification axes,
+so the four explore different trajectories over the same operators. \emph{Selection:} the best full
+objective across workers is taken, and the entry point reserves $\min(0.2T, 40\,\mathrm{s})$ of the
+limit for a final preference-repair pass over that winner. \emph{Validation:} feasibility is
+enforced inside the operators and re-checked outside them --- one acceptance function re-runs the
+provided checker on anything that beats the incumbent and returns $+\infty$ if it fails. An operator
+may be wrong about feasibility; a wrong answer cannot be accepted.
 
 Six operators are available: a contact-beam construction; an evolutionary re-growth with
 crossover and path-relinking over (bay, dispatch-order) anchors, decoded by the same beam; a
@@ -114,7 +120,7 @@ The construction is a filtered beam search over dispatch order~\cite{ow1988}, ra
 the exact objective rather than a priority index. Each state places the next block at the position
 minimising a weighted sum of negative contact, a positional sweep term and a preference penalty,
 and survivors are completed by a rollout. Contact plays the role touching perimeter plays in
-two-dimensional packing~\cite{lodi2002}, extended to a descent the crane must clear.
+two-dimensional packing, extended to a descent the crane must clear.
 
 Contact admits two measures. A per-layer one describes the geometry better, since a block beside a
 shorter neighbour earns nothing for the layers facing open air, and it is implemented. The
@@ -308,12 +314,11 @@ double-charging it. The configuration ladder is expressed as fractions of each i
 entry-time ceiling, so window widths come from the instance rather than being fitted to it.
 
 \paragraph{Verification instrumentation.}
-The engines carry counters for cells visited, exact tests, cheap rejections, cells scored after the
-best was found and cells skipped by the bound, plus a soundness mode that scores every cell the
-bound wanted to skip and counts those that would have won: zero out of $45.9$, $11.6$ and $9.3$
-million on three instances of very different density. An earlier bound had passed an identity check
-that was meaningless because the branch never executed, so we stopped accepting outcome comparisons
-as evidence and began testing the property itself.
+The engines carry counters for cells visited, exact tests, cheap rejections and cells skipped by
+the bound, plus a soundness mode that scores every cell the bound wanted to skip and counts those
+that would have won: zero out of $45.9$, $11.6$ and $9.3$ million on three instances of very
+different density. An earlier bound had passed an identity check that was meaningless because the
+branch never executed, so we stopped accepting outcome comparisons as evidence.
 
 \section{Computational Results}
 
@@ -359,13 +364,12 @@ Total & 74{,}003{,}416 & 73{,}283{,}064 & 73{,}981{,}407 & $-0.0\%$ \\
 
 \paragraph{Across submissions.}
 Table~\ref{tab:subs} gives the objective each of our three submissions returned on the eight
-final-round instances. The honest reading is that it does not separate the changes from the noise.
-Every per-instance move is smaller than the spread the algorithm produces against itself: three
-replicates of one unchanged build on a $150$-block instance returned $1{,}075{,}322$, $831{,}362$
-and $923{,}531$, a range of $29.3\%$, against a largest move here of $7.2\%$. Both shipping steps
-also bundled two changes, so neither is a controlled comparison. What the table does record is the
-direction: five of eight instances improved from the first submission to the third, and the total
-is flat.
+final-round instances. The honest reading is that it does not separate the changes from the noise:
+every per-instance move is smaller than the spread the algorithm produces against itself --- three
+replicates of one unchanged build returned $1{,}075{,}322$, $831{,}362$ and $923{,}531$, a range of
+$29.3\%$, against a largest move here of $7.2\%$ --- and both shipping steps bundled two changes.
+What the table records is direction: five of eight improved from the first submission to the third,
+and the total is flat.
 
 \paragraph{Per-seat pricing, on the final practice set.}
 The change described in Section~\ref{sec:succeeded} was judged on all forty final practice
@@ -394,27 +398,23 @@ permit one at all.}
 \end{tabular}
 \end{table}
 
-The priced form is $20$--$9$ and does no harm on the four instances where no window can open, the
-condition we had set in advance for enabling it by default. The effect shrank as the sample grew,
-from $-1.61\%$ at twelve instances to $-0.74\%$ at thirty-nine: the first twelve had been chosen as
-the most favourable for the trade.
+The priced form is $20$--$9$ and does no harm where no window can open, the condition we had set in
+advance for enabling it by default. The effect shrank as the sample grew, from $-1.61\%$ at twelve
+instances to $-0.74\%$ at thirty-nine: the first twelve had been chosen as the most favourable.
 
 Two cautions belong with these numbers rather than after them. Run-to-run spread on the densest
 instance is about $112{,}000$ on unchanged code, so smaller differences are noise. The sparsest is
 not stable at all: its objective is a minimum over the repacking operator's attempts within a run,
 that operator's improvement varies from $6{,}590$ to $31{,}315$ with the incumbent it is handed, and
-the best value we quote appeared in four runs of seven. It is the mode of a distribution, not a
-reproducible figure.
+the value we quote appeared in four runs of seven --- a mode, not a reproducible figure.
 
 \paragraph{Speed, measured at identical work.}
 A fixed-time A/B cannot evaluate an accelerated search: both arms consume the same budget, so the
 faster one legitimately reaches a different solution. We replay one construction call with
-identical arguments and no deadline, and compare a digest hashing every returned placement, so
-``identical'' means the whole solution. On a sparse, a mid-density and a dense instance the bound
-skipped $45.9$\,M ($40.8\%$), $11.6$\,M ($3.4\%$) and $9.3$\,M ($1.3\%$) candidate cells, none of
-them unsound, for $103.52\rightarrow55.99$\,s, $27.43\rightarrow16.55$\,s and
-$102.72\rightarrow94.61$\,s at an identical digest in all three: $1.85\times$, $1.66\times$ and
-$1.09\times$.
+identical arguments and no deadline, comparing a digest over every returned placement. On a sparse,
+a mid-density and a dense instance the bound skipped $40.8\%$, $3.4\%$ and $1.3\%$ of candidate
+cells, none unsound, for $1.85\times$, $1.66\times$ and $1.09\times$ at an identical digest in all
+three.
 
 
 The conflict-graph build was accepted only after its edge count was confirmed unchanged on every
@@ -423,30 +423,27 @@ configuration tested, for a $10.5\times$ speedup in isolation.
 \section{Team Members' Contributions}
 
 The rules require anonymity, so members are identified by role.
-
 \textbf{Member A} led the algorithmic work: problem analysis, the decision to treat geometry as a
 feasibility constraint, the measured-payoff portfolio, the contact bound and its proof, the
-conflict-graph and geometry optimisations, and the diagnosis of the wall-clock dependence of
-Section~\ref{sec:wallclock}. \textbf{Member B} owned the codebase and the experimental process:
-version management, packaging, the harnesses and the discipline of running every comparison on an
-unloaded machine, the sweeps, and verification that reported numbers matched the logs behind them.
-Both contributed to result analysis and to this report.
+conflict-graph and geometry optimisations, and the diagnosis of Section~\ref{sec:wallclock}.
+\textbf{Member B} owned the codebase and the experimental process: version management, packaging,
+the harnesses and the discipline of running every comparison on an unloaded machine, the sweeps,
+and verification that reported numbers matched the logs behind them. Both contributed to result
+analysis and to this report.
 
 \section{AI Use Declaration}
 
-Generative AI was used substantially, as an interactive coding and analysis assistant (Anthropic
-Claude, through its command-line coding interface) throughout development. It implemented and
-refactored the two C++ extensions and the Python scheduler from specifications settled in
-discussion, derived the contact bound of Section~\ref{sec:succeeded} and its validity conditions,
-wrote the harnesses including the per-cell soundness check and the identical-work replay behind
-the contact-bound figures, ran the experiments, diagnosed defects among them the position-dependence of
-the geometric predicate, and drafted this report.
+One tool was used, substantially: Anthropic Claude, through its command-line coding interface, as
+an interactive coding and analysis assistant throughout development. It implemented and refactored
+the two C++ extensions and the Python scheduler from specifications settled in discussion; derived
+the contact bound of Section~\ref{sec:succeeded} and its validity conditions; wrote the measurement
+harnesses, including the per-cell soundness check and the identical-work replay; ran the
+experiments; and diagnosed defects, among them the position-dependence of the geometric predicate.
+It drafted this report. Algorithmic direction, prioritisation and every decision to accept or
+reject a change remained with the authors, and every number here was produced by executing the
+submitted code on the challenge instances; none was generated or estimated by a language model.
 
-Algorithmic direction, prioritisation and every decision to accept or reject a change remained
-with the authors. Every number reported here was produced by executing the submitted code on the
-challenge instances; none was generated or estimated by a language model.
-
-\begin{thebibliography}{6}
+\begin{thebibliography}{5}
 
 \bibitem{andrade2012}
 Andrade, D.V., Resende, M.G.C., Werneck, R.F.: Fast local search for the maximum independent set
@@ -455,10 +452,6 @@ problem. J. Heuristics \textbf{18}(4), 525--547 (2012)
 \bibitem{lee1996}
 Lee, K.J., Lee, J.K., Choi, S.Y.: A spatial scheduling system and its application to shipbuilding:
 DAS-CURVE. Expert Syst. Appl. \textbf{10}(3--4), 311--324 (1996)
-
-\bibitem{lodi2002}
-Lodi, A., Martello, S., Monaci, M.: Two-dimensional packing problems: a survey. Eur. J. Oper. Res.
-\textbf{141}(2), 241--252 (2002)
 
 \bibitem{ow1988}
 Ow, P.S., Morton, T.E.: Filtered beam search in scheduling. Int. J. Prod. Res. \textbf{26}(1),
