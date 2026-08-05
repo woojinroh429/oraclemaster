@@ -3,3 +3,17 @@ P20   9748532 ->  9748532 (+0.00%)   declined declined declined declined
 P12    150877 ->   143847 (-4.66%)   KEEP reject KEEP KEEP
 P16   3302807 ->  3302807 (+0.00%)   reject rehome-fail rehome-fail rehome-fail
 P6    5524365 ->  5524365 (+0.00%)   aborted aborted aborted aborted
+P26  26032677 -> 26032677 (+0.00%)   no-move no-move rehome-fail no-move
+    brk: declined, smallest tier predicts 4s of 11s
+    brk: declined, smallest tier predicts 4s of 9s
+P1     682223 ->   679526 (-0.40%)   no-move reject reject KEEP
+P9    6059298 ->  6059298 (+0.00%)   rehome-fail rehome-fail rehome-fail rehome-fail
+
+--- exits over 32 calls ---
+  declined       4
+  aborted        4
+  no-move        4
+  rehome-fail    8
+  reject         7
+  KEEP           5
+  displaced blocks: 134 seen, 57 in calls that were then discarded (43%)

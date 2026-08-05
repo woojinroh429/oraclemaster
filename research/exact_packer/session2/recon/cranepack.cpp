@@ -458,13 +458,17 @@ py::tuple pack(py::list blocks, double W, double H, int step,
     }
 
     // warm placements
-    std::vector<std::array<int,5>> warmp; // block,orient,x,y,bay
+    // block,orient,x,y,bay,entry.  The entry is what lets seed 1 below select the caller's own
+    // arrangement rather than a same-position column at some other time; -1 means unspecified,
+    // which is the old behaviour.
+    std::vector<std::array<int,6>> warmp;
     if(!warm.is_none()){
         for(auto item : py::cast<py::list>(warm)){
             py::tuple t=py::cast<py::tuple>(item);
             warmp.push_back({py::cast<int>(t[0]),py::cast<int>(t[1]),
                              py::cast<int>(t[2]),py::cast<int>(t[3]),
-                             (py::len(t)>4) ? py::cast<int>(t[4]) : 0});
+                             (py::len(t)>4) ? py::cast<int>(t[4]) : 0,
+                             (py::len(t)>5) ? py::cast<int>(t[5]) : -1});
         }
     }
 
@@ -959,12 +963,29 @@ py::tuple pack(py::list blocks, double W, double H, int step,
     std::vector<int> best_sel(nblk,-1); int best=0; double bestw=-1e18;
     auto save_if_better=[&](){ double cw=wsel(); if(cw>bestw+1e-9){ bestw=cw; best_sel=sel; best=count_sel(); } return cw; };
 
-    // seed 1: warm placement (map warm to nearest generated column of same b,o,x,y)
+    // SEED 1: THE CALLER'S OWN ARRANGEMENT, INCLUDING ITS TIMES.
+    //
+    // This used to match a warm placement on (orient, x, y) alone and take the first column that
+    // agreed.  A block has one column per entry variant at each position, so "the first" is the
+    // earliest offered time, not the time the block actually occupies.  The seed therefore
+    // rebuilt the caller's LAYOUT at the WRONG SCHEDULE, those columns conflicted with each
+    // other, and blocks were skipped -- the packer could not reproduce the solution it had been
+    // handed, and so returned arrangements seating fewer blocks than the incumbent.
+    //
+    // Measured on a 44-resident bay: 38 residents re-seated and 6 displaced while only 3
+    // outsiders were admitted, which is not a trade, it is a failure to reproduce.  Matching the
+    // entry as well makes the incumbent a selection the search always has in hand, so it can
+    // only improve on it.
     if(!warmp.empty()){
         clear_all();
         for(auto&wp:warmp){
             int b=wp[0]; int want=-1;
-            for(int c:colsOfBlock[b]) if(cols[c].orient==wp[1]&&cols[c].x==wp[2]&&cols[c].y==wp[3]){want=c;break;}
+            for(int c:colsOfBlock[b])
+                if(cols[c].orient==wp[1]&&cols[c].x==wp[2]&&cols[c].y==wp[3]
+                   &&(wp[5]<0||cols[c].entry==wp[5])){want=c;break;}
+            if(want<0 && wp[5]>=0)          // no column at that exact time: fall back to position
+                for(int c:colsOfBlock[b])
+                    if(cols[c].orient==wp[1]&&cols[c].x==wp[2]&&cols[c].y==wp[3]){want=c;break;}
             if(want>=0 && sel[b]<0 && blocked[want]==0) add_col(want);
         }
         greedy_extend(border);

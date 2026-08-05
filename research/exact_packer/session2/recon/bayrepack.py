@@ -1004,8 +1004,10 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
 
         wts, winw = _price(cand, isres, blocks_in)
 
-        warm = [(i, place[b][0], int(place[b][1]), int(place[b][2]), BAYS.index(cur[b]))
-                for i, b in enumerate(cand) if isres[i]]
+        # the entry goes with the position: without it the packer seeds the right layout at the
+        # wrong schedule and cannot reproduce what it was given
+        warm = [(i, place[b][0], int(place[b][1]), int(place[b][2]), BAYS.index(cur[b]),
+                 int(ent[b])) for i, b in enumerate(cand) if isres[i]]
 
         t0 = time.time()
         # ASK FOR LESS THAN WE HAVE.  cranepack overruns whatever it is told, so the deadline
@@ -1301,49 +1303,86 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
             # sequential placement that is sensitive to order, and cheap here because a pass is
             # only feasible_scan calls against a C++ engine.  Bounded by the number of displaced
             # blocks, so it terminates; each pass promotes a block that has never been promoted.
-            _front, _seen = [], set()
             _base_state = dict(keep)
-            _placed = None
-            for _pass in range(1 + len(displaced)):
-                keep = dict(_base_state)
-                E.clear_all()
-                for q, (j, o, x, y, en, ex) in keep.items():
-                    E.add(int(j), int(q), int(o), float(x), float(y), int(en), int(ex))
-                _ordD = _front + [i for i in displaced if i not in set(_front)]
-                _fail = None
-                for i in _ordD:
-                    b = cand[i]
-                    seated = False
-                    _bo = sorted(_order2, key=lambda k: -pref[b][k])
-                    for _d in range(_RETRY):
-                        _en, _ex = ent[b] + _d, ext[b] + _d
-                        for j in _bo:
-                            rr = E.feasible_scan(int(b), [int(j)], int(_en), int(_ex), 1)
-                            if len(rr):
-                                E.add(int(j), int(b), int(rr[0][1]), float(rr[0][2]),
-                                      float(rr[0][3]), int(_en), int(_ex))
-                                keep[b] = (j, int(rr[0][1]), float(rr[0][2]), float(rr[0][3]),
-                                           _en, _ex)
-                                seated = True
+
+            def _rehome_from(_state):
+                """Seat every displaced block against _state, retrying the order when one sticks.
+                Returns the completed placement dict, or None."""
+                _front, _seen = [], set()
+                _placed = None
+                for _pass in range(1 + len(displaced)):
+                    keep = dict(_state)
+                    E.clear_all()
+                    for q, (j, o, x, y, en, ex) in keep.items():
+                        E.add(int(j), int(q), int(o), float(x), float(y), int(en), int(ex))
+                    _ordD = _front + [i for i in displaced if i not in set(_front)]
+                    _fail = None
+                    for i in _ordD:
+                        b = cand[i]
+                        seated = False
+                        _bo = sorted(_order2, key=lambda k: -pref[b][k])
+                        for _d in range(_RETRY):
+                            _en, _ex = ent[b] + _d, ext[b] + _d
+                            for j in _bo:
+                                rr = E.feasible_scan(int(b), [int(j)], int(_en), int(_ex), 1)
+                                if len(rr):
+                                    E.add(int(j), int(b), int(rr[0][1]), float(rr[0][2]),
+                                          float(rr[0][3]), int(_en), int(_ex))
+                                    keep[b] = (j, int(rr[0][1]), float(rr[0][2]),
+                                               float(rr[0][3]), _en, _ex)
+                                    seated = True
+                                    break
+                            if seated:
                                 break
-                        if seated:
+                        if not seated:
+                            _fail = i
                             break
-                    if not seated:
-                        _fail = i
+                    if _fail is None:
+                        _placed = keep
                         break
-                if _fail is None:
-                    _placed = keep
-                    break
-                if _fail in _seen:
-                    break                       # promoting it again would repeat this pass
-                _seen.add(_fail)
-                _front = [_fail] + _front
-                _say("rehome pass %d stuck on b%d -- retrying with it first"
-                     % (_pass, cand[_fail]))
+                    if _fail in _seen:
+                        break                   # promoting it again would repeat this pass
+                    _seen.add(_fail)
+                    _front = [_fail] + _front
+                return _placed
+
+            # A FAILED REHOMING IS NOT A DEAD END.  GIVE A SEAT BACK.
+            #
+            # It is the operator's single largest exit -- eight of thirty-two calls in the census
+            # in results/audit/brkexit.log, and forty percent of the calls where the packer
+            # actually produced an arrangement.  Every one of those threw away a legal, better
+            # packing over one block, after the build and the search had already been paid for.
+            #
+            # The cause is in the packer's model rather than in the search.  It prices seating a
+            # block and is free to leave the cheapest one out, but the problem does not allow a
+            # block to be left out.  When the block it dropped then has nowhere to go, the trade
+            # it made was not actually available.
+            #
+            # So undo the cheapest part of that trade instead of all of it.  Admitted outsiders
+            # can ALWAYS be returned: an outsider's home bay is outside the repacked set, nothing
+            # in that bay moved, so its incumbent seat is exactly as free as it was.  Give back
+            # the least valuable one, which frees its space in the repacked bay, and try again.
+            # Repeat while seats remain to give.  In the limit every admitted block goes home and
+            # the result is the incumbent, so this terminates and can never be worse -- the final
+            # comparison still rejects anything that does not pay.
+            _placed = _rehome_from(_base_state)
+            _gave = 0
             if _placed is None:
-                _say("displaced b%d could not be rehomed within %d days, %d order(s) tried"
-                     % (cand[_fail], _RETRY, len(_seen)))
+                _order_cheap = sorted(admitted, key=lambda i: wts[i])
+                for _i0 in _order_cheap:
+                    _b0 = cand[_i0]
+                    _base_state[_b0] = (cur[_b0], place[_b0][0], place[_b0][1], place[_b0][2],
+                                        ent[_b0], ext[_b0])
+                    _gave += 1
+                    _placed = _rehome_from(_base_state)
+                    if _placed is not None:
+                        break
+            if _placed is None:
+                _say("displaced blocks could not be rehomed even after giving back all %d seats"
+                     % len(admitted))
                 return None
+            if _gave:
+                _say("gave back %d of %d admitted seats to rehome the displaced" % (_gave, len(admitted)))
             keep = _placed
         if len(keep) != n:
             _say("rebuilt %d of %d blocks" % (len(keep), n))
