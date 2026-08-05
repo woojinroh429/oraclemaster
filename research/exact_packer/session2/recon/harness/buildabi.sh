@@ -48,6 +48,12 @@ for m in $MODS; do
         -DOGC_SRC_SHA="\"$SHA\"" $INC "$m.cpp" -o "$OUT.tmp" || { echo "  FAIL $OUT"; rc=1; continue; }
     # Only replace a working binary once the new one exists, so a failed build never leaves the
     # tree without an extension -- that is the state that produces a silent 45x regression.
+    # Drop the symbol table.  The package ships four ABI copies of each extension and they are
+    # 93% of the zip; stripping takes ogc_fast from 883,832 to 743,096 bytes each, and the only
+    # symbols a Python extension needs at run time live in .dynsym, which strip keeps.  The
+    # source stamp is a .rodata string and survives.  mkzip's clean-room solve is the acceptance
+    # test -- if a strip ever removed something load-bearing, the package build fails there.
+    strip --strip-unneeded "$OUT.tmp" 2>/dev/null || true
     mv "$OUT.tmp" "$OUT"
     grep -qa "OGCSRC=$SHA" "$OUT" || { echo "  FAIL $OUT: stamp missing after build"; rc=1; }
   done
