@@ -28,7 +28,15 @@ for m in $MODS; do
   for v in $ABIS; do
     PY=/usr/bin/python$v
     [ -x "$PY" ] || { echo "  skip $m $v  (no $PY)"; continue; }
-    INC=$($PY -m pybind11 --includes 2>/dev/null) || { echo "  skip $m $v  (no pybind11)"; continue; }
+    # pybind11 is a container-wipe casualty -- it survived for 3.12 and vanished for the other
+    # three, which under the old "skip if missing" rule meant three ABIs quietly not built.  A
+    # present interpreter that cannot build is an error, not a skip: install it and fail if that
+    # does not work, because skipping is how the stale binaries got into the tree in the first place.
+    INC=$($PY -m pybind11 --includes 2>/dev/null) || {
+      echo "  ..   $v missing pybind11, installing"
+      $PY -m pip install -q pybind11 >/dev/null 2>&1
+      INC=$($PY -m pybind11 --includes 2>/dev/null) || { echo "  FAIL $m $v: no pybind11"; rc=1; continue; }
+    }
     EXT=$($PY-config --extension-suffix)
     OUT="$m$EXT"
     if grep -qa "OGCSRC=$SHA" "$OUT" 2>/dev/null; then
