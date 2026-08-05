@@ -1866,6 +1866,34 @@ def _worker(args):
     #    after that the budget goes to whichever is actually paying, in objective units per
     #    second, with a little exploration so a slow starter can recover.  A hand-drawn
     #    density threshold would have to guess this; a measured rate cannot be wrong about it.
+    # THE BEAM'S AIM AS A PORTFOLIO AXIS, not a constant and not a size test.
+    #
+    # How much of its slice the beam claims before the contact rollout finishes the job is worth
+    # a lot and points in opposite directions by instance.  Measured at 180 s against the shipped
+    # 0.90, monotone all the way down on the large ones:
+    #
+    #     inst  blocks    0.90         0.45         0.20         0.10
+    #     P25    300   83,469,231   77,800,747   69,865,266   68,973,666
+    #     P13    300   75,460,745   72,861,873   68,648,923   66,618,791
+    #     P36    300   89,254,771   84,214,242   75,600,230   73,339,019
+    #     P20    250   10,553,084    9,826,336    9,543,763    9,255,809
+    #
+    # -24.3% to -11.9% against the shipped build.  But on prob_1 (150 blocks) the same 0.10 is
+    # +25.09%, because there the beam FINISHES: the salvage never runs and the lower aim only
+    # takes width away.
+    #
+    # The workers are already a portfolio over diversification axes and algorithm() returns their
+    # MINIMUM, so the two settings can simply both be in it.  Odd workers run the low aim, even
+    # ones today's.  A large instance is carried by the low-aim workers and a small one by the
+    # high-aim workers, no instance is ever measured for its size, and a worker that loses is
+    # discarded by the min rather than gated out in advance.
+    #
+    # Set through the environment because the C++ reads it once per process into a static, and
+    # every worker IS a separate process -- so this has to happen before the first beam call,
+    # which is what being here guarantees.  OGC_BEAMAIM set by the caller wins, for the A/B.
+    if "OGC_BEAMAIM" not in os.environ:
+        os.environ["OGC_BEAMAIM"] = "0.10" if (wid % 2) else "0.90"
+
     rng = random.Random(1234 + wid)
     axes = [_AXES[(wid + i) % len(_AXES)] for i in range(len(_AXES))]
     pool = [best] if best[1] is not None else []
