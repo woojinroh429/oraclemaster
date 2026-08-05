@@ -5,3 +5,6 @@ P7  [fix.7]        180s  obj=1128124     Z1=70.0     Z2=702    Z3=1266.0    feas
 RESTART wid=3 at 44% mine=1463357 lead=953242
 WSTAT round=0 n=4 1012381 1155256 953242 1458417  spread=53.00%
 P7  [shr.7]        180s  obj=953242      Z1=58.0     Z2=1554   Z3=1127.0    feas=y   ran 153s  py3.12
+# [fix.25]
+WSTAT round=0 n=4 85213800 71876974 85175296 69659489  spread=22.33%
+P25 [fix.25]       180s  obj=69659489    Z1=10191.0  Z2=3423   Z3=8512.0    feas=y   ran 192s  py3.12
