@@ -1731,10 +1731,19 @@ struct Engine {
         // budget is known too.  Narrow when behind (completion is guaranteed), widen when
         // ahead (the budget is actually spent).  env OGC_ADAPTB=0 pins the width.
         static const bool ADAPTB=[](){const char*e=getenv("OGC_ADAPTB");return !(e&&e[0]=='0');}();
+        // HOW MUCH OF THE SLICE THE BEAM AIMS TO USE, leaving the rest for the salvage rollout.
+        //
+        // The adaptive width narrows to finish inside time_budget_s*AIM.  At 0.90 it leaves 10%,
+        // and a 300-block rollout does not fit in 10% -- measured, the salvage pushed prob_25's
+        // 180 s runs to 220 s and 226 s.  The quality it buys is real (prob_13 -11.4%, prob_36
+        // -8.0%, prob_25 -9.0% against the shipped build at the same 180 s), so the fix is to
+        // budget for it rather than to drop it: a lower aim narrows the beam, which finishes
+        // sooner, and hands the difference to the rollout that finishes the job.
+        static const double AIM=[](){const char*e=getenv("OGC_BEAMAIM");return e?atof(e):0.90;}();
         const int Bmax=std::max(1,B), Bstart=ADAPTB?std::max(1,std::min(B,8)):B;
         int Bcur=Bstart; double work=0.0;   // work = sum over levels of (states expanded)
         for(int level=0; level<nord; level++){
-            if(elapsed()>time_budget_s){
+            if(elapsed()>time_budget_s*AIM){
                 // FINISH THE BEST PARTIAL INSTEAD OF RETURNING NOTHING.
                 //
                 // This used to return an empty result, and the caller in myalgorithm.py keeps a
@@ -1769,7 +1778,7 @@ struct Engine {
             }
             if(ADAPTB && level>0 && work>0.0){
                 double per=elapsed()/work;                       // seconds per state-level
-                double left=time_budget_s*0.90-elapsed();
+                double left=time_budget_s*AIM-elapsed();
                 int rem=nord-level;
                 int fit=(per>1e-12&&rem>0)? (int)(left/(per*(double)rem)) : Bmax;
                 if(fit<1) fit=1;
@@ -1785,7 +1794,7 @@ struct Engine {
             static const bool ADAPTK=[](){const char*e=getenv("OGC_ADAPTK");return !(e&&e[0]=='0');}();
             int Kuse=K;
             if(ADAPTK && ADAPTB && level>0 && work>0.0){
-                double per=elapsed()/work, left2=time_budget_s*0.90-elapsed();
+                double per=elapsed()/work, left2=time_budget_s*AIM-elapsed();
                 int rem2=nord-level;
                 if(per>1e-12 && rem2>0){
                     double afford=left2/(per*(double)rem2);      // states we could still expand
