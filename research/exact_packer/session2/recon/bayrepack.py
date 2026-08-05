@@ -1171,7 +1171,13 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
             # which is a constraint rather than a cost.  A repack that pays for the delay survives
             # the final comparison and one that does not is still rejected, so the bound on the
             # walk is about cost, not about safety.
-            _order2 = ([k for k in range(m) if k not in BSET] or list(BAYS))
+            # EVERY BAY, INCLUDING THE ONES JUST REPACKED.  Excluding them looked safe -- the
+            # packer had, after all, just declined to seat this block there -- but it declined on
+            # a COARSE grid, and feasible_scan works on the real one against the finished new
+            # state.  There is no reason a seat it could not see must not exist, and forbidding it
+            # cost the whole repack over one block.  Preference order, which is what the objective
+            # asks for; the engine still has to agree and the grader still has to agree after it.
+            _order2 = list(range(m))
             _RETRY = max(1, int(os.environ.get("OGC_BRKRETRY", "16")))
             for i in displaced:
                 b = cand[i]
