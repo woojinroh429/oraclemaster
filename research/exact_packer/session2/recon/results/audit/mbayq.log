@@ -117,3 +117,27 @@ P6   nbay=1  0 application(s) in 12s  obj=5485862  +0.00%
     brk[pressure] bays=[2, 1] res=91 outs=10 rehome pass 0 stuck on b125 -- retrying with it first
     brk[pressure] bays=[2, 1] res=91 outs=10 displaced b125 could not be rehomed within 16 days, 1 order(s) tried
 P6   nbay=2  0 application(s) in 53s  obj=5485862  +0.00%
+# probe 16
+P16  solved 30s  obj=3295373  (bays=5 blocks=300)
+    brk calib: 376:44.5ms 1188:64.9ms 3550:208.2ms 12388:1650.4ms -> fixed 0.043s + 1.05e-08 s/col^2
+    brk tier: room=51s rate=1.05e-08 -> tier 2 (step 4 nout 20 nent 3) ncol~58744 pred=36.2s  [hard=60 slice=60s]
+    brk stick: 28 of 44 residents cannot leave the bay set at all
+    brk: build refused at tier 2 (0.4s) -- stepping down to tier 3
+    brk cost: ncol~19114 real_ncol=17698 build=5.2s ask=60.0s total=51.2s
+    brk cost: tier 3 ncol~19114 real_ncol=17698 build=5.2s total=51.2s  -> rate 1.413e-08 s/col^2
+    brk[pressure] bays=[4] res=44 outs=10 displaced 6: [(10, 421), (267, 368), (299, 238), (164, 220), (282, 114), (163, 79)]
+    brk[pressure] bays=[4] res=44 outs=10 rehome pass 0 stuck on b267 -- retrying with it first
+    brk[pressure] bays=[4] res=44 outs=10 displaced b267 could not be rehomed within 16 days, 1 order(s) tried
+P16  nbay=1  0 application(s) in 56s  obj=3295373  +0.00%
+    brk calib: 378:29.0ms 1118:73.8ms 3404:345.0ms -> fixed 0.025s + 2.76e-08 s/col^2
+      ncol_est per bay ['117792', '44910']  step x[1, 2]  (cand=84 res=44 frozen=69)
+      ncol_est per bay ['101056', '38794']  step x[1, 2]  (cand=84 res=44 frozen=69)
+      ncol_est per bay ['62196', '24356']  step x[1, 2]  (cand=64 res=44 frozen=69)
+      ncol_est per bay ['21386', '9282']  step x[1, 2]  (cand=54 res=44 frozen=69)
+    brk tier: room=51s rate=2.76e-08 -> tier 3 (step 6 nout 10 nent 2) ncol~23313 pred=15.0s  [hard=60 slice=60s]
+    brk stick: 28 of 44 residents cannot leave the bay set at all
+    brk cost: ncol~23313 real_ncol=7053 build=1.1s ask=60.0s total=51.0s
+    brk cost: tier 3 ncol~23313 real_ncol=7053 build=1.1s total=51.0s  -> rate 2.02e-09 s/col^2
+    brk[pressure] bays=[4, 1] res=44 outs=10 displaced 2: [(145, 252), (299, 238)]
+    brk[pressure] bays=[4, 1] res=44 outs=10 admitted 1, moved 4, displaced 2, obj 3307392 vs base 3295373 -> reject
+P16  nbay=2  0 application(s) in 54s  obj=3295373  +0.00%
