@@ -95,3 +95,7 @@ P30 [r2.old.30]     60s  obj=2049434     Z1=125.0    Z2=3489   Z3=2895.0    feas
 # [r2.new.30]
 WSTAT round=0 n=4 2589921 2248627 2049434 1990984  spread=30.08%
 P30 [r2.new.30]     60s  obj=1983929     Z1=119.0    Z2=4592   Z3=2958.0    feas=y   ran 59s  py3.12
+REPDONE 2
+# [r3.old.1]
+WSTAT round=0 n=4 768126 758053 578411 831065  spread=43.68%
+P1  [r3.old.1]      60s  obj=568085      Z1=23.0     Z2=6048   Z3=661.0     feas=y   ran 59s  py3.12
