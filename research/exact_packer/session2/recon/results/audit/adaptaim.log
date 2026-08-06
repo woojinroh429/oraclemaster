@@ -43,3 +43,6 @@ P20 [r1.adapt.20]    60s  obj=9162795     Z1=1169.0   Z2=2984   Z3=8968.0    fea
 # [r1.fixed.30]
 WSTAT round=0 n=4 2660738 2042425 2273019 2049434  spread=30.27%
 P30 [r1.fixed.30]    60s  obj=2042425     Z1=125.0    Z2=4800   Z3=2776.0    feas=y   ran 59s  py3.12
+# [r1.adapt.30]
+WSTAT round=0 n=4 2223792 2009972 2298662 2049434  spread=14.36%
+P30 [r1.adapt.30]    60s  obj=2009972     Z1=123.0    Z2=3148   Z3=2809.0    feas=y   ran 59s  py3.12
