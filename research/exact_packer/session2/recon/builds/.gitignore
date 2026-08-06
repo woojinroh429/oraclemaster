@@ -1,0 +1,4 @@
+# The two submitted packages, checked out by harness/subbuild.sh.  Deliberately untracked: it is
+# 12 MB of .so files that are already in git history at d6d2a78 and 62c423d, and the script
+# regenerates the whole directory in a second after the container wipes untracked files.
+*
