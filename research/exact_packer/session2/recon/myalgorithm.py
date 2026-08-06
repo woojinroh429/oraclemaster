@@ -2254,10 +2254,19 @@ def _pool_round(prob_info, budget, rnd, nw, cwd, share_dir, room):
     got = []
     pool = multiprocessing.Pool(processes=nw)
     try:
+        # HOLD THE PROCESS OBJECTS, NOT THEIR PIDS.  exitcode is None while a worker runs and is
+        # set once it dies, and a retained reference keeps reporting it after _join_exited_workers
+        # has dropped the worker from pool._pool.  Comparing pid SETS instead would have been one
+        # unlucky moment away from being wrong in the expensive direction: a worker caught between
+        # start() and its pid being assigned contributes a None that can never reappear, so every
+        # round would conclude a worker had died and return one draw short, for the whole run,
+        # silently.  Measured not to happen -- three trials returned 4 of 4 -- but "did not happen
+        # in three trials" is a weak thing to rest a shipped default on when asking the object
+        # directly costs nothing.
         try:
-            born = set(p.pid for p in pool._pool)
+            procs = list(pool._pool)
         except Exception:
-            born = None
+            procs = None
         it = pool.imap_unordered(_worker, tasks)
         end = time.time() + max(5.0, room)
         want = nw
@@ -2272,9 +2281,9 @@ def _pool_round(prob_info, budget, rnd, nw, cwd, share_dir, room):
             except Exception:
                 got.append(None)      # this worker raised; it did deliver, and None is handled
                 continue
-            if born:                  # nothing ready: has one of them stopped existing?
+            if procs:                 # nothing ready: has one of them stopped existing?
                 try:
-                    gone = len(born - set(p.pid for p in pool._pool))
+                    gone = sum(1 for p in procs if p.exitcode is not None)
                     if gone:
                         want = max(1, nw - gone)
                 except Exception:
