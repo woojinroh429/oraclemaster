@@ -2690,6 +2690,29 @@ def algorithm(prob_info, timelimit=60):
         _b2 = max(4.0, timelimit - (time.time() - t0) - reserve - 1.0)
         _o2 = _pool_round(prob_info, _b2, 1, nw, cwd, _shdir,
                           timelimit - (time.time() - t0) - 1.0)
+        # PRINT WHAT PHASE 2 ACTUALLY RETURNED.  Skipping the round loop skipped its WSTAT line
+        # with it, and that blindness cost a whole replicate: on P16 and P20 the final answer came
+        # back EQUAL TO PHASE 1 to the digit, which reads as "phase 2 lost" but is equally
+        # consistent with "phase 2 returned nothing".  Four workers at ~3x the phase-1 budget on
+        # the winning aim contributing exactly zero, twice, is not what losing looks like.
+        #
+        # The suspect is the bounded wait: _pool_round gives up after `room` seconds, workers
+        # routinely overrun their budget (a 240 s run takes 239 s, and the report records 331 s
+        # against a 180 s budget), and phase 2 starts with barely more than its own budget left.
+        # A dash in this line is a worker that never delivered, and that distinguishes the two.
+        if os.environ.get("OGC_WSTAT"):
+            import sys as _sy
+            _vv = []
+            for _s in _o2:
+                if _s is None:
+                    _vv.append(None)
+                else:
+                    _vv.append(_total(prob_info, _s)[0])
+            _ff = [v for v in _vv if v is not None]
+            _sy.stderr.write("RACE phase2 b2=%.0fs n=%d %s\n"
+                             % (_b2, len(_ff),
+                                " ".join("-" if v is None else "%.0f" % v for v in _vv)))
+            _sy.stderr.flush()
         for _s in _o2:
             if _s is None:
                 continue
