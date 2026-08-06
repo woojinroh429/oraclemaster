@@ -70,3 +70,6 @@ P1  [r1.sac8.1]     60s  obj=573949      Z1=28.0     Z2=7291   Z3=609.0     feas
 # [r1.sac16.1]
 WSTAT round=0 n=4 710793 719582 777519 807320  spread=13.58%
 P1  [r1.sac16.1]    60s  obj=710793      Z1=21.0     Z2=6662   Z3=918.0     feas=y   ran 50s  py3.12
+REPDONE 1
+# [r2.rank.16]
+WSTAT round=0 n=4 4182000 3496123 4760624 3342806  spread=42.41%
