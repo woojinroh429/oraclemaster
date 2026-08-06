@@ -141,6 +141,37 @@ def main():
         return
     print("  control ok: 40 of 40 blocks fit back into the spot they were lifted from")
 
+    # SINGLE MOVES FIRST, because a positive here is a stronger and simpler finding than any
+    # swap result.  One block changing bay with its times held is inside every operator we ship;
+    # a local search that leaves an improving, feasible one on the table is not blocked by
+    # representation, it simply did not look.  Priced in the same closed form: Z1 cannot move,
+    # so the delta is Z3 for the one block plus Z2 for the two loads.
+    smoves = []
+    for a in range(n):
+        ja = cur[a]
+        for j in range(m):
+            if j == ja:
+                continue
+            ld = list(load)
+            ld[ja] -= wl[a]
+            ld[j] += wl[a]
+            delta = w3 * (pref[a][ja] - pref[a][j]) + w2 * (spread(ld) - base_spread)
+            if delta < -1e-9:
+                smoves.append((delta, a, j))
+    smoves.sort()
+    sfeas = []
+    for delta, a, j in smoves[:topn]:
+        load_all(skip=(a,))
+        if can(a, j):
+            sfeas.append((delta, a, j))
+    print("  single moves: %d improve the objective; of the %d best, %d are feasible today"
+          % (len(smoves), min(len(smoves), topn), len(sfeas)), flush=True)
+    if sfeas:
+        print("    best: %.0f objective (%.3f%%) moving block %d to bay %d -- an improving move"
+              % (-sfeas[0][0], 100.0 * -sfeas[0][0] / max(1.0, chk["objective"]),
+                 sfeas[0][1], sfeas[0][2]))
+        print("    the operators can already reach this and did not take it")
+
     ridge, single, neither = [], [], 0
     look = cands[:topn]
     for delta, a, b in look:
