@@ -7,3 +7,4 @@ P1   nbay=1  1 application(s) in 78s  obj=678750  -0.51%
 P1   nbay=2  0 application(s) in 53s  obj=682223  +0.00%
 P16  solved 30s  obj=3642159  (bays=5 blocks=300)
 P16  nbay=1  0 application(s) in 75s  obj=3642159  +0.00%
+P16  nbay=2  0 application(s) in 54s  obj=3642159  +0.00%
