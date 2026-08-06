@@ -2226,6 +2226,22 @@ def _worker(args):
     return best[1]
 
 
+def _worker_tagged(args):
+    """_worker, carrying its wid back with the answer.
+
+    WHO a result came from is not cosmetic here.  wid decides everything that makes a worker
+    different from its siblings -- the beam aim (_aims[wid % len(_aims)]), the seed
+    (random.Random(1234 + wid)) and the axis rotation (_AXES[(wid + i) % len(_AXES)]) -- so a
+    result without its wid cannot be attributed to any of them.
+
+    pool.map returned results in task order and that mapping was free.  imap_unordered, which is
+    what makes a dead worker survivable, returns them in completion order instead, and the
+    OGC_WSTAT line silently stopped meaning "worker 0, 1, 2, 3" the moment that changed.  Tagging
+    restores it, and it also names WHICH worker died rather than only how many.
+    """
+    return args[2], _worker(args)
+
+
 def _pool_round(prob_info, budget, rnd, nw, cwd, share_dir, room):
     """One round of nw workers, collected as they finish, and NEVER an unbounded wait.
 
@@ -2267,7 +2283,7 @@ def _pool_round(prob_info, budget, rnd, nw, cwd, share_dir, room):
             procs = list(pool._pool)
         except Exception:
             procs = None
-        it = pool.imap_unordered(_worker, tasks)
+        it = pool.imap_unordered(_worker_tagged, tasks)
         end = time.time() + max(5.0, room)
         want = nw
         while len(got) < want and time.time() < end:
@@ -2279,7 +2295,7 @@ def _pool_round(prob_info, budget, rnd, nw, cwd, share_dir, room):
             except StopIteration:
                 break
             except Exception:
-                got.append(None)      # this worker raised; it did deliver, and None is handled
+                got.append((-1, None))   # this worker raised; it delivered, and None is handled
                 continue
             if procs:                 # nothing ready: has one of them stopped existing?
                 try:
@@ -2294,7 +2310,12 @@ def _pool_round(prob_info, budget, rnd, nw, cwd, share_dir, room):
                 _fn()
             except Exception:
                 pass
-    return got
+    # BACK INTO wid ORDER, WITH A HOLE WHERE A WORKER DIED.  The OGC_WSTAT line is read column by
+    # column against the axis table, so position has to mean wid again; a worker that never
+    # returned must leave a gap rather than shift everyone after it one place left, which would
+    # attribute every result to the wrong axis.
+    by = dict((w, s) for w, s in got if w >= 0)
+    return [by.get(rnd * nw + i) for i in range(nw)]
 
 
 def algorithm(prob_info, timelimit=60):

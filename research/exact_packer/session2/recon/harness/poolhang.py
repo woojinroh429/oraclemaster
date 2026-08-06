@@ -66,7 +66,11 @@ def arm_round():
     t = time.time()
     out = M._pool_round(None, 5.0, 0, 4, None, None, CAP)
     el = time.time() - t
-    return "returned %d of 4 after %.1fs" % (len(out), el), el, True
+    # COUNT SURVIVORS, NOT SLOTS.  _pool_round returns a fixed-length list in wid order with None
+    # where a worker died, so len(out) is nw whatever happened -- it went on reporting "4 of 4"
+    # through a worker that had segfaulted, which is the arm passing while measuring nothing.
+    live = sum(1 for s in out if s is not None)
+    return ("returned %d live of %d slots after %.1fs" % (live, len(out), el)), el, live == 3
 
 
 if __name__ == "__main__":
@@ -75,9 +79,12 @@ if __name__ == "__main__":
     print("pool.map      %s" % a, flush=True)
     b, bel, bdone = arm_round()
     print("_pool_round   %s" % b, flush=True)
+    # bdone now carries "and exactly the three survivors came back", so a run that returned
+    # promptly with the wrong contents fails instead of passing on its timing alone.
     ok = (not adone) and bdone and bel < CAP - 1.0
     print("\n%s: map %s, _pool_round %s"
           % ("PASS" if ok else "FAIL",
              "hangs" if not adone else "did NOT hang -- mechanism is not what was assumed",
-             "returns in %.1fs" % bel if bdone else "hangs too"))
+             "returns 3 survivors in %.1fs" % bel if bdone else
+             "did not return the 3 survivors promptly"))
     sys.exit(0 if ok else 1)
