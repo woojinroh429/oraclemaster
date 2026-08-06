@@ -83,3 +83,6 @@ P20 [r1.pre.20]     60s  obj=8876985     Z1=1125.0   Z2=2220   Z3=9059.0    feas
 # [r1.post.20]
 WSTAT round=0 n=4 9023076 11363037 8862263 11591216  spread=30.79%
 P20 [r1.post.20]    60s  obj=8854193     Z1=1123.0   Z2=3419   Z3=8932.0    feas=y   ran 59s  py3.12
+REPDONE 1
+# [r2.pre.12]
+WSTAT round=0 n=4 159177 151715 153442 146311  spread=8.79%
