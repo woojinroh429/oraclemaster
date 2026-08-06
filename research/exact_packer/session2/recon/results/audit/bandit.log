@@ -252,3 +252,5 @@ P6  [r3.ax4.6]      60s  obj=5769246     Z1=372.0    Z2=4402   Z3=5920.0    feas
 # [r3.ax5.6]
 WSTAT round=0 n=4 6347909 5452114 6279202 6063722  spread=16.43%
 P6  [r3.ax5.6]      60s  obj=5443337     Z1=341.0    Z2=4116   Z3=6588.0    feas=y   ran 59s  py3.12
+REPDONE 3
+BANDITDONE
