@@ -27,6 +27,9 @@ extern "C" const char CRANEPACK_SRC_TAG[] = "OGCSRC=" OGC_SRC_SHA;
 #endif
 #include <cstdlib>
 #include <cstdio>
+#include <set>
+#include <map>
+#include <tuple>
 namespace py = pybind11;
 typedef std::vector<std::pair<double,double>> Poly;
 
@@ -109,6 +112,21 @@ static bool poly_overlap_off(const Poly& A,const Poly& B,double ox,double oy){
 // ---------- placement column ----------
 struct Col {
     int block, orient, x, y, entry, exit;
+    // WHICH BAY.  Zero unless the caller passed a `bays` list, in which case one pack() call
+    // covers several bays at once and a column names the bay it sits in as well as where.
+    //
+    // This is what makes multi-bay repacking cost 2x a single-bay build rather than 4x.  Two
+    // columns in DIFFERENT bays can never conflict -- the crane rule is about descending through
+    // occupied space and the bays are separate space -- so those pairs must never be enumerated
+    // at all.  Sorting the pair loop by (bay, entry) puts each bay's columns in one contiguous
+    // run, and the inner loop breaks the moment it leaves the run.  What remains is the sum of
+    // the per-bay triangles, which is exactly the work two separate calls would have done.
+    //
+    // The block still gets AT MOST ONE column selected (sel[b]), so choosing between the bays is
+    // a selection constraint that costs no edges -- which is the whole reason the larger
+    // neighbourhood is affordable.  x and y stay BAY-LOCAL, so the conflict memo's relative-offset
+    // key is unchanged and cannot alias across bays (nothing cross-bay ever reaches it).
+    int bay = 0;
     // PER-COLUMN OBJECTIVE WEIGHT.  It used to be per BLOCK, and that is what made the packer
     // unable to trade tardiness against preference at all: a block's on-time column and its
     // ten-days-late column carried the SAME value, so the solver had no way to prefer either
@@ -317,8 +335,25 @@ struct ConflictMemo {
 //   entry_exit_list : list of (entry,exit) time-variants (>=1); columns are generated
 //                     for EVERY variant so the packer can re-time a block (low-density
 //                     temporal slack lever).  "one column per block" still holds.
-// warm : list of (block_idx, orient, x, y) greedy placements (may be off-grid; seeded)
-// returns (best_count, [(block, orient, x, y)...], n_cols, n_edges, build_ms, solve_ms)
+// warm : list of (block_idx, orient, x, y) greedy placements (may be off-grid; seeded).
+//        A 5th element names the bay, for the multi-bay form below; absent means bay 0.
+// bays : optional list of (W,H) per bay.  Absent -> ONE bay of size (W,H) and every line below
+//        collapses to what it was, byte for byte.  Present -> columns are generated for every
+//        candidate in EVERY listed bay and the packer chooses the bay along with the placement,
+//        because sel[b] already admits one column per block.  W and H are then ignored.
+//
+//        This is the multi-bay repacking neighbourhood.  Its point is not speed, it is REACH: a
+//        one-bay repack can only admit an outsider by displacing a resident into a bay it must
+//        then accept unchanged, so a trade that needs BOTH bays to shift at once is invisible to
+//        it however long it runs.  Handing the packer two bays makes that trade one decision.
+//        The cost is 2x a one-bay build, not 4x -- see Col::bay.
+//
+//        Weights: with `bays` present, win_weights[b] is read as a FLAT (bay, entry_variant)
+//        table indexed bay*len(entries[b]) + variant, so a seat can be priced by which bay it is
+//        in as well as when.  It has to be: bay is what Z3 reads.  With one bay the index is the
+//        variant and the layout is the old one.
+// returns (best_count, [(block, orient, x, y, entry, exit)...], n_cols, n_edges, build_ms,
+//          solve_ms, ...).  With `bays` present each placement carries a 7th element, the bay.
 // total_s : optional deadline on BUILD + SEARCH together, measured from entry.  time_budget_s
 // bounds only the search, so a caller that must not overrun has to PREDICT the build and
 // subtract it -- and the prediction is a rate times ncol^2, which was 1.6x optimistic on P6
@@ -329,9 +364,30 @@ struct ConflictMemo {
 py::tuple pack(py::list blocks, double W, double H, int step,
                double time_budget_s, uint64_t seed, py::object warm, py::object frozen,
                py::object weights, double total_s, long max_iters,
-               py::object win_weights){
+               py::object win_weights, py::object bays){
     auto t0=std::chrono::high_resolution_clock::now();
     int nblk = (int)py::len(blocks);
+
+    // ---- bays.  One entry, (W,H), unless the caller asked for several. ----
+    // A bay is (W,H) or (W,H,step).  The PER-BAY STEP exists because the bays are not the same
+    // size and one grid resolution across all of them is a resolution chosen for whichever bay
+    // happens to be first.  Measured on P3: repacking bay 3 jointly with its best trading partner
+    // generated 18,884 columns for the target and 159,430 for the partner -- 8.4x, entirely
+    // because the partner is bigger, and enough to make the joint pack unaffordable on its own.
+    // A grid coarse in proportion to sqrt(area) gives every bay a comparable column count, and a
+    // bigger bay loses proportionally less by being sampled coarsely because it has more room.
+    std::vector<double> BW, BH;
+    std::vector<int> BST;
+    const bool MULTIBAY = !bays.is_none();
+    if(MULTIBAY){
+        for(auto it : py::cast<py::list>(bays)){
+            py::tuple t=py::cast<py::tuple>(it);
+            BW.push_back(py::cast<double>(t[0])); BH.push_back(py::cast<double>(t[1]));
+            BST.push_back(py::len(t)>2 ? std::max(1,py::cast<int>(t[2])) : step);
+        }
+    }
+    if(BW.empty()){ BW.push_back(W); BH.push_back(H); BST.push_back(step); }
+    const int nbay=(int)BW.size();
 
     // per-block objective weight (maximise Sum of placed weights).  Default all 1.0 ->
     // identical to max-cardinality.  Objective-aware VLNS repair passes real weights.
@@ -388,6 +444,9 @@ py::tuple pack(py::list blocks, double W, double H, int step,
             py::list layers=py::cast<py::list>(t[0]);
             Col c; c.block=-1;c.orient=-1;c.x=0;c.y=0;
             c.entry=py::cast<int>(t[1]); c.exit=py::cast<int>(t[2]);
+            // an obstacle sits in ONE bay; a 4th element names it, absent means bay 0, which is
+            // the only bay there is on the single-bay path
+            c.bay = (py::len(t)>3) ? py::cast<int>(t[3]) : 0;
             for(auto L : layers){
                 py::array_t<double> arr=py::cast<py::array_t<double>>(L);
                 auto a=arr.unchecked<2>(); Poly P;
@@ -399,12 +458,17 @@ py::tuple pack(py::list blocks, double W, double H, int step,
     }
 
     // warm placements
-    std::vector<std::array<int,4>> warmp; // block,orient,x,y
+    // block,orient,x,y,bay,entry.  The entry is what lets seed 1 below select the caller's own
+    // arrangement rather than a same-position column at some other time; -1 means unspecified,
+    // which is the old behaviour.
+    std::vector<std::array<int,6>> warmp;
     if(!warm.is_none()){
         for(auto item : py::cast<py::list>(warm)){
             py::tuple t=py::cast<py::tuple>(item);
             warmp.push_back({py::cast<int>(t[0]),py::cast<int>(t[1]),
-                             py::cast<int>(t[2]),py::cast<int>(t[3])});
+                             py::cast<int>(t[2]),py::cast<int>(t[3]),
+                             (py::len(t)>4) ? py::cast<int>(t[4]) : 0,
+                             (py::len(t)>5) ? py::cast<int>(t[5]) : -1});
         }
     }
 
@@ -431,39 +495,78 @@ py::tuple pack(py::list blocks, double W, double H, int step,
     }
 
     std::vector<std::vector<int>> colsOfBlock(nblk);
-    auto make_col=[&](int b,int o,int x,int y,int en,int ex,int ei){
-        Col c; c.block=b;c.orient=o;c.x=x;c.y=y;c.entry=en;c.exit=ex;
-        c.w = (ei>=0 && ei<(int)WW[b].size()) ? WW[b][ei] : wt[b];
+    auto make_col=[&](int b,int o,int x,int y,int en,int ex,int ei,int jb){
+        Col c; c.block=b;c.orient=o;c.x=x;c.y=y;c.entry=en;c.exit=ex;c.bay=jb;
+        // WHICH SEAT IS THIS, in the (bay, entry variant) table.  With one bay this is `ei` and
+        // the layout is the old per-variant one; with several it is the flat index, because the
+        // objective reads (bay, entry_time) and a seat cannot be priced without both.
+        const int wi = jb*(int)ENT[b].size() + ei;
+        c.w = (wi>=0 && wi<(int)WW[b].size()) ? WW[b][wi]
+            : ((ei>=0 && ei<(int)WW[b].size()) ? WW[b][ei] : wt[b]);
         for(auto& P : BL[b][o]){
             Poly Q; Q.reserve(P.size());
             for(auto&p:P) Q.emplace_back(p.first+x,p.second+y);
             c.layers.push_back(std::move(Q));
         }
         bbox_of(c);
-        for(const Col& f : froz) if(crane_conflict(c,f)) return;   // drop: hits an obstacle
+        // an obstacle only obstructs its own bay
+        for(const Col& f : froz) if(f.bay==jb && crane_conflict(c,f)) return;
         colsOfBlock[b].push_back((int)cols.size());
         cols.push_back(std::move(c));
     };
-    for(int b=0;b<nblk;b++){
-        for(int o=0;o<(int)BL[b].size();o++){
-            double x0=OBB[b][o][0],y0=OBB[b][o][1],x1=OBB[b][o][2],y1=OBB[b][o][3];
-            int xlo=(int)std::ceil(-x0), xhi=(int)std::floor(W-x1);
-            int ylo=(int)std::ceil(-y0), yhi=(int)std::floor(H-y1);
-            if(xlo>xhi||ylo>yhi) continue;
-            std::vector<int> xs, ys;
-            for(int x=xlo;x<=xhi;x+=step) xs.push_back(x);
-            for(int y=ylo;y<=yhi;y+=step) ys.push_back(y);
-            for(auto& wp : warmp) if(wp[0]==b&&wp[1]==o){
-                if(wp[2]>=xlo&&wp[2]<=xhi) xs.push_back(wp[2]);
-                if(wp[3]>=ylo&&wp[3]<=yhi) ys.push_back(wp[3]);
+    // BAY OUTERMOST, so each bay's columns land contiguously and the pair loop's bay break has a
+    // run to break out of.  The sort below re-establishes this anyway; generating in this order
+    // just means the sort has nothing to do on the single-bay path.
+    for(int jb=0;jb<nbay;jb++){
+        const double BWj=BW[jb], BHj=BH[jb];
+        const int stj=BST[jb];
+        for(int b=0;b<nblk;b++){
+            for(int o=0;o<(int)BL[b].size();o++){
+                double x0=OBB[b][o][0],y0=OBB[b][o][1],x1=OBB[b][o][2],y1=OBB[b][o][3];
+                int xlo=(int)std::ceil(-x0), xhi=(int)std::floor(BWj-x1);
+                int ylo=(int)std::ceil(-y0), yhi=(int)std::floor(BHj-y1);
+                if(xlo>xhi||ylo>yhi) continue;
+                std::vector<int> xs, ys;
+                for(int x=xlo;x<=xhi;x+=stj) xs.push_back(x);
+                for(int y=ylo;y<=yhi;y+=stj) ys.push_back(y);
+                for(auto& wp : warmp) if(wp[0]==b&&wp[1]==o&&wp[4]==jb){
+                    if(wp[2]>=xlo&&wp[2]<=xhi) xs.push_back(wp[2]);
+                    if(wp[3]>=ylo&&wp[3]<=yhi) ys.push_back(wp[3]);
+                }
+                std::sort(xs.begin(),xs.end()); xs.erase(std::unique(xs.begin(),xs.end()),xs.end());
+                std::sort(ys.begin(),ys.end()); ys.erase(std::unique(ys.begin(),ys.end()),ys.end());
+                for(int x:xs) for(int y:ys) for(int ei=0;ei<(int)ENT[b].size();ei++)
+                    make_col(b,o,x,y,ENT[b][ei].first,ENT[b][ei].second,ei,jb);
             }
-            std::sort(xs.begin(),xs.end()); xs.erase(std::unique(xs.begin(),xs.end()),xs.end());
-            std::sort(ys.begin(),ys.end()); ys.erase(std::unique(ys.begin(),ys.end()),ys.end());
-            for(int x:xs) for(int y:ys) for(int ei=0;ei<(int)ENT[b].size();ei++)
-                make_col(b,o,x,y,ENT[b][ei].first,ENT[b][ei].second,ei);
         }
     }
     int ncol=(int)cols.size();
+    // WHAT IS ncol ACTUALLY MADE OF?
+    //
+    // Columns are generated as (block, orient, x, y) x (entry window), and every column in one of
+    // those groups has IDENTICAL geometry -- only its time window differs.  The exact crane test
+    // is already shared across the group by the memo, but the EDGES are not: a conflicting
+    // geometric pair is stored once for every (ei_A, ei_B) whose windows overlap.  So the edge
+    // count carries a multiplicative factor that the enumeration does not, and that factor is
+    // what decides whether storing conflicts at the geometry level is worth the rework.
+    //
+    // CRANEPACK_COLSTAT=1 prints it rather than leaving it to be guessed at.
+    if(const char* _cs=getenv("CRANEPACK_COLSTAT")){ if(_cs[0]=='1'){
+        std::set<std::tuple<int,int,int,int>> geo;
+        std::map<int,int> per_block_ent;
+        for(const auto& c : cols){
+            geo.insert(std::make_tuple(c.block,c.orient,c.x,c.y));
+            per_block_ent[c.block] = (int)ENT[c.block].size();
+        }
+        long tot_ent=0; int mx_ent=0;
+        for(auto& kv : per_block_ent){ tot_ent+=kv.second; mx_ent=std::max(mx_ent,kv.second); }
+        fprintf(stderr,
+            "COLSTAT ncol=%d geom_slots=%zu ratio=%.2f blocks=%zu entries_per_block avg=%.2f max=%d\n",
+            ncol, geo.size(), geo.empty()?0.0:(double)ncol/(double)geo.size(),
+            per_block_ent.size(),
+            per_block_ent.empty()?0.0:(double)tot_ent/(double)per_block_ent.size(), mx_ent);
+        fflush(stderr);
+    }}
     // Column generation is over; the pair loop is what the projection below is about, and it has
     // to be timed from HERE.  Timing it from t0 charges the pair loop for the seconds spent
     // building columns, and since the projection scales that elapsed time by ~58x at the first
@@ -505,14 +608,22 @@ py::tuple pack(py::list blocks, double W, double H, int step,
     //
     // Doubles, not floats, for the bbox: the AABB test is an exact comparison and narrowing it
     // could flip a boundary case, which would change the edge set rather than the speed.
+    //
+    // BAY BEFORE ENTRY, which is the third structural waste and the one that makes multi-bay
+    // affordable at all.  Columns in different bays cannot conflict -- different space -- so the
+    // ncol^2 loop must not spend a single filter on those pairs.  Sorting by bay first puts each
+    // bay's columns in one contiguous run and the inner loop leaves the run with a break, so the
+    // work is the SUM of the per-bay triangles rather than the triangle of the sum: two bays cost
+    // 2x one, not 4x.  With a single bay every key is 0 and this is the old comparator exactly.
     std::vector<int> ord(ncol);
     for(int i=0;i<ncol;i++) ord[i]=i;
     std::sort(ord.begin(),ord.end(),[&](int p,int q){
+        if(cols[p].bay!=cols[q].bay) return cols[p].bay<cols[q].bay;
         return cols[p].entry!=cols[q].entry ? cols[p].entry<cols[q].entry : p<q; });
-    std::vector<int> sblk(ncol), sent(ncol), sext(ncol);
+    std::vector<int> sblk(ncol), sent(ncol), sext(ncol), sbay(ncol);
     std::vector<double> sx0(ncol), sy0(ncol), sx1(ncol), sy1(ncol);
     for(int i=0;i<ncol;i++){ const Col& c=cols[ord[i]];
-        sblk[i]=c.block; sent[i]=c.entry; sext[i]=c.exit;
+        sblk[i]=c.block; sent[i]=c.entry; sext[i]=c.exit; sbay[i]=c.bay;
         sx0[i]=c.bx0; sy0[i]=c.by0; sx1[i]=c.bx1; sy1[i]=c.by1; }
 
     // sized from the column count: enough slots that the offsets fit without filling it
@@ -548,6 +659,18 @@ py::tuple pack(py::list blocks, double W, double H, int step,
         std::vector<std::vector<std::pair<int,int>>> tedge(NTH);
         std::atomic<int> rows_done(0);
         std::atomic<int> abort_flag(0);
+        // THE LAST CHECKPOINT, so the projection can be made from the RECENT rate.  The serial
+        // path below already does this and says why: the conflict memo is cold at the start and
+        // warm after, so the first rows pay for every polygon test and the rest mostly read a
+        // byte.  A CUMULATIVE average therefore prices the whole build at the cold rate.
+        //
+        // That fix was only ever applied to the serial path, and the serial path is not the one
+        // that runs -- NTH is min(cores,8) whenever OpenMP is present.  Measured, with a cost
+        // model accurate to 1%: on P20 the fit costs the build at 26 s against a 102 s cap and
+        // the parallel projection aborted it at 2.2 s; on P13, at 19.1 s.  The operator was
+        // refusing builds it could afford four times over, which is brk switched off.
+        std::atomic<int>    chk_rows(0);
+        std::atomic<double> chk_el(0.0);
         #pragma omp parallel num_threads(NTH)
         {
             int tid=0;
@@ -559,9 +682,10 @@ py::tuple pack(py::list blocks, double W, double H, int step,
             #pragma omp for schedule(dynamic,32)
             for(int i=0;i<ncol;i++){
                 if(abort_flag.load(std::memory_order_relaxed)) continue;
-                const int ai=ord[i], ab=sblk[i], aen=sent[i], aex=sext[i];
+                const int ai=ord[i], ab=sblk[i], aen=sent[i], aex=sext[i], aby=sbay[i];
                 const double ax0=sx0[i], ay0=sy0[i], ax1=sx1[i], ay1=sy1[i];
                 for(int j=i+1;j<ncol;j++){
+                    if(sbay[j]!=aby) break;                  // bay-sorted: different space
                     if(sent[j]>=aex) break;
                     if(sblk[j]==ab) continue;
                     if(ax1<=sx0[j]||sx1[j]<=ax0||ay1<=sy0[j]||sy1[j]<=ay0) continue;
@@ -592,11 +716,18 @@ py::tuple pack(py::list blocks, double W, double H, int step,
                 if(build_cap > 0.0 && (++since & 63) == 0){
                     double el = std::chrono::duration<double>(
                                     std::chrono::high_resolution_clock::now()-tcols).count();
-                    // pairs are triangular, so rows done is not the fraction of work done
-                    double fd = (double)done/(double)ncol;
-                    double frac = fd*(2.0-fd);            // 1-(1-fd)^2
-                    if(frac > 1e-6){
-                        double projected = cols_s + el/frac;
+                    // The last chunk is the honest estimate of what the remaining rows cost --
+                    // same form as the serial path.  Whichever thread reaches a checkpoint claims
+                    // the interval by swapping in its own reading; a thread that loses the race
+                    // sees dr <= 0 and simply skips, which costs one checkpoint and never a wrong
+                    // verdict.  Rows are ALSO not triangular here: the entry sort breaks the inner
+                    // loop at the co-presence horizon, so work per row is roughly flat and a
+                    // measured chunk rate needs no shape assumption at all.
+                    int    pr = chk_rows.exchange(done, std::memory_order_relaxed);
+                    double pe = chk_el.exchange(el, std::memory_order_relaxed);
+                    double dr = (double)(done - pr), dt = el - pe;
+                    if(dr > 0.0 && dt > 0.0){
+                        double projected = cols_s + el + (double)(ncol-done)*(dt/dr);
                         if(projected > build_cap) abort_flag.store(1, std::memory_order_relaxed);
                     }
                 }
@@ -626,9 +757,10 @@ py::tuple pack(py::list blocks, double W, double H, int step,
                 if(projected > build_cap){ aborted=true; break; }
             }
         }
-        const int ai=ord[i], ab=sblk[i], aen=sent[i], aex=sext[i];
+        const int ai=ord[i], ab=sblk[i], aen=sent[i], aex=sext[i], aby=sbay[i];
         const double ax0=sx0[i], ay0=sy0[i], ax1=sx1[i], ay1=sy1[i];
         for(int j=i+1;j<ncol;j++){
+            if(sbay[j]!=aby) break;                              // bay-sorted: different space
             if(sent[j]>=aex) break;                              // entry-sorted: none after can overlap
             if(sblk[j]==ab) continue;                            // same block handled by blockUsed
             if(ax1<=sx0[j]||sx1[j]<=ax0||ay1<=sy0[j]||sy1[j]<=ay0) continue;
@@ -831,12 +963,29 @@ py::tuple pack(py::list blocks, double W, double H, int step,
     std::vector<int> best_sel(nblk,-1); int best=0; double bestw=-1e18;
     auto save_if_better=[&](){ double cw=wsel(); if(cw>bestw+1e-9){ bestw=cw; best_sel=sel; best=count_sel(); } return cw; };
 
-    // seed 1: warm placement (map warm to nearest generated column of same b,o,x,y)
+    // SEED 1: THE CALLER'S OWN ARRANGEMENT, INCLUDING ITS TIMES.
+    //
+    // This used to match a warm placement on (orient, x, y) alone and take the first column that
+    // agreed.  A block has one column per entry variant at each position, so "the first" is the
+    // earliest offered time, not the time the block actually occupies.  The seed therefore
+    // rebuilt the caller's LAYOUT at the WRONG SCHEDULE, those columns conflicted with each
+    // other, and blocks were skipped -- the packer could not reproduce the solution it had been
+    // handed, and so returned arrangements seating fewer blocks than the incumbent.
+    //
+    // Measured on a 44-resident bay: 38 residents re-seated and 6 displaced while only 3
+    // outsiders were admitted, which is not a trade, it is a failure to reproduce.  Matching the
+    // entry as well makes the incumbent a selection the search always has in hand, so it can
+    // only improve on it.
     if(!warmp.empty()){
         clear_all();
         for(auto&wp:warmp){
             int b=wp[0]; int want=-1;
-            for(int c:colsOfBlock[b]) if(cols[c].orient==wp[1]&&cols[c].x==wp[2]&&cols[c].y==wp[3]){want=c;break;}
+            for(int c:colsOfBlock[b])
+                if(cols[c].orient==wp[1]&&cols[c].x==wp[2]&&cols[c].y==wp[3]
+                   &&(wp[5]<0||cols[c].entry==wp[5])){want=c;break;}
+            if(want<0 && wp[5]>=0)          // no column at that exact time: fall back to position
+                for(int c:colsOfBlock[b])
+                    if(cols[c].orient==wp[1]&&cols[c].x==wp[2]&&cols[c].y==wp[3]){want=c;break;}
             if(want>=0 && sel[b]<0 && blocked[want]==0) add_col(want);
         }
         greedy_extend(border);
@@ -946,7 +1095,12 @@ py::tuple pack(py::list blocks, double W, double H, int step,
     py::list placements;
     for(int b=0;b<nblk;b++) if(best_sel[b]>=0){
         const Col& c=cols[best_sel[b]];
-        placements.append(py::make_tuple(c.block,c.orient,c.x,c.y,c.entry,c.exit));
+        // the bay is appended ONLY when the caller asked for several, so every existing caller
+        // still unpacks six elements and nothing downstream has to know this exists
+        if(MULTIBAY) placements.append(
+            py::make_tuple(c.block,c.orient,c.x,c.y,c.entry,c.exit,c.bay));
+        else placements.append(
+            py::make_tuple(c.block,c.orient,c.x,c.y,c.entry,c.exit));
     }
 
     // export graph for an exact solver (Gurobi): column descriptors + edges + warm-set.
@@ -1236,5 +1390,5 @@ PYBIND11_MODULE(cranepack,m){
           py::arg("time_budget_s"),py::arg("seed")=12345,py::arg("warm")=py::none(),
           py::arg("frozen")=py::none(),py::arg("weights")=py::none(),
           py::arg("total_s")=-1.0,py::arg("max_iters")=-1,
-          py::arg("win_weights")=py::none());
+          py::arg("win_weights")=py::none(),py::arg("bays")=py::none());
 }

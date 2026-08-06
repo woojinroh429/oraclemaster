@@ -71,6 +71,16 @@ except Exception:
 # ogc_fast: the from-scratch search-loop engine (exact geometry, NFP-aware).
 # Detected here (find_spec only, fork-safe); imported lazily inside the engine
 # builder.  When present and enabled, construction runs entirely in C++.
+#
+# OGC_ADAPTAIM=1 lets each worker tune its own beam aim from the beam's own overrun reports.
+# Off by default until it is measured against the fixed 0.90/0.10 portfolio; see _adapt_aim.
+_ADAPTAIM = bool(os.environ.get("OGC_ADAPTAIM"))
+# OGC_SHARE=1 lets a worker that is far behind the others restart from a fresh seed instead of
+# spending the rest of the budget on a basin the final minimum will discard.  OGC_SHAREGAP is how
+# far behind it has to be, as a fraction; 0.5 means fifty per cent worse than the best other
+# worker.  Off by default until measured on the full set.
+_SHARE = bool(os.environ.get("OGC_SHARE"))
+_SHARE_GAP = float(os.environ.get("OGC_SHAREGAP", "0.5"))
 HAVE_OGC_FAST = False
 try:
     import importlib.util as _ilu_of
@@ -320,6 +330,41 @@ def _footprint_areas(prob):
     _SCHED_AREA_CACHE[key] = out
     return out
 
+def _adapt_aim(E):
+    """Move the beam's aim toward the one this instance needs, using only the beam's own report.
+
+    Measured per worker on eight instances (results/audit/wstat.md): half the portfolio is 8-40%
+    behind on every instance, and which half is behind is NOT the instance's size.  The low aim
+    wins on a 150-block instance whose blocks carry three or more layers and loses on the flat
+    150-block ones, because layers make the descent test expensive and it is total work, not block
+    count, that decides whether the beam can finish.  No property we can read off the instance
+    separates those cases, so nothing is gated on one: the beam reports whether it had to be
+    salvaged, which is its own behaviour, and the aim follows.
+
+    Multiplicative decrease, additive increase.  Overrunning is the expensive direction -- it is
+    the failure the salvage exists to catch -- so back off hard and creep back slowly.  Clamped to
+    the range the sweep covered; the portfolio's two starting points are inside it, so a worker
+    that is already right barely moves.
+
+    The raise condition is the beam's FINAL WIDTH, not how much of its slice it used.  The first
+    version tested the slice and could only ever ratchet down: the adaptive width widens the beam
+    until it fills whatever the aim allows, so a beam that finishes always reports having spent
+    almost exactly its aim, at 0.10 as much as at 0.90.  A beam that finished at the full
+    requested width, on the other hand, was not constrained by the aim at all, and that is the
+    case where raising it buys real search.
+    """
+    if not _ADAPTAIM:
+        return
+    try:
+        aim = E.get_beam_aim()
+        if E.beam_salvaged():
+            E.set_beam_aim(max(0.10, aim * 0.60))
+        elif E.beam_width_capped():
+            E.set_beam_aim(min(0.90, aim + 0.10))
+    except Exception:
+        pass
+
+
 def _contact_beam(prob_info, deadline_s, B=24, K=4, pos_lam=0.1, prefw=0.0, order="edd", mum=1.0,
                   cohort=0.0, shadow=0.0, span=0.0, lex=0, shadoww=0.0, conw=1.0, swy=1.0, swx=0.01, span2=0.0,
                   hmatch=0.0,
@@ -432,6 +477,7 @@ def _contact_beam(prob_info, deadline_s, B=24, K=4, pos_lam=0.1, prefw=0.0, orde
                                                 float(w1), float(w2), float(w3_route), float(fut_beta),
                                                 float(_meanp), float(deadline_s), [], [],
                                                 float(_sc), float(swy), float(swx), float(cohort), float(shadow), float(span), int(lex), float(shadoww), float(conw), float(span2), float(hmatch))
+                _adapt_aim(E)
                 if _flat and len(_flat) == 7 * n:
                     return {int(_flat[i]): {"block_id": int(_flat[i]), "bay_id": int(_flat[i + 1]),
                                             "orient_idx": int(_flat[i + 2]), "x": int(_flat[i + 3]),
@@ -1823,8 +1869,41 @@ def _assign(prob_info, sol, budget):
     return best
 
 
+def _share_read(share_dir, wid, mine):
+    """Publish this worker's incumbent and return the best any OTHER worker has reached.
+
+    One file per worker and each writes only its own, so there is no lock and a torn or missing
+    read costs nothing -- the caller treats None as "no information" and does not act.  The write
+    is a rename onto the final name so a reader never sees a half-written number.
+    """
+    try:
+        import tempfile
+        p = os.path.join(share_dir, "w%d" % wid)
+        fd, tmp = tempfile.mkstemp(dir=share_dir)
+        with os.fdopen(fd, "w") as fh:
+            fh.write("%.6f" % mine)
+        os.replace(tmp, p)
+    except Exception:
+        return None
+    best_other = None
+    try:
+        for nm in os.listdir(share_dir):
+            if not nm.startswith("w") or nm == "w%d" % wid:
+                continue
+            try:
+                with open(os.path.join(share_dir, nm)) as fh:
+                    v = float(fh.read().strip())
+            except Exception:
+                continue
+            if v > 0 and (best_other is None or v < best_other):
+                best_other = v
+    except Exception:
+        return None
+    return best_other
+
+
 def _worker(args):
-    prob_info, budget, wid, cwd, share = args
+    prob_info, budget, wid, cwd, share, share_dir = args
     try:
         import os as _o, sys as _s
         if cwd and cwd not in _s.path:
@@ -1902,6 +1981,7 @@ def _worker(args):
     rng = random.Random(1234 + wid)
     axes = [_AXES[(wid + i) % len(_AXES)] for i in range(len(_AXES))]
     pool = [best] if best[1] is not None else []
+    _seed_bump = [0]                                # bumped when this worker restarts
     band = _Bandit([0.25, 1.0, 4.0], rng)          # crane-contact weight
     w3v = float(prob_info.get("weights", {}).get("w3", 1.0))
     gen = [0]
@@ -2034,6 +2114,42 @@ def _worker(args):
         left = budget - (time.time() - t0)
         if left < 2.0:
             break
+        # A WORKER THAT IS HOPELESSLY BEHIND IS A WASTED CORE, NOT A SAFE ONE.
+        #
+        # The four workers are independent and combined only by a final minimum, so a bad one
+        # costs nothing in the answer -- and that is exactly why it went unnoticed.  Measured per
+        # worker (results/audit/wstat.md), P7's control returned 937,453 / 923,531 / 1,196,169 /
+        # 2,932,676: one core spent the entire budget on something 3.2x behind the winner.  The
+        # minimum hides it, but the draw is gone.
+        #
+        # Restarting that worker from a fresh seed converts it into another draw, and more draws
+        # is precisely what tightens a minimum.  It is not a gate on the instance: a worker
+        # compares itself only with the others on the same instance, so on the large instances,
+        # where the four land within 2.16% of each other, this never fires at all.
+        #
+        # Deliberately conservative.  Once per worker, only in the middle of the run -- late
+        # enough that the gap means something, early enough that a rebuild still has time -- and
+        # only when the gap is large.  Adopting the leader's SOLUTION was the alternative and is
+        # the wrong one: it makes four workers polish one basin, and a minimum over four copies
+        # of the same start is weaker than over four independent ones.
+        if _SHARE and share_dir and _seed_bump[0] == 0 and pool:
+            _frac = (time.time() - t0) / max(1e-9, budget)
+            if 0.30 <= _frac <= 0.60:
+                _lead = _share_read(share_dir, wid, pool[0][0])
+                if _lead is not None and pool[0][0] > _lead * (1.0 + _SHARE_GAP):
+                    if os.environ.get("OGC_WSTAT"):
+                        import sys as _sy
+                        _sy.stderr.write("RESTART wid=%d at %.0f%% mine=%.0f lead=%.0f\n"
+                                         % (wid, 100 * _frac, pool[0][0], _lead))
+                        _sy.stderr.flush()
+                    _seed_bump[0] = 1
+                    rng = random.Random(90001 + 7919 * wid)
+                    pool = [best] if best[1] is not None else []
+                    gain = [0.0] * len(ops); spent = [1e-6] * len(ops); tried = [0] * len(ops)
+                    empty_at = [None] * len(ops)
+                    slot = [(budget - (time.time() - t0)) *
+                            (0.20 if o[3] else 1.0 / (2.0 * len(ops))) for o in ops]
+                    continue
         cur = pool[0][0] if pool else None
         elig = [i for i in range(len(ops))
                 if (pool or not ops[i][2]) and left - 1.0 >= ops[i][4]
@@ -2110,6 +2226,77 @@ def _worker(args):
     return best[1]
 
 
+def _pool_round(prob_info, budget, rnd, nw, cwd, share_dir, room):
+    """One round of nw workers, collected as they finish, and NEVER an unbounded wait.
+
+    A WORKER THAT DIES MUST NOT COST THE WHOLE RUN.  pool.map() blocks until every task has
+    returned a result, and a worker killed by a signal returns nothing -- ever.  Pool's
+    _maintain_pool reaps the corpse and starts a replacement, but the task the dead worker was
+    holding is not resubmitted, so map() waits for a result that cannot arrive.  Nothing raises,
+    so the `except Exception` around the call never fires either.
+
+    That is not a hypothetical.  ogc_fast segfaulted inside a worker during the 30 s solve on
+    stage-2 prob_12 (kernel: "segfault at c8 ... in ogc_fast.cpython-312 [4c4e4]"), the pool hung,
+    and the run produced no line at all until an external timeout killed it eleven minutes later.
+    On a grader that is not a poor answer, it is no answer.
+
+    So: take results as they finish rather than all at once, and stop waiting for a worker that
+    has died.  Pool workers do not exit between tasks, so an original pid that is gone from the
+    pool is a worker that was killed -- one fewer result will ever arrive, and the round should
+    finish with the rest instead of running out the clock.  When the detector is unavailable the
+    deadline still bounds the wait; the point is that neither path can wait forever.
+
+    Returns whatever came back.  Fewer draws is a worse round, and a worse round is enormously
+    better than no round: the caller keeps a running minimum across rounds and falls back to
+    _safe_sequential if every one of them comes up empty.
+    """
+    tasks = [(prob_info, budget, rnd * nw + i, cwd, 1.0 / nw, share_dir) for i in range(nw)]
+    got = []
+    pool = multiprocessing.Pool(processes=nw)
+    try:
+        # HOLD THE PROCESS OBJECTS, NOT THEIR PIDS.  exitcode is None while a worker runs and is
+        # set once it dies, and a retained reference keeps reporting it after _join_exited_workers
+        # has dropped the worker from pool._pool.  Comparing pid SETS instead would have been one
+        # unlucky moment away from being wrong in the expensive direction: a worker caught between
+        # start() and its pid being assigned contributes a None that can never reappear, so every
+        # round would conclude a worker had died and return one draw short, for the whole run,
+        # silently.  Measured not to happen -- three trials returned 4 of 4 -- but "did not happen
+        # in three trials" is a weak thing to rest a shipped default on when asking the object
+        # directly costs nothing.
+        try:
+            procs = list(pool._pool)
+        except Exception:
+            procs = None
+        it = pool.imap_unordered(_worker, tasks)
+        end = time.time() + max(5.0, room)
+        want = nw
+        while len(got) < want and time.time() < end:
+            try:
+                got.append(it.next(timeout=0.5))
+                continue
+            except multiprocessing.TimeoutError:
+                pass
+            except StopIteration:
+                break
+            except Exception:
+                got.append(None)      # this worker raised; it did deliver, and None is handled
+                continue
+            if procs:                 # nothing ready: has one of them stopped existing?
+                try:
+                    gone = sum(1 for p in procs if p.exitcode is not None)
+                    if gone:
+                        want = max(1, nw - gone)
+                except Exception:
+                    pass
+    finally:
+        for _fn in (pool.terminate, pool.join):
+            try:
+                _fn()
+            except Exception:
+                pass
+    return got
+
+
 def algorithm(prob_info, timelimit=60):
     """Entry point.  Fan out identical beams on different diversification axes, take the
     minimum of the FULL objective, polish, return."""
@@ -2153,18 +2340,27 @@ def algorithm(prob_info, timelimit=60):
         _R = 1
     best = (float("inf"), None)
     _rb = max(4.0, wbudget / _R)
+    # The channel the workers publish their incumbent on.  A directory rather than a queue
+    # because the workers are processes and the reads are best-effort: a missing or torn value
+    # means "no information" and the reader simply does not act on it.  Created even when the
+    # feature is off so the worker signature does not vary between arms.
+    _shdir = None
+    try:
+        import tempfile as _tf
+        _shdir = _tf.mkdtemp(prefix="ogcshare")
+    except Exception:
+        _shdir = None
     for _r in range(_R):
         if _r > 0 and (timelimit - (time.time() - t0)) < (_rb + reserve):
             break                                        # no room for another full round
         try:
             if nw > 1:
-                with multiprocessing.Pool(processes=nw) as pool:
-                    out = pool.map(_worker, [(prob_info, _rb, _r * nw + i, cwd, 1.0 / nw)
-                                             for i in range(nw)])
+                out = _pool_round(prob_info, _rb, _r, nw, cwd, _shdir,
+                                  timelimit - (time.time() - t0) - 1.0)
             else:
-                out = [_worker((prob_info, _rb, _r * nw, cwd, 1.0))]
+                out = [_worker((prob_info, _rb, _r * nw, cwd, 1.0, _shdir))]
         except Exception:
-            out = [_worker((prob_info, _rb, _r * nw, cwd, 1.0))]
+            out = [_worker((prob_info, _rb, _r * nw, cwd, 1.0, _shdir))]
         # OGC_WSTAT=1 prints what each worker came back with.  The answer is a minimum over the
         # workers, so what the portfolio is worth is entirely the SPREAD between them: four
         # workers that converge to the same solution cost four cores and buy one draw.  Since
@@ -2194,6 +2390,13 @@ def algorithm(prob_info, timelimit=60):
             best = (0.0, _safe_sequential(prob_info))
         except Exception:
             return {"operations": {}}
+
+    if _shdir:                                   # one directory per solve; do not leak them
+        try:
+            import shutil as _sh
+            _sh.rmtree(_shdir, ignore_errors=True)
+        except Exception:
+            pass
 
     left = timelimit - (time.time() - t0) - 1.0
     if left > 3.0:

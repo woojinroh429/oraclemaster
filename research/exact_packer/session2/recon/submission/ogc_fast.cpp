@@ -266,6 +266,21 @@ struct Engine {
     std::vector<double> bw,bh,unit;
     std::function<py::object(int,int,int,int)> nfp_provider;
 
+    // The contact beam's aim, and what it reports back about the last call.  Per engine rather
+    // than a static so a worker can move it between calls -- see the block above the level loop
+    // in contact_beam for why the right aim cannot be read off the instance.
+    double beam_aim_ = [](){ const char*e=getenv("OGC_BEAMAIM"); return e?atof(e):0.90; }();
+    bool   beam_salvaged_ = false;    // the last call hit its deadline and finished by rollout
+    double beam_used_frac_ = 0.0;     // fraction of the slice the level loop consumed
+    bool   beam_width_capped_ = false; // it finished at the full requested width -- room to spare
+    double beam_level_frac_ = 0.0;    // levels the beam completed before expiring, over nord
+    void   set_beam_aim(double a){ beam_aim_ = a<0.02?0.02:(a>0.98?0.98:a); }
+    double get_beam_aim() const { return beam_aim_; }
+    bool   beam_salvaged() const { return beam_salvaged_; }
+    double beam_used_frac() const { return beam_used_frac_; }
+    bool   beam_width_capped() const { return beam_width_capped_; }
+    double beam_level_frac() const { return beam_level_frac_; }
+
     void init(int nb, std::vector<double> w, std::vector<double> h, std::vector<double> u){
         n_bays=nb; bw=w; bh=h; unit=u; timeline.assign(nb,{});
     }
@@ -1751,11 +1766,26 @@ struct Engine {
         // -8.0%, prob_25 -9.0% against the shipped build at the same 180 s), so the fix is to
         // budget for it rather than to drop it: a lower aim narrows the beam, which finishes
         // sooner, and hands the difference to the rollout that finishes the job.
-        static const double AIM=[](){const char*e=getenv("OGC_BEAMAIM");return e?atof(e):0.90;}();
+        //
+        // The aim is a MEMBER, not a static, so a worker can move it between calls.  Which aim an
+        // instance wants is not a property we can read off it: measured per worker on eight
+        // instances, the low aim wins on P5 (150 blocks, 64% of blocks three or more layers) and
+        // loses on P7, P22 and P1 (150 blocks, flat).  Layers make the descent test expensive, so
+        // what decides it is total work, not size.  The beam does know, though, because it knows
+        // whether it finished -- so it reports that and the caller adapts.  beam_aim_ is seeded
+        // from OGC_BEAMAIM at construction.
+        const double AIM = beam_aim_;
+        beam_salvaged_ = false;
+        beam_used_frac_ = 0.0;
+        beam_width_capped_ = false;
+        beam_level_frac_ = 0.0;
         const int Bmax=std::max(1,B), Bstart=ADAPTB?std::max(1,std::min(B,8)):B;
         int Bcur=Bstart; double work=0.0;   // work = sum over levels of (states expanded)
         for(int level=0; level<nord; level++){
             if(elapsed()>time_budget_s*AIM){
+                beam_salvaged_ = true;
+                beam_used_frac_ = elapsed()/std::max(1e-9,time_budget_s);
+                beam_level_frac_ = nord>0 ? (double)level/(double)nord : 1.0;
                 // FINISH THE BEST PARTIAL INSTEAD OF RETURNING NOTHING.
                 //
                 // This used to return an empty result, and the caller in myalgorithm.py keeps a
@@ -2070,15 +2100,30 @@ struct Engine {
             if(PPQ && (int)perstate.size()>1){
                 const int quota=std::max(2,(B+1)/2);
                 std::vector<int> taken(perstate.size(),0);
+                // MOVED ONCE, AND ONLY ONCE.  The top-up pass below rescans keyed from the
+                // start, so without this it moves states the quota pass already took.  The
+                // second move yields a CBState whose three vectors are empty -- and a moved-from
+                // vector has data()==nullptr, so the next level's `c.placed[bi]=1` writes
+                // through a null pointer.  That is the crash actually observed: stage-2 prob_12,
+                // "segfault at c8 ... in ogc_fast.cpython-312 [4c4e4]", 0xc8 == 200 == the block
+                // index, faulting on exactly that store.
+                //
+                // The guard this replaces (`flat.empty() && nplaced==0`) could never fire.  The
+                // implicit move constructor moves the vectors but COPIES the scalars, so a
+                // moved-from state keeps its old nplaced, and every child has nplaced>=1 by
+                // construction -- the conjunction is unsatisfiable for the states it was meant
+                // to catch.  Recording what was taken tests the thing itself instead of trying
+                // to infer it from the wreckage.
+                std::vector<char> moved(children.size(),0);
                 for(int i=0;i<nch && (int)nb2.size()<keep;i++){
                     int idx=keyed[i].second, par=parent_of[idx];
                     if(taken[par]>=quota) continue;
-                    taken[par]++; nb2.push_back(std::move(children[idx]));
+                    taken[par]++; moved[idx]=1; nb2.push_back(std::move(children[idx]));
                 }
                 for(int i=0;i<nch && (int)nb2.size()<keep;i++){   // top up if the quota starved us
                     int idx=keyed[i].second;
-                    if(children[idx].flat.empty() && children[idx].nplaced==0) continue;
-                    nb2.push_back(std::move(children[idx]));
+                    if(moved[idx]) continue;
+                    moved[idx]=1; nb2.push_back(std::move(children[idx]));
                 }
             } else {
                 for(int i=0;i<keep;i++) nb2.push_back(std::move(children[keyed[i].second]));
@@ -2122,6 +2167,18 @@ struct Engine {
             if(ob<inc_obj) inc_obj=ob;
             if(ob<best_obj){best_obj=ob;best_flat=flat;}
         }
+        // Reached only when the level loop ran to completion, so the beam finished inside its aim.
+        //
+        // The fraction of the slice it used is NOT the signal to raise the aim on, and testing
+        // that was how the first version of this failed: ADAPTB widens the beam until it fills
+        // whatever slice the aim allows, so a finished beam always reports having used almost
+        // exactly its aim, at 0.10 as much as at 0.90.  The aim would ratchet down and never
+        // return.  What does carry the information is the width the beam settled at -- if it
+        // never had to narrow below the requested one, the aim was not what constrained it and
+        // there is room to raise it.
+        beam_used_frac_ = elapsed()/std::max(1e-9,time_budget_s);
+        beam_width_capped_ = (Bcur >= Bmax);
+        beam_level_frac_ = 1.0;
         return {best_obj,best_flat};
     }
 
@@ -3496,6 +3553,12 @@ PYBIND11_MODULE(ogc_fast,m){
         .def_readonly("cb_n_ok",&Engine::cb_n_ok)
         .def_readonly("cb_n_pruned",&Engine::cb_n_pruned)
         .def_readonly("cb_n_badprune",&Engine::cb_n_badprune)
+        .def("set_beam_aim",&Engine::set_beam_aim)
+        .def("get_beam_aim",&Engine::get_beam_aim)
+        .def("beam_salvaged",&Engine::beam_salvaged)
+        .def("beam_used_frac",&Engine::beam_used_frac)
+        .def("beam_width_capped",&Engine::beam_width_capped)
+        .def("beam_level_frac",&Engine::beam_level_frac)
         .def("contact_beam",&Engine::contact_beam,
              py::arg("order"),py::arg("areas"),py::arg("workloads"),py::arg("B"),py::arg("K"),
              py::arg("step"),py::arg("pos_lam"),py::arg("prefw"),py::arg("mu"),

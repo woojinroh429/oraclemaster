@@ -188,9 +188,27 @@ def _layers_bbox(B, bid):
     return ol, ob
 
 
+# HOW MANY BAYS GO INTO ONE REPACK.  One is the operator as it has always run.
+#
+# WHY MORE THAN ONE.  A one-bay repack can only admit an outsider by displacing a resident, and
+# the displaced block must then find a seat in some other bay AT ITS OWN UNCHANGED TIMES against
+# a state it cannot influence.  So a trade that needs both bays to move at once -- b leaves A for
+# B while c leaves B for A, each fitting only in the hole the other opens -- is not merely hard
+# for the one-bay neighbourhood, it is OUTSIDE it, and no amount of budget reaches it.  Two bays
+# in one pack makes that trade a single decision of the set-packing search.
+#
+# WHY IT IS AFFORDABLE.  Columns in different bays can never conflict, so the conflict graph is
+# the two per-bay graphs side by side: measured on a 53,252-column stress case, a second identical
+# bay took n_cols 53,252 -> 106,504 and n_edges 95,965,518 -> 191,931,036, both exactly 2x.  The
+# choice of bay costs nothing extra because the packer already admits at most one column per
+# block, so which bay a block lands in is a selection the search was already making.
+_NBAY = max(1, int(os.environ.get("OGC_BRKBAYS", "1")))
+
+
 def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
-           nout=None, step=None, nent=None, hard=None):
-    """One repack of the most contested bay.  Returns a better operations dict, or None.
+           nout=None, step=None, nent=None, hard=None, nbay=None):
+    """One repack of the most contested bay (or of the most contested nbay bays together).
+    Returns a better operations dict, or None.
 
     total_fn(prob_info, sol) -> (objective, checkdict)   the caller's own scorer, so this
     module never decides what "better" means.
@@ -343,9 +361,221 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
             if os.environ.get("BRK_DEBUG") == "1":
                 print("    brk: no bay has a profitable entrant anywhere", flush=True)
             return None
-        res = [b for b in range(n) if cur[b] == TGT]
 
-        W, H = float(bays[TGT]["width"]), float(bays[TGT]["height"])
+        # THE PARTNER BAYS.  With NB == 1 this loop does not run and everything below is the
+        # one-bay operator unchanged.
+        #
+        # A partner is worth having in proportion to how much TRADE it has with TGT, in both
+        # directions -- what TGT's residents would gain by moving there plus what its own
+        # residents would gain by moving here.  Pressure is the wrong measure for the second bay
+        # for the same reason it was the wrong measure for the first: a heavily loaded bay that
+        # nobody wants to cross into contributes no decision the packer can make.  Summing the
+        # POSITIVE single-move gains both ways is the cheapest quantity that answers the right
+        # question, and it is exactly the trade the joint neighbourhood exists to find.
+        NB = int(nbay) if nbay is not None else _NBAY
+        NB = max(1, min(NB, m))
+        BAYS = [TGT]
+        if NB > 1:
+            _sc = []
+            for j in range(m):
+                if j == TGT:
+                    continue
+                s = 0.0
+                for b in range(n):
+                    if cur[b] == TGT:
+                        alt = list(cur); alt[b] = j
+                        s += max(0.0, base - obj_of(alt, ent, ext))
+                    elif cur[b] == j:
+                        alt = list(cur); alt[b] = TGT
+                        s += max(0.0, base - obj_of(alt, ent, ext))
+                if any(cur[b] == j for b in range(n)):
+                    _sc.append((s, j))
+            _sc.sort(reverse=True)
+            BAYS += [j for _s, j in _sc[:NB - 1]]
+        BSET = set(BAYS)
+        res = [b for b in range(n) if cur[b] in BSET]
+
+        # A WINDOW OVER THE BAY SET, NOT BOTH BAYS WHOLE.
+        #
+        # Lifting every resident of every bay in the set is not a neighbourhood, it is the
+        # instance.  The cost is worth stating exactly, because the 2x figure measured in
+        # harness/cpequiv.py is easy to misread: THAT measurement held the candidate set fixed and
+        # added a bay, and it is 2x.  The operator does not hold it fixed -- a second bay brings
+        # its own residents -- so candidates double as well, and the pair work is 2 bays x (2x
+        # candidates)^2 = 8x.  Traced on P20 with the old cost model: the smallest tier predicted
+        # 65.7 s at one bay and 1,028 s at two, and the operator declined.
+        #
+        # So the joint pack takes as many candidates as the ONE-BAY pack would have, drawn from
+        # both bays, and FREEZES the rest where they stand.  That is 2 bays x (same candidates)^2
+        # = 2x, which is the affordable figure and the one that was measured.  Frozen blocks are
+        # real obstacles -- cranepack drops any column that crane-conflicts with them -- so the
+        # result is still a legal packing of the whole bay, not of a cleared one.
+        #
+        # WHICH residents.  A cross-bay trade is local in TIME: two blocks can only take each
+        # other's space if they are in the yard together.  So the window is anchored on the block
+        # with the most to gain by changing bay, and filled with the co-present residents of both
+        # bays in gain order.  Nothing here is tuned -- the cap is the one-bay operator's own
+        # resident count, and the anchor is chosen by the objective.
+        frozen_res = []
+        if NB > 1:
+            # THE JOINT PACK MUST CONTAIN THE ONE-BAY PACK.
+            #
+            # The window used to be drawn from BOTH bays, and that quietly made the two-bay
+            # neighbourhood a DIFFERENT one rather than a larger one: the target bay contributed
+            # fewer of its own residents than the one-bay operator would have taken, the partner
+            # was sampled on a coarser grid, and the residents left out stood in the way as frozen
+            # obstacles.  A neighbourhood that is not a superset can be worse, and it was --
+            # measured over eight instances, the one-bay arm improved seven and the two-bay arm
+            # improved none, spending its full budget on each.
+            #
+            # So the target bay keeps ALL of its residents, exactly as the one-bay call would, and
+            # the window applies only to the PARTNER.  Every selection the one-bay pack can make is
+            # then available here, and anything the partner adds is extra.  The cost is the price
+            # of that guarantee: candidates go from R to R + cap and both bays generate columns for
+            # all of them, so the pair work is 2(R+cap)^2 against R^2.  OGC_BRKCAP sets cap as a
+            # fraction of R -- at 0.4 that is about 4x the one-bay build, which the tier chooser
+            # can decline on its own if the budget will not carry it.
+            _tgt_res = [b for b in range(n) if cur[b] == TGT]
+            _part_res = [b for b in res if cur[b] != TGT]
+            _cap0 = max(1, int(round(len(_tgt_res)
+                                     * float(os.environ.get("OGC_BRKCAP", "0.4")))))
+            if _cap0 < len(_part_res):
+                _g = []
+                for b in _part_res:
+                    _bg = 0.0
+                    for j in BAYS:
+                        if j == cur[b]:
+                            continue
+                        alt = list(cur); alt[b] = j
+                        _bg = max(_bg, base - obj_of(alt, ent, ext))
+                    _g.append((_bg, b))
+                _g.sort(reverse=True)
+                _anch = _g[0][1]
+                _lo, _hi = ent[_anch], ext[_anch]
+                _pick = [b for _v, b in _g if ent[b] < _hi and _lo < ext[b]][:_cap0]
+                if len(_pick) < _cap0:
+                    _have = set(_pick)
+                    _pick += [b for _v, b in _g if b not in _have][:_cap0 - len(_pick)]
+                _ps = set(_pick)
+                frozen_res = [b for b in _part_res if b not in _ps]
+                res = _tgt_res + _pick
+
+        # OUTSIDERS, RE-RANKED OVER THE WHOLE BAY SET.  `outs` was built against TGT alone; with
+        # a partner in play a block's value is the best it can do in ANY of the repacked bays,
+        # and one that only wants the partner was not on the list at all.
+        if NB > 1:
+            _o = []
+            for b in range(n):
+                if cur[b] in BSET:
+                    continue
+                g = 0.0
+                for jj in BAYS:
+                    alt = list(cur); alt[b] = jj
+                    g = max(g, base - obj_of(alt, ent, ext))
+                if g > 0:
+                    _o.append((g, b))
+            _o.sort(reverse=True)
+            outs = _o
+            # NO OUTSIDERS IS NOT A DEAD END HERE, and on a two-bay instance it is the normal
+            # case: BAYS is then the whole yard and every block is a resident by definition.  The
+            # one-bay operator bails on an empty entrant list because nothing else can change in
+            # a single bay -- with two, the residents can still trade places, which is the move
+            # this exists for.  The test that the bay set is worth repacking at all was already
+            # made when TGT was chosen.
+
+        BDIM = [(float(bays[j]["width"]), float(bays[j]["height"])) for j in BAYS]
+        W, H = BDIM[0]
+        # GRID RESOLUTION PER BAY.  A single step across bays of different sizes is a resolution
+        # chosen for the target and inherited by the partner, and on P3 that made the partner 8.4x
+        # the cost of the target -- 159,430 columns against 18,884 -- for no reason other than
+        # being bigger.  A bigger bay loses proportionally less by being sampled coarsely, because
+        # it has more room to be wrong in, so the partner's step is raised until it costs no more
+        # than the target.
+        #
+        # DERIVED FROM THE COLUMN COUNT, NOT FROM THE AREA.  sqrt(area) was the obvious scale and
+        # it undershot: columns go as (W-w)(H-h), and in a big bay the block's own footprint
+        # subtracts proportionally less, so an 8.4x column ratio came from an area ratio of about
+        # 4 and the multiplier came out 2 where 3 was needed.  _ncol_est_bay already answers the
+        # question exactly, so ask it instead of modelling it.  Per tier, because the step it is
+        # scaling is the tier's.
+        # THE RESIDENTS THAT STAY PUT, as obstacles in world coordinates.  cranepack drops any
+        # generated column that crane-conflicts with one, so the window is repacked AROUND them
+        # rather than into space they occupy.  The incumbent placement of every candidate survives
+        # this by construction -- it coexists with these blocks in the solution being repacked --
+        # so the warm start is never filtered away.
+        #
+        # Built HERE, before the tier is chosen, because the calibration below has to pack the
+        # same shape: obstacles remove columns, and a rate calibrated without them is a rate for a
+        # different problem.
+        froz_in = []
+        if frozen_res:
+            import numpy as _np
+            for _fb in frozen_res:
+                _fol = _layers_bbox(B, _fb)[0][place[_fb][0]]
+                _foff = _np.asarray([place[_fb][1], place[_fb][2]], dtype=float)
+                froz_in.append(([_np.ascontiguousarray(_L + _foff) for _L in _fol],
+                                int(ent[_fb]), int(ext[_fb]), BAYS.index(cur[_fb])))
+
+        BMUL = [1] * len(BDIM)
+        _BMC = {}
+
+        def _bmul(_st, _no, _ne):
+            _key = (_st, _no, _ne, len(res), len(outs))
+            _hit = _BMC.get(_key)
+            if _hit is not None:
+                return _hit
+            _n0 = _ncol_est_bay(_st, _no, _ne, BDIM[0][0], BDIM[0][1])
+            _out = [1]
+            for _W, _H in BDIM[1:]:
+                _mm = 1
+                while _mm < 16 and _ncol_est_bay(_st * _mm, _no, _ne, _W, _H) > _n0:
+                    _mm += 1
+                _out.append(_mm)
+            _BMC[_key] = _out
+            return _out
+
+        def _ncol_est_bay(_st, _no, _ne, W, H):
+            """Columns one bay of size (W,H) would generate at this tier."""
+            return _ncol_est_of(res + [b for _, b in outs[:_no]], _st, _ne, W, H)
+
+        def _ncol_est_of(_blocks, _st, _ne, W, H, _one_time=False):
+            """The same count for an explicit block list.  _one_time is for the calibration, which
+            offers each block a single entry variant rather than a window ladder."""
+            _tot = 0
+            for _b in _blocks:
+                if _one_time:
+                    _nt = 1
+                    _, _ob = _layers_bbox(B, _b)
+                    for _q in _ob:
+                        _dw, _dh = _q[2] - _q[0], _q[3] - _q[1]
+                        _nx = int((W - _dw) // _st) + 1
+                        _ny = int((H - _dh) // _st) + 1
+                        if _nx > 0 and _ny > 0:
+                            _tot += _nx * _ny
+                    continue
+                _lo, _hi = rel[_b], due[_b] - pt[_b]
+                if _hi < _lo:
+                    _nt = 1
+                else:
+                    _ts = {_lo, _hi}
+                    if _lo <= ent[_b] <= _hi:
+                        _ts.add(ent[_b])
+                    for _i in range(max(1, _ne)):
+                        _ts.add(_lo + (_hi - _lo) * _i // max(1, _ne - 1) if _ne > 1 else _lo)
+                    _nt = len(_ts)
+                    _pr = prob_info["blocks"][_b].get("bay_preferences") or [0]
+                    _w1e = float(prob_info["weights"]["w1"])
+                    _w3e = float(prob_info["weights"].get("w3", 0.0))
+                    if _w1e > 0.0 and _w3e * (max(_pr) - min(_pr)) >= _w1e:
+                        _nt += max(1, int(os.environ.get("OGC_LATEK", "1")))
+                _, _ob = _layers_bbox(B, _b)
+                for _q in _ob:
+                    _dw, _dh = _q[2] - _q[0], _q[3] - _q[1]
+                    _nx = int((W - _dw) // _st) + 1
+                    _ny = int((H - _dh) // _st) + 1
+                    if _nx > 0 and _ny > 0:
+                        _tot += _nx * _ny * _nt
+            return float(_tot)
 
         # NOW the tier can be chosen, because the column count is computable.  cranepack builds
         # its conflict graph with an O(ncol^2) double loop that never looks at the clock, so an
@@ -377,39 +607,27 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
                 can use is (W - w) / step, not W / step.  Ignoring its footprint over-counted by
                 2.5x on P3 -- estimate 28,672 against a real 11,282 -- and squaring that made the
                 predicted build 52.6 s where it measured 7.7 s, which is why every tier still
-                looked unaffordable."""
-                _tot = 0
-                for _b in res + [b for _, b in outs[:_no]]:
-                    _lo, _hi = rel[_b], due[_b] - pt[_b]
-                    if _hi < _lo:
-                        _nt = 1
-                    else:
-                        _ts = {_lo, _hi}
-                        if _lo <= ent[_b] <= _hi:
-                            _ts.add(ent[_b])
-                        for _i in range(max(1, _ne)):
-                            _ts.add(_lo + (_hi - _lo) * _i // max(1, _ne - 1) if _ne > 1 else _lo)
-                        _nt = len(_ts)
-                        # THE LATE LADDER COSTS COLUMNS TOO.  This estimate is what chooses the
-                        # tier, and the tier is what keeps an uninterruptible build inside the
-                        # deadline.  It already omitted the single late window and under-counted
-                        # by one; a ladder of up to three would under-count by three, and that is
-                        # the direction that loses a run rather than a little quality.  An upper
-                        # bound is enough: the exact count needs the block's weight, which is not
-                        # known until after the target bay is fixed.
-                        _pr = prob_info["blocks"][_b].get("bay_preferences") or [0]
-                        _w1e = float(prob_info["weights"]["w1"])
-                        _w3e = float(prob_info["weights"].get("w3", 0.0))
-                        if _w1e > 0.0 and _w3e * (max(_pr) - min(_pr)) >= _w1e:
-                            _nt += max(1, int(os.environ.get("OGC_LATEK", "1")))
-                    _, _ob = _layers_bbox(B, _b)
-                    for _q in _ob:
-                        _dw, _dh = _q[2] - _q[0], _q[3] - _q[1]
-                        _nx = int((W - _dw) // _st) + 1
-                        _ny = int((H - _dh) // _st) + 1
-                        if _nx > 0 and _ny > 0:
-                            _tot += _nx * _ny * _nt
-                return float(_tot)
+                looked unaffordable.
+
+                BAYS: with more than one bay the same block is offered positions in each, so the
+                count is summed over BDIM.  What is RETURNED, though, is not that sum -- the cost
+                model squares its argument, and the pair loop's work is the sum of the per-bay
+                triangles, not the triangle of the total, because cross-bay pairs are never
+                enumerated.  Returning sqrt(sum of squares) is the column count whose SQUARE is
+                the real work, which is what _pred is about to multiply.  Getting this wrong is
+                not conservative in a harmless direction: it would predict 4x for a 2x build and
+                make the chooser step down a tier it could afford."""
+                _mu = _bmul(_st, _no, _ne)
+                BMUL[:] = _mu
+                _per = [_ncol_est_bay(_st * _mu[_i], _no, _ne, _W, _H)
+                        for _i, (_W, _H) in enumerate(BDIM)]
+                if len(_per) > 1 and os.environ.get("BRK_DEBUG") == "1":
+                    print("      ncol_est per bay %s  step x%s  (cand=%d res=%d frozen=%d)"
+                          % (["%.0f" % _v for _v in _per], BMUL,
+                             len(res) + min(len(outs), _no), len(res), len(frozen_res)),
+                          flush=True)
+                return math.sqrt(sum(_v * _v for _v in _per))
+
 
             # CALIBRATE THE RATE ON THIS MACHINE, ONCE, BEFORE CHOOSING.
             #
@@ -427,42 +645,97 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
             if _PAIRRATE[0] is not None and not _CALIB[0]:
                 _CALIB[0] = True
                 try:
-                    # TWO POINTS, because the rate is not a constant in ncol.  Measured:
+                    # TWO POINTS, AND A FIXED COST.  The two points were here to give a growth
+                    # EXPONENT -- small column sets fit in cache and large ones do not, so the
+                    # rate was expected to rise with n and a single micro-build to be optimistic.
+                    # Measured on the real instances, the fit came out the other way every time:
                     #
-                    #       932 cols -> 5.2e-08      11,580 -> 6.19e-08
-                    #    24,318      -> 6.61e-08     30,017 -> ~1.0e-07     61,619 -> 1.4e-07
+                    #     P20   848 cols -> 5.28e-08     2,328 -> 1.05e-08
+                    #     P13   502      -> 1.61e-07     1,420 -> 2.36e-08
                     #
-                    # It grows -- small column sets fit in cache and large ones do not -- so a
-                    # single micro-build is optimistic by 1.4x at the sizes that matter, which is
-                    # the direction that costs a deadline.  Two builds an octave apart give the
-                    # exponent as well as the level, and the exponent is itself a property of the
-                    # machine: between 932 and 30,017 columns it is 0.19 on this host and 0.09 on
-                    # the one this morning.
-                    _cb = []
+                    # The rate FALLS 5-7x over an octave, the exponent clamps at zero, and the
+                    # larger point is taken.  That is not cache behaviour reversing, it is the fit
+                    # being wrong: build_ms covers PARSING and column generation as well as the
+                    # pair loop, and at 848 columns those are nearly all of it.  848 cols took
+                    # 38.0 ms and 2,328 took 56.9 ms -- 7.5x the pairs for 1.5x the time, which
+                    # is a constant with a small slope on top, and dividing a constant by n^2
+                    # manufactures a rate that falls like 1/n^2.
+                    #
+                    # The consequence was not a small error.  On P20 the fitted rate predicted
+                    # 65.7 s for a build that took 15.0 s, so the chooser dropped to the smallest
+                    # tier; on P13 it predicted 129 s against 102 s of room and DECLINED TO RUN AT
+                    # ALL, at a 120 s budget.  brk has been switched off on these instances by its
+                    # own cost model, which is what "repack returned nothing" was really reporting.
+                    #
+                    # Two points and two unknowns: build(n) = c + r*n^2, solved rather than
+                    # assumed.  On the P20 numbers that is 0.035 s + 4.03e-09/col^2, predicting
+                    # 25.2 s where the old model said 65.7 s and the truth was 15.0 s -- still
+                    # conservative, which is the safe direction, but no longer by 4.4x.
+                    _cb, _cbb = [], []
                     for _b in (list(res) + [b for _g, b in outs])[:24]:
                         _ol, _ob2 = _layers_bbox(B, _b)
                         _cb.append((_ol, _ob2, [(ent[_b], ext[_b])]))
+                        _cbb.append((_b,))
+                    # REFINE UNTIL THE PAIR LOOP IS THE MEASUREMENT.  Two fixed steps, 24 and 12,
+                    # produced builds 30 ms apart of which the fixed cost was 77% -- and the fit
+                    # takes their DIFFERENCE, so a 10% timing wobble became a 5x error in the
+                    # slope.  It did: on P20 the same machine fitted 3.73e-09 in one arm and
+                    # 1.89e-08 in the next, against a real 2.45e-09, and the 8x-high one declined
+                    # a tier it could afford four times over.
+                    #
+                    # Halve the step until the build is big enough that the pair loop dominates,
+                    # and stop as soon as it is -- which bounds the calibration by its own last
+                    # measurement rather than by a guess about how big a bay might be.  The span
+                    # between the first and last point is then wide enough that the difference is
+                    # signal.
+                    # AND IN THE ESTIMATOR'S OWN UNITS, against the same obstacles.
+                    #
+                    # The rate was fitted against cranepack's REAL column count and then used to
+                    # predict from _ncol_est, which is an upper bound -- it counts positions the
+                    # packer discards, and now also the columns the frozen residents kill.  The
+                    # units did not match, and _pred squares its argument, so the mismatch is
+                    # squared too.  Measured across eight instances:
+                    #
+                    #     one bay, no obstacles     est/real 1.08 to 1.44     -> 1.2x to 2.1x high
+                    #     two bays, with obstacles  est/real 3.30 and 4.95    -> 11x to 25x high
+                    #
+                    # 25x is why the two-bay arm declined on five of eight instances while the
+                    # build it was refusing measured 0.7 s.  Fitting against OUR OWN estimate makes
+                    # the bias part of the constant instead of part of the answer, and packing the
+                    # calibration against the same obstacles keeps the shape the same as well --
+                    # a rate calibrated on an unobstructed bay is a rate for a different problem.
+                    _cfroz = [_f for _f in froz_in if _f[3] == 0]
                     _pts = []
                     if _cb:
-                        for _cst in (24, 12):
-                            _cr = CP.pack(_cb, W, H, _cst, 0.01, seed=1, warm=None, frozen=[],
-                                          weights=[1.0] * len(_cb))
-                            _cn, _cbuild = float(_cr[2]), float(_cr[4]) / 1000.0
+                        _cst = 24
+                        while _cst >= 3:
+                            _cr = CP.pack(_cb, W, H, _cst, 0.01, seed=1, warm=None,
+                                          frozen=_cfroz, weights=[1.0] * len(_cb))
+                            _cn = _ncol_est_of([_q[0] for _q in _cbb], _cst, 1, W, H,
+                                               _one_time=True)
+                            _cbuild = float(_cr[4]) / 1000.0
                             if _cn > 200.0 and _cbuild > 0.005:
-                                _pts.append((_cn, _cbuild / (_cn * _cn)))
-                    if len(_pts) == 2 and _pts[1][0] > _pts[0][0] * 1.5:
-                        (_n1, _r1), (_n2, _r2) = _pts
-                        _g = math.log(max(1e-12, _r2 / _r1)) / math.log(_n2 / _n1)
-                        _g = min(0.5, max(0.0, _g))       # growth only, and never explosive
-                        _CALIB[1] = (_n2, _r2, _g)
-                        _PAIRRATE[0] = _r2
+                                _pts.append((_cn, _cbuild))
+                            if _cbuild > 0.25 or len(_pts) >= 5:
+                                break
+                            _cst //= 2
+                    if len(_pts) >= 2 and _pts[-1][0] > _pts[0][0] * 1.5:
+                        (_n1, _b1), (_n2, _b2) = _pts[0], _pts[-1]
+                        _r = (_b2 - _b1) / (_n2 * _n2 - _n1 * _n1)
+                        _c = _b1 - _r * _n1 * _n1
+                        if _r <= 0.0:
+                            # the slope did not survive the noise; charge it all to the rate,
+                            # which is the old behaviour and errs high
+                            _r, _c = _b2 / (_n2 * _n2), 0.0
+                        _CALIB[1] = (max(0.0, _c), _r)
+                        _PAIRRATE[0] = _r
                     elif _pts:
-                        _CALIB[1] = (_pts[-1][0], _pts[-1][1], 0.0)
-                        _PAIRRATE[0] = _pts[-1][1]
+                        _CALIB[1] = (0.0, _pts[-1][1] / (_pts[-1][0] ** 2))
+                        _PAIRRATE[0] = _CALIB[1][1]
                     if os.environ.get("BRK_DEBUG") == "1" and _CALIB[1]:
-                        print("    brk calib: %s -> rate %.3g at %d cols, growth n^%.3f"
-                              % (" ".join("%d:%.3g" % (int(n), r) for n, r in _pts),
-                                 _CALIB[1][1], int(_CALIB[1][0]), _CALIB[1][2]), flush=True)
+                        print("    brk calib: %s -> fixed %.3fs + %.3g s/col^2"
+                              % (" ".join("%d:%.1fms" % (int(n), 1000.0 * b) for n, b in _pts),
+                                 _CALIB[1][0], _CALIB[1][1]), flush=True)
                 except Exception as _e:
                     # never silent: a calibration that cannot run leaves the seeded rate in
                     # place, and the seed is exactly what was wrong the last time this mattered
@@ -474,8 +747,8 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
                 """Seconds the build will take at _nc columns, on THIS machine."""
                 if _CALIB[1] is None:
                     return _PAIRRATE[0] * _nc * _nc
-                _n0, _r0, _g = _CALIB[1]
-                return _r0 * ((_nc / _n0) ** _g) * _nc * _nc
+                _c0, _r0 = _CALIB[1]
+                return _c0 + _r0 * _nc * _nc
 
             _pick = None
             for _ti, (_st, _no, _fr) in enumerate(_TIERS):
@@ -571,8 +844,18 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
             if hi < lo:
                 return [(ent[b], ent[b] + pt[b])]
             ts = {lo, hi}
-            if lo <= ent[b] <= hi:
-                ts.add(ent[b])
+            # THE BLOCK'S OWN SEAT IS ALWAYS OFFERED.  This used to be conditional on the current
+            # entry lying inside the tardiness-free window, which quietly excluded every block
+            # that is ALREADY LATE -- and those are exactly the blocks a repack is called on to
+            # deal with.  A resident whose current time is not offered cannot be seated where it
+            # already sits, so the packer has no way to reproduce the incumbent for it and drops
+            # it; the operator then has to rehome it, and if it cannot, the whole repack dies.
+            #
+            # Measured on P3: 12 of 52 residents displaced at one bay and 14 at two, which is not
+            # a legalisation edge case, it is a quarter of the bay being evicted for no reason.
+            # An operator must always be able to return what it was given.  ent[b] >= rel[b] holds
+            # because the solution being repacked is feasible.
+            ts.add(ent[b])
             for i in range(max(1, NENT)):
                 ts.add(lo + (hi - lo) * i // max(1, NENT - 1) if NENT > 1 else lo)
             _d = _late_by(b)
@@ -646,24 +929,105 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
         # that is the only term in the objective an entry time can touch.  A window EARLIER than
         # today's is priced above the base for the same reason, which the block-weighted version
         # could not express either.
-        wts = []
-        winw = []
-        for i, b in enumerate(cand):
-            fall = (min((j for j in range(m) if j != TGT),
-                        key=lambda j: pref[b][TGT] - pref[b][j]) if isres[i] else cur[b])
-            if isres[i]:
-                alt = list(cur); alt[b] = fall
-                _w = max(1.0, obj_of(alt, ent, ext) - base)
-            else:
-                _w = float(outs[i - len(res)][0])
-            _t0 = max(0, ext[b] - due[b])
-            _row = [max(1.0, _w - _w1f * (max(0, _ex - due[b]) - _t0))
-                    for (_en, _ex) in blocks_in[i][2]]
-            winw.append(_row)
-            wts.append(max(1.0, max(_row)))       # the block's rank is its best seat
+        # WITH SEVERAL BAYS THE SEAT IS (BAY, WINDOW), not the window alone -- bay is what Z3
+        # reads, so the same block at the same time is worth different amounts in each.  The row
+        # is laid out bay-major, cranepack indexes it bay*len(windows) + variant, and at one bay
+        # that index is the variant and the layout is the one that was there before.
+        #
+        # The value of a seat is what it is worth ABOVE THE BLOCK'S FALLBACK -- where the block
+        # ends up if the packer does not take it.  For an outsider that is where it sits today;
+        # for a resident of one of the repacked bays it is the best bay OUTSIDE the set, because
+        # that is where the rehoming step will actually put it.  With one bay both reduce to the
+        # expressions this replaces, exactly.
+        _out_of = [j for j in range(m) if j not in BSET]
 
-        warm = [(i, place[b][0], int(place[b][1]), int(place[b][2]))
-                for i, b in enumerate(cand) if isres[i]]
+        def _fallback(b, is_res):
+            if not is_res:
+                return cur[b]
+            if not _out_of:
+                return cur[b]
+            return max(_out_of, key=lambda j: pref[b][j])
+
+        # WHICH RESIDENTS HAVE NOWHERE TO GO.
+        #
+        # The packer prices a resident at what evicting it would cost -- the objective of putting
+        # it in its next-best bay -- and is free to drop the cheap ones to admit a valuable
+        # entrant.  That pricing assumes the next-best bay will TAKE it, and the measurement says
+        # that assumption is what breaks: on P3 the operator displaced eight residents, could not
+        # rehome one of them, and the whole repack was thrown away.  Retrying in a different order
+        # settled the question -- placed FIRST, into a yard holding only the blocks that had not
+        # moved, b101 still fitted in no bay on any of sixteen days.  It is not the order.  There
+        # is no seat, and no pricing of a seat that does not exist can be right.
+        #
+        # So ask, before the pack: can this resident leave at all?  Against a yard emptied of every
+        # block in the repacked bays, which is MORE room than it will really have, so a block that
+        # fails here fails for certain.  Those get a weight no combination of entrants can outbid;
+        # they can still move within the repacked bays, which is where the packing gain comes from,
+        # but they cannot be evicted from them.  Nothing is frozen and nothing is gated -- the
+        # weight is derived from the entrants' own gains, so on an instance where everyone has
+        # somewhere to go this changes nothing at all.
+        _STICK = set()
+        if engine_fn is not None and os.environ.get("OGC_BRKSTICK", "1") != "0":
+            _oth = [j for j in range(m) if j not in BSET]
+            if _oth:
+                try:
+                    _E0 = engine_fn(prob_info)
+                    _E0.clear_all()
+                    for q in range(n):
+                        if cur[q] not in BSET:
+                            _E0.add(int(cur[q]), int(q), int(place[q][0]), float(place[q][1]),
+                                    float(place[q][2]), int(ent[q]), int(ext[q]))
+                    _pk = max(1, int(os.environ.get("OGC_BRKPRECHK", "4")))
+                    for _b in res:
+                        _ok = False
+                        for _d in range(_pk):
+                            for _j in _oth:
+                                if len(_E0.feasible_scan(int(_b), [int(_j)], int(ent[_b] + _d),
+                                                         int(ext[_b] + _d), 1)):
+                                    _ok = True
+                                    break
+                            if _ok:
+                                break
+                        if not _ok:
+                            _STICK.add(_b)
+                except Exception:
+                    _STICK = set()
+        # bigger than every entrant put together, so no set of admissions pays for one eviction
+        _STICKY = 1.0 + sum(float(_g) for _g, _ in outs) + float(len(res))
+        if os.environ.get("BRK_DEBUG") == "1":
+            print("    brk stick: %d of %d residents cannot leave the bay set at all"
+                  % (len(_STICK), len(res)), flush=True)
+
+        def _price(cand_l, isres_l, blocks_l):
+            """(block weights, per-seat weights) for a candidate list and its offered windows.
+
+            A function rather than a block because the tier step-down rebuilds the windows and
+            therefore has to re-price.  It used to re-derive the rows from the OLD wts, which is
+            stale by one rung; here it is simply called again."""
+            _wts, _winw = [], []
+            for _i, _b in enumerate(cand_l):
+                _af = list(cur); _af[_b] = _fallback(_b, isres_l[_i])
+                _of = obj_of(_af, ent, ext)
+                _t0 = max(0, ext[_b] - due[_b])
+                _row = []
+                for _j in BAYS:
+                    _aj = list(cur); _aj[_b] = _j
+                    _w = _of - obj_of(_aj, ent, ext)
+                    if isres_l[_i]:
+                        _w = _STICKY if _b in _STICK else max(1.0, _w)
+                    _row += [max(1.0, _w - _w1f * (max(0, _ex - due[_b]) - _t0))
+                             for (_en, _ex) in blocks_l[_i][2]]
+                _winw.append(_row)
+                _wts.append(max(1.0, max(_row)))   # the block's rank is its best seat
+            return _wts, _winw
+
+        wts, winw = _price(cand, isres, blocks_in)
+
+        # the entry goes with the position: without it the packer seeds the right layout at the
+        # wrong schedule and cannot reproduce what it was given
+        warm = [(i, place[b][0], int(place[b][1]), int(place[b][2]), BAYS.index(cur[b]),
+                 int(ent[b])) for i, b in enumerate(cand) if isres[i]]
+
         t0 = time.time()
         # ASK FOR LESS THAN WE HAVE.  cranepack overruns whatever it is told, so the deadline
         # handed to it is deflated by the observed ratio rather than being the time remaining.
@@ -761,10 +1125,15 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
         while True:
             _pt = time.time()
             r = CP.pack(blocks_in, W, H, STEP, _ask,
-                        seed=12345 + 7919 * k, warm=warm or None, frozen=[],
+                        seed=12345 + 7919 * k, warm=warm or None, frozen=froz_in,
                         weights=[float(x) for x in wts],
                         total_s=min(_cap, SL),
-                        **({"win_weights": winw} if _WINW else {}))
+                        **({"win_weights": winw} if _WINW else {}),
+                        # only when there is more than one, so the single-bay call is the call
+                        # that has always been made -- proved identical by harness/cpequiv.py
+                        **({"bays": [(_W, _H, STEP * BMUL[_i])
+                                     for _i, (_W, _H) in enumerate(BDIM)]}
+                           if len(BDIM) > 1 else {}))
             if not (len(r) > 9 and int(r[9]) == 1) or not _rest:
                 break
             _tier = _rest.pop(0)
@@ -779,11 +1148,8 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
             isres = [True] * len(res) + [False] * len(outs)
             blocks_in = [(_layers_bbox(B, _b)[0], _layers_bbox(B, _b)[1], windows(_b))
                          for _b in cand]
-            wts = wts[:len(cand)]
             # the coarser rung offers DIFFERENT windows, so the per-seat prices are stale
-            winw = [[max(1.0, wts[_i] - _w1f * (max(0, _ex - due[cand[_i]])
-                                                - max(0, ext[cand[_i]] - due[cand[_i]])))
-                     for (_en, _ex) in blocks_in[_i][2]] for _i in range(len(cand))]
+            wts, winw = _price(cand, isres, blocks_in)
             warm = [w for w in (warm or []) if w[0] < len(cand)]
             _NCOL = _ncol_est(STEP, NOUT, NENT)
         # the ratio is against what was ASKED, which is what the deflation has to undo
@@ -824,11 +1190,22 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
             _build = float(r[4]) / 1000.0 if len(r) > 4 else _el
             _r = _build / (_NCOL * _NCOL)
             _PAIRRATE[0] = _r if _PAIRRATE[0] is None else 0.5 * _PAIRRATE[0] + 0.5 * _r
+            # AND FEED IT BACK INTO THE FIT.  A real build at a real size is worth more than the
+            # micro-builds the calibration could afford, and it is the only measurement taken at
+            # the scale the prediction is actually made at.  The fixed cost is kept -- it is a
+            # property of parsing the same blocks -- and the slope is re-derived from it.
+            if _CALIB[1] is not None:
+                _c0 = _CALIB[1][0]
+                _rn = max(0.0, _build - _c0) / (_NCOL * _NCOL)
+                if _rn > 0.0:
+                    _CALIB[1] = (_c0, 0.5 * _CALIB[1][1] + 0.5 * _rn)
             if os.environ.get("BRK_DEBUG") == "1":
                 print("    brk cost: tier %d ncol~%.0f real_ncol=%s build=%.1fs total=%.1fs"
                       "  -> rate %.4g s/col^2"
                       % (_tier, _NCOL, (r[2] if len(r) > 2 else "?"), _build, _el, _r), flush=True)
-        got = {loc: (o, x, y, en, ex) for (loc, o, x, y, en, ex) in r[1]}
+        # the 7th element is the bay, and it is present exactly when more than one was offered
+        got = {int(p[0]): (int(p[1]), float(p[2]), float(p[3]), int(p[4]), int(p[5]),
+                           BAYS[int(p[6])] if len(p) > 6 else TGT) for p in r[1]}
 
         # WHERE IT STOPS.  repack has seven exits that all look like None to the caller, and a
         # None tells you nothing about which one fired -- the directed and undirected variants
@@ -838,13 +1215,20 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
 
         def _say(msg):
             if _dbg:
-                print("    brk[%s] tgt=%d res=%d outs=%d %s"
-                      % ("pressure", TGT, len(res), len(outs), msg),
+                print("    brk[%s] bays=%s res=%d outs=%d %s"
+                      % ("pressure", BAYS, len(res), len(outs), msg),
                       flush=True)
 
+        # DID ANYTHING ACTUALLY MOVE.  This used to ask whether an OUTSIDER was admitted, which
+        # is the right question when the pack covers one bay: nothing else can change there.
+        # With two bays a resident of one that lands in the other has changed bay without being
+        # an outsider, and that swap is precisely the move the joint neighbourhood was built to
+        # find -- so the test is "some block ended up somewhere else", which is the same test
+        # with one bay and the only one that admits the new move with two.
         admitted = [i for i in range(len(cand)) if not isres[i] and i in got]
-        if not admitted:
-            _say("packer admitted NO outsider (seated %d of %d columns offered)"
+        moved = [i for i in range(len(cand)) if i in got and got[i][5] != cur[cand[i]]]
+        if not moved:
+            _say("packer moved NO block between bays (seated %d of %d columns offered)"
                  % (len(got), len(cand)))
             return None
         # DISPLACED RESIDENTS.  An earlier version of this rejected any repack that failed to
@@ -860,13 +1244,22 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
         # against the finished new state.  One that cannot is not "priced at its next-best bay"
         # -- that is the assumption the earlier diagnostics made and it is exactly the assumption
         # this whole night proved unsafe.  It kills the repack.
+        # EVERY BLOCK ENDS UP IN EXACTLY ONE OF THREE PLACES.  Not a candidate -- which now
+        # includes the residents frozen out of the window -- means it never moved.  A candidate
+        # the packer seated takes the seat it was given.  A candidate it did not seat either stays
+        # where it is (an outsider that was simply not admitted) or has to be rehomed (a resident
+        # whose place was taken).  Stated this way rather than as a filter on the target bay,
+        # because with a window there are now residents that are neither candidates nor movable.
         displaced = [i for i in range(len(cand)) if isres[i] and i not in got]
+        _cset = set(cand)
         keep = {b: (cur[b], place[b][0], place[b][1], place[b][2], ent[b], ext[b])
-                for b in range(n) if cur[b] != TGT and b not in {cand[i] for i in admitted}}
+                for b in range(n) if b not in _cset}
         for i, b in enumerate(cand):
             if i in got:
-                o, x, y, en, ex = got[i]
-                keep[b] = (TGT, int(o), float(x), float(y), int(en), int(ex))
+                o, x, y, en, ex, jb = got[i]
+                keep[b] = (jb, int(o), float(x), float(y), int(en), int(ex))
+            elif not isres[i]:
+                keep[b] = (cur[b], place[b][0], place[b][1], place[b][2], ent[b], ext[b])
         if displaced:
             if engine_fn is None:
                 return None
@@ -874,21 +1267,142 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
             E.clear_all()
             for q, (j, o, x, y, en, ex) in keep.items():
                 E.add(int(j), int(q), int(o), float(x), float(y), int(en), int(ex))
+            # REHOMING MAY MOVE THE CLOCK, NOT ONLY THE BAY.
+            #
+            # This step used to demand a seat at the block's OWN UNCHANGED entry and exit, in some
+            # other bay, and killed the whole repack when it could not find one.  Measured, that
+            # is where the operator actually dies -- three instances, three different bay counts,
+            # every one of them the same line:
+            #
+            #     P3   one bay  built 7.0 s, searched 44 s -> displaced b63  could not be rehomed
+            #     P20  one bay  built 15.4 s, searched 87 s -> displaced b14  could not be rehomed
+            #     P3   two bays built 0.6 s, searched 50 s -> displaced b194 could not be rehomed
+            #
+            # In each case the packer HAD a better arrangement and it was thrown away at the
+            # legalisation step, over one block.  The packer's model is what makes this happen: it
+            # prices seating a block and is free to leave the cheapest one out, but the problem
+            # does not allow a block to be left out -- so the block it dropped has to go somewhere,
+            # and demanding the same day as well as a different bay is a harder question than the
+            # objective ever asks.
+            #
+            # Lateness is PRICED, not forbidden: w1 per day of tardiness, and the rebuilt solution
+            # is scored by the real grader before it is returned.  So try the block's own time
+            # first -- across every bay, since a free move is always better -- and only then walk
+            # the entry forward a day at a time.  Never earlier: that could breach release_time,
+            # which is a constraint rather than a cost.  A repack that pays for the delay survives
+            # the final comparison and one that does not is still rejected, so the bound on the
+            # walk is about cost, not about safety.
+            # EVERY BAY, INCLUDING THE ONES JUST REPACKED.  Excluding them looked safe -- the
+            # packer had, after all, just declined to seat this block there -- but it declined on
+            # a COARSE grid, and feasible_scan works on the real one against the finished new
+            # state.  There is no reason a seat it could not see must not exist, and forbidding it
+            # cost the whole repack over one block.  Preference order, which is what the objective
+            # asks for; the engine still has to agree and the grader still has to agree after it.
+            _order2 = list(range(m))
+            _RETRY = max(1, int(os.environ.get("OGC_BRKRETRY", "16")))
+            # HARDEST FIRST.  Rehoming is sequential and each block that lands becomes an obstacle
+            # for the next, so the order is not a detail: a small block placed early can take the
+            # only opening a large one had.  Largest footprint first is the standard remedy and it
+            # costs nothing to apply.  The trace names the whole displaced set, because "one block
+            # could not be rehomed" does not say whether the yard is full or the order was wrong.
+            _area = {}
             for i in displaced:
-                b = cand[i]
-                seated = False
-                for j in sorted((k for k in range(m) if k != TGT), key=lambda k: -pref[b][k]):
-                    r = E.feasible_scan(int(b), [int(j)], int(ent[b]), int(ext[b]), 1)
-                    if len(r):
-                        E.add(int(j), int(b), int(r[0][1]), float(r[0][2]), float(r[0][3]),
-                              int(ent[b]), int(ext[b]))
-                        keep[b] = (j, int(r[0][1]), float(r[0][2]), float(r[0][3]),
-                                   ent[b], ext[b])
-                        seated = True
+                _b2 = cand[i]
+                _, _ob3 = _layers_bbox(B, _b2)
+                _area[i] = max((_q[2] - _q[0]) * (_q[3] - _q[1]) for _q in _ob3)
+            displaced.sort(key=lambda i: -_area[i])
+            _say("displaced %d: %s" % (len(displaced),
+                                       [(cand[i], int(_area[i])) for i in displaced]))
+
+            # FIRST-FAIL-FIRST, because the order is what fails and not the yard.  Largest-first
+            # is a good guess and it is only a guess: on P3 it seated b177 (420) and b31 (414) and
+            # then could not seat b101 (253), so the opening b101 needed had been taken by a
+            # SMALLER block placed earlier.  When a block cannot be seated, put it at the front and
+            # start the whole rehoming again from the post-pack state -- the classic repair for a
+            # sequential placement that is sensitive to order, and cheap here because a pass is
+            # only feasible_scan calls against a C++ engine.  Bounded by the number of displaced
+            # blocks, so it terminates; each pass promotes a block that has never been promoted.
+            _base_state = dict(keep)
+
+            def _rehome_from(_state):
+                """Seat every displaced block against _state, retrying the order when one sticks.
+                Returns the completed placement dict, or None."""
+                _front, _seen = [], set()
+                _placed = None
+                for _pass in range(1 + len(displaced)):
+                    keep = dict(_state)
+                    E.clear_all()
+                    for q, (j, o, x, y, en, ex) in keep.items():
+                        E.add(int(j), int(q), int(o), float(x), float(y), int(en), int(ex))
+                    _ordD = _front + [i for i in displaced if i not in set(_front)]
+                    _fail = None
+                    for i in _ordD:
+                        b = cand[i]
+                        seated = False
+                        _bo = sorted(_order2, key=lambda k: -pref[b][k])
+                        for _d in range(_RETRY):
+                            _en, _ex = ent[b] + _d, ext[b] + _d
+                            for j in _bo:
+                                rr = E.feasible_scan(int(b), [int(j)], int(_en), int(_ex), 1)
+                                if len(rr):
+                                    E.add(int(j), int(b), int(rr[0][1]), float(rr[0][2]),
+                                          float(rr[0][3]), int(_en), int(_ex))
+                                    keep[b] = (j, int(rr[0][1]), float(rr[0][2]),
+                                               float(rr[0][3]), _en, _ex)
+                                    seated = True
+                                    break
+                            if seated:
+                                break
+                        if not seated:
+                            _fail = i
+                            break
+                    if _fail is None:
+                        _placed = keep
                         break
-                if not seated:
-                    _say("displaced b%d could not be rehomed in any other bay" % b)
-                    return None
+                    if _fail in _seen:
+                        break                   # promoting it again would repeat this pass
+                    _seen.add(_fail)
+                    _front = [_fail] + _front
+                return _placed
+
+            # A FAILED REHOMING IS NOT A DEAD END.  GIVE A SEAT BACK.
+            #
+            # It is the operator's single largest exit -- eight of thirty-two calls in the census
+            # in results/audit/brkexit.log, and forty percent of the calls where the packer
+            # actually produced an arrangement.  Every one of those threw away a legal, better
+            # packing over one block, after the build and the search had already been paid for.
+            #
+            # The cause is in the packer's model rather than in the search.  It prices seating a
+            # block and is free to leave the cheapest one out, but the problem does not allow a
+            # block to be left out.  When the block it dropped then has nowhere to go, the trade
+            # it made was not actually available.
+            #
+            # So undo the cheapest part of that trade instead of all of it.  Admitted outsiders
+            # can ALWAYS be returned: an outsider's home bay is outside the repacked set, nothing
+            # in that bay moved, so its incumbent seat is exactly as free as it was.  Give back
+            # the least valuable one, which frees its space in the repacked bay, and try again.
+            # Repeat while seats remain to give.  In the limit every admitted block goes home and
+            # the result is the incumbent, so this terminates and can never be worse -- the final
+            # comparison still rejects anything that does not pay.
+            _placed = _rehome_from(_base_state)
+            _gave = 0
+            if _placed is None:
+                _order_cheap = sorted(admitted, key=lambda i: wts[i])
+                for _i0 in _order_cheap:
+                    _b0 = cand[_i0]
+                    _base_state[_b0] = (cur[_b0], place[_b0][0], place[_b0][1], place[_b0][2],
+                                        ent[_b0], ext[_b0])
+                    _gave += 1
+                    _placed = _rehome_from(_base_state)
+                    if _placed is not None:
+                        break
+            if _placed is None:
+                _say("displaced blocks could not be rehomed even after giving back all %d seats"
+                     % len(admitted))
+                return None
+            if _gave:
+                _say("gave back %d of %d admitted seats to rehome the displaced" % (_gave, len(admitted)))
+            keep = _placed
         if len(keep) != n:
             _say("rebuilt %d of %d blocks" % (len(keep), n))
             return None
@@ -897,8 +1411,12 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
                 for b, (j, o, x, y, en, ex) in sorted(keep.items())]
         out = build_fn(recs)
         o, _c = total_fn(prob_info, out)
-        _say("admitted %d, displaced %d, obj %d vs base %d -> %s"
-             % (len(admitted), len(displaced), int(o), int(base),
+        # o is +inf when the grader refuses the rebuild, and int(inf) raises -- which turned a
+        # rejected repack into an exception that the blanket catch then reported as an ordinary
+        # None.  The trace has to survive the case it exists to describe.
+        _say("admitted %d, moved %d, displaced %d, obj %s vs base %d -> %s"
+             % (len(admitted), len(moved), len(displaced),
+                ("%.0f" % o) if o < float("inf") else "INFEASIBLE", int(base),
                 "KEEP" if o < base - 1e-9 else "reject"))
         return out if o < base - 1e-9 else None
     except Exception:
