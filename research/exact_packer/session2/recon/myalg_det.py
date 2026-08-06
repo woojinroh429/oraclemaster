@@ -2364,6 +2364,16 @@ def _worker(args):
                                         best[0] if best[1] is not None else pool[0][0], _lead))
                     _sy.stderr.flush()
                 rng = random.Random(1234 + wid + 100003 * _ndraw)
+                # ROTATE THE VIEWPOINT, NOT JUST THE SEED.  Measured on the first redraw arm:
+                # worker 0 redrew twice on P16 and came back with 4,345,449 both times, to the
+                # digit.  A redraw was changing only the RNG, and the beam is close to
+                # deterministic given (aim, axes, order) -- so it was re-running the same draw.
+                #
+                # The aim cannot be changed: the C++ reads OGC_BEAMAIM once per process into a
+                # static, and a worker IS a process.  The axis rotation can, and cdecomp measured
+                # dispatch order moving CONSTRUCTION by 32-210%, so it is the diversity that was
+                # available and unused.
+                axes = [_AXES[(wid + _ndraw + i) % len(_AXES)] for i in range(len(_AXES))]
                 pool = []
                 gain = [0.0] * len(ops); spent = [1e-6] * len(ops); tried = [0] * len(ops)
                 empty_at = [None] * len(ops)

@@ -32,7 +32,7 @@
 set -u
 cd "$(dirname "$0")/.." || exit 1
 echo det > harness/CURRENT
-L=results/audit/det.log
+L=results/audit/det2.log   # fresh log: the rdrw arm now rotates axes on redraw
 mkdir -p results/audit; touch $L
 
 run(){ # rep arm prob env
