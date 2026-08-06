@@ -10,6 +10,13 @@
 # Paired from one incumbent per instance, so the difference is the neighbourhood.
 set -u
 cd "$(dirname "$0")/.." || exit 1
+# NAME THIS QUEUE BEFORE RUNNING A SINGLE INSTANCE.  harness/keepalive.sh reads harness/CURRENT
+# after a container restart and relaunches whatever it names, falling back to `overnight` when the
+# file says something it cannot run.  Launching without writing it here is how a restart at 01:26
+# resurrected a queue that had finished days earlier -- it failed on its first assertion and the
+# machine sat idle while this experiment was gone.  Written and committed first, so the relauncher
+# finds it even if the restart takes untracked files with it.
+echo mbay2 > "$(dirname "$0")/CURRENT"
 L=results/audit/mbay2.log
 mkdir -p results/audit; touch $L
 for p in 9 26 3 1 16 12 20 6; do
