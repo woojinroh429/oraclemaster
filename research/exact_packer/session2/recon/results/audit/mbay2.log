@@ -16,3 +16,6 @@ P16  nbay=2  0 application(s) in 53s  obj=3713306  +0.00%
 P12  solved 30s  obj=147583  (bays=5 blocks=300)
 P12  nbay=1  1 application(s) in 72s  obj=144412  -2.15%
 P12  nbay=2  0 application(s) in 54s  obj=147583  +0.00%
+P20  solved 30s  obj=9809205  (bays=3 blocks=250)
+P20  nbay=1  0 application(s) in 57s  obj=9809205  +0.00%
+P20  nbay=2  0 application(s) in 84s  obj=9809205  +0.00%
