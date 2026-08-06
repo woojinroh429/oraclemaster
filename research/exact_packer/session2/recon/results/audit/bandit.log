@@ -171,3 +171,6 @@ REPDONE 2
 # [r3.free.20]
 WSTAT round=0 n=4 11342133 8876985 11447196 9191871  spread=28.95%
 P20 [r3.free.20]    60s  obj=8876985     Z1=1125.0   Z2=2220   Z3=9059.0    feas=y   ran 59s  py3.12
+# [r3.ax0.20]
+WSTAT round=0 n=4 11504141 9506442 11504141 9179917  spread=25.32%
+P20 [r3.ax0.20]     60s  obj=9179917     Z1=1151.0   Z2=3025   Z3=9880.0    feas=y   ran 59s  py3.12
