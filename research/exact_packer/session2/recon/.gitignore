@@ -66,3 +66,9 @@ myalg_s*.py
 # installed.  Regenerable from ogc_fast.cpp, which is tracked; the validated binaries
 # are committed in place, not from here.
 /build_new/
+
+# Sibling trees for harness/samebuild.sh: pre-patch and post-patch ogc_fast built
+# from identical command lines, so the only difference between them is the one hunk.
+# Regenerable from git; the validated binaries are committed in place, not from here.
+/build_pre/
+/build_post/
