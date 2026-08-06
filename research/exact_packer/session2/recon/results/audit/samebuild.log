@@ -87,3 +87,6 @@ REPDONE 1
 # [r2.pre.12]
 WSTAT round=0 n=4 159177 151715 153442 146311  spread=8.79%
 P12 [r2.pre.12]     60s  obj=140907      Z1=8.0      Z2=8018   Z3=5209.0    feas=y   ran 59s  py3.12
+# [r2.post.12]
+WSTAT round=0 n=4 152812 159177 151715 158214  spread=4.92%
+P12 [r2.post.12]    60s  obj=151715      Z1=19.0     Z2=11213  Z3=5367.0    feas=y   ran 59s  py3.12
