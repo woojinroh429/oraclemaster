@@ -1,4 +1,3 @@
-P9   solved 30s  obj=6215155  (bays=3 blocks=200)
 P3   solved 30s  obj=4634693  (bays=4 blocks=200)
 P3   nbay=1  0 application(s) in 54s  obj=4634693  +0.00%
 P3   nbay=2  0 application(s) in 55s  obj=4634693  +0.00%
@@ -21,3 +20,7 @@ P26  nbay=2  0 application(s) in 54s  obj=27182136  +0.00%
 P12  solved 30s  obj=146776  (bays=5 blocks=300)
 P12  nbay=1  1 application(s) in 70s  obj=140386  -4.35%
 P12  nbay=2  0 application(s) in 54s  obj=146776  +0.00%
+MBAY3DONE
+P9   solved 30s  obj=6310972  (bays=3 blocks=200)
+P9   nbay=1  1 application(s) in 59s  obj=6310472  -0.01%
+P9   nbay=2  0 application(s) in 53s  obj=6310972  +0.00%
