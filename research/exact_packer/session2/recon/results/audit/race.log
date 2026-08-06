@@ -22,3 +22,6 @@ P6  [r1.base.6]    240s  obj=5274666     Z1=340.0    Z2=3266   Z3=5452.0    feas
 # [r1.race.6]
 RACE phase1 0.10=5911785 0.90=5455694 -> aim 0.90
 P6  [r1.race.6]    240s  obj=5263768     Z1=328.0    Z2=4065   Z3=6543.0    feas=y   ran 239s  py3.12
+# [r1.base.20]
+WSTAT round=0 n=4 10914302 9212489 11508815 8939583  spread=28.74%
+P20 [r1.base.20]   240s  obj=8939039     Z1=1131.0   Z2=589    Z3=9293.0    feas=y   ran 239s  py3.12
