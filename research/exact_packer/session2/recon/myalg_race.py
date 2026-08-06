@@ -2688,7 +2688,20 @@ def algorithm(prob_info, timelimit=60):
                                  % (" ".join("%s=%.0f" % kv for kv in sorted(_bya.items())), _win))
                 _sy.stderr.flush()
         _b2 = max(4.0, timelimit - (time.time() - t0) - reserve - 1.0)
-        _o2 = _pool_round(prob_info, _b2, 1, nw, cwd, _shdir,
+        # PHASE 2 REUSES PHASE 1's wids (rnd=0), DELIBERATELY.
+        #
+        # With rnd=1 the phase-2 workers are wid 4..7, and the axis rotation is
+        # _AXES[(wid + i) % 6] -- a DIFFERENT set of dispatch viewpoints from phase 1's 0..3.  So
+        # the first diagnostic (P20: one 50 s phase-1 draw at 8,973,323 against four 148 s phase-2
+        # draws at 9,267,869 / 9,584,137 / 9,329,611 / 9,578,146, all worse) could not tell
+        # "more budget made it worse" from "axes 4..7 are worse on this instance", and those two
+        # readings point in opposite directions for the whole project.
+        #
+        # Holding wid fixed makes phase 2 the same seeds and the same axes as phase 1, so the only
+        # things that change are the aim -- now the measured winner for every worker instead of
+        # half of them -- and the budget.  Any difference is then attributable.
+        _rnd2 = 0 if os.environ.get("OGC_RACEWID", "1") == "1" else 1
+        _o2 = _pool_round(prob_info, _b2, _rnd2, nw, cwd, _shdir,
                           timelimit - (time.time() - t0) - 1.0)
         # PRINT WHAT PHASE 2 ACTUALLY RETURNED.  Skipping the round loop skipped its WSTAT line
         # with it, and that blindness cost a whole replicate: on P16 and P20 the final answer came
