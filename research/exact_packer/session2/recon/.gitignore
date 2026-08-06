@@ -60,3 +60,9 @@ myalg_s*.py
 # saying `chain`, which is what a restart should resume, so the effect is right and the
 # file is litter.  chain.sh invokes by full path once it is not mid-run.
 /CURRENT
+
+# Staging tree for harness/rebuild.sh: freshly built .so plus symlinks back to this
+# directory, so the new build can be run against the old one before anything is
+# installed.  Regenerable from ogc_fast.cpp, which is tracked; the validated binaries
+# are committed in place, not from here.
+/build_new/

@@ -1,0 +1,13 @@
+== build 02:52:29 ==
+-- python3.12 -> ogc_fast.cpython-312-x86_64-linux-gnu.so
+/home/user/oraclemaster/research/exact_packer/session2/recon/ogc_fast.cpp:261:8: warning: 'Engine' declared with greater visibility than the type of its field 'Engine::nfp_provider' [-Wattributes]
+  261 | struct Engine {
+      |        ^~~~~~
+-- python3.10 -> ogc_fast.cpython-310-x86_64-linux-gnu.so
+/home/user/oraclemaster/research/exact_packer/session2/recon/ogc_fast.cpp:261:8: warning: 'Engine' declared with greater visibility than the type of its field 'Engine::nfp_provider' [-Wattributes]
+  261 | struct Engine {
+      |        ^~~~~~
+-- python3.11 -> ogc_fast.cpython-311-x86_64-linux-gnu.so
+/home/user/oraclemaster/research/exact_packer/session2/recon/ogc_fast.cpp:261:8: warning: 'Engine' declared with greater visibility than the type of its field 'Engine::nfp_provider' [-Wattributes]
+  261 | struct Engine {
+      |        ^~~~~~
