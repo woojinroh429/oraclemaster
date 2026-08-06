@@ -2256,6 +2256,42 @@ def _worker(args):
     # Repair passes have no such threshold and answer whatever they are given.
     slot = [budget * (0.20 if o[3] else 1.0 / (2.0 * len(ops))) for o in ops]
 
+    # A CONVERGED WORKER IS AN UNSPENT DRAW.
+    #
+    # The answer is min over the workers, so what the run is worth is the statistics of a minimum,
+    # and those depend on the NUMBER of draws.  Simulated, for draws of spread sigma:
+    #
+    #     n= 4   E[min] = -1.027 sigma   SD[min] = 0.701 sigma
+    #     n= 8   E[min] = -1.425 sigma   SD[min] = 0.609 sigma
+    #     n=12   E[min] = -1.630 sigma   SD[min] = 0.568 sigma
+    #
+    # Our sigma is measured: the spread across four workers has median 16.1% over 24 runs of
+    # cliff40, and E[range of 4] = 2.06 sigma, so sigma ~ 7.8%.  Four draws to twelve is therefore
+    # worth about 4.7% on the answer AND takes 19% off its standard deviation -- the improvement
+    # and the stability are the SAME lever, because a minimum gets both from more draws.
+    #
+    # Where the extra draws come from is the part that has to be earned rather than assumed.
+    # OGC_ROUNDS tried it with a fixed R and lost (median +0.91% at R=2, 60 s), for a reason that
+    # is not subtle: halving a budget that had no slack makes every draw too shallow and moves the
+    # whole distribution the wrong way.  But cliff40 shows the slack is real and instance-specific
+    # -- prob_40 returns the same answer at 60 s and at 300 s, and no instance yet has 300 s as its
+    # best point -- so the budget past convergence is spent, not used.
+    #
+    # So do not fix R.  Let the worker notice: if nothing has improved for a stretch of its own
+    # budget, it has converged, and the remainder is better spent as a fresh draw than as more of
+    # the same descent.  No gate, no threshold read off the instance -- the signal is the run's own
+    # improvement history.
+    #
+    # WHY THIS CANNOT LOSE.  The restart clears the POOL but not `best`, and `best` is what the
+    # worker returns.  A fresh draw is therefore a pure option: it replaces the answer only by
+    # beating it.  (The pool must be cleared rather than seeded with `best` -- seeding it just
+    # re-descends the same basin, which is what makes it a re-seed instead of a draw.)
+    _RST = os.environ.get("OGC_RESTART") == "1"
+    _RSTALL = float(os.environ.get("OGC_RSTALL", "0.25"))   # no improvement for this much budget
+    _RSTMIN = float(os.environ.get("OGC_RSTMIN", "0.20"))   # ... and this much left to be worth it
+    _last_imp = time.time()
+    _ndraw = 1
+
     while True:
         left = budget - (time.time() - t0)
         if left < 2.0:
@@ -2296,6 +2332,23 @@ def _worker(args):
                     slot = [(budget - (time.time() - t0)) *
                             (0.20 if o[3] else 1.0 / (2.0 * len(ops))) for o in ops]
                     continue
+        if _RST:
+            _now = time.time()
+            if (_now - _last_imp) > _RSTALL * budget and (budget - (_now - t0)) > _RSTMIN * budget:
+                _ndraw += 1
+                if os.environ.get("OGC_WSTAT"):
+                    import sys as _sy
+                    _sy.stderr.write("REDRAW wid=%d draw=%d at %.0f%% best=%.0f\n"
+                                     % (wid, _ndraw, 100.0 * (_now - t0) / budget, best[0]))
+                    _sy.stderr.flush()
+                rng = random.Random(1234 + wid + 100003 * _ndraw)
+                pool = []                       # a real draw, not a re-descent of the same basin
+                gain = [0.0] * len(ops); spent = [1e-6] * len(ops); tried = [0] * len(ops)
+                empty_at = [None] * len(ops)
+                slot = [(budget - (_now - t0)) *
+                        (0.20 if o[3] else 1.0 / (2.0 * len(ops))) for o in ops]
+                _last_imp = _now
+                continue
         cur = pool[0][0] if pool else None
         elig = [i for i in range(len(ops))
                 if (pool or not ops[i][2]) and left - 1.0 >= ops[i][4]
@@ -2354,6 +2407,7 @@ def _worker(args):
             pool.append((o, s)); pool.sort(key=lambda q: q[0]); del pool[6:]
         if pool and pool[0][0] < before - 1e-9:
             gain[k] += before - pool[0][0]
+            _last_imp = time.time()      # still descending -- not converged, do not redraw
         if pool and pool[0][0] < best[0]:
             best = pool[0]
 

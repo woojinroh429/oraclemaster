@@ -1,5 +1,8 @@
 #!/bin/bash
-# STEP 3: DOES TAKING THE CLOCK OUT OF OPERATOR SELECTION NARROW THE RUN-TO-RUN SPREAD?
+# STEP 3+2: DOES REMOVING THE CLOCK NARROW THE SPREAD, AND DOES A CONVERGED WORKER'S LEFTOVER
+# BUDGET BUY A DRAW?  Three arms, because the two changes are independent and the second is the
+# one with a number attached to it (4 draws -> 12 is worth ~4.7% and -19% on the SD of the answer,
+# from the simulated statistics of a minimum at the measured sigma ~ 7.8%).
 #
 # Established, not assumed: every RNG in myalgorithm.py is constant-seeded, and wid, the aim split
 # and the axis rotation are fixed -- so two runs of one build on one instance at one budget differ
@@ -45,6 +48,7 @@ for rep in 1 2 3; do
     for p in 16 6 20 1 36 34; do
         run $rep base $p ""          myalgorithm
         run $rep det  $p "OGC_DET=1" myalg_det
+        run $rep rdrw $p "OGC_RESTART=1" myalg_det
     done
     echo "REPDONE $rep" >> $L
 done
