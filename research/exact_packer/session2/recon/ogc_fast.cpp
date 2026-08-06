@@ -2100,15 +2100,30 @@ struct Engine {
             if(PPQ && (int)perstate.size()>1){
                 const int quota=std::max(2,(B+1)/2);
                 std::vector<int> taken(perstate.size(),0);
+                // MOVED ONCE, AND ONLY ONCE.  The top-up pass below rescans keyed from the
+                // start, so without this it moves states the quota pass already took.  The
+                // second move yields a CBState whose three vectors are empty -- and a moved-from
+                // vector has data()==nullptr, so the next level's `c.placed[bi]=1` writes
+                // through a null pointer.  That is the crash actually observed: stage-2 prob_12,
+                // "segfault at c8 ... in ogc_fast.cpython-312 [4c4e4]", 0xc8 == 200 == the block
+                // index, faulting on exactly that store.
+                //
+                // The guard this replaces (`flat.empty() && nplaced==0`) could never fire.  The
+                // implicit move constructor moves the vectors but COPIES the scalars, so a
+                // moved-from state keeps its old nplaced, and every child has nplaced>=1 by
+                // construction -- the conjunction is unsatisfiable for the states it was meant
+                // to catch.  Recording what was taken tests the thing itself instead of trying
+                // to infer it from the wreckage.
+                std::vector<char> moved(children.size(),0);
                 for(int i=0;i<nch && (int)nb2.size()<keep;i++){
                     int idx=keyed[i].second, par=parent_of[idx];
                     if(taken[par]>=quota) continue;
-                    taken[par]++; nb2.push_back(std::move(children[idx]));
+                    taken[par]++; moved[idx]=1; nb2.push_back(std::move(children[idx]));
                 }
                 for(int i=0;i<nch && (int)nb2.size()<keep;i++){   // top up if the quota starved us
                     int idx=keyed[i].second;
-                    if(children[idx].flat.empty() && children[idx].nplaced==0) continue;
-                    nb2.push_back(std::move(children[idx]));
+                    if(moved[idx]) continue;
+                    moved[idx]=1; nb2.push_back(std::move(children[idx]));
                 }
             } else {
                 for(int i=0;i<keep;i++) nb2.push_back(std::move(children[keyed[i].second]));

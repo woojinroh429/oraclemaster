@@ -1,0 +1,15 @@
+    brk calib: 474:40.4ms 1454:47.9ms 4194:191.0ms 14586:1339.1ms -> fixed 0.039s + 6.11e-09 s/col^2
+    brk tier: room=12s rate=6.11e-09 -> tier 3 (step 6 nout 10 nent 2) ncol~25926 pred=4.1s  [hard=15 slice=5s]
+    brk calib: 568:37.8ms 1082:44.9ms 3460:145.9ms 11516:932.9ms -> fixed 0.036s + 6.77e-09 s/col^2
+    brk tier: room=12s rate=6.77e-09 -> tier 3 (step 6 nout 10 nent 2) ncol~16472 pred=1.9s  [hard=14 slice=5s]
+    brk stick: 10 of 46 residents cannot leave the bay set at all
+    brk stick: 10 of 35 residents cannot leave the bay set at all
+    brk cost: BUILD ABORTED at 0.5s of a 12.4s cap (tier 3 ncol~25926)
+    brk calib: 474:35.5ms 1424:46.2ms 4106:178.1ms 14284:1129.7ms -> fixed 0.034s + 5.37e-09 s/col^2
+    brk: declined, smallest tier predicts 3s of 9s
+    brk calib: 474:35.3ms 1424:54.5ms 4106:192.0ms 14284:1324.4ms -> fixed 0.034s + 6.32e-09 s/col^2
+    brk: declined, smallest tier predicts 4s of 9s
+    brk cost: ncol~16472 real_ncol=11577 build=1.9s ask=8.0s total=5.0s
+    brk cost: tier 3 ncol~16472 real_ncol=11577 build=1.9s total=5.0s  -> rate 6.847e-09 s/col^2
+    brk[pressure] bays=[2] res=35 outs=10 displaced 5: [(66, 106), (92, 81), (86, 65), (94, 64), (18, 39)]
+    brk[pressure] bays=[2] res=35 outs=10 admitted 3, moved 3, displaced 5, obj 816148 vs base 833354 -> KEEP
