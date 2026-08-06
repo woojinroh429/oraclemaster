@@ -1980,6 +1980,22 @@ def _worker(args):
 
     rng = random.Random(1234 + wid)
     axes = [_AXES[(wid + i) % len(_AXES)] for i in range(len(_AXES))]
+    # OGC_AXIS=<k> pins every worker to _AXES[k].  MEASUREMENT ONLY, absent by default, and the
+    # line below is the whole of it -- with the variable unset `axes` is exactly what it was.
+    #
+    # It exists because the axis config turned out to BE the spread: measured over five instances,
+    # running the six configs separately moves the objective 32% to 210% while repeating one
+    # config moves it 0.0% to 12.6%.  Which valley construction reaches is chosen by the config
+    # and by almost nothing else.  Each worker already receives all six and lets a bandit spend
+    # its budget among them, so the open question is whether that selection actually finds the
+    # best one inside 60 s -- and that cannot be asked without being able to force a single axis
+    # and compare against the bandit's own result.
+    try:
+        _ax = os.environ.get("OGC_AXIS")
+        if _ax is not None and _ax != "":
+            axes = [_AXES[int(_ax) % len(_AXES)]]
+    except Exception:
+        pass
     pool = [best] if best[1] is not None else []
     _seed_bump = [0]                                # bumped when this worker restarts
     band = _Bandit([0.25, 1.0, 4.0], rng)          # crane-contact weight
