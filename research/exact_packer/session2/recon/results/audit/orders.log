@@ -125,3 +125,6 @@ P1  [r2.cohort.1]    60s  obj=686702      Z1=29.0     Z2=3653   Z3=804.0     fea
 # [r2.sac3.1]
 WSTAT round=0 n=4 578411 699307 749016 711563  spread=29.50%
 P1  [r2.sac3.1]     60s  obj=568085      Z1=23.0     Z2=6048   Z3=661.0     feas=y   ran 59s  py3.12
+# [r2.base.6]
+WSTAT round=0 n=4 5736777 5841624 6083478 5966632  spread=6.04%
+P6  [r2.base.6]     60s  obj=5729198     Z1=371.0    Z2=3581   Z3=5750.0    feas=y   ran 59s  py3.12
