@@ -2066,6 +2066,35 @@ def _worker(args):
             # same starting axis, which is a second change riding along with the set size and
             # would make the comparison unreadable.
             axes = [_set[(wid + i) % len(_set)] for i in range(len(_set))]
+        elif _as in ("L3", "L2S"):
+            # SPEND SLOTS ON THE VIEWPOINT THAT WINS.  Every arrangement tried so far either added
+            # a new order (v1, v2, v3) or changed the count (a4) -- giving MORE ROOM to the order
+            # that already wins has not been tried, and the case for it is the plainest reading of
+            # the day:
+            #
+            #     lst        beat base wherever dispatch order has any effect, at 240 s on P16,
+            #                P6 and P20, with the margin growing as the budget grows -- and holds
+            #                ONE slot
+            #     defer_big  was best on no instance at either budget -- and holds THREE
+            #
+            # The count stays at six on purpose.  Changing it moves the budget split as well, and
+            # a4 showed that confounds the answer; this changes only which viewpoints occupy the
+            # slots.
+            #
+            # The three lst entries are not duplicates: they keep the Bmul/K/w3mul of the slots
+            # they replace, so the same viewpoint is examined at beam widths 0.5/0.7/1.0 and
+            # preference weights 1.0/3.0/1.5 -- one view at three resolutions.
+            #
+            # L2S keeps two lst and gives the third freed slot to sac3, which won P16 on both
+            # draws while losing P6 and P20 on both.
+            _l0 = dict(_AXES[0], order="lst")
+            _l5 = dict(_AXES[5], order="lst")
+            if _as == "L3":
+                _set = [_l0, _AXES[1], _AXES[2], _AXES[3], _AXES[4], _l5]
+            else:
+                _set = [_l0, _AXES[1], _AXES[2], _AXES[3], _AXES[4],
+                        dict(_AXES[5], order="sac3")]
+            axes = [_set[(wid + i) % len(_set)] for i in range(len(_set))]
     except Exception:
         pass
     pool = [best] if best[1] is not None else []
