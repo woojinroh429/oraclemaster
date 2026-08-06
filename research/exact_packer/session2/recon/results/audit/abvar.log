@@ -50,3 +50,4 @@ REPDONE 1
 # [r2.old.1]
 WSTAT round=0 n=4 664980 672698 738486 900853  spread=35.47%
 P1  [r2.old.1]      60s  obj=651605      Z1=23.0     Z2=5688   Z3=802.0     feas=y   ran 59s  py3.12
+# [r2.new.1]
