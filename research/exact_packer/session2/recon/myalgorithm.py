@@ -2226,6 +2226,68 @@ def _worker(args):
     return best[1]
 
 
+def _pool_round(prob_info, budget, rnd, nw, cwd, share_dir, room):
+    """One round of nw workers, collected as they finish, and NEVER an unbounded wait.
+
+    A WORKER THAT DIES MUST NOT COST THE WHOLE RUN.  pool.map() blocks until every task has
+    returned a result, and a worker killed by a signal returns nothing -- ever.  Pool's
+    _maintain_pool reaps the corpse and starts a replacement, but the task the dead worker was
+    holding is not resubmitted, so map() waits for a result that cannot arrive.  Nothing raises,
+    so the `except Exception` around the call never fires either.
+
+    That is not a hypothetical.  ogc_fast segfaulted inside a worker during the 30 s solve on
+    stage-2 prob_12 (kernel: "segfault at c8 ... in ogc_fast.cpython-312 [4c4e4]"), the pool hung,
+    and the run produced no line at all until an external timeout killed it eleven minutes later.
+    On a grader that is not a poor answer, it is no answer.
+
+    So: take results as they finish rather than all at once, and stop waiting for a worker that
+    has died.  Pool workers do not exit between tasks, so an original pid that is gone from the
+    pool is a worker that was killed -- one fewer result will ever arrive, and the round should
+    finish with the rest instead of running out the clock.  When the detector is unavailable the
+    deadline still bounds the wait; the point is that neither path can wait forever.
+
+    Returns whatever came back.  Fewer draws is a worse round, and a worse round is enormously
+    better than no round: the caller keeps a running minimum across rounds and falls back to
+    _safe_sequential if every one of them comes up empty.
+    """
+    tasks = [(prob_info, budget, rnd * nw + i, cwd, 1.0 / nw, share_dir) for i in range(nw)]
+    got = []
+    pool = multiprocessing.Pool(processes=nw)
+    try:
+        try:
+            born = set(p.pid for p in pool._pool)
+        except Exception:
+            born = None
+        it = pool.imap_unordered(_worker, tasks)
+        end = time.time() + max(5.0, room)
+        want = nw
+        while len(got) < want and time.time() < end:
+            try:
+                got.append(it.next(timeout=0.5))
+                continue
+            except multiprocessing.TimeoutError:
+                pass
+            except StopIteration:
+                break
+            except Exception:
+                got.append(None)      # this worker raised; it did deliver, and None is handled
+                continue
+            if born:                  # nothing ready: has one of them stopped existing?
+                try:
+                    gone = len(born - set(p.pid for p in pool._pool))
+                    if gone:
+                        want = max(1, nw - gone)
+                except Exception:
+                    pass
+    finally:
+        for _fn in (pool.terminate, pool.join):
+            try:
+                _fn()
+            except Exception:
+                pass
+    return got
+
+
 def algorithm(prob_info, timelimit=60):
     """Entry point.  Fan out identical beams on different diversification axes, take the
     minimum of the FULL objective, polish, return."""
@@ -2284,9 +2346,8 @@ def algorithm(prob_info, timelimit=60):
             break                                        # no room for another full round
         try:
             if nw > 1:
-                with multiprocessing.Pool(processes=nw) as pool:
-                    out = pool.map(_worker, [(prob_info, _rb, _r * nw + i, cwd, 1.0 / nw, _shdir)
-                                             for i in range(nw)])
+                out = _pool_round(prob_info, _rb, _r, nw, cwd, _shdir,
+                                  timelimit - (time.time() - t0) - 1.0)
             else:
                 out = [_worker((prob_info, _rb, _r * nw, cwd, 1.0, _shdir))]
         except Exception:

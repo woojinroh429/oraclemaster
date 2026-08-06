@@ -53,3 +53,10 @@ myalg_brk*.py
 myalg_ops.py
 myalg_q*.py
 myalg_s*.py
+
+# Stray queue marker.  chain.sh runs its stages from harness/, so a stage's own
+# `echo <name> > "$(dirname "$0")/CURRENT"` -- correct when it is launched as
+# harness/x.sh from recon/ -- resolves to ./CURRENT here instead.  harness/CURRENT keeps
+# saying `chain`, which is what a restart should resume, so the effect is right and the
+# file is litter.  chain.sh invokes by full path once it is not mid-run.
+/CURRENT
