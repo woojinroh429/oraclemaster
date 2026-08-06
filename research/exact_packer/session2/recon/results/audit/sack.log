@@ -1,3 +1,6 @@
 # [r1.rank.16]
 WSTAT round=0 n=4 4304945 3490767 4612842 3314011  spread=39.19%
 P16 [r1.rank.16]    60s  obj=3305511     Z1=149.0    Z2=1798   Z3=5254.0    feas=y   ran 59s  py3.12
+# [r1.sac1.16]
+WSTAT round=0 n=4 4383627 3650220 4901089 3519651  spread=39.25%
+P16 [r1.sac1.16]    60s  obj=3519651     Z1=162.0    Z2=735    Z3=5430.0    feas=y   ran 57s  py3.12
