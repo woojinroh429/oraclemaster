@@ -1306,50 +1306,6 @@ _DRAWN = {}
 _DRAW_RNG = random.Random(20260731)
 
 
-# ---------------------------------------------------------------------------------------------
-# TAKING THE CLOCK OUT OF THE DECISIONS, LEAVING IT IN THE STOPPING.
-#
-# results/audit/variance_source.md: every RNG in this file is constant-seeded, so two runs of the
-# same build on the same instance differ in exactly one input, time.time() -- and they come back
-# 16.2% apart.  All of the run-to-run spread is timing.
-#
-# Time legitimately decides WHEN TO STOP; that cannot be removed, the budget is real seconds.
-# What it should not decide is WHAT TO DO, and today it does.  The operator loop prices operators
-# at gain[i]/spent[i] where spent is measured seconds, and sizes the repair passes at 1.3x
-# however long the last call happened to take.  A 20% wobble in one measurement therefore
-# reorders the whole roster and compounds multiplicatively across calls -- on top of the wobble
-# in the work each operator actually got done.  Machine speed changes the schedule AND the work;
-# only the second is unavoidable.
-#
-# Two arms, both default-off so this module is byte-equivalent to myalgorithm.py unless asked:
-#
-#   OGC_DETQ=<b>   QUANTISE the measured duration onto a log grid of ratio b before it feeds any
-#                  decision.  A wobble smaller than the bucket becomes no change at all, so the
-#                  schedule repeats; only a genuinely different machine speed flips a bucket.
-#                  1.25 is a sensible first value -- it is wider than the jitter seen between
-#                  repeat runs and much narrower than the 2x that separates operator classes.
-#
-#   OGC_DETV=1     VIRTUAL CLOCK for pricing: charge each operator the slice it was GIVEN rather
-#                  than the time it took.  The schedule then depends only on gain, which makes it
-#                  fully deterministic given the same solutions.  Its known cost is that a repair
-#                  pass finishing in 0.1 s of a 5 s slice is billed 5 s, so it is priced too low;
-#                  the real clock still governs termination, so this can never truncate a run.
-#
-# Neither is full determinism.  That would need every operator to report a WORK COUNT instead of
-# consuming seconds -- six operators, two of them C++, one of them a CP-SAT call whose only
-# budget is wall time and which therefore cannot be made deterministic at all.  These two are the
-# part that can be had without touching the operators, and they are measurable against each other.
-_DETQ = float(os.environ.get("OGC_DETQ", "0") or 0.0)
-_DETV = os.environ.get("OGC_DETV") == "1"
-
-
-def _dquant(x):
-    """Round a duration onto a log grid, so jitter below one bucket changes no decision."""
-    if _DETQ <= 1.0 or x <= 1e-6:
-        return x
-    return _DETQ ** round(math.log(x) / math.log(_DETQ))
-
-
 def _draw_order(prob_info, cfg, k):
     """A uniform pick from the top-k of what remains, under this axis's own priority."""
     n = len(prob_info["blocks"])
@@ -2250,12 +2206,36 @@ def _worker(args):
         keep = {x.strip() for x in _only.split(",") if x.strip()}
         ops = [o for o in ops if o[0] in keep] or ops[:1]
     _SLICEFIX = os.environ.get("OGC_SLICEFIX") == "1"
+    # TAKE THE CLOCK OUT OF THE *SELECTION*, AND LEAVE IT IN THE *STOPPING*.
+    #
+    # Every RNG in this file is constant-seeded (Random(1234 + wid), Random(20260731),
+    # Random(90001 + 7919 * wid)); wid, the aim split and the axis rotation are all fixed.  So two
+    # runs of this build on the same instance at the same budget differ in exactly one input:
+    # time.time().  They came back 16.2% apart on stage-2 P16 (3,813,686 vs 3,281,165), and the
+    # fourth submission -- byte-identical to the third apart from one docstring word -- moved a
+    # hidden instance by 8.66%.  All of that spread is the clock.
+    #
+    # The clock enters this loop in three places, and only one of them has to be there:
+    #
+    #   left = budget - elapsed        STOPPING.  Unavoidable; the budget is real time.
+    #   gain[i] / spent[i]             SELECTION.  spent is SECONDS, so which operator runs next
+    #                                  depends on how fast the machine happened to be.
+    #   slot[k] = 1.3 * el             SIZING of a repair pass, from what it just took.
+    #
+    # OGC_DET=1 replaces the last two with deterministic accounting: an operator is charged the
+    # slice it was GIVEN rather than the seconds it burned, and a repair pass that completed
+    # shrinks by a fixed factor instead of to a measured multiple of its own runtime.  Selection
+    # then depends only on the objective gains, which are exact integers, and on the slice
+    # schedule, which is arithmetic on the budget.
+    #
+    # WHAT THIS DOES NOT DO, and it would be wrong to claim otherwise: the operators themselves
+    # are still handed SECONDS, and the C++ beam still runs against a wall-clock deadline, so a
+    # faster machine still searches deeper and the answers will not be identical.  This removes
+    # one of the three couplings, not all of them.  Whether removing it narrows the run-to-run
+    # spread is the measurement; the alternative -- charging per call -- was rejected without
+    # measurement only because it prices a 0.3 s repair and a 30 s beam the same.
+    _DET = os.environ.get("OGC_DET") == "1"
     gain = [0.0] * len(ops); spent = [1e-6] * len(ops); tried = [0] * len(ops)
-    # THE SCHEDULE ITSELF, so that "did the clock stop steering?" is a diff and not an opinion.
-    # OGC_OPSTAT already reports what each operator cost in total, which is a sum and hides the
-    # ordering; the claim being tested here is that the SEQUENCE of picks and slice sizes repeats
-    # between two runs.  Two runs of one instance, two OGC_SCHED lines, diff them.
-    _sched = []
     # incumbent value at which a repair pass last came back empty.  Those passes are
     # deterministic, so asking again without a changed incumbent gets the same nothing --
     # and it gets it in zero seconds, which leaves its rate untouched and had the loop
@@ -2346,32 +2326,25 @@ def _worker(args):
         # starved and wants more; one that returned anything fit, so leave it alone.  A repair
         # pass always completes, so it wants what it actually used and no more.
         before = pool[0][0] if pool else float("inf")
-        _req = max(1.0, min(left - 1.0, slot[k]))
-        _sched.append("%s:%.1f" % (ops[k][0], _req))
+        _ask = max(1.0, min(left - 1.0, slot[k]))
         st = time.time()
         try:
-            s = ops[k][1](_req)
+            s = ops[k][1](_ask)
         except Exception:
             s = None
         el = max(1e-6, time.time() - st)
-        # el is the TRUE elapsed and stays that way -- it is what the run actually cost.  _eld is
-        # the same number as the scheduler is allowed to see it: quantised, or replaced by the
-        # slice the operator was given.  Both default to el, so this is a no-op unless asked.
-        _eld = _req if _DETV else _dquant(el)
-        tried[k] += 1; spent[k] += _eld
+        tried[k] += 1
+        spent[k] += (_ask if _DET else el)   # deterministic cost: what it was given
         # An operator that just improved the incumbent has earned a longer look; one that came
         # back empty is either starved (search) or exhausted (repair).
         if pool and pool[0][0] < before - 1e-9:
             slot[k] = min(budget * 0.45, slot[k] * 1.5)
         elif ops[k][3]:
-            if s is None and (not _SLICEFIX or _eld >= 0.6 * slot[k]):
+            if s is None and (not _SLICEFIX or el >= 0.6 * slot[k]):
                 slot[k] = min(budget * 0.45, slot[k] * 1.3)
         else:
-            # "what it actually used and no more" -- and under DETV there is no measurement of
-            # that, so the slice is left where it is rather than pinned to the request, which
-            # would ratchet a 0.1 s repair pass up to a quarter of the budget.
-            if not _DETV:
-                slot[k] = min(budget * 0.25, max(1.0, 1.3 * _eld))
+            slot[k] = (min(budget * 0.25, max(1.0, 0.7 * slot[k])) if _DET
+                       else min(budget * 0.25, max(1.0, 1.3 * el)))
             if s is None:
                 empty_at[k] = cur
         if s is None:
@@ -2383,11 +2356,6 @@ def _worker(args):
             gain[k] += before - pool[0][0]
         if pool and pool[0][0] < best[0]:
             best = pool[0]
-
-    if os.environ.get("OGC_SCHED") == "1":
-        import sys as _sy
-        _sy.stderr.write("SCHED wid=%d n=%d %s\n" % (wid, len(_sched), " ".join(_sched)))
-        _sy.stderr.flush()
 
     # WHAT EACH OPERATOR COST AND WHAT IT RETURNED.  The loop already keeps tried/spent/gain
     # for its own scheduling; it has simply never been printed, so "which operator burns the
