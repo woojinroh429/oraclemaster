@@ -13,3 +13,32 @@
     brk cost: tier 3 ncol~16472 real_ncol=11577 build=1.9s total=5.0s  -> rate 6.847e-09 s/col^2
     brk[pressure] bays=[2] res=35 outs=10 displaced 5: [(66, 106), (92, 81), (86, 65), (94, 64), (18, 39)]
     brk[pressure] bays=[2] res=35 outs=10 admitted 3, moved 3, displaced 5, obj 816148 vs base 833354 -> KEEP
+P1   solved 30s  obj=682223  (bays=3 blocks=150)
+    brk calib: 474:38.7ms 1424:46.6ms 4106:187.0ms 14284:1231.7ms -> fixed 0.037s + 5.85e-09 s/col^2
+    brk tier: room=51s rate=5.85e-09 -> tier 1 (step 4 nout 40 nent 5) ncol~83644 pred=41.0s  [hard=60 slice=60s]
+    brk stick: 16 of 46 residents cannot leave the bay set at all
+    brk: build refused at tier 1 (3.4s) -- stepping down to tier 2
+    brk: build refused at tier 2 (17.7s) -- stepping down to tier 3
+    brk cost: ncol~25366 real_ncol=18231 build=4.4s ask=60.0s total=51.1s
+    brk cost: tier 3 ncol~25366 real_ncol=18231 build=4.4s total=51.1s  -> rate 6.767e-09 s/col^2
+    brk[pressure] bays=[1] res=46 outs=8 admitted 1, moved 1, displaced 0, obj 678750 vs base 682223 -> KEEP
+P1   nbay=1  1 application(s) in 75s  obj=678750  -0.51%
+    brk calib: 474:22.5ms 1424:31.6ms 4106:163.5ms 14284:1075.9ms -> fixed 0.021s + 5.17e-09 s/col^2
+      ncol_est per bay ['115978', '98102']  step x[1, 2]  (cand=66 res=64 frozen=52)
+      ncol_est per bay ['99968', '84424']  step x[1, 2]  (cand=66 res=64 frozen=52)
+      ncol_est per bay ['79204', '66992']  step x[1, 2]  (cand=66 res=64 frozen=52)
+      ncol_est per bay ['30594', '28748']  step x[1, 2]  (cand=66 res=64 frozen=52)
+    brk tier: room=51s rate=5.17e-09 -> tier 3 (step 6 nout 10 nent 2) ncol~41981 pred=9.1s  [hard=60 slice=60s]
+    brk stick: 43 of 64 residents cannot leave the bay set at all
+    brk cost: ncol~41981 real_ncol=27101 build=9.1s ask=60.0s total=51.3s
+    brk cost: tier 3 ncol~41981 real_ncol=27101 build=9.1s total=51.3s  -> rate 5.169e-09 s/col^2
+    brk[pressure] bays=[1, 0] res=64 outs=2 displaced 1: [(78, 301)]
+    brk[pressure] bays=[1, 0] res=64 outs=2 gave back 1 of 1 admitted seats to rehome the displaced
+    brk[pressure] bays=[1, 0] res=64 outs=2 admitted 1, moved 1, displaced 1, obj 682223 vs base 682223 -> reject
+P1   nbay=2  0 application(s) in 53s  obj=682223  +0.00%
+--- exits seen ---
+declined: 2
+tier chosen: 4
+KEEP: 2
+DISCARD: 0
+MBAYDBGDONE
