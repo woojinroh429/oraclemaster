@@ -99,3 +99,6 @@ REPDONE 2
 # [r3.fixed.1]
 WSTAT round=0 n=4 578411 776064 705806 706039  spread=34.17%
 P1  [r3.fixed.1]    60s  obj=568085      Z1=23.0     Z2=6048   Z3=661.0     feas=y   ran 59s  py3.12
+# [r3.adapt.1]
+WSTAT round=0 n=4 911134 822149 860067 827943  spread=10.82%
+P1  [r3.adapt.1]    60s  obj=822149      Z1=23.0     Z2=5736   Z3=1086.0    feas=y   ran 59s  py3.12
