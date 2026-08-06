@@ -2489,8 +2489,25 @@ def algorithm(prob_info, timelimit=60):
     except Exception:
         _shdir = None
     for _r in range(_R):
-        if _r > 0 and (timelimit - (time.time() - t0)) < (_rb + reserve):
-            break                                        # no room for another full round
+        # RUN THE LAST ROUND SHORT INSTEAD OF THROWING IT AWAY.
+        #
+        # This used to demand a FULL round plus the polish reserve before starting another, and
+        # `_rb` is `wbudget / _R` -- so after the last affordable round the test can never pass and
+        # the remainder is simply burned.  Measured on stage-2 prob_20 at a 240 s limit: R=2 ran
+        # ONE round and returned after 153 s, discarding 87 s; R=4 ran three rounds of four.
+        #
+        # It also puts the measurement that retired this knob in doubt.  That was run at a 60 s
+        # limit, where wbudget ~ 47, _rb ~ 23 and reserve ~ 12, so the second round was
+        # unaffordable by the same arithmetic -- R=2 was never two rounds there either.
+        #
+        # A short round cannot lose: `best` spans the rounds and a round only ever replaces the
+        # answer by beating it.  So take whatever is left above a floor worth starting, and give
+        # the round that instead of skipping it.
+        _left_r = timelimit - (time.time() - t0) - reserve - 1.0
+        if _r > 0:
+            if _left_r < max(4.0, 0.25 * _rb):
+                break                                    # not enough left to be worth a round
+            _rb = max(4.0, min(_rb, _left_r))
         try:
             if nw > 1:
                 out = _pool_round(prob_info, _rb, _r, nw, cwd, _shdir,
