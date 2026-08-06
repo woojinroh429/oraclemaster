@@ -25,3 +25,5 @@ P12 [new.12]        60s  obj=151723      Z1=17.0     Z2=10062  Z3=5440.0    feas
 # P1
 P1  [old.1]         60s  obj=568085      Z1=23.0     Z2=6048   Z3=661.0     feas=y   ran 59s  py3.12
 P1  [new.1]         60s  obj=594330      Z1=27.0     Z2=2507   Z3=678.0     feas=y   ran 48s  py3.12
+# P16
+P16 [old.16]        60s  obj=3574878     Z1=183.0    Z2=1813   Z3=4518.0    feas=y   ran 59s  py3.12
