@@ -206,3 +206,4 @@ WSTAT round=0 n=4 5805182 5587009 6083478 5281983  spread=15.17%
 P6  [r3.edd.6]      60s  obj=5280506     Z1=333.0    Z2=3629   Z3=6184.0    feas=y   ran 59s  py3.12
 # [r3.lst.6]
 WSTAT round=0 n=4 5775271 5695282 5820548 5590641  spread=4.11%
+P6  [r3.lst.6]      60s  obj=5586345     Z1=354.0    Z2=4223   Z3=6356.0    feas=y   ran 59s  py3.12
