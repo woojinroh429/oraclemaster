@@ -118,8 +118,28 @@ def main():
             E.add(int(cur[q]), int(q), int(place[q][0]), float(place[q][1]),
                   float(place[q][2]), int(ent[q]), int(ext[q]))
 
+    def scan(bid, bay):
+        """Rows of [bay, orient, x, y]; empty when the block does not fit."""
+        return E.feasible_scan(int(bid), [int(bay)], int(ent[bid]), int(ext[bid]), 1)
+
     def can(bid, bay):
-        return len(E.feasible_scan(int(bid), [int(bay)], int(ent[bid]), int(ext[bid]), 1)) > 0
+        return len(scan(bid, bay)) > 0
+
+    # POSITIVE CONTROL, because "nothing is feasible" and "the harness is broken" look identical
+    # in the output and the first run printed 120 of 120 blocked with zero reachable.  Lift a
+    # block out and ask whether it fits back into the bay it just left, at its own times: that
+    # position is provably free, so a False here means the scan is being called wrongly and every
+    # count below it is meaningless.
+    bad = 0
+    for b in list(range(n))[:40]:
+        load_all(skip=(b,))
+        if not can(b, cur[b]):
+            bad += 1
+    if bad:
+        print("  CONTROL FAILED: %d of 40 blocks cannot be placed back where they were.\n"
+              "  The feasibility call is wrong; no count below this line means anything." % bad)
+        return
+    print("  control ok: 40 of 40 blocks fit back into the spot they were lifted from")
 
     ridge, single, neither = [], [], 0
     look = cands[:topn]
@@ -133,12 +153,13 @@ def main():
         joint = False
         for first, second in ((a, b), (b, a)):
             load_all(skip=(a, b))
-            pos = E.feasible_scan(int(first), [int(cur[second])], int(ent[first]),
-                                  int(ext[first]), 1)
+            pos = scan(first, cur[second])
             if len(pos) == 0:
                 continue
-            E.add(int(cur[second]), int(first), int(pos[0]), float(pos[1]), float(pos[2]),
-                  int(ent[first]), int(ext[first]))
+            # A row is [bay, orient, x, y] -- the same layout bayrepack reads as rr[0][1..3].
+            # Reading it as [orient, x, y] is what made the first run die on int(pos[0]).
+            E.add(int(cur[second]), int(first), int(pos[0][1]), float(pos[0][2]),
+                  float(pos[0][3]), int(ent[first]), int(ext[first]))
             if can(second, cur[first]):
                 joint = True
                 break
