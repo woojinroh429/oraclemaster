@@ -31,7 +31,9 @@ import re
 import sys
 
 TAG = re.compile(r"^#\s*\[(\S+)\]")
-PID = re.compile(r"\.(\d+)\]$")
+PID = re.compile(r"\.(\d+)$")     # TAG already stripped the brackets; requiring ']' here matched
+                                  # nothing and the script reported "no usable WSTAT rows", which
+                                  # reads as missing data rather than a broken regex.
 WST = re.compile(r"^WSTAT round=(\d+) n=(\d+)\s+(.*?)\s+spread=")
 
 AIMS = os.environ.get("OGC_AIMSET", "0.90,0.10").split(",")
