@@ -30,3 +30,11 @@ post-patch source: 60ace76cd6fb
 build_pre/ogc_fast.cpp:261:8: warning: 'Engine' declared with greater visibility than the type of its field 'Engine::nfp_provider' [-Wattributes]
   261 | struct Engine {
       |        ^~~~~~
+/home/user/oraclemaster/research/exact_packer/session2/recon/ogc_fast.cpp:261:8: warning: 'Engine' declared with greater visibility than the type of its field 'Engine::nfp_provider' [-Wattributes]
+  261 | struct Engine {
+      |        ^~~~~~
+  pre  287139f43f1e
+  post 7b65b66fe89b
+# [r1.pre.12]
+WSTAT round=0 n=4 156299 159177 158453 161174  spread=3.12%
+P12 [r1.pre.12]     60s  obj=154059      Z1=18.0     Z2=11615  Z3=5458.0    feas=y   ran 59s  py3.12
