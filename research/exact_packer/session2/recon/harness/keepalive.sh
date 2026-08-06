@@ -37,7 +37,13 @@ exec 7>&-
 # is running the CHECK, so it can report a queue alive that died hours ago -- that is exactly what
 # happened at 08:14, and five hours of machine time went to nothing while the check kept saying
 # the queue was up.  A real run has a python worker; look for that.
-pgrep -f "run1\.py myalgorithm" >/dev/null 2>&1 && exit 0
+#
+# ANY harness worker, not run1.py alone.  The narrow pattern matched the end-to-end queues and
+# nothing else, so when a compaction fired at 02:18 while mbay3 was mid-P26 -- mbay3 drives
+# harness/mbay.py, never run1.py -- the check reported an idle machine and started a SECOND copy
+# of the queue.  Both then appended to the same log.  The pattern has to cover every worker a
+# queue can spawn, so it keys on the interpreter and the harness directory instead of one script.
+pgrep -f "python3\.12 harness/" >/dev/null 2>&1 && exit 0
 
 # only now, with nothing running, is a rewind safe: local git can be at a pre-restart snapshot
 ( cd ../../.. && git fetch -q origin claude/repair-plan-model-1ig6it 2>/dev/null \
