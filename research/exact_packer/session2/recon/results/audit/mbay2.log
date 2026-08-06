@@ -4,3 +4,6 @@ P9   nbay=2  0 application(s) in 52s  obj=6197200  +0.00%
 P26  solved 30s  obj=27758428  (bays=2 blocks=300)
 P26  nbay=1  1 application(s) in 72s  obj=27752126  -0.02%
 P26  nbay=2  0 application(s) in 51s  obj=27758428  +0.00%
+P3   solved 30s  obj=4756051  (bays=4 blocks=200)
+P3   nbay=1  1 application(s) in 56s  obj=4747304  -0.18%
+P3   nbay=2  0 application(s) in 68s  obj=4756051  +0.00%
