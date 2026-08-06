@@ -2034,6 +2034,38 @@ def _worker(args):
                     dict(_c, order="rank") if _i == 1 else _c for _i, _c in enumerate(axes)]
         elif _as == "v3":                     # append instead of replacing, to price the toll
             axes = axes + [dict(_AXES[5], order="sac3")]
+        elif _as in ("a4", "a5", "a5d"):
+            # AXIS COUNT, not just axis content.  Only 1, 6 and 7 have ever been measured and
+            # they came out 1 > 6 > 7: a single fixed order beat the six on 3 of 4 instances, and
+            # seven was 10.8% worse than six on P1.  4 and 5 are unmeasured, and one axis is not
+            # shippable because nothing readable off an instance says which one it should be.
+            #
+            # Built by VIEWPOINT, because four of the six shipped slots hold the same one -- the
+            # three defer_big entries all sort on due as their second key, and edd is that view
+            # again.  One entry each:
+            #     slack   lst        due - pt, the only order that prices processing time
+            #     size    big_first  the only area-ordered entry
+            #     blend   sac3       rank plus "the three largest area*pt go last"
+            #     deadline edd       plain due
+            #     blend-  rank       the same blend without the sacrifice (a5 only)
+            # Parameters come from the slots those orders already occupy rather than being
+            # invented, so Bmul spans 0.5/0.7/0.7/1.0/1.4 and the sets differ in width and
+            # lookahead as well as in order.
+            #
+            # a5d swaps edd for defer_big to ask which form of the deadline view earns the slot;
+            # defer_big holds three slots today and was best on no instance.
+            _sac = dict(_AXES[5], order="sac3")
+            _rank = dict(_AXES[0], order="rank")
+            if _as == "a4":
+                _set = [_AXES[2], _AXES[4], _sac, _AXES[3]]
+            elif _as == "a5":
+                _set = [_AXES[2], _AXES[4], _sac, _AXES[3], _rank]
+            else:
+                _set = [_AXES[2], _AXES[4], _sac, _rank, _AXES[1]]
+            # Keep the per-worker rotation.  Replacing `axes` outright would hand every worker the
+            # same starting axis, which is a second change riding along with the set size and
+            # would make the comparison unreadable.
+            axes = [_set[(wid + i) % len(_set)] for i in range(len(_set))]
     except Exception:
         pass
     pool = [best] if best[1] is not None else []
