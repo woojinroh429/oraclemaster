@@ -84,3 +84,5 @@ WSTAT round=0 n=4 6096369 5683117 5630419 6063683  spread=8.28%
 P6  [r1.ax5.6]      60s  obj=5628942     Z1=357.0    Z2=3519   Z3=6402.0    feas=y   ran 59s  py3.12
 REPDONE 1
 # [r2.free.20]
+WSTAT round=0 n=4 11342133 9069310 11447196 9422204  spread=26.22%
+P20 [r2.free.20]    60s  obj=9069310     Z1=1140.0   Z2=2585   Z3=9655.0    feas=y   ran 59s  py3.12
