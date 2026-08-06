@@ -143,3 +143,5 @@ P6  [r2.cohort.6]    60s  obj=5282323     Z1=324.0    Z2=2642   Z3=7137.0    fea
 # [r2.sac3.6]
 WSTAT round=0 n=4 5709531 5760094 6165343 5793876  spread=7.98%
 P6  [r2.sac3.6]     60s  obj=5709531     Z1=368.0    Z2=2886   Z3=5929.0    feas=y   ran 59s  py3.12
+REPDONE 2
+# [r3.base.20]
