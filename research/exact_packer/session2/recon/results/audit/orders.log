@@ -10,3 +10,6 @@ P20 [r1.lst.20]     60s  obj=9203794     Z1=1152.0   Z2=1895   Z3=10055.0   feas
 # [r1.rank.20]
 WSTAT round=0 n=4 12910190 10596262 13988864 10602492  spread=32.02%
 P20 [r1.rank.20]    60s  obj=10596262    Z1=1384.0   Z2=3423   Z3=8945.0    feas=y   ran 59s  py3.12
+# [r1.cohort.20]
+WSTAT round=0 n=4 11825814 9568720 11447451 9582359  spread=23.59%
+P20 [r1.cohort.20]    60s  obj=9568720     Z1=1216.0   Z2=3906   Z3=9536.0    feas=y   ran 59s  py3.12
