@@ -1,0 +1,32 @@
+pre-patch source: dd7fcd5dde90
+post-patch source: 60ace76cd6fb
+2102a2103,2117
+>                 // MOVED ONCE, AND ONLY ONCE.  The top-up pass below rescans keyed from the
+>                 // start, so without this it moves states the quota pass already took.  The
+>                 // second move yields a CBState whose three vectors are empty -- and a moved-from
+>                 // vector has data()==nullptr, so the next level's `c.placed[bi]=1` writes
+>                 // through a null pointer.  That is the crash actually observed: stage-2 prob_12,
+>                 // "segfault at c8 ... in ogc_fast.cpython-312 [4c4e4]", 0xc8 == 200 == the block
+>                 // index, faulting on exactly that store.
+>                 //
+>                 // The guard this replaces (`flat.empty() && nplaced==0`) could never fire.  The
+>                 // implicit move constructor moves the vectors but COPIES the scalars, so a
+>                 // moved-from state keeps its old nplaced, and every child has nplaced>=1 by
+>                 // construction -- the conjunction is unsatisfiable for the states it was meant
+>                 // to catch.  Recording what was taken tests the thing itself instead of trying
+>                 // to infer it from the wreckage.
+>                 std::vector<char> moved(children.size(),0);
+2106c2121
+<                     taken[par]++; nb2.push_back(std::move(children[idx]));
+---
+>                     taken[par]++; moved[idx]=1; nb2.push_back(std::move(children[idx]));
+2110,2111c2125,2126
+<                     if(children[idx].flat.empty() && children[idx].nplaced==0) continue;
+<                     nb2.push_back(std::move(children[idx]));
+---
+>                     if(moved[idx]) continue;
+>                     moved[idx]=1; nb2.push_back(std::move(children[idx]));
+== build both from the same command line ==
+build_pre/ogc_fast.cpp:261:8: warning: 'Engine' declared with greater visibility than the type of its field 'Engine::nfp_provider' [-Wattributes]
+  261 | struct Engine {
+      |        ^~~~~~
