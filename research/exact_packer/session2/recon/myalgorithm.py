@@ -2013,6 +2013,29 @@ def _worker(args):
             axes = [dict(_c, order=_od) for _c in axes]
     except Exception:
         pass
+    # OGC_AXSET=<name> swaps the axis SET.  Measurement only, absent by default.
+    #
+    # The six shipped axes carry four orders -- defer_big x3, lst, edd, big_first -- and not one
+    # of them blends deadline with size.  Measured (results/audit/orders.log): sac3 alone beat all
+    # six by 17.09% on P16 and rank alone beat them by 6.63% on P6, while the three defer_big
+    # entries were best on nothing.  sac3 is rank plus "dispatch the three largest area*time
+    # blocks last", so both winners are the same missing idea.
+    #
+    # REPLACE, DO NOT APPEND.  base lost 3 of 4 instances to a single fixed order, and bandit
+    # priced why: choosing among six costs 1-9% against spending the whole budget on one.  A
+    # seventh axis raises that toll on every instance to buy P16.  The defer_big slots are the
+    # ones to spend, since they won nothing.
+    try:
+        _as = os.environ.get("OGC_AXSET")
+        if _as == "v1":                       # one defer_big -> sac3
+            axes = [dict(_c, order="sac3") if _i == 5 else _c for _i, _c in enumerate(axes)]
+        elif _as == "v2":                     # two defer_big -> sac3 and rank
+            axes = [dict(_c, order="sac3") if _i == 5 else
+                    dict(_c, order="rank") if _i == 1 else _c for _i, _c in enumerate(axes)]
+        elif _as == "v3":                     # append instead of replacing, to price the toll
+            axes = axes + [dict(_AXES[5], order="sac3")]
+    except Exception:
+        pass
     pool = [best] if best[1] is not None else []
     _seed_bump = [0]                                # bumped when this worker restarts
     band = _Bandit([0.25, 1.0, 4.0], rng)          # crane-contact weight
