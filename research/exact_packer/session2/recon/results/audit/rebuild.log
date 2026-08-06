@@ -21,3 +21,4 @@ cranepack  /home/user/oraclemaster/research/exact_packer/session2/recon/cranepac
 == paired old vs new, same instances and budget ==
 # P12
 P12 [old.12]        60s  obj=151715      Z1=19.0     Z2=11213  Z3=5367.0    feas=y   ran 60s  py3.12
+P12 [new.12]        60s  obj=151723      Z1=17.0     Z2=10062  Z3=5440.0    feas=y   ran 59s  py3.12
