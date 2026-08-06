@@ -2287,6 +2287,8 @@ def _worker(args):
     # beating it.  (The pool must be cleared rather than seeded with `best` -- seeding it just
     # re-descends the same basin, which is what makes it a re-seed instead of a draw.)
     _RST = os.environ.get("OGC_RESTART") == "1"
+    _RST2 = os.environ.get("OGC_RESTART") == "2"
+    _RGAP = float(os.environ.get("OGC_RGAP", "0.10"))   # how far behind counts as behind
     _RSTALL = float(os.environ.get("OGC_RSTALL", "0.25"))   # no improvement for this much budget
     _RSTMIN = float(os.environ.get("OGC_RSTMIN", "0.20"))   # ... and this much left to be worth it
     _last_imp = time.time()
@@ -2332,6 +2334,43 @@ def _worker(args):
                     slot = [(budget - (time.time() - t0)) *
                             (0.20 if o[3] else 1.0 / (2.0 * len(ops))) for o in ops]
                     continue
+        # RELATIVE REDRAW (OGC_RESTART=2): behind the field, not stalled on the clock.
+        #
+        # The absolute form above was measured before it was believed and it does not harvest
+        # anything: on prob_26 at 120 s -- an instance whose one-draw curve is flat from 60 s --
+        # it fired ONCE, at 72%, because each worker keeps improving its own answer right to the
+        # end.  There is no idle worker to reclaim.  What there IS, in every WSTAT row cliff40
+        # produced, is a worker 15-30% behind the field: prob_26 returned
+        # 29,664,740 / 24,715,400 / 29,185,619 / 25,017,535 and two of the four cores spent the
+        # whole budget on answers that were never going to be the minimum.
+        #
+        # "Hopelessly behind" is observable, unlike "converged", and it is the honest funding for
+        # the extra draws: a core that cannot win is free.  The gap is read from the other workers
+        # through share_dir, so nothing about the instance is assumed -- a worker compares itself
+        # only with its own peers on its own instance.  Repeatable, unlike _SHARE's once-only, and
+        # it CLEARS the pool: seeding the restart with the laggard's own `best` just re-descends
+        # the basin that made it a laggard.
+        if _RST2 and share_dir and pool and (time.time() - t0) > _RSTMIN * budget \
+                and (budget - (time.time() - t0)) > _RSTMIN * budget:
+            _now = time.time()
+            _lead = _share_read(share_dir, wid, best[0] if best[1] is not None else pool[0][0])
+            if _lead is not None and (best[0] if best[1] is not None else pool[0][0]) \
+                    > _lead * (1.0 + _RGAP) and (_now - _last_imp) > 0.10 * budget:
+                _ndraw += 1
+                if os.environ.get("OGC_WSTAT"):
+                    import sys as _sy
+                    _sy.stderr.write("REDRAW2 wid=%d draw=%d at %.0f%% mine=%.0f lead=%.0f\n"
+                                     % (wid, _ndraw, 100.0 * (_now - t0) / budget,
+                                        best[0] if best[1] is not None else pool[0][0], _lead))
+                    _sy.stderr.flush()
+                rng = random.Random(1234 + wid + 100003 * _ndraw)
+                pool = []
+                gain = [0.0] * len(ops); spent = [1e-6] * len(ops); tried = [0] * len(ops)
+                empty_at = [None] * len(ops)
+                slot = [(budget - (_now - t0)) *
+                        (0.20 if o[3] else 1.0 / (2.0 * len(ops))) for o in ops]
+                _last_imp = _now
+                continue
         if _RST:
             _now = time.time()
             if (_now - _last_imp) > _RSTALL * budget and (budget - (_now - t0)) > _RSTMIN * budget:
@@ -2407,9 +2446,17 @@ def _worker(args):
             pool.append((o, s)); pool.sort(key=lambda q: q[0]); del pool[6:]
         if pool and pool[0][0] < before - 1e-9:
             gain[k] += before - pool[0][0]
-            _last_imp = time.time()      # still descending -- not converged, do not redraw
         if pool and pool[0][0] < best[0]:
             best = pool[0]
+            # STALL IS MEASURED ON THE ANSWER, NOT ON THE POOL.  Watching the pool was
+            # measured and it does not work: the loop micro-improves its own incumbent
+            # almost continuously, so a smoke run on prob_26 at 120 s -- an instance whose
+            # curve is FLAT from 60 s on -- fired exactly one redraw, at 78%.  The pool was
+            # busy; the answer had not moved in a minute.  `best` is what the worker
+            # returns, so a stretch with no improvement to `best` is the only stall that
+            # means anything, and a fresh draw that cannot beat `best` within the same
+            # stretch has equally earned being replaced.
+            _last_imp = time.time()
 
     # WHAT EACH OPERATOR COST AND WHAT IT RETURNED.  The loop already keeps tried/spent/gain
     # for its own scheduling; it has simply never been printed, so "which operator burns the

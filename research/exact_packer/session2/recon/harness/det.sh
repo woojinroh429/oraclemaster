@@ -1,6 +1,9 @@
 #!/bin/bash
-# STEP 3+2: DOES REMOVING THE CLOCK NARROW THE SPREAD, AND DOES A CONVERGED WORKER'S LEFTOVER
-# BUDGET BUY A DRAW?  Three arms, because the two changes are independent and the second is the
+# STEP 3+2: DOES REMOVING THE CLOCK NARROW THE SPREAD, AND DOES A LOSING WORKER'S REMAINING
+# BUDGET BUY A DRAW?  (The CONVERGED-worker form was built, smoke-tested and dropped: it fired
+# once in a 120 s run because every worker keeps improving its own answer to the end.  The arm
+# here is the RELATIVE one -- redraw a worker that is behind the field, which every WSTAT row
+# cliff40 produced shows is 15-30% of the portfolio, every run.)  Three arms, because the two changes are independent and the second is the
 # one with a number attached to it (4 draws -> 12 is worth ~4.7% and -19% on the SD of the answer,
 # from the simulated statistics of a minimum at the measured sigma ~ 7.8%).
 #
@@ -46,9 +49,9 @@ run(){ # rep arm prob env
 
 for rep in 1 2 3; do
     for p in 16 6 20 1 36 34; do
-        run $rep base $p ""          myalgorithm
-        run $rep det  $p "OGC_DET=1" myalg_det
-        run $rep rdrw $p "OGC_RESTART=1" myalg_det
+        run $rep base $p ""              myalgorithm
+        run $rep det  $p "OGC_DET=1"     myalg_det
+        run $rep rdrw $p "OGC_RESTART=2" myalg_det
     done
     echo "REPDONE $rep" >> $L
 done
