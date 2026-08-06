@@ -234,3 +234,6 @@ P1  [r3.ax5.1]      60s  obj=729057      Z1=30.0     Z2=4949   Z3=857.0     feas
 # [r3.free.6]
 WSTAT round=0 n=4 5784012 5715749 5721220 5943499  spread=3.98%
 P6  [r3.free.6]     60s  obj=5712436     Z1=364.0    Z2=4052   Z3=6308.0    feas=y   ran 59s  py3.12
+# [r3.ax0.6]
+WSTAT round=0 n=4 5834912 6056664 6195194 6271562  spread=7.48%
+P6  [r3.ax0.6]      60s  obj=5829795     Z1=373.0    Z2=3551   Z3=6307.0    feas=y   ran 59s  py3.12
