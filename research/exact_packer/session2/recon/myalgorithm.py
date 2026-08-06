@@ -1996,6 +1996,23 @@ def _worker(args):
             axes = [_AXES[int(_ax) % len(_AXES)]]
     except Exception:
         pass
+    # OGC_ORDER=<name> replaces the dispatch order of whatever axes are in play, keeping every
+    # other field.  Measurement only, absent by default.
+    #
+    # _contact_beam accepts seven orders and _AXES uses four: edd (2 slots), lst (1), defer_big
+    # (3), big_first (1).  rank, cohort and sacK are implemented and have never been in the
+    # portfolio.  The four in use are also narrower than they look -- all three defer_big entries
+    # sort on due as their second key -- so five of six axes are effectively deadline-ordered, and
+    # the 32-210% config spread cdecomp measured came from inside that range.
+    #
+    # Isolating the ORDER is the point: changing an _AXES entry would move Bmul, K, pos_lam and
+    # w3mul with it, and the result could not be attributed to the order at all.
+    try:
+        _od = os.environ.get("OGC_ORDER")
+        if _od:
+            axes = [dict(_c, order=_od) for _c in axes]
+    except Exception:
+        pass
     pool = [best] if best[1] is not None else []
     _seed_bump = [0]                                # bumped when this worker restarts
     band = _Bandit([0.25, 1.0, 4.0], rng)          # crane-contact weight
