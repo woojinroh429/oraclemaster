@@ -418,11 +418,30 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
         # resident count, and the anchor is chosen by the objective.
         frozen_res = []
         if NB > 1:
-            _cap0 = max(1, int(round(len([b for b in range(n) if cur[b] == TGT])
-                                     * float(os.environ.get("OGC_BRKCAP", "1.0")))))
-            if _cap0 < len(res):
+            # THE JOINT PACK MUST CONTAIN THE ONE-BAY PACK.
+            #
+            # The window used to be drawn from BOTH bays, and that quietly made the two-bay
+            # neighbourhood a DIFFERENT one rather than a larger one: the target bay contributed
+            # fewer of its own residents than the one-bay operator would have taken, the partner
+            # was sampled on a coarser grid, and the residents left out stood in the way as frozen
+            # obstacles.  A neighbourhood that is not a superset can be worse, and it was --
+            # measured over eight instances, the one-bay arm improved seven and the two-bay arm
+            # improved none, spending its full budget on each.
+            #
+            # So the target bay keeps ALL of its residents, exactly as the one-bay call would, and
+            # the window applies only to the PARTNER.  Every selection the one-bay pack can make is
+            # then available here, and anything the partner adds is extra.  The cost is the price
+            # of that guarantee: candidates go from R to R + cap and both bays generate columns for
+            # all of them, so the pair work is 2(R+cap)^2 against R^2.  OGC_BRKCAP sets cap as a
+            # fraction of R -- at 0.4 that is about 4x the one-bay build, which the tier chooser
+            # can decline on its own if the budget will not carry it.
+            _tgt_res = [b for b in range(n) if cur[b] == TGT]
+            _part_res = [b for b in res if cur[b] != TGT]
+            _cap0 = max(1, int(round(len(_tgt_res)
+                                     * float(os.environ.get("OGC_BRKCAP", "0.4")))))
+            if _cap0 < len(_part_res):
                 _g = []
-                for b in res:
+                for b in _part_res:
                     _bg = 0.0
                     for j in BAYS:
                         if j == cur[b]:
@@ -438,8 +457,8 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
                     _have = set(_pick)
                     _pick += [b for _v, b in _g if b not in _have][:_cap0 - len(_pick)]
                 _ps = set(_pick)
-                frozen_res = [b for b in res if b not in _ps]
-                res = _pick
+                frozen_res = [b for b in _part_res if b not in _ps]
+                res = _tgt_res + _pick
 
         # OUTSIDERS, RE-RANKED OVER THE WHOLE BAY SET.  `outs` was built against TGT alone; with
         # a partner in play a block's value is the best it can do in ANY of the repacked bays,
