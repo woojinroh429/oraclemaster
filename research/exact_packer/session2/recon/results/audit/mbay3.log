@@ -14,3 +14,7 @@ P20  nbay=2  0 application(s) in 14s  obj=10077312  +0.00%
 P6   solved 30s  obj=5335323  (bays=4 blocks=250)
 P6   nbay=1  0 application(s) in 69s  obj=5335323  +0.00%
 P6   nbay=2  1 application(s) in 56s  obj=5335296  -0.00%
+MBAY3DONE
+P26  solved 30s  obj=27182136  (bays=2 blocks=300)
+P26  nbay=1  1 application(s) in 68s  obj=27175833  -0.02%
+P26  nbay=2  0 application(s) in 54s  obj=27182136  +0.00%
