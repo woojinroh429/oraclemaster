@@ -11,3 +11,15 @@ P20  solved 60s  obj=11091192 feasible=True  (250 blocks, 3 bays)
   no ridge swap found: every improving exchange is either already reachable
   or infeasible however it is attempted.  An ejection chain has nowhere to go.
 === P16 ===
+P16  solved 60s  obj=3959308 feasible=True  (300 blocks, 5 bays)
+  priced 35445 cross-bay pairs in 0.0s -- 4684 improve the objective
+  control ok: 40 of 40 blocks fit back into the spot they were lifted from
+
+  of the 120 best-priced improving swaps:
+       0  RIDGE      -- jointly feasible, neither block can move alone
+       1  reachable  -- a single move already works today
+     119  blocked    -- not feasible even jointly
+
+  no ridge swap found: every improving exchange is either already reachable
+  or infeasible however it is attempted.  An ejection chain has nowhere to go.
+=== P1 ===
