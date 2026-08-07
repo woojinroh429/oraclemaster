@@ -2217,9 +2217,31 @@ def _worker(args):
     # four workers across the range instead of stacking them on its two ends -- is one env away
     # and can be measured instead of argued about.  Default is the measured 2:2.
     if "OGC_BEAMAIM" not in os.environ:
-        # FOUR AIMS ACROSS THE RANGE, NOT TWO AT ITS ENDS.  Submitted deliberately, to be read on
-        # the hidden set, and it is NOT established on the training set -- the reasoning and what
-        # is missing are both below.
+        # FOUR AIMS ACROSS THE RANGE WAS TRIED AND IT LOSES.  Reverted to the shipped 0.90,0.10.
+        #
+        # Paired against 0.90,0.10 in one queue at 240 s, ordered by how much the instance can be
+        # trusted:
+        #
+        #     P4    2,615,319 -> 2,763,318   + 5.66%   base repeats to the digit, 4 times today
+        #     P20   9,034,631 -> 10,020,409  +10.90%   cross-queue base spread 1.7%
+        #     P1      501,758 -> 609,812     +21.50%   base repeats to the digit across queues
+        #     P16   3,612,529 -> 3,112,290   -13.85%   whole-day range 19.6%, least trustworthy
+        #
+        # It loses on all three instances that carry no noise argument and wins only on the one
+        # that does.  Under a per-instance score the worst instance sets the tier, so a 6-22% loss
+        # is not bought back by a win on a high-variance cell.
+        #
+        # WHY, from the same queue.  Spreading halves the count at each end: the shipped split
+        # guarantees TWO deep and TWO shallow workers, and the answer is a minimum over the draws
+        # at each depth.  prob_1 needs the second deep worker (all-deep is -6.2% there, spread is
+        # +21.5%), and prob_20 needs the second shallow one (all-deep is +13.9%, spread +10.9% --
+        # the same failure).  The mean aim barely moves, 0.475 against 0.50; what breaks is the
+        # guarantee of a pair at each end.
+        #
+        # Kept as a comment rather than deleted so the arm is not re-invented: the reasoning for it
+        # was sound and the measurement still says no.
+        #
+        # ORIGINAL RATIONALE, which remains true and is not sufficient:
         #
         # aim is the fraction of its slice a beam may spend and it becomes width directly, so the
         # old "0.90,0.10" gives two workers that finish every level (3,258-9,666 expansions
@@ -2242,8 +2264,7 @@ def _worker(args):
         # middle helps, and the paired A/B against 0.90,0.10 was still running when this shipped.
         #
         # OGC_AIMSET=0.90,0.10 restores the previous behaviour exactly.
-        _aims = [a for a in os.environ.get("OGC_AIMSET", "0.90,0.60,0.30,0.10").split(",")
-                 if a.strip()]
+        _aims = [a for a in os.environ.get("OGC_AIMSET", "0.90,0.10").split(",") if a.strip()]
         os.environ["OGC_BEAMAIM"] = _aims[wid % len(_aims)].strip()
 
     rng = random.Random(1234 + wid)
