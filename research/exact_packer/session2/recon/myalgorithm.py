@@ -302,6 +302,63 @@ def _build_operations(assignments):
         ops[str(t)] = out
     return {"operations": ops}
 
+_SHAPE_FEAT_CACHE = {}
+
+
+def _shape_feats(prob):
+    """Per-block ASPECT ratio and BOX FILL, cached.  Both are geometry the dispatch orders do not
+    currently see, and both were measured orthogonal to footprint area across all forty stage-2
+    instances: median Spearman rho(area, aspect) = -0.053 and rho(area, box-fill) = -0.061.
+
+    That orthogonality is the whole point.  Every order in the list today is built from due,
+    due - pt and area, and area correlates with due at rho = +0.23, so the axes are variations on
+    two correlated signals -- which is the mechanism behind the attractors in
+    results/audit/attractors.md, where independent configurations return objectives equal to the
+    digit.  The answer is a MINIMUM over workers, so the portfolio is worth exactly what the
+    workers differ by, and a signal uncorrelated with the ones already in use is the only kind
+    that can make them differ structurally rather than by seed.
+
+    Aspect is long side over short side of the chosen orientation's bounding box: shape
+    awkwardness independent of size.  Box fill is the union-of-layers area over the bounding-box
+    area: concavity, which decides whether a block interlocks with its neighbours or wastes the
+    rectangle it claims.
+
+    Orientation is taken as the minimum-area one, matching _footprint_areas so the two agree on
+    which orientation they describe.  (The spread across orientations is a median 1.46x in area,
+    which is a lever nothing currently pulls; that is a separate question from this one.)
+    """
+    key = id(prob)
+    got = _SHAPE_FEAT_CACHE.get(key)
+    if got is not None:
+        return got
+    blocks = prob["blocks"]
+    asp = []; fill = []
+    for bid in range(len(blocks)):
+        best = None
+        for oi in range(len(blocks[bid]["shape"])):
+            try:
+                b = Block(block_id=bid, block_data=blocks[bid], x=0.0, y=0.0, orient_idx=oi)
+                polys = [_Poly([(float(q[0]), float(q[1])) for q in L]) for L in b.resolved_layers()]
+                u = _uu(polys)
+                xs0, ys0, xs1, ys1 = u.bounds
+                w = xs1 - xs0; h = ys1 - ys0
+                if w <= 0 or h <= 0:
+                    continue
+                cand = (w * h, w, h, u.area)
+                if best is None or cand[0] < best[0]:
+                    best = cand
+            except Exception:
+                continue
+        if best is None:
+            asp.append(1.0); fill.append(1.0); continue
+        _bx, w, h, a = best
+        asp.append(max(w, h) / max(1e-9, min(w, h)))
+        fill.append(a / max(1e-9, _bx))
+    out = (asp, fill)
+    _SHAPE_FEAT_CACHE[key] = out
+    return out
+
+
 def _footprint_areas(prob):
     """Per-block footprint (union-of-layers) area, MIN over orientations, scaled to
     int for CP-SAT; plus raw bay-area capacities (scaled) and the scale factor.
@@ -434,6 +491,30 @@ def _contact_beam(prob_info, deadline_s, B=24, K=4, pos_lam=0.1, prefw=0.0, orde
                 _K = int(_kk) if _kk else 3
                 _vic = set(sorted(range(n), key=lambda b: -(AR[b] * pt[b]))[:_K])
                 ordv = [(1 if b in _vic else 0, _rd[b] + _ra[b], due[b]) for b in range(n)]
+        elif order in ("aspect", "boxfill"):
+            # rank's blend with the geometry term swapped for one that is ORTHOGONAL to area.
+            #
+            # rank scores rank(due) + rank(-area).  Its geometry term correlates with its own
+            # scheduling term at rho = +0.23 and with every other order's area term by
+            # construction, so it produces a sequence close to what the list already makes.
+            # Aspect (long side / short side) and box fill (polygon area / bounding-box area)
+            # measured rho = -0.053 and -0.061 against area over all forty stage-2 instances, so
+            # they move blocks that size and deadline never separate.
+            #
+            # The scheduling half is KEPT rather than dropped.  The objective is 89% weighted
+            # tardiness (results/audit/objmix.md); an order that ignores due dates entirely has no
+            # route to that term, and pure-scheduling and pure-geometry rules have both been tried
+            # alone before.  This is the blend, which is what has not.
+            #
+            # Awkward shapes sort EARLY -- the standard packing argument that an irregular piece
+            # needs free space around it, and free space is what an empty yard has.
+            _ASP, _FILL = _shape_feats(prob_info)
+            _g = _ASP if order == "aspect" else [-x for x in _FILL]
+            _o = sorted(range(n), key=lambda i: due[i]); _rd = [0.0] * n
+            for _p, _i in enumerate(_o): _rd[_i] = _p / max(1, n - 1)
+            _o = sorted(range(n), key=lambda i: -_g[i]); _rg = [0.0] * n
+            for _p, _i in enumerate(_o): _rg[_i] = _p / max(1, n - 1)
+            ordv = [(_rd[b] + _rg[b], due[b]) for b in range(n)]
         elif order == "cohort":
             ordv = [(rel[b] + 0.5 * pt[b], due[b], -AR[b]) for b in range(n)]
         elif order == "lst":
@@ -2065,6 +2146,42 @@ def _worker(args):
             # Keep the per-worker rotation.  Replacing `axes` outright would hand every worker the
             # same starting axis, which is a second change riding along with the set size and
             # would make the comparison unreadable.
+            axes = [_set[(wid + i) % len(_set)] for i in range(len(_set))]
+        elif _as in ("o4", "o4f", "o5"):
+            # FOUR OPENING SLOTS, FOUR SIGNALS WITH LOW MUTUAL CORRELATION.
+            #
+            # Two facts about the shipped list drive this, both from results/audit/axes_structure.md.
+            # First, worker wid opens on _AXES[wid % 6] and nw is 4, so axes 4 and 5 can never open
+            # a run -- and the loop's own trace on the hidden P6 recorded the first beam producing
+            # the best solution of the entire 300 s run in 33 seconds.  The opening axis largely
+            # decides the answer, so the list is effectively four entries, not six.  Second, two of
+            # those four (0 and 1) share Bmul, K, order and fut_beta and differ by pos_lam 0.10 vs
+            # 0.12.  Three distinct viewpoints occupy four opening slots.
+            #
+            # And every one of those viewpoints is built from due, due - pt and area, which
+            # correlate: rho(area, due) = +0.23 across the forty stage-2 instances.  Workers built
+            # on correlated signals converge, which is what attractors.md documents -- independent
+            # configurations returning objectives equal to the digit.  Since the answer is a
+            # MINIMUM over workers, a portfolio of correlated axes buys almost nothing.
+            #
+            # So fill the four opening slots with four signals instead:
+            #     deadline   edd      due
+            #     slack      lst      due - pt, the only order pricing processing time
+            #     size       rank     rank(due) + rank(-area), the continuous blend, never shipped
+            #     shape      aspect   rank(due) + rank(-aspect); rho(area, aspect) = -0.053
+            # o4f swaps shape for box fill (rho = -0.061), the other orthogonal measure, to ask
+            # which shape signal earns the slot rather than assuming.  o5 keeps both.
+            #
+            # Parameters are taken from the slots these orders already occupy rather than invented.
+            _rank = dict(_AXES[0], order="rank")
+            _asp = dict(_AXES[1], order="aspect")
+            _fil = dict(_AXES[1], order="boxfill")
+            if _as == "o4":
+                _set = [_AXES[3], _AXES[2], _rank, _asp]
+            elif _as == "o4f":
+                _set = [_AXES[3], _AXES[2], _rank, _fil]
+            else:
+                _set = [_AXES[3], _AXES[2], _rank, _asp, _fil]
             axes = [_set[(wid + i) % len(_set)] for i in range(len(_set))]
         elif _as in ("L3", "L2S"):
             # SPEND SLOTS ON THE VIEWPOINT THAT WINS.  Every arrangement tried so far either added
