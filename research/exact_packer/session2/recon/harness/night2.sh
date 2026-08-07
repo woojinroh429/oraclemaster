@@ -73,10 +73,28 @@ run(){ # tag prob limit env
 
 PZ="1 4 24 16 20"          # Z3-heavy first: prob_1 is 73.2% w3*Z3 and is the hidden-set analogue
 
-# ---- PHASE A: prefw, the zero-everywhere weight on the preference term ----
-say "PHASE A prefw"
-for p in $PZ; do for ax in 0 2 3; do for pw in 0.0 0.5 1.0 2.0 4.0; do
-    b1 "A.p$p.a$ax.pw$pw" $p $ax --prefw $pw
+# ---- PHASE A: w3mul.  prefw turned out to be structurally inert; w3mul is the live Z3 knob ----
+#
+# prefw was the phase this campaign opened with, on the reasoning that it is 0.0 on all six axes
+# while w3*Z3 is 14-73% of the objective.  Measured, prefw = 0.0 / 0.5 / 1.0 / 2.0 / 4.0 on prob_1
+# returned the same objective AND the same placement digest on axis 0 and again on axis 2, and the
+# code says why:
+#
+#     double pen = (bay<bs.prefs.size())? (s_max-bs.prefs[bay]) : s_max;   // once per BAY
+#     sc = -con_w*ct + iy*pos_lam*sw_y + ix*pos_lam*sw_x + prefw*pen;      // ranks CELLS in that bay
+#
+# pen is constant inside the bay whose cells sc ranks, so prefw adds the same amount to every
+# candidate and cannot move the argmin.  The bay is chosen separately by
+# drank = w1*tardy + w3*pen - mu*ct, which already carries the preference at full weight.  prefw is
+# dead by construction and the phase measured nothing.
+#
+# w3mul is the live one: it scales w3 inside drank, the CROSS-BAY comparison, so it does change
+# which bay a block goes to.  The axes carry 1.0 / 3.0 / 3.0 / 1.0 / 6.0 / 1.5.  A grid was run on
+# it before and read as "worse and saturating", but that was wall-clock measurement inside a 19.6%
+# band; in work units the answer is exact.
+say "PHASE A w3mul"
+for p in $PZ; do for ax in 0 2 3; do for wm in 0.25 0.5 1.0 2.0 4.0 8.0; do
+    b1 "A.p$p.a$ax.wm$wm" $p $ax --w3mul $wm
 done; done; done
 say "PHASE A done"
 
