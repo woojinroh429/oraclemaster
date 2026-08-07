@@ -47,3 +47,5 @@ P6  [r1.o4f.6]     240s  obj=5369067     Z1=339.0    Z2=4384   Z3=6220.0    feas
 WSTAT round=0 n=4 5364493 5364493 5447804 5787443  spread=7.88%
 P6  [r1.o5.6]      240s  obj=5327658     Z1=337.0    Z2=3989   Z3=6124.0    feas=y   ran 240s  py3.12
 # [r1.base.1]
+WSTAT round=0 n=4 599476 740405 470530 751571  spread=59.73%
+P1  [r1.base.1]    240s  obj=470530      Z1=19.0     Z2=7419   Z3=536.0     feas=y   ran 200s  py3.12
