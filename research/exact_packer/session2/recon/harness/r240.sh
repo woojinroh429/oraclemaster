@@ -34,7 +34,13 @@ mkdir -p results/audit; touch $L
 
 run(){ # rep R prob
     local tag="r$1.R$2.$3"
-    grep -q "\[$tag\]" $L 2>/dev/null && return
+    # SKIP ON A RESULT, NOT ON THE MARKER.  The marker is written BEFORE the run, so a queue
+    # killed mid-cell leaves an orphan "# [tag]" line with no result -- and this test then
+    # matched it on resume and skipped the cell forever.  Nine such orphans existed across
+    # today's logs, including one this session was actively waiting on (w3grid r1.dn.26).
+    # In a paired design a lost arm silently invalidates the whole instance.  Excluding the
+    # marker lines makes the test key on evidence the run finished.
+    grep -vE '^# ' $L 2>/dev/null | grep -q "\[$tag\]" && return
     echo "# [$tag]" >> $L
     OGC_ROUNDS=$2 OGC_WSTAT=1 timeout 900 /usr/bin/python3.12 harness/run1.py myalgorithm $3 240 \
         "[$tag]" --data data/stage2 >> $L 2>&1

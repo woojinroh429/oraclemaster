@@ -220,4 +220,3 @@ REPDONE 3
 # [r4.pair.1]
 WSTAT round=0 n=4 667680 664980 620043 831065  spread=34.03%
 P1  [r4.pair.1]     60s  obj=620043      Z1=36.0     Z2=8077   Z3=593.0     feas=y   ran 49s  py3.12
-# [r4.spread.1]
