@@ -42,3 +42,59 @@ DRAW wid=1 gen=1 axis=2 ask=47.2 took=16.5 obj=3656247
 DRAW wid=3 gen=1 axis=4 ask=47.2 took=17.9 obj=4999206
 DRAW wid=2 gen=1 axis=3 ask=47.2 took=25.5 obj=4675766
 DRAW wid=0 gen=1 axis=1 ask=47.2 took=25.7 obj=6464583
+DRAW wid=3 gen=3 axis=0 ask=47.2 took=10.3 obj=6935855
+DRAW wid=1 gen=3 axis=4 ask=47.2 took=9.6 obj=7153841
+DRAW wid=3 gen=4 axis=1 ask=47.2 took=9.5 obj=6381688
+DRAW wid=1 gen=4 axis=5 ask=47.2 took=10.5 obj=6318103
+DRAW wid=3 gen=5 axis=2 ask=47.2 took=7.7 obj=4274228
+DRAW wid=1 gen=5 axis=0 ask=47.2 took=11.1 obj=7093141
+DRAW wid=3 gen=6 axis=3 ask=47.2 took=16.8 obj=4556982
+DRAW wid=1 gen=6 axis=1 ask=47.2 took=16.7 obj=4505707
+DRAW wid=0 gen=3 axis=3 ask=47.2 took=26.6 obj=4723117
+DRAW wid=2 gen=3 axis=5 ask=47.2 took=26.2 obj=6389450
+DRAW wid=3 gen=7 axis=4 ask=47.2 took=17.5 obj=4651156
+DRAW wid=1 gen=7 axis=2 ask=47.2 took=18.9 obj=3926575
+DRAW wid=3 gen=8 axis=5 ask=47.2 took=19.1 obj=5634552
+DRAW wid=0 gen=4 axis=4 ask=47.2 took=26.7 obj=9482502
+DRAW wid=2 gen=4 axis=0 ask=47.2 took=26.6 obj=6606624
+DRAW wid=1 gen=8 axis=3 ask=47.2 took=17.9 obj=4495332
+DRAW wid=3 gen=9 axis=0 ask=46.2 took=18.1 obj=5277770
+DRAW wid=1 gen=9 axis=4 ask=39.7 took=19.5 obj=4999206
+DRAW wid=2 gen=5 axis=1 ask=40.1 took=22.4 obj=6321894
+DRAW wid=3 gen=10 axis=1 ask=28.1 took=18.9 obj=4896154
+DRAW wid=2 gen=6 axis=2 ask=17.7 took=11.6 obj=3936863
+DRAW wid=1 gen=10 axis=5 ask=20.2 took=16.0 obj=4746562
+DRAW wid=3 gen=11 axis=2 ask=9.3 took=10.9 obj=3602025
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam       10     146.8   62.0%   8400055776 57232973.0
+  opstat  grow        1      16.9    7.1%            0        0.0
+  opstat  bal         1       0.1    0.0%            0        0.0
+  opstat  pref        1      23.7   10.0%        33924     1434.3
+  opstat  bay         1      47.5   20.0%         1017       21.4
+  opstat  TOTAL      14     234.8   99.1%                        
+DRAW wid=0 gen=6 axis=0 ask=6.8 took=10.6 obj=7019144
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        4      89.6   37.5%   8397228159 93760721.7
+  opstat  grow        2      77.5   32.5%      2201092    28389.2
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        1      23.6    9.9%        25775     1091.5
+  opstat  bay         1      46.9   19.7%          234        5.0
+  opstat  TOTAL       9     237.7   99.5%                        
+DRAW wid=2 gen=7 axis=3 ask=5.9 took=9.9 obj=5176678
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        6     122.1   51.1%   8399673814 68770140.7
+  opstat  grow        1      42.2   17.7%        54108     1280.7
+  opstat  bal         1       0.1    0.0%            0        0.0
+  opstat  pref        1      23.7    9.9%        27957     1181.5
+  opstat  bay         1      49.9   20.9%            0        0.0
+  opstat  TOTAL      10     238.1   99.6%                        
+DRAW wid=1 gen=11 axis=0 ask=4.1 took=8.5 obj=5206554
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam       10     145.3   60.7%   8400036495 57812405.5
+  opstat  grow        1      20.1    8.4%            0        0.0
+  opstat  bal         1       0.1    0.0%            0        0.0
+  opstat  pref        1      23.9   10.0%        25508     1066.7
+  opstat  bay         1      48.8   20.4%            0        0.0
+  opstat  TOTAL      14     238.1   99.5%                        
+WSTAT round=0 n=4 4237482 3630739 3936863 3602025  spread=17.64%
+P16 [r1.s240.16]   240s  obj=3602025     Z1=182.0    Z2=1723   Z3=4681.0    feas=y   ran 240s  py3.12
