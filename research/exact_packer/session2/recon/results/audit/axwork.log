@@ -138,3 +138,9 @@ P24  [p24.w12000.a0] work=12000     B=96   K=4 axis=0  obj=2881916      feas=y  
 # [p24.w12000.a1]
 P24  [p24.w12000.a1] work=12000     B=96   K=4 axis=1  obj=3176320      feas=y    50.4s  digest=970b0a4195eaa7ea
 # [p24.w12000.a2]
+P24  [p24.w12000.a2] work=12000     B=96   K=4 axis=2  obj=3304118      feas=y    45.9s  digest=773ddc83b6320dcd
+# [p24.w12000.a3]
+P24  [p24.w12000.a3] work=12000     B=96   K=4 axis=3  obj=3598463      feas=y    55.6s  digest=2f97c7a507e97b62
+# [p24.w12000.a4]
+P24  [p24.w12000.a4] work=12000     B=96   K=4 axis=4  obj=3150336      feas=y    49.6s  digest=6e38f3b22685f00b
+# [p24.w12000.a5]
