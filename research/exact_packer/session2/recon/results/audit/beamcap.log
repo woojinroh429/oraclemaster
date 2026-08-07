@@ -349,3 +349,5 @@ P24 [r1.cap12.24]   240s  obj=2741097     Z1=598.0    Z2=3909   Z3=1201.0    fea
   opstat  TOTAL      17     235.7   99.6%                        
 WSTAT round=0 n=4 2843782 2873288 3132120 2694754  spread=16.23%
 P24 [r1.cap20.24]   240s  obj=2694754     Z1=499.0    Z2=1741   Z3=1699.0    feas=y   ran 237s  py3.12
+REPDONE 1
+# [r2.base.16]
