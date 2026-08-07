@@ -1602,6 +1602,13 @@ _AXES = [
     dict(Bmul=0.5, K=6, pos_lam=0.20, order="defer_big", fut_beta=0.0, prefw=0.0, w3mul=1.5, cohort=0.0, dk=0),
 ]
 
+# TRUE axis index for the DRAWSTAT line.  Each worker holds a ROTATED view of _AXES, so position 2
+# in worker 3's list is _AXES[5]; printing the position would make "which axis pays" unreadable
+# across workers.  Identity works because the rotation reuses the same dict objects; when a
+# replacement set is built (OGC_AXSET) the dicts are new, the lookup misses, and the caller falls
+# back to the position -- correct, since a replacement set has no _AXES index to name.
+_AXIDX = {id(_a): _i for _i, _a in enumerate(_AXES)}
+
 
 def _axis_env(cfg):
     """Env overrides for the three ACCESS terms, which every axis currently ships at 0.0.
@@ -2339,9 +2346,39 @@ def _worker(args):
     # slices in a 60s budget a bandit never leaves its exploration phase, and measured it cost
     # prob_3 44400 -> 49020.  Diversity across axes is already covered between workers, which
     # each start at a different offset.
+    # WHAT EACH INDIVIDUAL DRAW RETURNED (OGC_DRAWSTAT=1).  opstat gives the beam's TOTAL gain, and
+    # the total is dominated by the first draw, which replaces the fallback and books ~8.4e9 on
+    # prob_16.  Every later draw books nothing unless it beats the incumbent, so "beam earns
+    # 58,000,000 per second" says nothing about draw 7.
+    #
+    # The open question needs the per-draw numbers.  prob_16 at 240 s takes 30 draws across four
+    # workers and returns 3,528,888 -- WORSE than the same build at 60 s, which takes about 10 and
+    # returns 3,472,568.  Three explanations fit the totals equally well and the per-draw values
+    # separate them: later draws systematically worse (the rotation reaches axes 4 and 5 only once
+    # a worker gets past four draws, and axis 4 carries w3mul=6.0, a setting the w3 grid measured
+    # as harmful); or draws too alike to be independent samples; or each 240 s draw simply worse
+    # than each 60 s draw, which would put the fault in the width and not in the count.
+    #
+    # Read-only and off by default: one _total call per draw on a path that already scored the
+    # solution, printed to stderr so it cannot land inside a results line.
+    _DRAWSTAT = os.environ.get("OGC_DRAWSTAT") == "1"
+
     def _fresh(t):
         gen[0] += 1
-        return _beam_once(prob_info, t, axes[gen[0] % len(axes)], share)
+        ai = gen[0] % len(axes)
+        _t = time.time()
+        s = _beam_once(prob_info, t, axes[ai], share)
+        if _DRAWSTAT:
+            import sys as _sy
+            try:
+                _v = _total(prob_info, s)[0] if s is not None else float("inf")
+            except Exception:
+                _v = float("inf")
+            _sy.stderr.write("DRAW wid=%d gen=%d axis=%s ask=%.1f took=%.1f obj=%.0f\n"
+                             % (wid, gen[0], _AXIDX.get(id(axes[ai]), ai), t,
+                                time.time() - _t, _v))
+            _sy.stderr.flush()
+        return s
 
     def _grow(t):
         gen[0] += 1; g = gen[0]; ai = band.pick()
