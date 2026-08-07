@@ -112,3 +112,9 @@ WORKDONE 6000
 # [p16.w12000.a0]
 P16  [p16.w12000.a0] work=12000     B=96   K=4 axis=0  obj=6713700      feas=y    54.2s  digest=4cfc745a6b374815
 # [p16.w12000.a1]
+P16  [p16.w12000.a1] work=12000     B=96   K=4 axis=1  obj=6265165      feas=y    53.1s  digest=1251086aa36763b5
+# [p16.w12000.a2]
+P16  [p16.w12000.a2] work=12000     B=96   K=4 axis=2  obj=2816901      feas=y    38.2s  digest=c7234f82007161de
+# [p16.w12000.a3]
+P16  [p16.w12000.a3] work=12000     B=96   K=4 axis=3  obj=4834176      feas=y    53.7s  digest=3de54f06e40748c7
+# [p16.w12000.a4]
