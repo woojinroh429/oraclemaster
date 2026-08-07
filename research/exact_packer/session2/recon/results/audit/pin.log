@@ -1,2 +1,4 @@
 # [r1.adapt.24]
 # [r1.adapt.24]
+WSTAT round=0 n=4 2809182 2854614 2887982 2957726  spread=5.29%
+P24 [r1.adapt.24]   240s  obj=2809182     Z1=656.0    Z2=2562   Z3=1008.0    feas=y   ran 206s  py3.12
