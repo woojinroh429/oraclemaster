@@ -102,3 +102,5 @@ P4   [A.p4.a3.wm8.0] work=3000      B=96   K=4 axis=3  obj=3145024      feas=y  
 P24  [A.p24.a0.wm0.25] work=3000      B=96   K=4 axis=0  obj=3198127      feas=y    11.8s  digest=98399e5e271145fd
 # [A.p24.a0.wm0.5]
 P24  [A.p24.a0.wm0.5] work=3000      B=96   K=4 axis=0  obj=3031260      feas=y    11.5s  digest=1156855491f8683f
+# [A.p24.a0.wm1.0]
+P24  [A.p24.a0.wm1.0] work=3000      B=96   K=4 axis=0  obj=3080029      feas=y    11.8s  digest=3868ad810c8df23d
