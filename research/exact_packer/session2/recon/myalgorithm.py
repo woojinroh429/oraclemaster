@@ -1374,13 +1374,36 @@ def _recs_to_ops(recs, n):
     return _build_operations([recs[b] for b in range(n)])
 
 
+_BCAP = 96
+try:
+    _BCAP = max(8, int(os.environ.get("OGC_BCAP", "96")))
+except Exception:
+    _BCAP = 96
+
+
 def _beam_width(mul):
     """Just a CAP.  The width used to be predicted from a fitted constant, which was silently
     catastrophic -- the beam returns NOTHING when it overruns, and the constant was 4x wrong
     the moment the beam ran one-core inside the pool, so every worker fell back to the greedy
     floor and the 300s answer came out worse than the 60s one.  The engine now adapts the
     width per level from its own measured cost, so all this owes it is a generous ceiling."""
-    return max(8, min(96, int(mul * 96)))
+    # THE CEILING IS A KNOB NOW, BECAUSE IT BINDS.
+    #
+    # Bmul across the six axes is 0.5 / 1.0 / 0.7 / 0.7 / 1.4 / 0.5, so three of them ask for 96 or
+    # more and get exactly 96.  The C++ tracks this -- `beam_width_capped_ = (Bcur >= Bmax)` -- and
+    # Bmax is just what this function returns, so whenever the adaptive controller could afford
+    # more width it is this constant that stops it, not the budget.
+    #
+    # It matters now because OGC_MCAND makes each state expand m candidate blocks instead of one,
+    # so m times as many children compete for the same B survivor slots.  Measured on prob_24 and
+    # prob_4 at 240 s, m=2 won both (-14.50%, -3.74%) and m=3 lost both (+2.40%, +10.89%), and the
+    # worker spread peaked at m=2 and collapsed at m=3 on both -- which is what running out of
+    # width looks like.  Raising the ceiling is the direct test of whether m=3 lost to the branching
+    # or to the slot shortage.
+    #
+    # Default 96 keeps today's behaviour exactly.  The adaptive controller still refuses width it
+    # cannot afford, so a higher ceiling costs nothing where there is no time for it.
+    return max(8, min(_BCAP, int(mul * _BCAP)))
 
 
 _DRAWN = {}
