@@ -53,3 +53,4 @@ P16 [r2.adapt.16]   240s  obj=3612529     Z1=182.0    Z2=2141   Z3=4718.0    fea
 # [r2.pinned.16]
 WSTAT round=0 n=4 4724855 3574878 4345741 3842236  spread=32.17%
 P16 [r2.pinned.16]   240s  obj=3574878     Z1=183.0    Z2=1813   Z3=4518.0    feas=y   ran 239s  py3.12
+# [r2.det.16]
