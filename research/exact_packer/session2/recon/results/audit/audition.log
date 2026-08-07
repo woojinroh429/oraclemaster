@@ -1248,3 +1248,4 @@ P4  [beam.a5.4]     60s  obj=3348151     Z1=421.0    Z2=2993   Z3=3621.0    feas
 P4  [full.a5.4]    240s  obj=3106013     Z1=422.0    Z2=4214   Z3=3149.0    feas=y   ran 228s  py3.12
 INSTDONE 4
 # [beam.a0.26]
+P26 [beam.a0.26]    60s  obj=25502751    Z1=2526.0   Z2=7509   Z3=10818.0   feas=y   ran 59s  py3.12
