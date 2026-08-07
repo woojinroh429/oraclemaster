@@ -559,6 +559,50 @@ def _contact_beam(prob_info, deadline_s, B=24, K=4, pos_lam=0.1, prefw=0.0, orde
                                                 float(_meanp), float(deadline_s), [], [],
                                                 float(_sc), float(swy), float(swx), float(cohort), float(shadow), float(span), int(lex), float(shadoww), float(conw), float(span2), float(hmatch))
                 _adapt_aim(E)
+                # OGC_BEAMSTAT=1: report what the beam actually managed, per call.
+                #
+                # The engine already tracks all of this and nothing has ever logged it -- only
+                # _adapt_aim reads it, and that is off by default.  The three flags answer
+                # different questions and together they say whether a beam was limited by TIME or
+                # by the width ceiling:
+                #
+                #   salvaged    it ran past its deadline and finished the partial by rollout
+                #   capped      it reached the full requested width, so the ceiling bound it, not
+                #               the budget -- the case where raising OGC_BCAP buys real search
+                #   used/level  fraction of its slice spent, and how far through the blocks it got
+                #
+                # The question this exists for: a block with twelve orientations costs about 1.5x
+                # one with eight in the position scan, because best_cell_contact_tl loops all of
+                # them with no cap.  Ten of the forty stage-2 instances carry twelve.  If those
+                # instances salvage more and cap less, the beam is throughput-starved there and
+                # the extra orientations are being paid for in width.  That is a hypothesis; these
+                # counters are how it gets tested rather than argued.
+                if os.environ.get("OGC_BEAMSTAT") == "1":
+                    import sys as _sy
+                    try:
+                        # work= IS THE NUMBER THE WHOLE WORK-MODE CAMPAIGN RESTS ON.
+                        #
+                        # quality(axis, work) says a draw's result depends strongly on the
+                        # expansions it performs -- prob_16's winning axis reads 3,159,373 at
+                        # 3,000 and 2,477,998 at 6,000 -- and what PRODUCTION spends per draw has
+                        # only ever been an estimate: 14 s of measured draw time at the ~220
+                        # expansions/s beam1 shows.  Three different prescriptions follow from
+                        # three possible true values (too small / already optimal / past the
+                        # bottom), so it has to be read rather than inferred.  The engine
+                        # accumulates it exactly; this only prints it.
+                        _wk = "?"
+                        try:
+                            _wk = "%.0f" % E.beam_work()
+                        except Exception:
+                            pass          # engine predates beam_work(); the rest still prints
+                        _sy.stderr.write("BEAMSTAT salv=%d capped=%d used=%.2f level=%.2f "
+                                         "B=%d K=%d work=%s\n"
+                                         % (int(E.beam_salvaged()), int(E.beam_width_capped()),
+                                            E.beam_used_frac(), E.beam_level_frac(), int(B), int(K),
+                                            _wk))
+                        _sy.stderr.flush()
+                    except Exception:
+                        pass
                 if _flat and len(_flat) == 7 * n:
                     return {int(_flat[i]): {"block_id": int(_flat[i]), "bay_id": int(_flat[i + 1]),
                                             "orient_idx": int(_flat[i + 2]), "x": int(_flat[i + 3]),
@@ -1374,13 +1418,72 @@ def _recs_to_ops(recs, n):
     return _build_operations([recs[b] for b in range(n)])
 
 
+# THE FINAL POLISH IS ON, AS IT IS IN THE SUBMITTED BUILD.  IT WAS TURNED OFF ON THE WRONG
+# STATISTIC AND THAT COST 4-8%.
+#
+# The case for removing it was: across 804 runs recording both the four worker objectives and the
+# final, median gain 0.00%, mean 0.33%, 419 of 804 gained NOTHING, three gained over 5% -- for a
+# reservation of min(20% of budget, 40 s).  Every one of those numbers is right.  The inference
+# from them is not.
+#
+# The score is a MINIMUM over workers and it is awarded PER INSTANCE.  Both say the same thing: the
+# tail pays, not the centre.  A pass that earns nothing on seven instances and 20% on the eighth is
+# worth its reservation on the eighth, and a median pooled over all of them cannot see that.  This
+# is the argument that was used, correctly, to reject OGC_BEAMCAP in the same session -- "the
+# median worker improved and the minimum got worse, so the arm goes the wrong way" -- and it was
+# not applied here.
+#
+# Measured, paired inside one queue at 240 s:
+#
+#     P16  ON 3,286,759  OFF 3,557,431   -7.61%      P4   ON 2,615,319  OFF 2,737,344   -4.46%
+#     P20  ON 8,854,193  OFF 9,215,638   -3.92%      P24  ON 2,632,054  OFF 2,788,156   -5.60%
+#
+# and at 60 s with OGC_ROUNDS=2, ON returns 2,796,522 in five separate cells to the last digit
+# against 3,520,718 / 3,835,016 for OFF -- an interaction, since neither the polish nor the extra
+# round does anything on its own.
+#
+# The reserve scales with the budget, which is why the old measurement could not see this: it is
+# 12 s at 60 s and 40 s at 240 s, and _z3_improve calls Engine.z3_reassign, whose body is
+# `hillclimb(); while (elapsed() < budget) { ruin_recreate(rng); hillclimb(); }` -- a loop that
+# absorbs whatever it is handed.  At 12 s it earns nothing at R=1; at 40 s it earns 4-8%.
+#
+# NOT SETTLED: prob_16 and prob_20 flip sign between replicates, because polish-OFF on those
+# instances spans 19.6% and occasionally lands below the polish's own answer.  The tally is 5-1
+# with two replicates outstanding.  On, because ON is what the submitted build does and because
+# no measurement supports having changed it.
+#
+# OGC_POLISH=0 disables it.
+_POLISH = os.environ.get("OGC_POLISH", "1") == "1"
+_BCAP = 96
+try:
+    _BCAP = max(8, int(os.environ.get("OGC_BCAP", "96")))
+except Exception:
+    _BCAP = 96
+
+
 def _beam_width(mul):
     """Just a CAP.  The width used to be predicted from a fitted constant, which was silently
     catastrophic -- the beam returns NOTHING when it overruns, and the constant was 4x wrong
     the moment the beam ran one-core inside the pool, so every worker fell back to the greedy
     floor and the 300s answer came out worse than the 60s one.  The engine now adapts the
     width per level from its own measured cost, so all this owes it is a generous ceiling."""
-    return max(8, min(96, int(mul * 96)))
+    # THE CEILING IS A KNOB NOW, BECAUSE IT BINDS.
+    #
+    # Bmul across the six axes is 0.5 / 1.0 / 0.7 / 0.7 / 1.4 / 0.5, so three of them ask for 96 or
+    # more and get exactly 96.  The C++ tracks this -- `beam_width_capped_ = (Bcur >= Bmax)` -- and
+    # Bmax is just what this function returns, so whenever the adaptive controller could afford
+    # more width it is this constant that stops it, not the budget.
+    #
+    # It matters now because OGC_MCAND makes each state expand m candidate blocks instead of one,
+    # so m times as many children compete for the same B survivor slots.  Measured on prob_24 and
+    # prob_4 at 240 s, m=2 won both (-14.50%, -3.74%) and m=3 lost both (+2.40%, +10.89%), and the
+    # worker spread peaked at m=2 and collapsed at m=3 on both -- which is what running out of
+    # width looks like.  Raising the ceiling is the direct test of whether m=3 lost to the branching
+    # or to the slot shortage.
+    #
+    # Default 96 keeps today's behaviour exactly.  The adaptive controller still refuses width it
+    # cannot afford, so a higher ceiling costs nothing where there is no time for it.
+    return max(8, min(_BCAP, int(mul * _BCAP)))
 
 
 _DRAWN = {}
@@ -1438,7 +1541,50 @@ def _beam_once(prob_info, budget, cfg, share=1.0):
         _DRAWN[_key] = _seen + 1
         if _seen:                      # first visit keeps the fixed order; repeats would be
             cfg = dict(cfg, order=_draw_order(prob_info, cfg, _dk))   # identical, so draw
+    # MONOTONE WIDTH LADDER (OGC_MONO=1): keep the narrow answer, replace it only when beaten.
+    #
+    # Nothing in this code forces obj(240 s) <= obj(60 s).  A long run does not start from what a
+    # short run found, and it is not even the same search: ogc_fast derives the beam width from
+    # measured seconds per state, so a bigger budget produces a WIDER beam, not a longer one.  A
+    # wider beam ranks more states by the same myopic proxy (accumulated tardiness + preference -
+    # contact + a future-tardiness estimate), and the proxy's optimum is not the objective's, so
+    # more width can systematically prefer states that look better early and finish worse.
+    #
+    # prob_16 is the case in hand: 2.79M is reached at 60 s and appeared once in ten recorded 240 s
+    # draws.  The basin is there at the long budget too -- the search simply stops entering it.
+    #
+    # So run a narrow beam first on a quarter of the slice, KEEP its answer, then run the full
+    # width on the rest and take whichever actually scores better.  The curve becomes
+    # non-increasing in width by construction, for the cost of one cheap beam, and a wide beam that
+    # lands in a worse basin can no longer throw the narrow answer away.
+    #
+    # Same shape as beam salvage, which is the one change on this project that clearly worked:
+    # that was "finish the partial instead of discarding it", this is "compare instead of
+    # discarding".  It cannot lose -- the narrow answer is only replaced by a strictly better one.
+    _MONO = os.environ.get("OGC_MONO") == "1" and not cfg.get("lex")
+    _mono_best = None
+    _mono_obj = float("inf")
     t0 = time.time()
+    if _MONO:
+        _nb = max(8, int(_beam_width(cfg["Bmul"]) * float(os.environ.get("OGC_MONOW", "0.25"))))
+        _nl = max(2.0, budget * float(os.environ.get("OGC_MONOF", "0.25")))
+        try:
+            _cfgn = _axis_env(cfg)
+            _rn = _contact_beam(prob_info, _nl, B=_nb, K=_cfgn["K"],
+                                pos_lam=_cfgn["pos_lam"], order=_cfgn["order"],
+                                fut_beta=_cfgn["fut_beta"], prefw=_cfgn["prefw"],
+                                w3mul=_cfgn["w3mul"], mum=_cfgn.get("mum", 1.0),
+                                cohort=_cfgn.get("cohort", 0.0), step=1)
+            if _rn:
+                _sn = _recs_to_ops(_rn, n)
+                if _sn is not None:
+                    _on = _total(prob_info, _sn)[0]
+                    if _on < float("inf"):
+                        _mono_best, _mono_obj = _sn, _on
+                        _bdbg("mono narrow B=%d took %.1fs -> %.0f" % (_nb, _nl, _on))
+        except Exception as _e:
+            _bdbg("mono narrow raised %r" % (_e,))
+
     for step, frac in ((1, 0.6), (2, 1.0)):
         left = budget - (time.time() - t0)
         if left < 2.0:
@@ -1460,10 +1606,18 @@ def _beam_once(prob_info, budget, cfg, share=1.0):
             elif _total(prob_info, s)[0] >= float("inf"):
                 _bdbg("step %d: infeasible" % step)
             else:
-                return s          # a coarse step can land infeasible -- keep only real answers
+                # a coarse step can land infeasible -- keep only real answers
+                if _mono_best is None:
+                    return s
+                _ow = _total(prob_info, s)[0]
+                if _ow < _mono_obj:
+                    _bdbg("mono wide %.0f beats narrow %.0f" % (_ow, _mono_obj))
+                    return s
+                _bdbg("mono narrow %.0f held against wide %.0f" % (_mono_obj, _ow))
+                return _mono_best
         else:
             _bdbg("step %d: no recs (left=%.1fs of budget %.1fs)" % (step, left, budget))
-    return None
+    return _mono_best          # the wide rungs produced nothing; the narrow answer stands
 
 
 # Diversification axes, all fed to a best-of on the TRUE objective.  These are not modes:
@@ -1486,6 +1640,13 @@ _AXES = [
     dict(Bmul=1.4, K=3, pos_lam=0.10, order="big_first", fut_beta=0.5, prefw=0.0, w3mul=6.0, cohort=0.3, dk=0),
     dict(Bmul=0.5, K=6, pos_lam=0.20, order="defer_big", fut_beta=0.0, prefw=0.0, w3mul=1.5, cohort=0.0, dk=0),
 ]
+
+# TRUE axis index for the DRAWSTAT line.  Each worker holds a ROTATED view of _AXES, so position 2
+# in worker 3's list is _AXES[5]; printing the position would make "which axis pays" unreadable
+# across workers.  Identity works because the rotation reuses the same dict objects; when a
+# replacement set is built (OGC_AXSET) the dicts are new, the lookup misses, and the caller falls
+# back to the position -- correct, since a replacement set has no _AXES index to name.
+_AXIDX = {id(_a): _i for _i, _a in enumerate(_AXES)}
 
 
 def _axis_env(cfg):
@@ -2056,7 +2217,33 @@ def _worker(args):
     # four workers across the range instead of stacking them on its two ends -- is one env away
     # and can be measured instead of argued about.  Default is the measured 2:2.
     if "OGC_BEAMAIM" not in os.environ:
-        _aims = [a for a in os.environ.get("OGC_AIMSET", "0.90,0.10").split(",") if a.strip()]
+        # FOUR AIMS ACROSS THE RANGE, NOT TWO AT ITS ENDS.  Submitted deliberately, to be read on
+        # the hidden set, and it is NOT established on the training set -- the reasoning and what
+        # is missing are both below.
+        #
+        # aim is the fraction of its slice a beam may spend and it becomes width directly, so the
+        # old "0.90,0.10" gives two workers that finish every level (3,258-9,666 expansions
+        # measured) and two that build 13-38% of the levels and have the rest filled by greedy
+        # rollout (41-115).  Nothing runs in between.
+        #
+        # Both ends are load-bearing.  Replacing all four workers with one aim, against the 2:2:
+        #
+        #     all-deep    P16 -11.5%  P1 - 6.2%  P20 +13.9%  P4 -0.96%  P6 -0.73%
+        #     all-shallow P16 - 3.1%  P1 +49.9%  P20 - 0.5%  P4 +4.47%  P6 -1.16%
+        #
+        # Dropping the shallow workers costs 13.9% on prob_20; dropping the deep ones costs 49.9%
+        # on prob_1.  So the useful depth is instance-specific, and with the score a minimum over
+        # workers, covering the range should beat doubling up on its two ends.
+        #
+        # WHAT IT COSTS AND WHAT IS NOT KNOWN.  Each end had TWO workers, so the answer was a
+        # minimum over two draws at that depth; this gives each depth ONE.  On an instance where
+        # deep is clearly right, a second deep worker may be worth more than a 0.60 and a 0.30.
+        # The measurements above establish that both ends matter -- they do NOT establish that the
+        # middle helps, and the paired A/B against 0.90,0.10 was still running when this shipped.
+        #
+        # OGC_AIMSET=0.90,0.10 restores the previous behaviour exactly.
+        _aims = [a for a in os.environ.get("OGC_AIMSET", "0.90,0.60,0.30,0.10").split(",")
+                 if a.strip()]
         os.environ["OGC_BEAMAIM"] = _aims[wid % len(_aims)].strip()
 
     rng = random.Random(1234 + wid)
@@ -2224,9 +2411,96 @@ def _worker(args):
     # slices in a 60s budget a bandit never leaves its exploration phase, and measured it cost
     # prob_3 44400 -> 49020.  Diversity across axes is already covered between workers, which
     # each start at a different offset.
-    def _fresh(t):
-        gen[0] += 1
-        return _beam_once(prob_info, t, axes[gen[0] % len(axes)], share)
+    # WHAT EACH INDIVIDUAL DRAW RETURNED (OGC_DRAWSTAT=1).  opstat gives the beam's TOTAL gain, and
+    # the total is dominated by the first draw, which replaces the fallback and books ~8.4e9 on
+    # prob_16.  Every later draw books nothing unless it beats the incumbent, so "beam earns
+    # 58,000,000 per second" says nothing about draw 7.
+    #
+    # The open question needs the per-draw numbers.  prob_16 at 240 s takes 30 draws across four
+    # workers and returns 3,528,888 -- WORSE than the same build at 60 s, which takes about 10 and
+    # returns 3,472,568.  Three explanations fit the totals equally well and the per-draw values
+    # separate them: later draws systematically worse (the rotation reaches axes 4 and 5 only once
+    # a worker gets past four draws, and axis 4 carries w3mul=6.0, a setting the w3 grid measured
+    # as harmful); or draws too alike to be independent samples; or each 240 s draw simply worse
+    # than each 60 s draw, which would put the fault in the width and not in the count.
+    #
+    # Read-only and off by default: one _total call per draw on a path that already scored the
+    # solution, printed to stderr so it cannot land inside a results line.
+    _DRAWSTAT = os.environ.get("OGC_DRAWSTAT") == "1"
+
+    # PER-DRAW AXIS JITTER (OGC_AXJIT=<fraction>, absent = off).
+    #
+    # _fresh takes no random input at all.  Its arguments are the problem, a slice of seconds and
+    # one of six axis dicts, and the beam is deterministic, so the set of constructions a run can
+    # reach is SIX -- everything else that varies between draws is the slice size.  A 240 s run
+    # takes about thirty draws out of that set of six.
+    #
+    # Why that is the wrong shape for this scoring rule.  The answer is min over workers, and a
+    # minimum is decided by the LEFT TAIL of the draw distribution, not by its centre.  Measured
+    # on prob_16: capping the slice tightened the worker spread from 24.15% to 17.95% and the
+    # minimum got WORSE, 3,479,878 -> 3,574,878, while the median worker improved 0.98%.  And the
+    # best answer this project has ever recorded on prob_16 at 240 s, 2,795,643, came from the
+    # OGC_ADAPTB=0 arm -- the arm with the LARGEST spread of any tried, 27.9%, which is why it was
+    # rejected when the goal was mistakenly "reduce variance".  Under min-of-N, spread at equal
+    # centre is worth paying for.
+    #
+    # So: jitter the continuous axis terms per draw, seeded on (wid, gen) so a rerun of the same
+    # build repeats exactly.  Multiplicative and symmetric in log space, so a jitter of j scales a
+    # term by between 1/(1+j) and (1+j) and cannot flip its sign or zero it.  fut_beta=0.0 and
+    # cohort=0.0 are structural choices on the axes that carry them, not magnitudes, so scaling
+    # leaves them at 0 and the axis keeps its identity.
+    _AXJIT = 0.0
+    try:
+        _AXJIT = max(0.0, float(os.environ.get("OGC_AXJIT", "0")))
+    except Exception:
+        _AXJIT = 0.0
+
+    def _jit(cfg, g):
+        if _AXJIT <= 0.0:
+            return cfg
+        r = random.Random(1000003 * (wid + 1) + 7919 * g)
+        out = dict(cfg)
+        for k in ("pos_lam", "fut_beta", "w3mul", "Bmul", "mum", "conw"):
+            v = out.get(k)
+            if isinstance(v, (int, float)) and v:
+                out[k] = float(v) * ((1.0 + _AXJIT) ** r.uniform(-1.0, 1.0))
+        kk = out.get("K")
+        if isinstance(kk, int) and kk > 0 and r.random() < _AXJIT:
+            out["K"] = max(1, kk + r.choice((-1, 1)))
+        return out
+
+    # TWO DEFINITIONS, AND THE UNINSTRUMENTED ONE HAS TO BE BYTE-FOR-BYTE THE ORIGINAL.
+    #
+    # The first version of this branched INSIDE _fresh -- one time.time() and one _jit() call per
+    # draw, guarded by flags that were off.  That is not free.  prob_24 had returned 2,809,182 to
+    # the digit in three separate queues on the identical configuration; with those two dead calls
+    # present it returned 2,838,115, a 1.03% move, because ogc_fast recomputes its beam width from
+    # elapsed()/work at every one of ~250 levels and a microsecond of drift changes the trajectory.
+    #
+    # An instrument that moves the measurement is worse than no instrument, and this one would have
+    # shipped inside the submitted algorithm.  So the flags are read once, here, and the hot
+    # definition contains nothing that was not in the original three lines.
+    if not _DRAWSTAT and _AXJIT <= 0.0:
+        def _fresh(t):
+            gen[0] += 1
+            return _beam_once(prob_info, t, axes[gen[0] % len(axes)], share)
+    else:
+        def _fresh(t):
+            gen[0] += 1
+            ai = gen[0] % len(axes)
+            _t = time.time()
+            s = _beam_once(prob_info, t, _jit(axes[ai], gen[0]), share)
+            if _DRAWSTAT:
+                import sys as _sy
+                try:
+                    _v = _total(prob_info, s)[0] if s is not None else float("inf")
+                except Exception:
+                    _v = float("inf")
+                _sy.stderr.write("DRAW wid=%d gen=%d axis=%s ask=%.1f took=%.1f obj=%.0f\n"
+                                 % (wid, gen[0], _AXIDX.get(id(axes[ai]), ai), t,
+                                    time.time() - _t, _v))
+                _sy.stderr.flush()
+            return s
 
     def _grow(t):
         gen[0] += 1; g = gen[0]; ai = band.pick()
@@ -2341,6 +2615,30 @@ def _worker(args):
         keep = {x.strip() for x in _only.split(",") if x.strip()}
         ops = [o for o in ops if o[0] in keep] or ops[:1]
     _SLICEFIX = os.environ.get("OGC_SLICEFIX") == "1"
+    # OGC_DET=1: TAKE THE CLOCK OUT OF THE *DECISIONS*, LEAVE IT IN THE *STOPS*.
+    #
+    # Every RNG here is constant-seeded, so two runs of one build on one instance at one budget
+    # differ in exactly one input -- time.time() -- and they land 2.5% to 25% apart.  The clock
+    # enters this loop three ways and only the first has to be there:
+    #
+    #     left = budget - elapsed     STOPPING.  Unavoidable; the budget is real time.
+    #     gain[i] / spent[i]          SELECTION.  spent is SECONDS, so which operator runs next
+    #                                 depends on how fast the machine happened to be.
+    #     slot[k] = 1.3 * el          SIZING, from what the pass just took.
+    #
+    # With DET on, an operator is charged the slice it was GIVEN rather than the seconds it burned,
+    # and a repair pass that completed shrinks by a fixed factor instead of by a measured multiple
+    # of its own runtime.  Selection then depends only on exact integer objective gains and on
+    # arithmetic over the budget.
+    #
+    # This is one of two amplifiers; the larger is ogc_fast's per-level beam width, recomputed 300
+    # times a run from elapsed()/work and feeding back into its own cost.  OGC_ADAPTB=0 pins that.
+    # Neither is much use without the other, which is why this had to move out of myalg_det.py.
+    _DET = os.environ.get("OGC_DET") == "1"
+    try:
+        _BEAMCAP = float(os.environ.get("OGC_BEAMCAP", "0"))
+    except Exception:
+        _BEAMCAP = 0.0
     gain = [0.0] * len(ops); spent = [1e-6] * len(ops); tried = [0] * len(ops)
     # incumbent value at which a repair pass last came back empty.  Those passes are
     # deterministic, so asking again without a changed incumbent gets the same nothing --
@@ -2432,13 +2730,43 @@ def _worker(args):
         # starved and wants more; one that returned anything fit, so leave it alone.  A repair
         # pass always completes, so it wants what it actually used and no more.
         before = pool[0][0] if pool else float("inf")
+        _ask = max(1.0, min(left - 1.0, slot[k]))
+        # A CEILING ON WHAT ONE BEAM DRAW MAY ASK FOR (OGC_BEAMCAP=<seconds>, absent = off).
+        #
+        # The opening slice is a FRACTION of the budget -- 0.20 for a search operator -- so a
+        # bigger budget buys both more draws and BIGGER draws.  Bigger is the half that hurts,
+        # because a draw's seconds become beam WIDTH: Bcur = min(Bmax, left/(per*rem)) is
+        # recomputed per level from the slice it was given, so a 47 s draw ranks far more states
+        # by the same myopic proxy than an 11 s draw does.
+        #
+        # Measured on prob_16 with OGC_DRAWSTAT, per cell and within cell boundaries:
+        #
+        #     60 s    8 draws at ask=11.2   best 3,557,431
+        #    240 s   20 draws at ask=47.2   best 3,656,247
+        #    240 s    1 draw  at ask= 9.3   best 3,602,025   <- and it was the cell's answer
+        #
+        # Two and a half times the draws, four times the seconds each, and a WORSE best -- while
+        # the median draw improved 5.3%.  Wider draws are better on average and worse at the
+        # minimum, and the minimum is what gets reported.
+        #
+        # Capped at 12 s a 240 s budget spends the same seconds on roughly forty narrow draws
+        # instead of twenty wide ones.  At 60 s nothing changes at all: 0.20*56 = 11.2 is already
+        # under the cap, which is why this cannot damage the short-budget behaviour it was
+        # derived from.
+        #
+        # Beam only.  grow/bay/pref were not measured this way and prob_4 says they matter --
+        # there the best beam draw is 3,160,713 against a final of 2,763,198, so on that instance
+        # 12.6% of the answer comes from the operators this cap does not touch.
+        if _BEAMCAP > 0.0 and ops[k][0] == "beam":
+            _ask = max(1.0, min(_ask, _BEAMCAP))
         st = time.time()
         try:
-            s = ops[k][1](max(1.0, min(left - 1.0, slot[k])))
+            s = ops[k][1](_ask)
         except Exception:
             s = None
         el = max(1e-6, time.time() - st)
-        tried[k] += 1; spent[k] += el
+        tried[k] += 1
+        spent[k] += (_ask if _DET else el)   # deterministic cost: what it was given
         # An operator that just improved the incumbent has earned a longer look; one that came
         # back empty is either starved (search) or exhausted (repair).
         if pool and pool[0][0] < before - 1e-9:
@@ -2447,7 +2775,8 @@ def _worker(args):
             if s is None and (not _SLICEFIX or el >= 0.6 * slot[k]):
                 slot[k] = min(budget * 0.45, slot[k] * 1.3)
         else:
-            slot[k] = min(budget * 0.25, max(1.0, 1.3 * el))
+            slot[k] = (min(budget * 0.25, max(1.0, 0.7 * slot[k])) if _DET
+                       else min(budget * 0.25, max(1.0, 1.3 * el)))
             if s is None:
                 empty_at[k] = cur
         if s is None:
@@ -2589,7 +2918,11 @@ def algorithm(prob_info, timelimit=60):
     # starve it; it only stops the WORKER LOOP being cut short to fund time the polish will not
     # use.  OGC_RESERVE overrides for the A/B.
     _rv = os.environ.get("OGC_RESERVE")
-    reserve = (max(2.0, float(_rv)) if _rv else max(2.0, min(0.20 * timelimit, 40.0)))
+    # The reserve exists to leave room for the final polish.  With the polish off there is nothing
+    # to reserve for, so the ~38 s it held at a 240 s limit goes to the workers instead -- about
+    # 19% more search, which is where the measured gains are.
+    reserve = (max(2.0, float(_rv)) if _rv else
+               (max(2.0, min(0.20 * timelimit, 40.0)) if _POLISH else 3.0))
     wbudget = max(4.0, timelimit - reserve - (time.time() - t0) - 1.0)
 
     # ROUNDS: TRADE LENGTH FOR ATTEMPTS.  The answer is already a minimum over nw workers, so
@@ -2703,7 +3036,7 @@ def algorithm(prob_info, timelimit=60):
             pass
 
     left = timelimit - (time.time() - t0) - 1.0
-    if left > 3.0:
+    if _POLISH and left > 3.0:
         try:
             imp = _z3_improve(prob_info, best[1], left)
             if imp is not None:

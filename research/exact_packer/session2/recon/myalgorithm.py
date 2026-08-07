@@ -2217,7 +2217,33 @@ def _worker(args):
     # four workers across the range instead of stacking them on its two ends -- is one env away
     # and can be measured instead of argued about.  Default is the measured 2:2.
     if "OGC_BEAMAIM" not in os.environ:
-        _aims = [a for a in os.environ.get("OGC_AIMSET", "0.90,0.10").split(",") if a.strip()]
+        # FOUR AIMS ACROSS THE RANGE, NOT TWO AT ITS ENDS.  Submitted deliberately, to be read on
+        # the hidden set, and it is NOT established on the training set -- the reasoning and what
+        # is missing are both below.
+        #
+        # aim is the fraction of its slice a beam may spend and it becomes width directly, so the
+        # old "0.90,0.10" gives two workers that finish every level (3,258-9,666 expansions
+        # measured) and two that build 13-38% of the levels and have the rest filled by greedy
+        # rollout (41-115).  Nothing runs in between.
+        #
+        # Both ends are load-bearing.  Replacing all four workers with one aim, against the 2:2:
+        #
+        #     all-deep    P16 -11.5%  P1 - 6.2%  P20 +13.9%  P4 -0.96%  P6 -0.73%
+        #     all-shallow P16 - 3.1%  P1 +49.9%  P20 - 0.5%  P4 +4.47%  P6 -1.16%
+        #
+        # Dropping the shallow workers costs 13.9% on prob_20; dropping the deep ones costs 49.9%
+        # on prob_1.  So the useful depth is instance-specific, and with the score a minimum over
+        # workers, covering the range should beat doubling up on its two ends.
+        #
+        # WHAT IT COSTS AND WHAT IS NOT KNOWN.  Each end had TWO workers, so the answer was a
+        # minimum over two draws at that depth; this gives each depth ONE.  On an instance where
+        # deep is clearly right, a second deep worker may be worth more than a 0.60 and a 0.30.
+        # The measurements above establish that both ends matter -- they do NOT establish that the
+        # middle helps, and the paired A/B against 0.90,0.10 was still running when this shipped.
+        #
+        # OGC_AIMSET=0.90,0.10 restores the previous behaviour exactly.
+        _aims = [a for a in os.environ.get("OGC_AIMSET", "0.90,0.60,0.30,0.10").split(",")
+                 if a.strip()]
         os.environ["OGC_BEAMAIM"] = _aims[wid % len(_aims)].strip()
 
     rng = random.Random(1234 + wid)

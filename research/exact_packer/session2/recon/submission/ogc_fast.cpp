@@ -207,6 +207,85 @@ static bool bmp_overlap(const LayerData& A,int aox,int aoy,const LayerData& B,in
 }
 
 struct OrientData { std::vector<LayerData> layers; double x0,y0,x1,y1; };
+
+// ORIENTATION SCAN ORDER.  Not a cap -- a reordering.
+//
+// best_cell_contact_tl keeps `bestsc` OUTSIDE the orientation loop and its cell-pruning bound is
+// exact (measured: 45.9M/11.6M/9.3M candidate cells skipped, zero of them wrong).  So the loop
+// answers with the minimum over ALL orientations however they are ordered, and the order changes
+// only how early `bestsc` gets tight -- i.e. how many cells the bound can kill.  The one thing it
+// can change in the answer is which of two EXACTLY equal scores is kept.
+//
+// Why it is worth doing.  Instances split cleanly into 8-orientation and 12-orientation, with
+// nothing in between (stage2: 70.9% of blocks have 8, 19.2% have 12), and the 12-orientation ones
+// are the LOOSE ones -- peak concurrent area over total bay area has median 76.9% and never
+// exceeds 96.3%, against 119.3% median and 355.6% max for the 8-orientation instances.  prob_1,
+// where this project is furthest behind, is 99.3% twelve-orientation and peaks at 59.3%.  The
+// objective reads only (bay, entry_time); geometry is a feasibility constraint.  So on those
+// instances the extra orientations are being scanned for a freedom the instance does not need,
+// and a scan is the whole cost: prob_4 draws take 19.3-22.1 s against prob_16's 14.4 s despite
+// having LESS total scan work (1.54e7 vs 2.01e7 block*bay*orient*cells).
+//
+// A density threshold would be the obvious fix and it is the wrong one: the hidden instances'
+// densities are unknown, prob_10 already peaks at 96.3%, and cutting orientations there could cost
+// feasibility outright.  Ordering costs nothing when it is wrong.
+//
+// Two keys, composed:
+//   - a per-block static order by bounding-box area ascending.  The polygon area is
+//     rotation-invariant but the BOX is not -- one prob_1 block spans 40.5 / 85.8 / 93.4, a factor
+//     of 2.3 -- and the compact poses are the ones that fit against existing contact.
+//   - a move-to-front hint per (block, bay): whatever won here last time is tried first.  On a
+//     loose instance the same pose keeps winning and `bestsc` is tight after one orientation; on a
+//     tight instance the hint keeps missing and the scan naturally walks the whole list.  Cost
+//     tracks difficulty with no threshold and no instance detection.
+//
+// OFF BY DEFAULT, AND THE REASON MATTERS MORE THAN THE FEATURE.
+//
+// This was written on the argument that reordering "cannot change the answer, only the time",
+// because `bestsc` spans the orientation loop and the cell bound is exact.  That is true AT FIXED
+// WORK and false for this engine, which is time-adaptive: the per-level width is
+// Bcur = min(Bmax, left/(per*rem)), recomputed ~250 times a run from measured seconds, so anything
+// that changes how long a scan takes changes the width, the search, and the answer.  Measured the
+// same day: two dead calls behind switched-off flags moved prob_24 by 1.03%.
+//
+// And it shows.  prob_1 at 60 s, plain order 610,313 both times; reordered 524,295 then 653,879 --
+// -14.1% and +7.1% on consecutive draws.  Draw counts barely moved (21 -> 20), so the throughput
+// gain the reordering was built for did not appear either.
+//
+// So it carries the same risk as any other perturbation and needs the same evidence, which it does
+// not have.  OGC_ORORD=1 enables it.
+// WORK-BUDGETED BEAM: A DETERMINISTIC MEASUREMENT MODE (OGC_WORKCAP=<state-expansions>).
+//
+// The obstacle to measuring anything on this project is that the same build, the same instance and
+// the same budget disagree with themselves: prob_16 spans 19.6% run to run, and the effects worth
+// chasing are 2-5%.  The cause is not RNG -- every seed here is constant -- it is that the beam
+// sets its own width from the CLOCK:
+//
+//     per  = elapsed()/work ;  left = time_budget_s*AIM - elapsed() ;  Bcur = left/(per*rem)
+//
+// recomputed at every one of ~250 levels, so a microsecond of drift picks a different width
+// trajectory and lands on a different attractor.  Measured the same day, two dead calls behind
+// switched-off flags moved prob_24 by 1.03%.
+//
+// With OGC_WORKCAP set, `work` -- states expanded, which the loop already accumulates -- replaces
+// seconds in all three places and in the stop test.  Nothing reads the clock, so one build on one
+// instance at one work cap returns the SAME answer every time, and an arm difference is signal
+// with no noise term at all.
+//
+// THIS IS NOT A SHIPPING MODE.  The competition budget is wall-clock, so the submitted build must
+// stay time-driven.  It makes a two-part evaluation possible instead:
+//
+//     1. equal-work A/B      does the arm search better per unit of work?      (zero noise)
+//     2. throughput          how much work does the arm get done in 240 s?     (an average over
+//                                                                               ~250 levels)
+//     3. combine             quality at work = throughput x 240
+//
+// which separates the two questions that were confounded all day -- whether an arm searches better
+// or merely does more work.  OGC_BEAMCAP could never be told apart on that.
+static double WORKCAP(){ static const double v=[](){ const char* e=std::getenv("OGC_WORKCAP");
+                                                     return e? atof(e) : 0.0; }(); return v; }
+static bool ORORD_on(){ static const bool v=[](){ const char* e=std::getenv("OGC_ORORD");
+                                                  return (e && e[0]=='1'); }(); return v; }
 struct BlockShape {
     std::vector<OrientData> orients;
     double workload=0,due=0,pt=0,rt=0;
@@ -274,12 +353,19 @@ struct Engine {
     double beam_used_frac_ = 0.0;     // fraction of the slice the level loop consumed
     bool   beam_width_capped_ = false; // it finished at the full requested width -- room to spare
     double beam_level_frac_ = 0.0;    // levels the beam completed before expiring, over nord
+    // STATE EXPANSIONS THE LAST CALL ACTUALLY PERFORMED.  The work-budgeted table says a draw's
+    // quality depends strongly on this number -- prob_16 axis 2 reads 3,159,373 at 3,000 and
+    // 2,477,998 at 6,000 -- and the figure used for what PRODUCTION spends was an estimate,
+    // 14 s at ~220 expansions/s.  An estimate is not good enough to hang a prescription on, and
+    // the loop already accumulates the exact value.
+    double beam_work_ = 0.0;
     void   set_beam_aim(double a){ beam_aim_ = a<0.02?0.02:(a>0.98?0.98:a); }
     double get_beam_aim() const { return beam_aim_; }
     bool   beam_salvaged() const { return beam_salvaged_; }
     double beam_used_frac() const { return beam_used_frac_; }
     bool   beam_width_capped() const { return beam_width_capped_; }
     double beam_level_frac() const { return beam_level_frac_; }
+    double beam_work() const { return beam_work_; }
 
     void init(int nb, std::vector<double> w, std::vector<double> h, std::vector<double> u){
         n_bays=nb; bw=w; bh=h; unit=u; timeline.assign(nb,{});
@@ -904,6 +990,47 @@ struct Engine {
         return (mx2-mn2)-(mx-mn);
     }
 
+    // Per-block static order, bounding-box area ascending.  Built once per block per thread; the
+    // orientation list never changes during a run.
+    const std::vector<int>& or_static(int bid) const {
+        static thread_local std::unordered_map<int,std::vector<int>> cache;
+        auto it=cache.find(bid);
+        if(it!=cache.end()) return it->second;
+        const BlockShape& bs=shapes[bid];
+        std::vector<int> v((size_t)bs.orients.size());
+        for(size_t i=0;i<v.size();i++) v[i]=(int)i;
+        std::sort(v.begin(),v.end(),[&](int a,int b){
+            const OrientData&A=bs.orients[a]; const OrientData&B=bs.orients[b];
+            double aa=(A.x1-A.x0)*(A.y1-A.y0), bb=(B.x1-B.x0)*(B.y1-B.y0);
+            if(aa!=bb) return aa<bb;
+            return a<b;                      // stable, so the order is a function of the block
+        });
+        return cache.emplace(bid,std::move(v)).first->second;
+    }
+    // Move-to-front hint per (block, bay).  -1 until that pair has produced a winner.
+    int16_t& or_hint(int bid,int bay) const {
+        static thread_local std::vector<int16_t> t;
+        size_t need=(size_t)shapes.size()*(size_t)(n_bays>0?n_bays:1);
+        if(t.size()<need) t.assign(need,(int16_t)-1);
+        return t[(size_t)bid*(size_t)(n_bays>0?n_bays:1)+(size_t)bay];
+    }
+    // Fills buf with the orientation indices in scan order and returns how many.  Never drops one.
+    int or_order(int bid,int bay,int norient,int* buf) const {
+        if(!ORORD_on() || norient>64){
+            for(int i=0;i<norient;i++) buf[i]=i;
+            return norient;
+        }
+        int n=0;
+        int h=(int)or_hint(bid,bay);
+        if(h>=0 && h<norient) buf[n++]=h;
+        for(int oi : or_static(bid)){
+            if(oi>=norient) continue;
+            if(n>0 && oi==buf[0]) continue;  // already placed by the hint
+            buf[n++]=oi;
+        }
+        return n;                            // == norient: a reordering, not a restriction
+    }
+
     void best_cell_contact_tl(const std::vector<std::vector<Placed>>& TL,int bid,int cur,int step,
                               double pos_lam,double prefw,double mu,double w1,double w3,
                               double fut_beta,double mean_proc,int topk,std::vector<std::array<int,5>>& out,
@@ -1069,7 +1196,9 @@ struct Engine {
             }
             double pen = (bay<(int)bs.prefs.size())? (s_max-bs.prefs[bay]) : s_max;
             double bestsc=1e300; int boi=-1,bix=0,biy=0,bct=0;
-            for(int oi=0;oi<norient;oi++){ const OrientData& od=bs.orients[oi]; int nl=(int)od.layers.size();
+            int _ordbuf[64]; const int _nord=or_order(bid,bay,norient,_ordbuf);
+            for(int _oq=0;_oq<_nord;_oq++){ const int oi=_ordbuf[_oq];
+                const OrientData& od=bs.orients[oi]; int nl=(int)od.layers.size();
                 double w=od.x1-od.x0,h=od.y1-od.y0; if(w>bw_j+1e-9||h>bh_j+1e-9)continue;
                 const FP& fp=footprint(bid,oi);
                 // layer 0's column span for this orientation: the floor cells the block will
@@ -1428,6 +1557,7 @@ struct Engine {
                 }
             }
             if(boi<0)continue;
+            or_hint(bid,bay)=(int16_t)boi;   // move-to-front: try this pose first next time
             double drank = w1*tardy + w3*pen - mu*(double)bct
                          + (loads ? w2*dobj2_of(*loads, bay, bs.workload) : 0.0);
             // guided-reconstruction anchor: bias toward the incumbent bay for this block
@@ -1777,14 +1907,17 @@ struct Engine {
         const double AIM = beam_aim_;
         beam_salvaged_ = false;
         beam_used_frac_ = 0.0;
+        beam_work_ = 0.0;
         beam_width_capped_ = false;
         beam_level_frac_ = 0.0;
         const int Bmax=std::max(1,B), Bstart=ADAPTB?std::max(1,std::min(B,8)):B;
         int Bcur=Bstart; double work=0.0;   // work = sum over levels of (states expanded)
         for(int level=0; level<nord; level++){
-            if(elapsed()>time_budget_s*AIM){
+            const double _wcap=WORKCAP();
+            if(_wcap>0.0 ? (work>_wcap) : (elapsed()>time_budget_s*AIM)){
                 beam_salvaged_ = true;
                 beam_used_frac_ = elapsed()/std::max(1e-9,time_budget_s);
+                beam_work_ = work;
                 beam_level_frac_ = nord>0 ? (double)level/(double)nord : 1.0;
                 // FINISH THE BEST PARTIAL INSTEAD OF RETURNING NOTHING.
                 //
@@ -1819,8 +1952,9 @@ struct Engine {
                 return {1e18,{}};
             }
             if(ADAPTB && level>0 && work>0.0){
-                double per=elapsed()/work;                       // seconds per state-level
-                double left=time_budget_s*AIM-elapsed();
+                // work mode: the unit is a state expansion, not a second, and `per` is 1.
+                double per = _wcap>0.0 ? 1.0 : elapsed()/work;
+                double left = _wcap>0.0 ? (_wcap-work) : (time_budget_s*AIM-elapsed());
                 int rem=nord-level;
                 int fit=(per>1e-12&&rem>0)? (int)(left/(per*(double)rem)) : Bmax;
                 if(fit<1) fit=1;
@@ -1836,7 +1970,8 @@ struct Engine {
             static const bool ADAPTK=[](){const char*e=getenv("OGC_ADAPTK");return !(e&&e[0]=='0');}();
             int Kuse=K;
             if(ADAPTK && ADAPTB && level>0 && work>0.0){
-                double per=elapsed()/work, left2=time_budget_s*AIM-elapsed();
+                double per = _wcap>0.0 ? 1.0 : elapsed()/work;
+                double left2 = _wcap>0.0 ? (_wcap-work) : (time_budget_s*AIM-elapsed());
                 int rem2=nord-level;
                 if(per>1e-12 && rem2>0){
                     double afford=left2/(per*(double)rem2);      // states we could still expand
@@ -1844,10 +1979,27 @@ struct Engine {
                 }
                 if(Kuse<1) Kuse=1;
             }
-            int bi=order[level]; int r=(int)shapes[bi].rt, pt=(int)shapes[bi].pt; double dd=shapes[bi].due;
-            double wl=workloads[bi]; const auto& pr=shapes[bi].prefs;
+            // WHICH BLOCK GOES NEXT IS NOW A DECISION, NOT A LOOKUP.
+            //
+            // `int bi=order[level]` placed the SAME block in every beam state, so every state at
+            // level k held the same block SET and differed only in placements.  The dedup below
+            // says exactly this and calls itself inert because of it: "our beam uses a FIXED
+            // dispatch order ... The reference needs this because its orders vary."
+            //
+            // The permutation is the largest lever measured on this problem -- cdecomp put the
+            // construction spread across orders at 32-210%, against about 2% for the combined
+            // range of budget policy, axis sets, the w3mul grid and brk removal.  So each state
+            // now expands the CBMCAND earliest unplaced blocks in `order` instead of just the
+            // first, and states diverge in which blocks they have placed.  CBMCAND=1 reproduces
+            // the old behaviour exactly.
+            //
+            // Depth is not traded for this.  Every state still places one block per level and the
+            // beam still keeps B survivors; what grows is the branching, which is what beam width
+            // was already there to absorb.
+            static const int CBMCAND=[](){const char*e=getenv("OGC_MCAND");int v=e?atoi(e):1;
+                                          return v<1?1:(v>8?8:v);}();
             int nbeam=(int)beam.size();
-            work += (double)nbeam;          // states expanded so far -> the cost unit
+            work += (double)nbeam*(double)CBMCAND;   // states expanded so far -> the cost unit
             std::vector<std::vector<CBState>> perstate(nbeam);
             #pragma omp parallel
             {
@@ -1864,6 +2016,13 @@ struct Engine {
                         #pragma omp atomic
                         cb_t_rebuild += _d; }
                     auto& outv=perstate[si];
+                    // the CBMCAND earliest unplaced blocks under this axis's priority
+                    int mycand[8]; int nmy=0;
+                    for(int q=0;q<nord && nmy<CBMCAND;q++){ int b=order[q]; if(!st.placed[b]) mycand[nmy++]=b; }
+                    if(nmy==0){ outv.push_back(st); continue; }
+                    for(int mi=0;mi<nmy;mi++){
+                    int bi=mycand[mi]; int r=(int)shapes[bi].rt, pt=(int)shapes[bi].pt; double dd=shapes[bi].due;
+                    double wl=workloads[bi]; const auto& pr=shapes[bi].prefs;
                     // AREA PRECHECK.  When the first-choice entry time has no free cell the
                     // search walks later entry times, and every attempt costs a full
                     // multi-bay, multi-orientation position scan -- measured 58707 of them on
@@ -1988,7 +2147,7 @@ struct Engine {
                                 _Pragma("omp atomic") cb_n_retry += 1.0; } }
                             if(!cc.empty()){ for(auto&cd:cc){ allc.push_back(cd); allc_ct.push_back({e,e+pt}); } break; } }
                     }
-                    if(allc.empty()){ outv.push_back(st); continue; }
+                    if(allc.empty()){ continue; }   // try the next candidate block
                     for(size_t ci=0;ci<allc.size();ci++){
                         auto& cd=allc[ci]; int en=allc_ct[ci].first, exx=allc_ct[ci].second;
                         int bay=cd[0],oi=cd[1],ix=cd[2],iy=cd[3],ct=cd[4];
@@ -2000,6 +2159,10 @@ struct Engine {
                         c.gz3=st.gz3+pen; c.gcontact=st.gcontact+ct;
                         outv.push_back(std::move(c));
                     }
+                    }   // end candidate-block loop
+                    // no candidate could be placed at all: carry the state forward once, as the
+                    // single-candidate version did.  Once, not once per failed candidate.
+                    if(outv.empty()) outv.push_back(st);
                 }
             }
             std::vector<CBState> children;
@@ -2176,6 +2339,7 @@ struct Engine {
         // return.  What does carry the information is the width the beam settled at -- if it
         // never had to narrow below the requested one, the aim was not what constrained it and
         // there is room to raise it.
+beam_work_ = work;
         beam_used_frac_ = elapsed()/std::max(1e-9,time_budget_s);
         beam_width_capped_ = (Bcur >= Bmax);
         beam_level_frac_ = 1.0;
@@ -3557,6 +3721,7 @@ PYBIND11_MODULE(ogc_fast,m){
         .def("get_beam_aim",&Engine::get_beam_aim)
         .def("beam_salvaged",&Engine::beam_salvaged)
         .def("beam_used_frac",&Engine::beam_used_frac)
+        .def("beam_work",&Engine::beam_work)
         .def("beam_width_capped",&Engine::beam_width_capped)
         .def("beam_level_frac",&Engine::beam_level_frac)
         .def("contact_beam",&Engine::contact_beam,
