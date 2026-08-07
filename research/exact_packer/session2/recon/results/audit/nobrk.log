@@ -2,3 +2,5 @@
 WSTAT round=0 n=4 2906758 2976328 2621290 3118294  spread=18.96%
 P4  [r1.withbrk.4]   240s  obj=2621290     Z1=345.0    Z2=1664   Z3=2745.0    feas=y   ran 228s  py3.12
 # [r1.nobrk.4]
+WSTAT round=0 n=4 3042268 3028780 2621290 3115781  spread=18.86%
+P4  [r1.nobrk.4]   240s  obj=2621290     Z1=345.0    Z2=1664   Z3=2745.0    feas=y   ran 230s  py3.12
