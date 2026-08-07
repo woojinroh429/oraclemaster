@@ -2378,6 +2378,26 @@ def _worker(args):
         keep = {x.strip() for x in _only.split(",") if x.strip()}
         ops = [o for o in ops if o[0] in keep] or ops[:1]
     _SLICEFIX = os.environ.get("OGC_SLICEFIX") == "1"
+    # OGC_DET=1: TAKE THE CLOCK OUT OF THE *DECISIONS*, LEAVE IT IN THE *STOPS*.
+    #
+    # Every RNG here is constant-seeded, so two runs of one build on one instance at one budget
+    # differ in exactly one input -- time.time() -- and they land 2.5% to 25% apart.  The clock
+    # enters this loop three ways and only the first has to be there:
+    #
+    #     left = budget - elapsed     STOPPING.  Unavoidable; the budget is real time.
+    #     gain[i] / spent[i]          SELECTION.  spent is SECONDS, so which operator runs next
+    #                                 depends on how fast the machine happened to be.
+    #     slot[k] = 1.3 * el          SIZING, from what the pass just took.
+    #
+    # With DET on, an operator is charged the slice it was GIVEN rather than the seconds it burned,
+    # and a repair pass that completed shrinks by a fixed factor instead of by a measured multiple
+    # of its own runtime.  Selection then depends only on exact integer objective gains and on
+    # arithmetic over the budget.
+    #
+    # This is one of two amplifiers; the larger is ogc_fast's per-level beam width, recomputed 300
+    # times a run from elapsed()/work and feeding back into its own cost.  OGC_ADAPTB=0 pins that.
+    # Neither is much use without the other, which is why this had to move out of myalg_det.py.
+    _DET = os.environ.get("OGC_DET") == "1"
     gain = [0.0] * len(ops); spent = [1e-6] * len(ops); tried = [0] * len(ops)
     # incumbent value at which a repair pass last came back empty.  Those passes are
     # deterministic, so asking again without a changed incumbent gets the same nothing --
@@ -2469,13 +2489,15 @@ def _worker(args):
         # starved and wants more; one that returned anything fit, so leave it alone.  A repair
         # pass always completes, so it wants what it actually used and no more.
         before = pool[0][0] if pool else float("inf")
+        _ask = max(1.0, min(left - 1.0, slot[k]))
         st = time.time()
         try:
-            s = ops[k][1](max(1.0, min(left - 1.0, slot[k])))
+            s = ops[k][1](_ask)
         except Exception:
             s = None
         el = max(1e-6, time.time() - st)
-        tried[k] += 1; spent[k] += el
+        tried[k] += 1
+        spent[k] += (_ask if _DET else el)   # deterministic cost: what it was given
         # An operator that just improved the incumbent has earned a longer look; one that came
         # back empty is either starved (search) or exhausted (repair).
         if pool and pool[0][0] < before - 1e-9:
@@ -2484,7 +2506,8 @@ def _worker(args):
             if s is None and (not _SLICEFIX or el >= 0.6 * slot[k]):
                 slot[k] = min(budget * 0.45, slot[k] * 1.3)
         else:
-            slot[k] = min(budget * 0.25, max(1.0, 1.3 * el))
+            slot[k] = (min(budget * 0.25, max(1.0, 0.7 * slot[k])) if _DET
+                       else min(budget * 0.25, max(1.0, 1.3 * el)))
             if s is None:
                 empty_at[k] = cur
         if s is None:

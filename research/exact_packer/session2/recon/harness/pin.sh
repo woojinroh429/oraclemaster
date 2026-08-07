@@ -17,7 +17,18 @@
 # hundred rounds of a control loop driven by measurement noise and feeding back into it.  Two runs
 # differing by one surviving state at level 5 share nothing by level 50.
 #
-# OGC_ADAPTB=0 pins the width for the whole run and the loop is gone.
+# OGC_ADAPTB=0 pins the width for the whole run and that loop is gone.  ADAPTK rides on the same
+# flag, so the per-state candidate count stops moving with the clock too.
+#
+# The second amplifier is in the Python operator loop: selection is gain[i]/spent[i] with spent in
+# SECONDS, and a repair pass is resized to 1.3x whatever it just took.  OGC_DET charges each
+# operator the slice it was GIVEN and shrinks repair passes by a fixed factor, so selection depends
+# only on exact integer gains and on arithmetic over the budget.  The `det` arm runs both, because
+# removing one amplifier while the other still feeds on jitter answers very little.
+#
+# What is deliberately NOT removed: the stops.  `left = budget - elapsed`, the beam's deadline, the
+# reserve.  The budget is real time and those have to read the clock.  The claim under test is only
+# that DECISIONS need not.
 #
 # WHY THIS IS SAFER NOW THAN WHEN THE CONTROLLER WAS ADDED.  _beam_width's own docstring says a
 # fixed width "was silently catastrophic -- the beam returns NOTHING when it overruns ... so every
@@ -50,8 +61,9 @@ run(){ # rep arm prob env
 # rep-major: five repeats of each arm on each instance, so a partial queue is still balanced
 for rep in 1 2 3 4 5; do
     for p in 24 20 6; do
-        run $rep adapt $p "OGC_POLISH=1"
+        run $rep adapt  $p "OGC_POLISH=1"
         run $rep pinned $p "OGC_POLISH=1 OGC_ADAPTB=0"
+        run $rep det    $p "OGC_POLISH=1 OGC_ADAPTB=0 OGC_DET=1"
     done
     echo "REPDONE $rep" >> $L
 done
