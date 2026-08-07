@@ -353,12 +353,19 @@ struct Engine {
     double beam_used_frac_ = 0.0;     // fraction of the slice the level loop consumed
     bool   beam_width_capped_ = false; // it finished at the full requested width -- room to spare
     double beam_level_frac_ = 0.0;    // levels the beam completed before expiring, over nord
+    // STATE EXPANSIONS THE LAST CALL ACTUALLY PERFORMED.  The work-budgeted table says a draw's
+    // quality depends strongly on this number -- prob_16 axis 2 reads 3,159,373 at 3,000 and
+    // 2,477,998 at 6,000 -- and the figure used for what PRODUCTION spends was an estimate,
+    // 14 s at ~220 expansions/s.  An estimate is not good enough to hang a prescription on, and
+    // the loop already accumulates the exact value.
+    double beam_work_ = 0.0;
     void   set_beam_aim(double a){ beam_aim_ = a<0.02?0.02:(a>0.98?0.98:a); }
     double get_beam_aim() const { return beam_aim_; }
     bool   beam_salvaged() const { return beam_salvaged_; }
     double beam_used_frac() const { return beam_used_frac_; }
     bool   beam_width_capped() const { return beam_width_capped_; }
     double beam_level_frac() const { return beam_level_frac_; }
+    double beam_work() const { return beam_work_; }
 
     void init(int nb, std::vector<double> w, std::vector<double> h, std::vector<double> u){
         n_bays=nb; bw=w; bh=h; unit=u; timeline.assign(nb,{});
@@ -1900,6 +1907,7 @@ struct Engine {
         const double AIM = beam_aim_;
         beam_salvaged_ = false;
         beam_used_frac_ = 0.0;
+        beam_work_ = 0.0;
         beam_width_capped_ = false;
         beam_level_frac_ = 0.0;
         const int Bmax=std::max(1,B), Bstart=ADAPTB?std::max(1,std::min(B,8)):B;
@@ -1909,6 +1917,7 @@ struct Engine {
             if(_wcap>0.0 ? (work>_wcap) : (elapsed()>time_budget_s*AIM)){
                 beam_salvaged_ = true;
                 beam_used_frac_ = elapsed()/std::max(1e-9,time_budget_s);
+                beam_work_ = work;
                 beam_level_frac_ = nord>0 ? (double)level/(double)nord : 1.0;
                 // FINISH THE BEST PARTIAL INSTEAD OF RETURNING NOTHING.
                 //
@@ -2330,6 +2339,7 @@ struct Engine {
         // return.  What does carry the information is the width the beam settled at -- if it
         // never had to narrow below the requested one, the aim was not what constrained it and
         // there is room to raise it.
+beam_work_ = work;
         beam_used_frac_ = elapsed()/std::max(1e-9,time_budget_s);
         beam_width_capped_ = (Bcur >= Bmax);
         beam_level_frac_ = 1.0;
@@ -3711,6 +3721,7 @@ PYBIND11_MODULE(ogc_fast,m){
         .def("get_beam_aim",&Engine::get_beam_aim)
         .def("beam_salvaged",&Engine::beam_salvaged)
         .def("beam_used_frac",&Engine::beam_used_frac)
+        .def("beam_work",&Engine::beam_work)
         .def("beam_width_capped",&Engine::beam_width_capped)
         .def("beam_level_frac",&Engine::beam_level_frac)
         .def("contact_beam",&Engine::contact_beam,

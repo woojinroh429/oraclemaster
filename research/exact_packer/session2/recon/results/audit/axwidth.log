@@ -47,3 +47,14 @@ P4   [p4.w3000.a4.bax] work=3000      B=96   K=3 axis=4  obj=4343640      feas=y
 P4   [p4.w3000.a5.bax] work=3000      B=48   K=6 axis=5  obj=3487284      feas=y    18.3s  digest=9c814bc58b2dcf69
 # [p24.w3000.a0.bax]
 P4   [p4.w3000.a5.bax] work=3000      B=48   K=6 axis=5  obj=3487284      feas=y    17.7s  digest=9c814bc58b2dcf69
+# [p24.w3000.a0.bax]
+P24  [p24.w3000.a0.bax] work=3000      B=96   K=4 axis=0  obj=3080029      feas=y    12.3s  digest=3868ad810c8df23d
+# [p24.w3000.a1.bax]
+P24  [p24.w3000.a0.bax] work=3000      B=96   K=4 axis=0  obj=3080029      feas=y    12.1s  digest=3868ad810c8df23d
+# [p24.w3000.a1.bax]
+P24  [p24.w3000.a1.bax] work=3000      B=96   K=4 axis=1  obj=3196119      feas=y    12.3s  digest=bfa76ed4664cc06e
+# [p24.w3000.a2.bax]
+P24  [p24.w3000.a1.bax] work=3000      B=96   K=4 axis=1  obj=3196119      feas=y    12.4s  digest=bfa76ed4664cc06e
+# [p24.w3000.a2.bax]
+P24  [p24.w3000.a2.bax] work=3000      B=67   K=5 axis=2  obj=3326701      feas=y    11.8s  digest=fb0f96e047c6dac9
+# [p24.w3000.a3.bax]
