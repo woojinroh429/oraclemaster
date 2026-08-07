@@ -92,3 +92,19 @@ P16 [r1.cap12.16]   240s  obj=3574878     Z1=183.0    Z2=1813   Z3=4518.0    fea
 WSTAT round=0 n=4 4140193 3813686 3832600 3528888  spread=17.32%
 P16 [r1.cap20.16]   240s  obj=3528888     Z1=184.0    Z2=872    Z3=4292.0    feas=y   ran 237s  py3.12
 # [r1.base.4]
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        4      88.9   37.8%   1384708520 15581844.8
+  opstat  grow        1      40.9   17.4%       445000    10868.0
+  opstat  bal         1       0.1    0.0%            0        0.0
+  opstat  pref        3      56.8   24.2%       108990     1919.0
+  opstat  bay         1      47.2   20.1%            0        0.0
+  opstat  TOTAL      10     233.9   99.5%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        6     119.1   50.1%   1384704674 11627591.4
+  opstat  grow        1      41.5   17.5%       638405    15395.1
+  opstat  bal         1       0.1    0.0%            0        0.0
+  opstat  pref        1      23.9   10.0%       165789     6950.1
+  opstat  bay         1      52.3   22.0%            0        0.0
+  opstat  TOTAL      10     236.8   99.7%                        
+WSTAT round=0 n=2 2800387 - 2554029 -  spread=9.65%
+P4  [r1.base.4]    240s  obj=2554029     Z1=346.0    Z2=1723   Z3=2612.0    feas=y   ran 240s  py3.12
