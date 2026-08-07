@@ -110,3 +110,5 @@ P24  [p24.w6000.a4] work=6000      B=96   K=4 axis=4  obj=3438906      feas=y   
 P24  [p24.w6000.a5] work=6000      B=96   K=4 axis=5  obj=3273771      feas=y    23.5s  digest=bc5b2790c9da3415
 WORKDONE 6000
 # [p16.w12000.a0]
+P16  [p16.w12000.a0] work=12000     B=96   K=4 axis=0  obj=6713700      feas=y    54.2s  digest=4cfc745a6b374815
+# [p16.w12000.a1]
