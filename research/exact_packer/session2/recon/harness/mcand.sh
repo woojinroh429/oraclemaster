@@ -21,9 +21,11 @@
 # permutations are not paying for the width they displace.  That is the question, and it needs a
 # paired set rather than a smoke.
 #
-# Also runs DEDUP off against on at m=3.  Under a fixed order the dedup was measured identical to
-# the last digit on five instances; if it now changes the answer, states really are reaching the
-# same layout by different orders, which is the structural claim behind the whole change.
+# The DEDUP-off arm has already done its job and is retired: under a fixed order the dedup was
+# identical to the last digit on five instances, and with branching on it moved prob_24 by 1.7%
+# (2,905,816 -> 2,857,312) and prob_4 by 9.8% (2,829,562 -> 2,577,614).  States really do reach the
+# same layout by different orders now, which is the structural claim behind the whole change and
+# was not previously possible.
 set -u
 cd "$(dirname "$0")/.." || exit 1
 echo mcand > harness/CURRENT
@@ -47,7 +49,23 @@ for rep in 1 2; do
         run $rep m1  $p "OGC_MCAND=1"
         run $rep m2  $p "OGC_MCAND=2"
         run $rep m3  $p "OGC_MCAND=3"
-        run $rep m3nd $p "OGC_MCAND=3 OGC_DEDUP=0"
+        # DID m=3 LOSE TO THE BRANCHING, OR TO THE SLOT SHORTAGE IT CAUSES?
+        #
+        # m times as many children compete for the same B survivor slots, so the effective width
+        # per block-set falls to B/m.  m=2 won on prob_24 and prob_4 (-14.50%, -3.74%) and m=3 lost
+        # both (+2.40%, +10.89%), and on both the worker spread peaked at m=2 and then collapsed
+        # BELOW the m=1 baseline at m=3 -- 5.9/13.5/8.4% and 19.5/25.9/9.2%.  A search running out
+        # of width looks exactly like that.
+        #
+        # So give the width back in proportion.  OGC_BCAP was the hard 96 ceiling inside
+        # _beam_width, and ogc_fast's own instrumentation says it binds: beam_width_capped_ is
+        # (Bcur >= Bmax) and Bmax is precisely what _beam_width returns, so three of the six axes
+        # (Bmul 1.0, 1.4, 1.0) were pinned there whatever the budget allowed.
+        #
+        # The adaptive controller still refuses width it cannot afford, so a larger ceiling costs
+        # nothing on instances with no time for it -- these arms ask for width, they do not force it.
+        run $rep m2w $p "OGC_MCAND=2 OGC_BCAP=192"
+        run $rep m3w $p "OGC_MCAND=3 OGC_BCAP=288"
     done
     echo "REPDONE $rep" >> $L
 done
