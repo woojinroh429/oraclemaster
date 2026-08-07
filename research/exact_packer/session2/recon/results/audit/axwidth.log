@@ -21,3 +21,5 @@ P16  [p16.w3000.a4.bax] work=3000      B=96   K=3 axis=4  obj=9382627      feas=
 P16  [p16.w3000.a4.bax] work=3000      B=96   K=3 axis=4  obj=9382627      feas=y    14.9s  digest=5ce46fff6a141012
 # [p16.w3000.a5.bax]
 P16  [p16.w3000.a5.bax] work=3000      B=48   K=6 axis=5  obj=6610637      feas=y    13.0s  digest=39ab1924a6bed342
+# [p4.w3000.a0.bax]
+P16  [p16.w3000.a5.bax] work=3000      B=48   K=6 axis=5  obj=6610637      feas=y    13.1s  digest=39ab1924a6bed342
