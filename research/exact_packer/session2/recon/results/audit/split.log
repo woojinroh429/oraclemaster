@@ -8,3 +8,10 @@ P16  [p16.n4.d1] work=6000      B=96   K=4 axis=1  obj=6214513      feas=y    29
 P16  [p16.n4.d2] work=6000      B=96   K=4 axis=2  obj=2477998      feas=y    20.3s  digest=973cef52e3c7c256
 # [p16.n4.d3]
 P16  [p16.n4.d3] work=6000      B=96   K=4 axis=3  obj=4876883      feas=y    27.7s  digest=d390889cceb4a278
+# [p16.n8.d0]
+P16  [p16.n8.d0] work=3000      B=96   K=4 axis=0  obj=6671345      feas=y    14.0s  digest=c6e4496f9a52c7c2
+# [p16.n8.d1]
+P16  [p16.n8.d1] work=3000      B=96   K=4 axis=1  obj=6720274      feas=y    14.1s  digest=459948e87a8c5cb7
+# [p16.n8.d2]
+P16  [p16.n8.d2] work=3000      B=96   K=4 axis=2  obj=3159373      feas=y    10.3s  digest=f33aa8672e39c1b5
+# [p16.n8.d3]

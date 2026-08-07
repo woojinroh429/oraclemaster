@@ -10,3 +10,4 @@ P16  [p16.w1500.a3] work=1500      B=96   K=4 axis=3  obj=4984622      feas=y   
 P16  [p16.w1500.a4] work=1500      B=96   K=4 axis=4  obj=9255020      feas=y     7.5s  digest=a3f637d8f8cfb2f1
 # [p16.w1500.a5]
 P16  [p16.w1500.a5] work=1500      B=96   K=4 axis=5  obj=6555177      feas=y     6.7s  digest=bd16ec722a112594
+# [p4.w1500.a0]
