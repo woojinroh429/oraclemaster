@@ -101,3 +101,10 @@ P24  [p24.w6000.a0] work=6000      B=96   K=4 axis=0  obj=2949426      feas=y   
 # [p24.w6000.a1]
 P24  [p24.w6000.a1] work=6000      B=96   K=4 axis=1  obj=3196119      feas=y    23.3s  digest=bfa76ed4664cc06e
 # [p24.w6000.a2]
+P24  [p24.w6000.a2] work=6000      B=96   K=4 axis=2  obj=3446775      feas=y    23.7s  digest=7f52bd092148cd43
+# [p24.w6000.a3]
+P24  [p24.w6000.a3] work=6000      B=96   K=4 axis=3  obj=3706135      feas=y    26.4s  digest=f019eb6cc80d0160
+# [p24.w6000.a4]
+P24  [p24.w6000.a4] work=6000      B=96   K=4 axis=4  obj=3438906      feas=y    25.5s  digest=11ef27384e5037f5
+# [p24.w6000.a5]
+P24  [p24.w6000.a5] work=6000      B=96   K=4 axis=5  obj=3273771      feas=y    23.5s  digest=bc5b2790c9da3415
