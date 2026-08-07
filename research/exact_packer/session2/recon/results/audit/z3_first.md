@@ -65,3 +65,52 @@ Take the best-bay + EDD assignment and push it through the engine's real feasibi
 (`check_feasibility`, `find_pos_in_bay`).  Either most of it places -- and this is worth building a
 constructor around -- or it does not, and the direction is dead within the hour.  No new machinery
 is needed for the test.
+
+
+## MEASURED, AND IT IS DEAD -- with the real geometry it is 10x worse
+
+`harness/z3first.py` runs the same construction through the engine's own feasibility path:
+EDD order, best bay, walk entry times up from release, `feasible_scan_win` for a real
+(orientation, x, y), commit with `add()` so later blocks see it.
+
+    P1    beam         501,758    Z1=  17  Z3= 612
+          objaware   1,155,618    Z1= 111  Z3= 670   best-bay 130/150
+          best-bay   4,964,351    Z1= 740  Z3=   0   best-bay 150/150
+
+    P24   beam       2,779,963    vs objaware 4,305,520
+    P16   beam       3,612,529    vs objaware 7,898,065
+
+Two separate effects, both real:
+
+  - the one-block-at-a-time greedy is about 2x worse than the beam even when it picks the bay by
+    `w1*tardy + w3*penalty` (P1 2.3x, P16 2.2x, P24 1.55x).  The beam earns its keep.
+  - forcing best-bay on top of that costs another 4.3x on prob_1: Z3 goes 670 -> 0 and Z1 goes
+    111 -> 740.
+
+## Why the area estimate was off by 370x
+
+It predicted Z1 = 2 for Z3 = 0 on prob_1.  The real figure is 740.
+
+**Area utilisation is nearly useless as a proxy for placement feasibility.**  A bay 30% full by
+area can still have nowhere to put a particular polygon at a particular time.
+
+## Which retracts the structural critique made earlier the same day
+
+That critique ran: 12-orientation instances are loose (peak concurrent area 76.9% median, prob_1
+at 59.3%), so geometry is not binding on them, so ranking states by CONTACT optimises the wrong
+thing.
+
+The first half is an area measurement and the second half does not follow from it.  prob_1 is the
+loosest instance measured and geometry there is tight enough that fixing the bay assignment
+multiplies tardiness by 43.  The contact beam is not solving the wrong problem; it is handling a
+constraint that is much harder than the area figures suggest.
+
+## What this buys
+
+The idea died in under an hour and cost nothing, and it leaves two things behind:
+
+1.  **Geometry is the binding constraint even at 40% area slack.**  That is a brake on every
+    "solve a relaxation and repair" proposal, including the CP-SAT lower bound sketched in
+    `where_the_score_is.md` -- a bound that ignores geometry may be so loose it says nothing.
+2.  **The beam is worth about 2x over a myopic objective-aware greedy.**  Whatever replaces it has
+    to clear that bar, which no construction tried today does.
