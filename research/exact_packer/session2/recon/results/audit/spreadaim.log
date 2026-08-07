@@ -14,3 +14,5 @@ P1  [r1.spread.1]   240s  obj=609812      Z1=20.0     Z2=5424   Z3=767.0     fea
 WSTAT round=0 n=4 10992174 9961920 11352873 9034631  spread=25.66%
 P20 [r1.base.20]   240s  obj=9034631     Z1=1157.0   Z2=1839   Z3=8708.0    feas=y   ran 239s  py3.12
 # [r1.spread.20]
+WSTAT round=0 n=4 10603731 11245765 10930145 10020409  spread=12.23%
+P20 [r1.spread.20]   240s  obj=10020409    Z1=1289.0   Z2=3112   Z3=9345.0    feas=y   ran 240s  py3.12
