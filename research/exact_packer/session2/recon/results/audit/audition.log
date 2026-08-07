@@ -12,3 +12,5 @@ P4  [beam.a2.4]     60s  obj=2953775     Z1=290.0    Z2=3554   Z3=3695.0    feas
 P4  [full.a2.4]    240s  obj=2587540     Z1=326.0    Z2=2356   Z3=2794.0    feas=y   ran 239s  py3.12
 # [beam.a3.4]
 P4  [beam.a3.4]     60s  obj=3027819     Z1=319.0    Z2=3935   Z3=3649.0    feas=y   ran 59s  py3.12
+# [full.a3.4]
+P4  [full.a3.4]    240s  obj=2670527     Z1=358.0    Z2=1673   Z3=2756.0    feas=y   ran 239s  py3.12
