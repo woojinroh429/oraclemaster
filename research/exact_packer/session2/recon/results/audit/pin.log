@@ -14,3 +14,4 @@ P20 [r1.adapt.20]   240s  obj=9086103     Z1=1157.0   Z2=1898   Z3=9048.0    fea
 # [r1.pinned.20]
 WSTAT round=0 n=4 9159932 9023076 9848620 9162795  spread=9.15%
 P20 [r1.pinned.20]   240s  obj=9023076     Z1=1144.0   Z2=2416   Z3=9178.0    feas=y   ran 239s  py3.12
+# [r1.det.20]
