@@ -2404,22 +2404,38 @@ def _worker(args):
             out["K"] = max(1, kk + r.choice((-1, 1)))
         return out
 
-    def _fresh(t):
-        gen[0] += 1
-        ai = gen[0] % len(axes)
-        _t = time.time()
-        s = _beam_once(prob_info, t, _jit(axes[ai], gen[0]), share)
-        if _DRAWSTAT:
-            import sys as _sy
-            try:
-                _v = _total(prob_info, s)[0] if s is not None else float("inf")
-            except Exception:
-                _v = float("inf")
-            _sy.stderr.write("DRAW wid=%d gen=%d axis=%s ask=%.1f took=%.1f obj=%.0f\n"
-                             % (wid, gen[0], _AXIDX.get(id(axes[ai]), ai), t,
-                                time.time() - _t, _v))
-            _sy.stderr.flush()
-        return s
+    # TWO DEFINITIONS, AND THE UNINSTRUMENTED ONE HAS TO BE BYTE-FOR-BYTE THE ORIGINAL.
+    #
+    # The first version of this branched INSIDE _fresh -- one time.time() and one _jit() call per
+    # draw, guarded by flags that were off.  That is not free.  prob_24 had returned 2,809,182 to
+    # the digit in three separate queues on the identical configuration; with those two dead calls
+    # present it returned 2,838,115, a 1.03% move, because ogc_fast recomputes its beam width from
+    # elapsed()/work at every one of ~250 levels and a microsecond of drift changes the trajectory.
+    #
+    # An instrument that moves the measurement is worse than no instrument, and this one would have
+    # shipped inside the submitted algorithm.  So the flags are read once, here, and the hot
+    # definition contains nothing that was not in the original three lines.
+    if not _DRAWSTAT and _AXJIT <= 0.0:
+        def _fresh(t):
+            gen[0] += 1
+            return _beam_once(prob_info, t, axes[gen[0] % len(axes)], share)
+    else:
+        def _fresh(t):
+            gen[0] += 1
+            ai = gen[0] % len(axes)
+            _t = time.time()
+            s = _beam_once(prob_info, t, _jit(axes[ai], gen[0]), share)
+            if _DRAWSTAT:
+                import sys as _sy
+                try:
+                    _v = _total(prob_info, s)[0] if s is not None else float("inf")
+                except Exception:
+                    _v = float("inf")
+                _sy.stderr.write("DRAW wid=%d gen=%d axis=%s ask=%.1f took=%.1f obj=%.0f\n"
+                                 % (wid, gen[0], _AXIDX.get(id(axes[ai]), ai), t,
+                                    time.time() - _t, _v))
+                _sy.stderr.flush()
+            return s
 
     def _grow(t):
         gen[0] += 1; g = gen[0]; ai = band.pick()
