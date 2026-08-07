@@ -22,6 +22,13 @@ MIX = json.load(open(os.path.join(HERE, "results/audit/objmix.json")))
 LOG = sys.argv[1]
 BASE = sys.argv[2] if len(sys.argv) > 2 else None
 ROW = re.compile(r"^P(\d+)\s+\[r(\d+)\.([A-Za-z0-9_.]+)\.(\d+)\]\s+\d+s\s+obj=(\d+)")
+# GUARD: the printed instance and the instance inside the tag must agree.  A line where they
+# disagree is not a run -- it appeared twice in this session's notification stream, once as
+# "P1 [r1.o5.6] obj=5327658", which is prob_6's objective under prob_1's header.  Reading it
+# would have credited one instance with another's result.  The log is the record; a row that
+# contradicts itself is dropped.
+def _consistent(m):
+    return int(m.group(1)) == int(m.group(4))
 
 def klass(p):
     m = MIX.get(str(p))
@@ -37,7 +44,7 @@ def med(xs):
 d = {}
 for ln in open(LOG, errors="replace"):
     m = ROW.match(ln)
-    if m:
+    if m and _consistent(m):
         d.setdefault((int(m.group(4)), m.group(3)), []).append(int(m.group(5)))
 if not d:
     sys.exit("no rows in %s" % LOG)
