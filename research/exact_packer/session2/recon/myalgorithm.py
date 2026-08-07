@@ -559,6 +559,33 @@ def _contact_beam(prob_info, deadline_s, B=24, K=4, pos_lam=0.1, prefw=0.0, orde
                                                 float(_meanp), float(deadline_s), [], [],
                                                 float(_sc), float(swy), float(swx), float(cohort), float(shadow), float(span), int(lex), float(shadoww), float(conw), float(span2), float(hmatch))
                 _adapt_aim(E)
+                # OGC_BEAMSTAT=1: report what the beam actually managed, per call.
+                #
+                # The engine already tracks all of this and nothing has ever logged it -- only
+                # _adapt_aim reads it, and that is off by default.  The three flags answer
+                # different questions and together they say whether a beam was limited by TIME or
+                # by the width ceiling:
+                #
+                #   salvaged    it ran past its deadline and finished the partial by rollout
+                #   capped      it reached the full requested width, so the ceiling bound it, not
+                #               the budget -- the case where raising OGC_BCAP buys real search
+                #   used/level  fraction of its slice spent, and how far through the blocks it got
+                #
+                # The question this exists for: a block with twelve orientations costs about 1.5x
+                # one with eight in the position scan, because best_cell_contact_tl loops all of
+                # them with no cap.  Ten of the forty stage-2 instances carry twelve.  If those
+                # instances salvage more and cap less, the beam is throughput-starved there and
+                # the extra orientations are being paid for in width.  That is a hypothesis; these
+                # counters are how it gets tested rather than argued.
+                if os.environ.get("OGC_BEAMSTAT") == "1":
+                    import sys as _sy
+                    try:
+                        _sy.stderr.write("BEAMSTAT salv=%d capped=%d used=%.2f level=%.2f B=%d K=%d\n"
+                                         % (int(E.beam_salvaged()), int(E.beam_width_capped()),
+                                            E.beam_used_frac(), E.beam_level_frac(), int(B), int(K)))
+                        _sy.stderr.flush()
+                    except Exception:
+                        pass
                 if _flat and len(_flat) == 7 * n:
                     return {int(_flat[i]): {"block_id": int(_flat[i]), "bay_id": int(_flat[i + 1]),
                                             "orient_idx": int(_flat[i + 2]), "x": int(_flat[i + 3]),
