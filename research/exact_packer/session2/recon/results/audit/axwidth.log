@@ -98,3 +98,9 @@ P16  [p16.w6000.a5.bax] work=6000      B=48   K=6 axis=5  obj=6275935      feas=
 # [p4.w6000.a0.bax]
 P16  [p16.w6000.a5.bax] work=6000      B=48   K=6 axis=5  obj=6275935      feas=y    26.3s  digest=50301540579b5d9e
 # [p4.w6000.a0.bax]
+P4   [p4.w6000.a0.bax] work=6000      B=96   K=4 axis=0  obj=3205130      feas=y    39.8s  digest=1e6e294d2c7006a1
+# [p4.w6000.a1.bax]
+P4   [p4.w6000.a0.bax] work=6000      B=96   K=4 axis=0  obj=3205130      feas=y    40.1s  digest=1e6e294d2c7006a1
+# [p4.w6000.a1.bax]
+P4   [p4.w6000.a1.bax] work=6000      B=96   K=4 axis=1  obj=3057550      feas=y    40.2s  digest=69b51b27d0ace5d3
+# [p4.w6000.a2.bax]
