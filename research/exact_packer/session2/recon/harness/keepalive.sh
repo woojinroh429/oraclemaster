@@ -52,6 +52,23 @@ pgrep -f "python3\.12 harness/" >/dev/null 2>&1 && exit 0
 # new queue is launched -- so a restart resumes the work that was actually in flight instead of
 # whatever overnight.sh happened to be.  Every queue skips a stage whose result file exists, so
 # resuming costs nothing and repeats nothing.
+# THE RESTART CAN TAKE THE PYTHON ENVIRONMENT WITH IT.
+#
+# One restart came back with python3.12's site-packages emptied -- shapely, numpy and ortools gone
+# -- while python3.11 kept its copies and `pip` still pointed at 3.11.  This script relaunched the
+# queue anyway and 64 cells died on ModuleNotFoundError, recorded as crashes, which the resume
+# logic then treats as finished.  Three hours of machine time produced nothing and would not have
+# retried itself.
+#
+# Cheap to check and cheap to fix, so do both before starting anything.
+if ! /usr/bin/python3.12 -c "import shapely, numpy" >/dev/null 2>&1; then
+  echo "keepalive: python3.12 lost its packages after the restart; reinstalling"
+  /usr/bin/python3.12 -m pip install --quiet --break-system-packages shapely numpy ortools \
+      >/dev/null 2>&1 || true
+  /usr/bin/python3.12 -c "import shapely, numpy" >/dev/null 2>&1 || {
+      echo "keepalive: reinstall failed; refusing to start a queue that would only record crashes"
+      exit 0; }
+fi
 Q="$(cat harness/CURRENT 2>/dev/null || echo overnight)"
 [ -f "harness/$Q.sh" ] || Q=overnight
 [ -f "harness/$Q.sh" ] || exit 0

@@ -34,7 +34,6 @@ Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
     from shapely.geometry import Polygon as ShapelyPolygon
 ModuleNotFoundError: No module named 'shapely'
-P4 [beam.a4.4] HANG-OR-CRASH rc=1
 # [full.a4.4]
 Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
@@ -54,7 +53,6 @@ Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
     from shapely.geometry import Polygon as ShapelyPolygon
 ModuleNotFoundError: No module named 'shapely'
-P4 [full.a4.4] HANG-OR-CRASH rc=1
 # [beam.a5.4]
 Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
@@ -74,7 +72,6 @@ Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
     from shapely.geometry import Polygon as ShapelyPolygon
 ModuleNotFoundError: No module named 'shapely'
-P4 [beam.a5.4] HANG-OR-CRASH rc=1
 # [full.a5.4]
 Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
@@ -94,7 +91,6 @@ Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
     from shapely.geometry import Polygon as ShapelyPolygon
 ModuleNotFoundError: No module named 'shapely'
-P4 [full.a5.4] HANG-OR-CRASH rc=1
 INSTDONE 4
 # [beam.a0.26]
 Traceback (most recent call last):
@@ -115,7 +111,6 @@ Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
     from shapely.geometry import Polygon as ShapelyPolygon
 ModuleNotFoundError: No module named 'shapely'
-P26 [beam.a0.26] HANG-OR-CRASH rc=1
 # [full.a0.26]
 Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
@@ -135,7 +130,6 @@ Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
     from shapely.geometry import Polygon as ShapelyPolygon
 ModuleNotFoundError: No module named 'shapely'
-P26 [full.a0.26] HANG-OR-CRASH rc=1
 # [beam.a1.26]
 Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
@@ -155,7 +149,6 @@ Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
     from shapely.geometry import Polygon as ShapelyPolygon
 ModuleNotFoundError: No module named 'shapely'
-P26 [beam.a1.26] HANG-OR-CRASH rc=1
 # [full.a1.26]
 Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
@@ -175,7 +168,6 @@ Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
     from shapely.geometry import Polygon as ShapelyPolygon
 ModuleNotFoundError: No module named 'shapely'
-P26 [full.a1.26] HANG-OR-CRASH rc=1
 # [beam.a2.26]
 Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
@@ -195,7 +187,6 @@ Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
     from shapely.geometry import Polygon as ShapelyPolygon
 ModuleNotFoundError: No module named 'shapely'
-P26 [beam.a2.26] HANG-OR-CRASH rc=1
 # [full.a2.26]
 Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
@@ -215,7 +206,6 @@ Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
     from shapely.geometry import Polygon as ShapelyPolygon
 ModuleNotFoundError: No module named 'shapely'
-P26 [full.a2.26] HANG-OR-CRASH rc=1
 # [beam.a3.26]
 Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
@@ -235,7 +225,6 @@ Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
     from shapely.geometry import Polygon as ShapelyPolygon
 ModuleNotFoundError: No module named 'shapely'
-P26 [beam.a3.26] HANG-OR-CRASH rc=1
 # [full.a3.26]
 Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
@@ -255,7 +244,6 @@ Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
     from shapely.geometry import Polygon as ShapelyPolygon
 ModuleNotFoundError: No module named 'shapely'
-P26 [full.a3.26] HANG-OR-CRASH rc=1
 # [beam.a4.26]
 Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
@@ -275,7 +263,6 @@ Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
     from shapely.geometry import Polygon as ShapelyPolygon
 ModuleNotFoundError: No module named 'shapely'
-P26 [beam.a4.26] HANG-OR-CRASH rc=1
 # [full.a4.26]
 Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
@@ -295,7 +282,6 @@ Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
     from shapely.geometry import Polygon as ShapelyPolygon
 ModuleNotFoundError: No module named 'shapely'
-P26 [full.a4.26] HANG-OR-CRASH rc=1
 # [beam.a5.26]
 Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
@@ -315,7 +301,6 @@ Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
     from shapely.geometry import Polygon as ShapelyPolygon
 ModuleNotFoundError: No module named 'shapely'
-P26 [beam.a5.26] HANG-OR-CRASH rc=1
 # [full.a5.26]
 Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
@@ -335,7 +320,6 @@ Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
     from shapely.geometry import Polygon as ShapelyPolygon
 ModuleNotFoundError: No module named 'shapely'
-P26 [full.a5.26] HANG-OR-CRASH rc=1
 INSTDONE 26
 # [beam.a0.20]
 Traceback (most recent call last):
@@ -356,7 +340,6 @@ Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
     from shapely.geometry import Polygon as ShapelyPolygon
 ModuleNotFoundError: No module named 'shapely'
-P20 [beam.a0.20] HANG-OR-CRASH rc=1
 # [full.a0.20]
 Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
@@ -376,7 +359,6 @@ Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
     from shapely.geometry import Polygon as ShapelyPolygon
 ModuleNotFoundError: No module named 'shapely'
-P20 [full.a0.20] HANG-OR-CRASH rc=1
 # [beam.a1.20]
 Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
@@ -396,7 +378,6 @@ Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
     from shapely.geometry import Polygon as ShapelyPolygon
 ModuleNotFoundError: No module named 'shapely'
-P20 [beam.a1.20] HANG-OR-CRASH rc=1
 # [full.a1.20]
 Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
@@ -416,7 +397,6 @@ Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
     from shapely.geometry import Polygon as ShapelyPolygon
 ModuleNotFoundError: No module named 'shapely'
-P20 [full.a1.20] HANG-OR-CRASH rc=1
 # [beam.a2.20]
 Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
@@ -436,7 +416,6 @@ Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
     from shapely.geometry import Polygon as ShapelyPolygon
 ModuleNotFoundError: No module named 'shapely'
-P20 [beam.a2.20] HANG-OR-CRASH rc=1
 # [full.a2.20]
 Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
@@ -456,7 +435,6 @@ Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
     from shapely.geometry import Polygon as ShapelyPolygon
 ModuleNotFoundError: No module named 'shapely'
-P20 [full.a2.20] HANG-OR-CRASH rc=1
 # [beam.a3.20]
 Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
@@ -476,7 +454,6 @@ Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
     from shapely.geometry import Polygon as ShapelyPolygon
 ModuleNotFoundError: No module named 'shapely'
-P20 [beam.a3.20] HANG-OR-CRASH rc=1
 # [full.a3.20]
 Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
@@ -496,7 +473,6 @@ Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
     from shapely.geometry import Polygon as ShapelyPolygon
 ModuleNotFoundError: No module named 'shapely'
-P20 [full.a3.20] HANG-OR-CRASH rc=1
 # [beam.a4.20]
 Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
@@ -516,7 +492,6 @@ Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
     from shapely.geometry import Polygon as ShapelyPolygon
 ModuleNotFoundError: No module named 'shapely'
-P20 [beam.a4.20] HANG-OR-CRASH rc=1
 # [full.a4.20]
 Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
@@ -536,7 +511,6 @@ Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
     from shapely.geometry import Polygon as ShapelyPolygon
 ModuleNotFoundError: No module named 'shapely'
-P20 [full.a4.20] HANG-OR-CRASH rc=1
 # [beam.a5.20]
 Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
@@ -556,7 +530,6 @@ Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
     from shapely.geometry import Polygon as ShapelyPolygon
 ModuleNotFoundError: No module named 'shapely'
-P20 [beam.a5.20] HANG-OR-CRASH rc=1
 # [full.a5.20]
 Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
@@ -576,7 +549,6 @@ Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
     from shapely.geometry import Polygon as ShapelyPolygon
 ModuleNotFoundError: No module named 'shapely'
-P20 [full.a5.20] HANG-OR-CRASH rc=1
 INSTDONE 20
 # [beam.a0.2]
 Traceback (most recent call last):
@@ -597,7 +569,6 @@ Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
     from shapely.geometry import Polygon as ShapelyPolygon
 ModuleNotFoundError: No module named 'shapely'
-P2 [beam.a0.2] HANG-OR-CRASH rc=1
 # [full.a0.2]
 Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
@@ -617,7 +588,6 @@ Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
     from shapely.geometry import Polygon as ShapelyPolygon
 ModuleNotFoundError: No module named 'shapely'
-P2 [full.a0.2] HANG-OR-CRASH rc=1
 # [beam.a1.2]
 Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
@@ -637,7 +607,6 @@ Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
     from shapely.geometry import Polygon as ShapelyPolygon
 ModuleNotFoundError: No module named 'shapely'
-P2 [beam.a1.2] HANG-OR-CRASH rc=1
 # [full.a1.2]
 Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
@@ -657,7 +626,6 @@ Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
     from shapely.geometry import Polygon as ShapelyPolygon
 ModuleNotFoundError: No module named 'shapely'
-P2 [full.a1.2] HANG-OR-CRASH rc=1
 # [beam.a2.2]
 Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
@@ -677,7 +645,6 @@ Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
     from shapely.geometry import Polygon as ShapelyPolygon
 ModuleNotFoundError: No module named 'shapely'
-P2 [beam.a2.2] HANG-OR-CRASH rc=1
 # [full.a2.2]
 Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
@@ -697,7 +664,6 @@ Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
     from shapely.geometry import Polygon as ShapelyPolygon
 ModuleNotFoundError: No module named 'shapely'
-P2 [full.a2.2] HANG-OR-CRASH rc=1
 # [beam.a3.2]
 Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
@@ -717,7 +683,6 @@ Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
     from shapely.geometry import Polygon as ShapelyPolygon
 ModuleNotFoundError: No module named 'shapely'
-P2 [beam.a3.2] HANG-OR-CRASH rc=1
 # [full.a3.2]
 Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
@@ -737,7 +702,6 @@ Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
     from shapely.geometry import Polygon as ShapelyPolygon
 ModuleNotFoundError: No module named 'shapely'
-P2 [full.a3.2] HANG-OR-CRASH rc=1
 # [beam.a4.2]
 Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
@@ -757,7 +721,6 @@ Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
     from shapely.geometry import Polygon as ShapelyPolygon
 ModuleNotFoundError: No module named 'shapely'
-P2 [beam.a4.2] HANG-OR-CRASH rc=1
 # [full.a4.2]
 Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
@@ -777,7 +740,6 @@ Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
     from shapely.geometry import Polygon as ShapelyPolygon
 ModuleNotFoundError: No module named 'shapely'
-P2 [full.a4.2] HANG-OR-CRASH rc=1
 # [beam.a5.2]
 Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
@@ -797,7 +759,6 @@ Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
     from shapely.geometry import Polygon as ShapelyPolygon
 ModuleNotFoundError: No module named 'shapely'
-P2 [beam.a5.2] HANG-OR-CRASH rc=1
 # [full.a5.2]
 Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
@@ -817,7 +778,6 @@ Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
     from shapely.geometry import Polygon as ShapelyPolygon
 ModuleNotFoundError: No module named 'shapely'
-P2 [full.a5.2] HANG-OR-CRASH rc=1
 INSTDONE 2
 # [beam.a0.6]
 Traceback (most recent call last):
@@ -838,7 +798,6 @@ Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
     from shapely.geometry import Polygon as ShapelyPolygon
 ModuleNotFoundError: No module named 'shapely'
-P6 [beam.a0.6] HANG-OR-CRASH rc=1
 # [full.a0.6]
 Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
@@ -858,7 +817,6 @@ Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
     from shapely.geometry import Polygon as ShapelyPolygon
 ModuleNotFoundError: No module named 'shapely'
-P6 [full.a0.6] HANG-OR-CRASH rc=1
 # [beam.a1.6]
 Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
@@ -878,7 +836,6 @@ Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
     from shapely.geometry import Polygon as ShapelyPolygon
 ModuleNotFoundError: No module named 'shapely'
-P6 [beam.a1.6] HANG-OR-CRASH rc=1
 # [full.a1.6]
 Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
@@ -898,7 +855,6 @@ Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
     from shapely.geometry import Polygon as ShapelyPolygon
 ModuleNotFoundError: No module named 'shapely'
-P6 [full.a1.6] HANG-OR-CRASH rc=1
 # [beam.a2.6]
 Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
@@ -918,7 +874,6 @@ Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
     from shapely.geometry import Polygon as ShapelyPolygon
 ModuleNotFoundError: No module named 'shapely'
-P6 [beam.a2.6] HANG-OR-CRASH rc=1
 # [full.a2.6]
 Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
@@ -938,7 +893,6 @@ Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
     from shapely.geometry import Polygon as ShapelyPolygon
 ModuleNotFoundError: No module named 'shapely'
-P6 [full.a2.6] HANG-OR-CRASH rc=1
 # [beam.a3.6]
 Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
@@ -958,7 +912,6 @@ Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
     from shapely.geometry import Polygon as ShapelyPolygon
 ModuleNotFoundError: No module named 'shapely'
-P6 [beam.a3.6] HANG-OR-CRASH rc=1
 # [full.a3.6]
 Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
@@ -978,7 +931,6 @@ Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
     from shapely.geometry import Polygon as ShapelyPolygon
 ModuleNotFoundError: No module named 'shapely'
-P6 [full.a3.6] HANG-OR-CRASH rc=1
 # [beam.a4.6]
 Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
@@ -998,7 +950,6 @@ Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
     from shapely.geometry import Polygon as ShapelyPolygon
 ModuleNotFoundError: No module named 'shapely'
-P6 [beam.a4.6] HANG-OR-CRASH rc=1
 # [full.a4.6]
 Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
@@ -1018,7 +969,6 @@ Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
     from shapely.geometry import Polygon as ShapelyPolygon
 ModuleNotFoundError: No module named 'shapely'
-P6 [full.a4.6] HANG-OR-CRASH rc=1
 # [beam.a5.6]
 Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
@@ -1038,7 +988,6 @@ Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
     from shapely.geometry import Polygon as ShapelyPolygon
 ModuleNotFoundError: No module named 'shapely'
-P6 [beam.a5.6] HANG-OR-CRASH rc=1
 # [full.a5.6]
 Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
@@ -1058,7 +1007,6 @@ Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
     from shapely.geometry import Polygon as ShapelyPolygon
 ModuleNotFoundError: No module named 'shapely'
-P6 [full.a5.6] HANG-OR-CRASH rc=1
 INSTDONE 6
 # [beam.a0.13]
 Traceback (most recent call last):
@@ -1079,7 +1027,6 @@ Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
     from shapely.geometry import Polygon as ShapelyPolygon
 ModuleNotFoundError: No module named 'shapely'
-P13 [beam.a0.13] HANG-OR-CRASH rc=1
 # [full.a0.13]
 Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
@@ -1099,7 +1046,6 @@ Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
     from shapely.geometry import Polygon as ShapelyPolygon
 ModuleNotFoundError: No module named 'shapely'
-P13 [full.a0.13] HANG-OR-CRASH rc=1
 # [beam.a1.13]
 Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
@@ -1119,7 +1065,6 @@ Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
     from shapely.geometry import Polygon as ShapelyPolygon
 ModuleNotFoundError: No module named 'shapely'
-P13 [beam.a1.13] HANG-OR-CRASH rc=1
 # [full.a1.13]
 Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
@@ -1139,7 +1084,6 @@ Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
     from shapely.geometry import Polygon as ShapelyPolygon
 ModuleNotFoundError: No module named 'shapely'
-P13 [full.a1.13] HANG-OR-CRASH rc=1
 # [beam.a2.13]
 Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
@@ -1159,7 +1103,6 @@ Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
     from shapely.geometry import Polygon as ShapelyPolygon
 ModuleNotFoundError: No module named 'shapely'
-P13 [beam.a2.13] HANG-OR-CRASH rc=1
 # [full.a2.13]
 Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
@@ -1179,7 +1122,6 @@ Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
     from shapely.geometry import Polygon as ShapelyPolygon
 ModuleNotFoundError: No module named 'shapely'
-P13 [full.a2.13] HANG-OR-CRASH rc=1
 # [beam.a3.13]
 Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
@@ -1199,7 +1141,6 @@ Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
     from shapely.geometry import Polygon as ShapelyPolygon
 ModuleNotFoundError: No module named 'shapely'
-P13 [beam.a3.13] HANG-OR-CRASH rc=1
 # [full.a3.13]
 Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
@@ -1219,7 +1160,6 @@ Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
     from shapely.geometry import Polygon as ShapelyPolygon
 ModuleNotFoundError: No module named 'shapely'
-P13 [full.a3.13] HANG-OR-CRASH rc=1
 # [beam.a4.13]
 Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
@@ -1239,7 +1179,6 @@ Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
     from shapely.geometry import Polygon as ShapelyPolygon
 ModuleNotFoundError: No module named 'shapely'
-P13 [beam.a4.13] HANG-OR-CRASH rc=1
 # [full.a4.13]
 Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
@@ -1259,7 +1198,6 @@ Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
     from shapely.geometry import Polygon as ShapelyPolygon
 ModuleNotFoundError: No module named 'shapely'
-P13 [full.a4.13] HANG-OR-CRASH rc=1
 # [beam.a5.13]
 Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
@@ -1279,7 +1217,6 @@ Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
     from shapely.geometry import Polygon as ShapelyPolygon
 ModuleNotFoundError: No module named 'shapely'
-P13 [beam.a5.13] HANG-OR-CRASH rc=1
 # [full.a5.13]
 Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
@@ -1299,4 +1236,6 @@ Traceback (most recent call last):
   File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
     from shapely.geometry import Polygon as ShapelyPolygon
 ModuleNotFoundError: No module named 'shapely'
-P13 [full.a5.13] HANG-OR-CRASH rc=1
+INSTDONE 13
+AUDITIONDONE
+# [beam.a4.4]

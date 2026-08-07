@@ -25,6 +25,25 @@ for _m in ("ogc_fast", "cranepack"):
                  "      the one they were built for.  Refusing to measure the Python fallback."
                  % (_m, sys.version.split()[0], _e))
 
+# AND THE PURE-PYTHON DEPENDENCIES, FOR THE SAME REASON.
+#
+# The container came back from a restart with python3.12's site-packages emptied -- shapely, numpy
+# and ortools all gone, while python3.11 kept its copies and `pip` pointed at 3.11.  keepalive
+# dutifully relaunched the queue, every cell raised ModuleNotFoundError inside utils, and the
+# harness recorded 64 "HANG-OR-CRASH" lines that look exactly like a real hang.  Worse, the
+# resume logic then treats a recorded crash as a finished cell, so those runs would never have
+# been retried.
+#
+# Fail here instead, with the fix in the message.
+for _d in ("shapely", "numpy"):
+    try:
+        importlib.import_module(_d)
+    except ImportError as _e:
+        sys.exit("run1: %s is missing under %s (%s).\n"
+                 "      python3.12 -m pip install --break-system-packages shapely numpy ortools\n"
+                 "      (pip alone targets 3.11 on this image and will not fix 3.12.)"
+                 % (_d, sys.version.split()[0], _e))
+
 mod = importlib.import_module(sys.argv[1])
 p = int(sys.argv[2]); T = float(sys.argv[3]); tag = sys.argv[4] if len(sys.argv) > 4 else ""
 here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
