@@ -17,3 +17,5 @@ P25 [r1.base.25]   240s  obj=69815713    Z1=10235.0  Z2=1042   Z3=7874.0    feas
 WSTAT round=0 n=1 70665665 - - -  spread=0.00%
 P25 [r1.low.25]    240s  obj=70665665    Z1=10335.0  Z2=1355   Z3=8784.0    feas=y   ran 240s  py3.12
 # [r1.base.12]
+WSTAT round=0 n=4 140198 149812 138196 145084  spread=8.41%
+P12 [r1.base.12]   240s  obj=134246      Z1=12.0     Z2=7750   Z3=4900.0    feas=y   ran 239s  py3.12
