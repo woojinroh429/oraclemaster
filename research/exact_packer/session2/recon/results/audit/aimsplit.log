@@ -729,3 +729,8 @@ P16 [r2.base.16]   240s  obj=3649322     Z1=189.0    Z2=2045   Z3=4493.0    feas
 BEAMSTAT salv=0 capped=0 used=0.80 level=1.00 B=96 K=3 work=482
 BEAMSTAT salv=0 capped=1 used=0.83 level=1.00 B=67 K=5 work=1292
 BEAMSTAT salv=0 capped=1 used=0.84 level=1.00 B=67 K=5 work=1687
+BEAMSTAT salv=0 capped=0 used=0.88 level=1.00 B=96 K=4 work=1366
+BEAMSTAT salv=0 capped=0 used=0.89 level=1.00 B=96 K=3 work=4731
+BEAMSTAT salv=0 capped=1 used=0.89 level=1.00 B=67 K=5 work=4701
+BEAMSTAT salv=1 capped=0 used=0.90 level=0.99 B=48 K=6 work=5291
+BEAMSTAT salv=0 capped=1 used=0.86 level=1.00 B=67 K=5 work=4680
