@@ -136,3 +136,5 @@ P4   [p4.w12000.a5] work=12000     B=96   K=4 axis=5  obj=3253535      feas=y   
 # [p24.w12000.a0]
 P24  [p24.w12000.a0] work=12000     B=96   K=4 axis=0  obj=2881916      feas=y    47.8s  digest=e92f569ba1888f91
 # [p24.w12000.a1]
+P24  [p24.w12000.a1] work=12000     B=96   K=4 axis=1  obj=3176320      feas=y    50.4s  digest=970b0a4195eaa7ea
+# [p24.w12000.a2]
