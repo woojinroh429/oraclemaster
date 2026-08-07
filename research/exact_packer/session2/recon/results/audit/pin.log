@@ -48,3 +48,5 @@ WSTAT round=0 n=4 4478443 3574878 4415410 3842236  spread=25.28%
 P16 [r1.det.16]    240s  obj=3574878     Z1=183.0    Z2=1813   Z3=4518.0    feas=y   ran 239s  py3.12
 REPDONE 1
 # [r2.adapt.16]
+WSTAT round=0 n=4 4633297 3656247 4152640 4218623  spread=26.72%
+P16 [r2.adapt.16]   240s  obj=3612529     Z1=182.0    Z2=2141   Z3=4718.0    feas=y   ran 239s  py3.12
