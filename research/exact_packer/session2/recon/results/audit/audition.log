@@ -1251,3 +1251,4 @@ INSTDONE 4
 P26 [beam.a0.26]    60s  obj=25502751    Z1=2526.0   Z2=7509   Z3=10818.0   feas=y   ran 59s  py3.12
 # [full.a0.26]
 P26 [full.a0.26]   240s  obj=25660831    Z1=2580.0   Z2=7171   Z3=10566.0   feas=y   ran 226s  py3.12
+# [beam.a1.26]
