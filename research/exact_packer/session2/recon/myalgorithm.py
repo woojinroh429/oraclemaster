@@ -2513,6 +2513,10 @@ def _worker(args):
     # times a run from elapsed()/work and feeding back into its own cost.  OGC_ADAPTB=0 pins that.
     # Neither is much use without the other, which is why this had to move out of myalg_det.py.
     _DET = os.environ.get("OGC_DET") == "1"
+    try:
+        _BEAMCAP = float(os.environ.get("OGC_BEAMCAP", "0"))
+    except Exception:
+        _BEAMCAP = 0.0
     gain = [0.0] * len(ops); spent = [1e-6] * len(ops); tried = [0] * len(ops)
     # incumbent value at which a repair pass last came back empty.  Those passes are
     # deterministic, so asking again without a changed incumbent gets the same nothing --
@@ -2605,6 +2609,34 @@ def _worker(args):
         # pass always completes, so it wants what it actually used and no more.
         before = pool[0][0] if pool else float("inf")
         _ask = max(1.0, min(left - 1.0, slot[k]))
+        # A CEILING ON WHAT ONE BEAM DRAW MAY ASK FOR (OGC_BEAMCAP=<seconds>, absent = off).
+        #
+        # The opening slice is a FRACTION of the budget -- 0.20 for a search operator -- so a
+        # bigger budget buys both more draws and BIGGER draws.  Bigger is the half that hurts,
+        # because a draw's seconds become beam WIDTH: Bcur = min(Bmax, left/(per*rem)) is
+        # recomputed per level from the slice it was given, so a 47 s draw ranks far more states
+        # by the same myopic proxy than an 11 s draw does.
+        #
+        # Measured on prob_16 with OGC_DRAWSTAT, per cell and within cell boundaries:
+        #
+        #     60 s    8 draws at ask=11.2   best 3,557,431
+        #    240 s   20 draws at ask=47.2   best 3,656,247
+        #    240 s    1 draw  at ask= 9.3   best 3,602,025   <- and it was the cell's answer
+        #
+        # Two and a half times the draws, four times the seconds each, and a WORSE best -- while
+        # the median draw improved 5.3%.  Wider draws are better on average and worse at the
+        # minimum, and the minimum is what gets reported.
+        #
+        # Capped at 12 s a 240 s budget spends the same seconds on roughly forty narrow draws
+        # instead of twenty wide ones.  At 60 s nothing changes at all: 0.20*56 = 11.2 is already
+        # under the cap, which is why this cannot damage the short-budget behaviour it was
+        # derived from.
+        #
+        # Beam only.  grow/bay/pref were not measured this way and prob_4 says they matter --
+        # there the best beam draw is 3,160,713 against a final of 2,763,198, so on that instance
+        # 12.6% of the answer comes from the operators this cap does not touch.
+        if _BEAMCAP > 0.0 and ops[k][0] == "beam":
+            _ask = max(1.0, min(_ask, _BEAMCAP))
         st = time.time()
         try:
             s = ops[k][1](_ask)

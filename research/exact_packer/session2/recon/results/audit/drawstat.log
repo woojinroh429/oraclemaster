@@ -177,3 +177,34 @@ DRAW wid=2 gen=7 axis=3 ask=7.1 took=11.2 obj=3717100
   opstat  TOTAL      10     238.1   99.6%                        
 WSTAT round=0 n=3 2800387 - 2737344 2997906  spread=9.52%
 P4  [r1.s240.4]    240s  obj=2737344     Z1=363.0    Z2=1683   Z3=2850.0    feas=y   ran 240s  py3.12
+REPDONE 1
+# [r2.s60.16]
+DRAW wid=1 gen=1 axis=2 ask=11.2 took=10.3 obj=3789469
+DRAW wid=3 gen=1 axis=4 ask=11.2 took=10.7 obj=4904425
+DRAW wid=0 gen=1 axis=1 ask=11.2 took=12.3 obj=5891459
+DRAW wid=2 gen=1 axis=3 ask=11.2 took=13.0 obj=5878397
+DRAW wid=1 gen=3 axis=4 ask=11.2 took=10.5 obj=4516382
+DRAW wid=0 gen=3 axis=3 ask=11.2 took=12.4 obj=5250474
+DRAW wid=3 gen=3 axis=0 ask=11.2 took=10.6 obj=5436243
+DRAW wid=2 gen=3 axis=5 ask=11.2 took=10.3 obj=6908530
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        2      21.3   38.8%   8398788317 393767609.9
+  opstat  grow        1      13.8   25.2%            0        0.0
+  opstat  bal         1       0.0    0.1%            0        0.0
+  opstat  pref        2       7.9   14.3%        17142     2172.8
+  opstat  bay         1      11.3   20.6%            0        0.0
+  opstat  TOTAL       7      54.5   99.0%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        2      24.7   44.9%   8397801283 339718812.5
+  opstat  grow        1      10.4   18.9%      1578358   151994.8
+  opstat  bal         1       0.1    0.1%            0        0.0
+  opstat  pref        2       9.3   16.8%        47238     5098.3
+  opstat  bay         1       9.8   17.8%            0        0.0
+  opstat  TOTAL       7      54.2   98.6%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        2      23.3   42.2%   8397814345 360532360.1
+  opstat  grow        1      12.1   21.9%      1101641    91145.5
+  opstat  bal         1       0.0    0.1%            0        0.0
+  opstat  pref        2       7.3   13.2%        12148     1663.6
+  opstat  bay         1      11.5   20.9%            0        0.0
+  opstat  TOTAL       7      54.2   98.4%                        
