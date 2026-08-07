@@ -29,6 +29,15 @@
 set -u
 cd "$(dirname "$0")/.." || exit 1
 echo mono > harness/CURRENT
+# COMMIT IT.  harness/CURRENT is TRACKED, and keepalive's post-restart recovery runs
+# `git reset --hard FETCH_HEAD` before reading it -- so a runtime value that was never
+# committed is rewound to whatever the remote holds.  That is exactly what happened at
+# 10:07: this queue had set CURRENT=mono, the container restarted, the reset put `idle`
+# back, and keepalive faithfully relaunched the no-op queue.  One line closes it.
+( cd "$(git rev-parse --show-toplevel)" \
+  && git add research/exact_packer/session2/recon/harness/CURRENT \
+  && git commit -q -m "queue: CURRENT=mono" \
+  && git push -q origin claude/repair-plan-model-1ig6it ) >/dev/null 2>&1
 L=results/audit/mono.log
 mkdir -p results/audit; touch $L
 
@@ -40,7 +49,7 @@ run(){ # rep arm prob env
         "[$tag]" --data data/stage2 >> $L 2>&1 \
         || echo "P$3 [$tag] HANG-OR-CRASH rc=$?" >> $L
     ( cd "$(git rev-parse --show-toplevel)" \
-      && git add research/exact_packer/session2/recon/results/audit/mono.log \
+      && git add research/exact_packer/session2/recon/results/audit/mono.log research/exact_packer/session2/recon/harness/CURRENT \
       && git commit -q -m "in-flight: mono $tag" ) >/dev/null 2>&1
 }
 
