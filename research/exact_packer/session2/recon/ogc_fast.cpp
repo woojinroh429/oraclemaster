@@ -207,6 +207,55 @@ static bool bmp_overlap(const LayerData& A,int aox,int aoy,const LayerData& B,in
 }
 
 struct OrientData { std::vector<LayerData> layers; double x0,y0,x1,y1; };
+
+// ORIENTATION SCAN ORDER.  Not a cap -- a reordering.
+//
+// best_cell_contact_tl keeps `bestsc` OUTSIDE the orientation loop and its cell-pruning bound is
+// exact (measured: 45.9M/11.6M/9.3M candidate cells skipped, zero of them wrong).  So the loop
+// answers with the minimum over ALL orientations however they are ordered, and the order changes
+// only how early `bestsc` gets tight -- i.e. how many cells the bound can kill.  The one thing it
+// can change in the answer is which of two EXACTLY equal scores is kept.
+//
+// Why it is worth doing.  Instances split cleanly into 8-orientation and 12-orientation, with
+// nothing in between (stage2: 70.9% of blocks have 8, 19.2% have 12), and the 12-orientation ones
+// are the LOOSE ones -- peak concurrent area over total bay area has median 76.9% and never
+// exceeds 96.3%, against 119.3% median and 355.6% max for the 8-orientation instances.  prob_1,
+// where this project is furthest behind, is 99.3% twelve-orientation and peaks at 59.3%.  The
+// objective reads only (bay, entry_time); geometry is a feasibility constraint.  So on those
+// instances the extra orientations are being scanned for a freedom the instance does not need,
+// and a scan is the whole cost: prob_4 draws take 19.3-22.1 s against prob_16's 14.4 s despite
+// having LESS total scan work (1.54e7 vs 2.01e7 block*bay*orient*cells).
+//
+// A density threshold would be the obvious fix and it is the wrong one: the hidden instances'
+// densities are unknown, prob_10 already peaks at 96.3%, and cutting orientations there could cost
+// feasibility outright.  Ordering costs nothing when it is wrong.
+//
+// Two keys, composed:
+//   - a per-block static order by bounding-box area ascending.  The polygon area is
+//     rotation-invariant but the BOX is not -- one prob_1 block spans 40.5 / 85.8 / 93.4, a factor
+//     of 2.3 -- and the compact poses are the ones that fit against existing contact.
+//   - a move-to-front hint per (block, bay): whatever won here last time is tried first.  On a
+//     loose instance the same pose keeps winning and `bestsc` is tight after one orientation; on a
+//     tight instance the hint keeps missing and the scan naturally walks the whole list.  Cost
+//     tracks difficulty with no threshold and no instance detection.
+//
+// OFF BY DEFAULT, AND THE REASON MATTERS MORE THAN THE FEATURE.
+//
+// This was written on the argument that reordering "cannot change the answer, only the time",
+// because `bestsc` spans the orientation loop and the cell bound is exact.  That is true AT FIXED
+// WORK and false for this engine, which is time-adaptive: the per-level width is
+// Bcur = min(Bmax, left/(per*rem)), recomputed ~250 times a run from measured seconds, so anything
+// that changes how long a scan takes changes the width, the search, and the answer.  Measured the
+// same day: two dead calls behind switched-off flags moved prob_24 by 1.03%.
+//
+// And it shows.  prob_1 at 60 s, plain order 610,313 both times; reordered 524,295 then 653,879 --
+// -14.1% and +7.1% on consecutive draws.  Draw counts barely moved (21 -> 20), so the throughput
+// gain the reordering was built for did not appear either.
+//
+// So it carries the same risk as any other perturbation and needs the same evidence, which it does
+// not have.  OGC_ORORD=1 enables it.
+static bool ORORD_on(){ static const bool v=[](){ const char* e=std::getenv("OGC_ORORD");
+                                                  return (e && e[0]=='1'); }(); return v; }
 struct BlockShape {
     std::vector<OrientData> orients;
     double workload=0,due=0,pt=0,rt=0;
@@ -904,6 +953,47 @@ struct Engine {
         return (mx2-mn2)-(mx-mn);
     }
 
+    // Per-block static order, bounding-box area ascending.  Built once per block per thread; the
+    // orientation list never changes during a run.
+    const std::vector<int>& or_static(int bid) const {
+        static thread_local std::unordered_map<int,std::vector<int>> cache;
+        auto it=cache.find(bid);
+        if(it!=cache.end()) return it->second;
+        const BlockShape& bs=shapes[bid];
+        std::vector<int> v((size_t)bs.orients.size());
+        for(size_t i=0;i<v.size();i++) v[i]=(int)i;
+        std::sort(v.begin(),v.end(),[&](int a,int b){
+            const OrientData&A=bs.orients[a]; const OrientData&B=bs.orients[b];
+            double aa=(A.x1-A.x0)*(A.y1-A.y0), bb=(B.x1-B.x0)*(B.y1-B.y0);
+            if(aa!=bb) return aa<bb;
+            return a<b;                      // stable, so the order is a function of the block
+        });
+        return cache.emplace(bid,std::move(v)).first->second;
+    }
+    // Move-to-front hint per (block, bay).  -1 until that pair has produced a winner.
+    int16_t& or_hint(int bid,int bay) const {
+        static thread_local std::vector<int16_t> t;
+        size_t need=(size_t)shapes.size()*(size_t)(n_bays>0?n_bays:1);
+        if(t.size()<need) t.assign(need,(int16_t)-1);
+        return t[(size_t)bid*(size_t)(n_bays>0?n_bays:1)+(size_t)bay];
+    }
+    // Fills buf with the orientation indices in scan order and returns how many.  Never drops one.
+    int or_order(int bid,int bay,int norient,int* buf) const {
+        if(!ORORD_on() || norient>64){
+            for(int i=0;i<norient;i++) buf[i]=i;
+            return norient;
+        }
+        int n=0;
+        int h=(int)or_hint(bid,bay);
+        if(h>=0 && h<norient) buf[n++]=h;
+        for(int oi : or_static(bid)){
+            if(oi>=norient) continue;
+            if(n>0 && oi==buf[0]) continue;  // already placed by the hint
+            buf[n++]=oi;
+        }
+        return n;                            // == norient: a reordering, not a restriction
+    }
+
     void best_cell_contact_tl(const std::vector<std::vector<Placed>>& TL,int bid,int cur,int step,
                               double pos_lam,double prefw,double mu,double w1,double w3,
                               double fut_beta,double mean_proc,int topk,std::vector<std::array<int,5>>& out,
@@ -1069,7 +1159,9 @@ struct Engine {
             }
             double pen = (bay<(int)bs.prefs.size())? (s_max-bs.prefs[bay]) : s_max;
             double bestsc=1e300; int boi=-1,bix=0,biy=0,bct=0;
-            for(int oi=0;oi<norient;oi++){ const OrientData& od=bs.orients[oi]; int nl=(int)od.layers.size();
+            int _ordbuf[64]; const int _nord=or_order(bid,bay,norient,_ordbuf);
+            for(int _oq=0;_oq<_nord;_oq++){ const int oi=_ordbuf[_oq];
+                const OrientData& od=bs.orients[oi]; int nl=(int)od.layers.size();
                 double w=od.x1-od.x0,h=od.y1-od.y0; if(w>bw_j+1e-9||h>bh_j+1e-9)continue;
                 const FP& fp=footprint(bid,oi);
                 // layer 0's column span for this orientation: the floor cells the block will
@@ -1428,6 +1520,7 @@ struct Engine {
                 }
             }
             if(boi<0)continue;
+            or_hint(bid,bay)=(int16_t)boi;   // move-to-front: try this pose first next time
             double drank = w1*tardy + w3*pen - mu*(double)bct
                          + (loads ? w2*dobj2_of(*loads, bay, bs.workload) : 0.0);
             // guided-reconstruction anchor: bias toward the incumbent bay for this block
