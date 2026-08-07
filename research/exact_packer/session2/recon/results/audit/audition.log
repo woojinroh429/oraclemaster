@@ -1239,3 +1239,4 @@ ModuleNotFoundError: No module named 'shapely'
 INSTDONE 13
 AUDITIONDONE
 # [beam.a4.4]
+P4  [beam.a4.4]     60s  obj=2972892     Z1=372.0    Z2=3671   Z3=3217.0    feas=y   ran 59s  py3.12
