@@ -114,3 +114,11 @@ BEAMSTAT salv=1 capped=0 used=0.10 level=0.06 B=67 K=5 work=23
 BEAMSTAT salv=1 capped=0 used=0.10 level=0.06 B=48 K=6 work=23
 WSTAT round=0 n=4 3958263 3499985 4020540 3746541  spread=14.87%
 P16 [r1.shal.16]   240s  obj=3499985     Z1=177.0    Z2=2598   Z3=4529.0    feas=y   ran 239s  py3.12
+# [r1.base.1]
+BEAMSTAT salv=1 capped=0 used=0.10 level=0.29 B=67 K=5 work=46
+BEAMSTAT salv=1 capped=0 used=0.10 level=0.29 B=96 K=3 work=46
+BEAMSTAT salv=1 capped=0 used=0.10 level=0.49 B=67 K=5 work=76
+BEAMSTAT salv=1 capped=0 used=0.10 level=0.48 B=48 K=6 work=74
+BEAMSTAT salv=0 capped=1 used=0.78 level=1.00 B=67 K=5 work=5365
+BEAMSTAT salv=0 capped=1 used=0.83 level=1.00 B=96 K=4 work=4198
+BEAMSTAT salv=0 capped=1 used=0.67 level=1.00 B=67 K=5 work=9702
