@@ -96,3 +96,5 @@ P4   [A.p4.a3.wm1.0] work=3000      B=96   K=4 axis=3  obj=3189844      feas=y  
 P4   [A.p4.a3.wm2.0] work=3000      B=96   K=4 axis=3  obj=3145024      feas=y    17.0s  digest=70fdf6e2419695b9
 # [A.p4.a3.wm4.0]
 P4   [A.p4.a3.wm4.0] work=3000      B=96   K=4 axis=3  obj=3145024      feas=y    16.3s  digest=70fdf6e2419695b9
+# [A.p4.a3.wm8.0]
+P4   [A.p4.a3.wm8.0] work=3000      B=96   K=4 axis=3  obj=3145024      feas=y    16.6s  digest=70fdf6e2419695b9
