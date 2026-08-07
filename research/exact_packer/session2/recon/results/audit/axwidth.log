@@ -123,3 +123,5 @@ P24  [p24.w6000.a3.bax] work=6000      B=67   K=5 axis=3  obj=3706135      feas=
 P24  [p24.w6000.a4.bax] work=6000      B=96   K=3 axis=4  obj=3438906      feas=y    25.2s  digest=11ef27384e5037f5
 # [p24.w6000.a5.bax]
 P24  [p24.w6000.a5.bax] work=6000      B=48   K=6 axis=5  obj=3273771      feas=y    24.1s  digest=bc5b2790c9da3415
+WIDTHDONE 6000
+AXWIDTHDONE
