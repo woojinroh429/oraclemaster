@@ -67,3 +67,5 @@ P4   [A.p4.a0.wm0.25] work=3000      B=96   K=4 axis=0  obj=3587738      feas=y 
 P4   [A.p4.a0.wm0.5] work=3000      B=96   K=4 axis=0  obj=3347832      feas=y    33.3s  digest=5eb18c0d6606b6fb
 # [A.p4.a0.wm1.0]
 P4   [A.p4.a0.wm1.0] work=3000      B=96   K=4 axis=0  obj=3408101      feas=y    32.2s  digest=06f3cbf8714cf2ff
+# [A.p4.a0.wm2.0]
+P4   [A.p4.a0.wm2.0] work=3000      B=96   K=4 axis=0  obj=3487415      feas=y    31.4s  digest=7735fbd8a4fe2c72
