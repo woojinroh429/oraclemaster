@@ -74,23 +74,31 @@ print("=" * 78)
 print("ALLOCATION POLICIES AT EQUAL TOTAL WORK (min over the draws the policy makes)")
 print("  rotate6 = one draw per axis at W/6   |   conc1 = one draw on THIS instance's best axis at W")
 print("  conc2   = two draws, the two best axes at W/2")
+#
+# Priced in TOTAL work spent, not in a matched budget: the concentrating policies are compared at
+# whatever total they actually cost, and that total is printed.  A policy that wins while spending
+# LESS is a strictly stronger result than one that wins at parity, and forcing parity would have
+# thrown away the cells this queue measured.
 for p in probs:
     print("  P%-3d" % p)
-    for W in [w * 6 for w in works]:
-        per6 = W // 6
-        rot = [Q[(p, per6, a)][0] for a in axes if (p, per6, a) in Q]
-        c1 = [Q[(p, W, a)][0] for a in axes if (p, W, a) in Q]
-        perp = W // 2
-        c2 = sorted(Q[(p, perp, a)][0] for a in axes if (p, perp, a) in Q)
-        if not rot or not c1:
-            continue
-        rotv, c1v = min(rot), min(c1)
-        c2v = min(c2[:2]) if len(c2) >= 2 else None
-        line = "    W=%-7d rotate6 %12d   conc1 %12d  %+7.2f%%" % (
-            W, rotv, c1v, 100.0 * (c1v - rotv) / rotv)
-        if c2v is not None:
-            line += "   conc2 %12d  %+7.2f%%" % (c2v, 100.0 * (c2v - rotv) / rotv)
-        print(line)
+    for w in works:
+        rot = [Q[(p, w, a)][0] for a in axes if (p, w, a) in Q]
+        if len(rot) < len(axes):
+            continue                                   # incomplete rotation, not comparable
+        rotv, rotW = min(rot), w * len(axes)
+        for cw in works:
+            c1 = [Q[(p, cw, a)][0] for a in axes if (p, cw, a) in Q]
+            if not c1:
+                continue
+            c1v = min(c1)                              # oracle: told this instance's best axis
+            c2 = sorted(c1)
+            c2v = c2[1] if len(c2) > 1 else None       # two best axes, one draw each
+            line = ("    rotate6 W=%-6d %11d  |  conc1 w=%-6d W=%-6d %11d %+8.2f%%"
+                    % (rotW, rotv, cw, cw, c1v, 100.0 * (c1v - rotv) / rotv))
+            if c2v is not None:
+                line += ("  |  conc2 W=%-6d %11d %+8.2f%%"
+                         % (2 * cw, min(c1v, c2v), 100.0 * (min(c1v, c2v) - rotv) / rotv))
+            print(line)
 print()
 print("conc1 is an ORACLE: it is told the best axis for this instance. It bounds what any adaptive")
 print("policy could win, and if it does not beat rotate6 then axis allocation is not the lever.")
