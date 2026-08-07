@@ -302,6 +302,63 @@ def _build_operations(assignments):
         ops[str(t)] = out
     return {"operations": ops}
 
+_SHAPE_FEAT_CACHE = {}
+
+
+def _shape_feats(prob):
+    """Per-block ASPECT ratio and BOX FILL, cached.  Both are geometry the dispatch orders do not
+    currently see, and both were measured orthogonal to footprint area across all forty stage-2
+    instances: median Spearman rho(area, aspect) = -0.053 and rho(area, box-fill) = -0.061.
+
+    That orthogonality is the whole point.  Every order in the list today is built from due,
+    due - pt and area, and area correlates with due at rho = +0.23, so the axes are variations on
+    two correlated signals -- which is the mechanism behind the attractors in
+    results/audit/attractors.md, where independent configurations return objectives equal to the
+    digit.  The answer is a MINIMUM over workers, so the portfolio is worth exactly what the
+    workers differ by, and a signal uncorrelated with the ones already in use is the only kind
+    that can make them differ structurally rather than by seed.
+
+    Aspect is long side over short side of the chosen orientation's bounding box: shape
+    awkwardness independent of size.  Box fill is the union-of-layers area over the bounding-box
+    area: concavity, which decides whether a block interlocks with its neighbours or wastes the
+    rectangle it claims.
+
+    Orientation is taken as the minimum-area one, matching _footprint_areas so the two agree on
+    which orientation they describe.  (The spread across orientations is a median 1.46x in area,
+    which is a lever nothing currently pulls; that is a separate question from this one.)
+    """
+    key = id(prob)
+    got = _SHAPE_FEAT_CACHE.get(key)
+    if got is not None:
+        return got
+    blocks = prob["blocks"]
+    asp = []; fill = []
+    for bid in range(len(blocks)):
+        best = None
+        for oi in range(len(blocks[bid]["shape"])):
+            try:
+                b = Block(block_id=bid, block_data=blocks[bid], x=0.0, y=0.0, orient_idx=oi)
+                polys = [_Poly([(float(q[0]), float(q[1])) for q in L]) for L in b.resolved_layers()]
+                u = _uu(polys)
+                xs0, ys0, xs1, ys1 = u.bounds
+                w = xs1 - xs0; h = ys1 - ys0
+                if w <= 0 or h <= 0:
+                    continue
+                cand = (w * h, w, h, u.area)
+                if best is None or cand[0] < best[0]:
+                    best = cand
+            except Exception:
+                continue
+        if best is None:
+            asp.append(1.0); fill.append(1.0); continue
+        _bx, w, h, a = best
+        asp.append(max(w, h) / max(1e-9, min(w, h)))
+        fill.append(a / max(1e-9, _bx))
+    out = (asp, fill)
+    _SHAPE_FEAT_CACHE[key] = out
+    return out
+
+
 def _footprint_areas(prob):
     """Per-block footprint (union-of-layers) area, MIN over orientations, scaled to
     int for CP-SAT; plus raw bay-area capacities (scaled) and the scale factor.
@@ -434,6 +491,30 @@ def _contact_beam(prob_info, deadline_s, B=24, K=4, pos_lam=0.1, prefw=0.0, orde
                 _K = int(_kk) if _kk else 3
                 _vic = set(sorted(range(n), key=lambda b: -(AR[b] * pt[b]))[:_K])
                 ordv = [(1 if b in _vic else 0, _rd[b] + _ra[b], due[b]) for b in range(n)]
+        elif order in ("aspect", "boxfill"):
+            # rank's blend with the geometry term swapped for one that is ORTHOGONAL to area.
+            #
+            # rank scores rank(due) + rank(-area).  Its geometry term correlates with its own
+            # scheduling term at rho = +0.23 and with every other order's area term by
+            # construction, so it produces a sequence close to what the list already makes.
+            # Aspect (long side / short side) and box fill (polygon area / bounding-box area)
+            # measured rho = -0.053 and -0.061 against area over all forty stage-2 instances, so
+            # they move blocks that size and deadline never separate.
+            #
+            # The scheduling half is KEPT rather than dropped.  The objective is 89% weighted
+            # tardiness (results/audit/objmix.md); an order that ignores due dates entirely has no
+            # route to that term, and pure-scheduling and pure-geometry rules have both been tried
+            # alone before.  This is the blend, which is what has not.
+            #
+            # Awkward shapes sort EARLY -- the standard packing argument that an irregular piece
+            # needs free space around it, and free space is what an empty yard has.
+            _ASP, _FILL = _shape_feats(prob_info)
+            _g = _ASP if order == "aspect" else [-x for x in _FILL]
+            _o = sorted(range(n), key=lambda i: due[i]); _rd = [0.0] * n
+            for _p, _i in enumerate(_o): _rd[_i] = _p / max(1, n - 1)
+            _o = sorted(range(n), key=lambda i: -_g[i]); _rg = [0.0] * n
+            for _p, _i in enumerate(_o): _rg[_i] = _p / max(1, n - 1)
+            ordv = [(_rd[b] + _rg[b], due[b]) for b in range(n)]
         elif order == "cohort":
             ordv = [(rel[b] + 0.5 * pt[b], due[b], -AR[b]) for b in range(n)]
         elif order == "lst":
@@ -1980,6 +2061,159 @@ def _worker(args):
 
     rng = random.Random(1234 + wid)
     axes = [_AXES[(wid + i) % len(_AXES)] for i in range(len(_AXES))]
+    # OGC_AXIS=<k> pins every worker to _AXES[k].  MEASUREMENT ONLY, absent by default, and the
+    # line below is the whole of it -- with the variable unset `axes` is exactly what it was.
+    #
+    # It exists because the axis config turned out to BE the spread: measured over five instances,
+    # running the six configs separately moves the objective 32% to 210% while repeating one
+    # config moves it 0.0% to 12.6%.  Which valley construction reaches is chosen by the config
+    # and by almost nothing else.  Each worker already receives all six and lets a bandit spend
+    # its budget among them, so the open question is whether that selection actually finds the
+    # best one inside 60 s -- and that cannot be asked without being able to force a single axis
+    # and compare against the bandit's own result.
+    try:
+        _ax = os.environ.get("OGC_AXIS")
+        if _ax is not None and _ax != "":
+            axes = [_AXES[int(_ax) % len(_AXES)]]
+    except Exception:
+        pass
+    # OGC_ORDER=<name> replaces the dispatch order of whatever axes are in play, keeping every
+    # other field.  Measurement only, absent by default.
+    #
+    # _contact_beam accepts seven orders and _AXES uses four: edd (2 slots), lst (1), defer_big
+    # (3), big_first (1).  rank, cohort and sacK are implemented and have never been in the
+    # portfolio.  The four in use are also narrower than they look -- all three defer_big entries
+    # sort on due as their second key -- so five of six axes are effectively deadline-ordered, and
+    # the 32-210% config spread cdecomp measured came from inside that range.
+    #
+    # Isolating the ORDER is the point: changing an _AXES entry would move Bmul, K, pos_lam and
+    # w3mul with it, and the result could not be attributed to the order at all.
+    try:
+        _od = os.environ.get("OGC_ORDER")
+        if _od:
+            axes = [dict(_c, order=_od) for _c in axes]
+    except Exception:
+        pass
+    # OGC_AXSET=<name> swaps the axis SET.  Measurement only, absent by default.
+    #
+    # The six shipped axes carry four orders -- defer_big x3, lst, edd, big_first -- and not one
+    # of them blends deadline with size.  Measured (results/audit/orders.log): sac3 alone beat all
+    # six by 17.09% on P16 and rank alone beat them by 6.63% on P6, while the three defer_big
+    # entries were best on nothing.  sac3 is rank plus "dispatch the three largest area*time
+    # blocks last", so both winners are the same missing idea.
+    #
+    # REPLACE, DO NOT APPEND.  base lost 3 of 4 instances to a single fixed order, and bandit
+    # priced why: choosing among six costs 1-9% against spending the whole budget on one.  A
+    # seventh axis raises that toll on every instance to buy P16.  The defer_big slots are the
+    # ones to spend, since they won nothing.
+    try:
+        _as = os.environ.get("OGC_AXSET")
+        if _as == "v1":                       # one defer_big -> sac3
+            axes = [dict(_c, order="sac3") if _i == 5 else _c for _i, _c in enumerate(axes)]
+        elif _as == "v2":                     # two defer_big -> sac3 and rank
+            axes = [dict(_c, order="sac3") if _i == 5 else
+                    dict(_c, order="rank") if _i == 1 else _c for _i, _c in enumerate(axes)]
+        elif _as == "v3":                     # append instead of replacing, to price the toll
+            axes = axes + [dict(_AXES[5], order="sac3")]
+        elif _as in ("a4", "a5", "a5d"):
+            # AXIS COUNT, not just axis content.  Only 1, 6 and 7 have ever been measured and
+            # they came out 1 > 6 > 7: a single fixed order beat the six on 3 of 4 instances, and
+            # seven was 10.8% worse than six on P1.  4 and 5 are unmeasured, and one axis is not
+            # shippable because nothing readable off an instance says which one it should be.
+            #
+            # Built by VIEWPOINT, because four of the six shipped slots hold the same one -- the
+            # three defer_big entries all sort on due as their second key, and edd is that view
+            # again.  One entry each:
+            #     slack   lst        due - pt, the only order that prices processing time
+            #     size    big_first  the only area-ordered entry
+            #     blend   sac3       rank plus "the three largest area*pt go last"
+            #     deadline edd       plain due
+            #     blend-  rank       the same blend without the sacrifice (a5 only)
+            # Parameters come from the slots those orders already occupy rather than being
+            # invented, so Bmul spans 0.5/0.7/0.7/1.0/1.4 and the sets differ in width and
+            # lookahead as well as in order.
+            #
+            # a5d swaps edd for defer_big to ask which form of the deadline view earns the slot;
+            # defer_big holds three slots today and was best on no instance.
+            _sac = dict(_AXES[5], order="sac3")
+            _rank = dict(_AXES[0], order="rank")
+            if _as == "a4":
+                _set = [_AXES[2], _AXES[4], _sac, _AXES[3]]
+            elif _as == "a5":
+                _set = [_AXES[2], _AXES[4], _sac, _AXES[3], _rank]
+            else:
+                _set = [_AXES[2], _AXES[4], _sac, _rank, _AXES[1]]
+            # Keep the per-worker rotation.  Replacing `axes` outright would hand every worker the
+            # same starting axis, which is a second change riding along with the set size and
+            # would make the comparison unreadable.
+            axes = [_set[(wid + i) % len(_set)] for i in range(len(_set))]
+        elif _as in ("o4", "o4f", "o5"):
+            # FOUR OPENING SLOTS, FOUR SIGNALS WITH LOW MUTUAL CORRELATION.
+            #
+            # Two facts about the shipped list drive this, both from results/audit/axes_structure.md.
+            # First, worker wid opens on _AXES[wid % 6] and nw is 4, so axes 4 and 5 can never open
+            # a run -- and the loop's own trace on the hidden P6 recorded the first beam producing
+            # the best solution of the entire 300 s run in 33 seconds.  The opening axis largely
+            # decides the answer, so the list is effectively four entries, not six.  Second, two of
+            # those four (0 and 1) share Bmul, K, order and fut_beta and differ by pos_lam 0.10 vs
+            # 0.12.  Three distinct viewpoints occupy four opening slots.
+            #
+            # And every one of those viewpoints is built from due, due - pt and area, which
+            # correlate: rho(area, due) = +0.23 across the forty stage-2 instances.  Workers built
+            # on correlated signals converge, which is what attractors.md documents -- independent
+            # configurations returning objectives equal to the digit.  Since the answer is a
+            # MINIMUM over workers, a portfolio of correlated axes buys almost nothing.
+            #
+            # So fill the four opening slots with four signals instead:
+            #     deadline   edd      due
+            #     slack      lst      due - pt, the only order pricing processing time
+            #     size       rank     rank(due) + rank(-area), the continuous blend, never shipped
+            #     shape      aspect   rank(due) + rank(-aspect); rho(area, aspect) = -0.053
+            # o4f swaps shape for box fill (rho = -0.061), the other orthogonal measure, to ask
+            # which shape signal earns the slot rather than assuming.  o5 keeps both.
+            #
+            # Parameters are taken from the slots these orders already occupy rather than invented.
+            _rank = dict(_AXES[0], order="rank")
+            _asp = dict(_AXES[1], order="aspect")
+            _fil = dict(_AXES[1], order="boxfill")
+            if _as == "o4":
+                _set = [_AXES[3], _AXES[2], _rank, _asp]
+            elif _as == "o4f":
+                _set = [_AXES[3], _AXES[2], _rank, _fil]
+            else:
+                _set = [_AXES[3], _AXES[2], _rank, _asp, _fil]
+            axes = [_set[(wid + i) % len(_set)] for i in range(len(_set))]
+        elif _as in ("L3", "L2S"):
+            # SPEND SLOTS ON THE VIEWPOINT THAT WINS.  Every arrangement tried so far either added
+            # a new order (v1, v2, v3) or changed the count (a4) -- giving MORE ROOM to the order
+            # that already wins has not been tried, and the case for it is the plainest reading of
+            # the day:
+            #
+            #     lst        beat base wherever dispatch order has any effect, at 240 s on P16,
+            #                P6 and P20, with the margin growing as the budget grows -- and holds
+            #                ONE slot
+            #     defer_big  was best on no instance at either budget -- and holds THREE
+            #
+            # The count stays at six on purpose.  Changing it moves the budget split as well, and
+            # a4 showed that confounds the answer; this changes only which viewpoints occupy the
+            # slots.
+            #
+            # The three lst entries are not duplicates: they keep the Bmul/K/w3mul of the slots
+            # they replace, so the same viewpoint is examined at beam widths 0.5/0.7/1.0 and
+            # preference weights 1.0/3.0/1.5 -- one view at three resolutions.
+            #
+            # L2S keeps two lst and gives the third freed slot to sac3, which won P16 on both
+            # draws while losing P6 and P20 on both.
+            _l0 = dict(_AXES[0], order="lst")
+            _l5 = dict(_AXES[5], order="lst")
+            if _as == "L3":
+                _set = [_l0, _AXES[1], _AXES[2], _AXES[3], _AXES[4], _l5]
+            else:
+                _set = [_l0, _AXES[1], _AXES[2], _AXES[3], _AXES[4],
+                        dict(_AXES[5], order="sac3")]
+            axes = [_set[(wid + i) % len(_set)] for i in range(len(_set))]
+    except Exception:
+        pass
     pool = [best] if best[1] is not None else []
     _seed_bump = [0]                                # bumped when this worker restarts
     band = _Bandit([0.25, 1.0, 4.0], rng)          # crane-contact weight
@@ -2074,14 +2308,32 @@ def _worker(args):
 
     if HAVE_ORTOOLS:
         ops.append(("bay", lambda t: _assign(prob_info, pool[0][1], t), True, True, 3.0))
-    try:
-        import bayrepack as _brk
-        ops.append(("brk", lambda t: _brk.repack(prob_info, _brk_seed(), t, _total,
-                                                 _build_operations, _ogc_fast_engine,
-                                                 hard=budget - (time.time() - t0)),
-                    True, True, float(os.environ.get("OGC_BRKFLOOR", "8.0"))))
-    except Exception:
-        pass
+    # brk IS OFF BY DEFAULT IN THIS BUILD, DELIBERATELY, TO MEASURE IT ON THE HIDDEN SET.
+    #
+    # bayrepack is a randomised bay-level repack and it is the most expensive operator in the
+    # roster -- it carries the largest floor (OGC_BRKFLOOR = 8.0 s, against 0.5-3.0 for the
+    # others), so every probe of it costs at least eight seconds and the loop keeps choosing it
+    # while its gain/spent stays competitive.  Whether that budget earns more in brk than it
+    # would in the beam, grow and repair passes has only ever been measured on the training
+    # sets, and the final set is a different problem from the one those measurements were made
+    # on (1.8x median density, ten instances over capacity, and a preference term worth 3.6x
+    # more relative to tardiness).
+    #
+    # Removing it does not idle its share.  Slots are sized per operator and selection is by
+    # measured gain per second, so the time brk was taking is redistributed to whichever of the
+    # remaining operators is actually paying -- and the repair passes' opening slice is
+    # budget/(2n), which grows when n falls.
+    #
+    # OGC_BRK=1 restores it.  Nothing is deleted; bayrepack.py still ships and still imports.
+    if os.environ.get("OGC_BRK", "0") == "1":
+        try:
+            import bayrepack as _brk
+            ops.append(("brk", lambda t: _brk.repack(prob_info, _brk_seed(), t, _total,
+                                                     _build_operations, _ogc_fast_engine,
+                                                     hard=budget - (time.time() - t0)),
+                        True, True, float(os.environ.get("OGC_BRKFLOOR", "8.0"))))
+        except Exception:
+            pass
     # OGC_OPS: comma-separated roster filter, for ablation.  "beam,grow" runs the search
     # operators alone.  Unset means everything, which is the shipped behaviour.
     _only = os.environ.get("OGC_OPS")
@@ -2226,6 +2478,22 @@ def _worker(args):
     return best[1]
 
 
+def _worker_tagged(args):
+    """_worker, carrying its wid back with the answer.
+
+    WHO a result came from is not cosmetic here.  wid decides everything that makes a worker
+    different from its siblings -- the beam aim (_aims[wid % len(_aims)]), the seed
+    (random.Random(1234 + wid)) and the axis rotation (_AXES[(wid + i) % len(_AXES)]) -- so a
+    result without its wid cannot be attributed to any of them.
+
+    pool.map returned results in task order and that mapping was free.  imap_unordered, which is
+    what makes a dead worker survivable, returns them in completion order instead, and the
+    OGC_WSTAT line silently stopped meaning "worker 0, 1, 2, 3" the moment that changed.  Tagging
+    restores it, and it also names WHICH worker died rather than only how many.
+    """
+    return args[2], _worker(args)
+
+
 def _pool_round(prob_info, budget, rnd, nw, cwd, share_dir, room):
     """One round of nw workers, collected as they finish, and NEVER an unbounded wait.
 
@@ -2267,7 +2535,7 @@ def _pool_round(prob_info, budget, rnd, nw, cwd, share_dir, room):
             procs = list(pool._pool)
         except Exception:
             procs = None
-        it = pool.imap_unordered(_worker, tasks)
+        it = pool.imap_unordered(_worker_tagged, tasks)
         end = time.time() + max(5.0, room)
         want = nw
         while len(got) < want and time.time() < end:
@@ -2279,7 +2547,7 @@ def _pool_round(prob_info, budget, rnd, nw, cwd, share_dir, room):
             except StopIteration:
                 break
             except Exception:
-                got.append(None)      # this worker raised; it did deliver, and None is handled
+                got.append((-1, None))   # this worker raised; it delivered, and None is handled
                 continue
             if procs:                 # nothing ready: has one of them stopped existing?
                 try:
@@ -2294,7 +2562,12 @@ def _pool_round(prob_info, budget, rnd, nw, cwd, share_dir, room):
                 _fn()
             except Exception:
                 pass
-    return got
+    # BACK INTO wid ORDER, WITH A HOLE WHERE A WORKER DIED.  The OGC_WSTAT line is read column by
+    # column against the axis table, so position has to mean wid again; a worker that never
+    # returned must leave a gap rather than shift everyone after it one place left, which would
+    # attribute every result to the wrong axis.
+    by = dict((w, s) for w, s in got if w >= 0)
+    return [by.get(rnd * nw + i) for i in range(nw)]
 
 
 def algorithm(prob_info, timelimit=60):
@@ -2351,8 +2624,25 @@ def algorithm(prob_info, timelimit=60):
     except Exception:
         _shdir = None
     for _r in range(_R):
-        if _r > 0 and (timelimit - (time.time() - t0)) < (_rb + reserve):
-            break                                        # no room for another full round
+        # RUN THE LAST ROUND SHORT INSTEAD OF THROWING IT AWAY.
+        #
+        # This used to demand a FULL round plus the polish reserve before starting another, and
+        # `_rb` is `wbudget / _R` -- so after the last affordable round the test can never pass and
+        # the remainder is simply burned.  Measured on stage-2 prob_20 at a 240 s limit: R=2 ran
+        # ONE round and returned after 153 s, discarding 87 s; R=4 ran three rounds of four.
+        #
+        # It also puts the measurement that retired this knob in doubt.  That was run at a 60 s
+        # limit, where wbudget ~ 47, _rb ~ 23 and reserve ~ 12, so the second round was
+        # unaffordable by the same arithmetic -- R=2 was never two rounds there either.
+        #
+        # A short round cannot lose: `best` spans the rounds and a round only ever replaces the
+        # answer by beating it.  So take whatever is left above a floor worth starting, and give
+        # the round that instead of skipping it.
+        _left_r = timelimit - (time.time() - t0) - reserve - 1.0
+        if _r > 0:
+            if _left_r < max(4.0, 0.25 * _rb):
+                break                                    # not enough left to be worth a round
+            _rb = max(4.0, min(_rb, _left_r))
         try:
             if nw > 1:
                 out = _pool_round(prob_info, _rb, _r, nw, cwd, _shdir,
