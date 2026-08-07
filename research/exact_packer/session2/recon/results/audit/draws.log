@@ -1,1 +1,31 @@
 # [d60.16]
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        2      23.9   43.3%   8397142387 351823320.5
+  opstat  grow        1      12.1   22.0%      1713658   141686.3
+  opstat  bal         1       0.0    0.1%            0        0.0
+  opstat  pref        2       8.0   14.5%        19522     2436.1
+  opstat  bay         1       9.9   18.1%         7032      707.1
+  opstat  TOTAL       7      54.0   97.9%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        2      24.6   44.6%   8397986542 342018127.0
+  opstat  grow        1      11.0   20.0%       981631    88940.6
+  opstat  bal         1       0.0    0.1%            0        0.0
+  opstat  pref        2       8.2   15.0%        15170     1839.8
+  opstat  bay         1      10.3   18.7%            0        0.0
+  opstat  TOTAL       7      54.2   98.3%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        3      28.3   49.1%   8400175525 296554424.2
+  opstat  grow        1      12.4   21.5%            0        0.0
+  opstat  bal         1       0.0    0.1%            0        0.0
+  opstat  pref        1       5.7    9.9%        44649     7830.6
+  opstat  bay         1      10.5   18.3%            0        0.0
+  opstat  TOTAL       7      57.0   98.9%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        3      28.1   48.5%   8399589191 298825427.6
+  opstat  grow        1      13.8   23.8%            0        0.0
+  opstat  bal         1       0.0    0.1%            0        0.0
+  opstat  pref        1       5.6    9.7%        20000     3550.1
+  opstat  bay         1       9.9   17.1%            0        0.0
+  opstat  TOTAL       7      57.5   99.2%                        
+WSTAT round=0 n=4 4810143 3472568 4709399 4083551  spread=38.52%
+P16 [d60.16]        60s  obj=3472568     Z1=185.0    Z2=2321   Z3=3996.0    feas=y   ran 59s  py3.12
