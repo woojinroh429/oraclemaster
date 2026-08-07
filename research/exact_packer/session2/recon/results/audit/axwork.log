@@ -145,3 +145,5 @@ P24  [p24.w12000.a3] work=12000     B=96   K=4 axis=3  obj=3598463      feas=y  
 P24  [p24.w12000.a4] work=12000     B=96   K=4 axis=4  obj=3150336      feas=y    49.6s  digest=6e38f3b22685f00b
 # [p24.w12000.a5]
 P24  [p24.w12000.a5] work=12000     B=96   K=4 axis=5  obj=2856697      feas=y    47.5s  digest=b5aeaf2794abebef
+WORKDONE 12000
+AXWORKDONE

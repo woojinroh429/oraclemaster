@@ -1,0 +1,12 @@
+# [p16.w3000.a0.bax]
+# [p16.w3000.a0.bax]
+P16  [p16.w3000.a0.bax] work=3000      B=96   K=4 axis=0  obj=6671345      feas=y    13.8s  digest=c6e4496f9a52c7c2
+# [p16.w3000.a1.bax]
+P16  [p16.w3000.a0.bax] work=3000      B=96   K=4 axis=0  obj=6671345      feas=y    13.8s  digest=c6e4496f9a52c7c2
+# [p16.w3000.a1.bax]
+P16  [p16.w3000.a1.bax] work=3000      B=96   K=4 axis=1  obj=6720274      feas=y    14.7s  digest=459948e87a8c5cb7
+# [p16.w3000.a2.bax]
+P16  [p16.w3000.a1.bax] work=3000      B=96   K=4 axis=1  obj=6720274      feas=y    14.0s  digest=459948e87a8c5cb7
+# [p16.w3000.a2.bax]
+P16  [p16.w3000.a2.bax] work=3000      B=67   K=5 axis=2  obj=3190472      feas=y     9.9s  digest=f5dd5068c5abbad3
+# [p16.w3000.a3.bax]

@@ -28,6 +28,7 @@ a 19.6% band, which is what made every A/B this session unreadable.
     P24    1500      3462529     3242086     3900130     3637538     3736218    3168404*
            3000     3080029*     3196119     3326701     3637538     3275633     3236366
            6000     2949426*     3196119     3446775     3706135     3438906     3273771
+          12000      2881916     3176320     3304118     3598463     3150336    2856697*
 
 ## Four things it says
 
@@ -53,20 +54,32 @@ prob_16 (2,795,643) and 22% below what it returns today.
 
 It is also the exact opposite of OGC_BEAMCAP, which shrinks draws and measured +2.73% here.
 
-**4.  The best axis is instance-specific AND its rank is not stable in work.**  prob_4 and prob_16
-favour axis 2 at small budgets, prob_24 favours axis 0.  Worse, on prob_4 axis 2 wins at
-1500/3000/6000 and comes THIRD at 12000, because axis 2 is flat there (4.1% across the whole range)
-while axis 1 improves monotonically and overtakes it.
+**4.  The best axis is instance-specific, and TWO OF THREE instances change their answer at the
+largest budget.**  prob_4 and prob_16 favour axis 2 at small budgets, prob_24 favours axis 0 -- and
+then at 12000 prob_4's winner becomes axis 1 (2,953,661 against axis 2's 3,040,249) and prob_24's
+becomes axis 5 (2,856,697 against axis 0's 2,881,916).  Only prob_16 is stable, and it is the one
+with a huge margin.
 
-That is a harder objection to adaptive axis selection than the usual one.  Probing cheaply to pick
-an axis and then concentrating budget on it invalidates the probe: a 1500-work probe on prob_4
-picks axis 2, and at 12000 the answer is axis 1.
+That kills adaptive axis selection more thoroughly than the usual bandit objection.  Probing
+cheaply to pick an axis and then concentrating budget on it INVALIDATES THE PROBE: a 1500-work
+probe on prob_4 picks axis 2, and at 12000 the answer is axis 1.  The probe is only reliable where
+the margin is large, and where the margin is large no policy is needed.
+
+THE WORK DIRECTION SURVIVES THIS.  Taking the minimum over all axes at each work level -- which is
+what a worker returns, whichever axis produced it:
+
+    work        1500        3000        6000       12000
+    P16      3,247,623   3,159,373   2,477,998*  2,816,901
+    P4       2,916,374*  3,028,676   2,945,225   2,953,661
+    P24      3,168,404   3,080,029   2,949,426   2,856,697*
+
+The ranking of axes flips; the value of a larger draw does not.
 
 ## What the margins say about a usable policy
 
     prob_16   axis 2 over the runner-up:  2.05x  2.13x  2.51x  2.22x   never flips
     prob_4    axis 2 over the runner-up:  1.17x  1.05x  1.04x  0.97x   flips at 12000
-    prob_24   spread across all axes:     1.23x  1.18x  1.26x          no dominant axis
+    prob_24   best axis over runner-up:   1.02x  1.04x  1.08x  1.01x   flips at 12000
 
 Where the margin is large the ranking is stable; where it is small the ranking flips, and where it
 flips the cost of choosing wrong is small by the same token.  So the policy that fits the data is
