@@ -1401,20 +1401,42 @@ def _recs_to_ops(recs, n):
     return _build_operations([recs[b] for b in range(n)])
 
 
-# THE FINAL POLISH IS OFF BY DEFAULT: IT EARNS NOTHING AND IT HOLDS THE LARGEST RESERVATION.
+# THE FINAL POLISH IS ON, AS IT IS IN THE SUBMITTED BUILD.  IT WAS TURNED OFF ON THE WRONG
+# STATISTIC AND THAT COST 4-8%.
 #
-# Measured across all 804 runs in results/audit that record both the four worker objectives and the
-# final: median gain 0.00%, mean 0.33%, and 419 of 804 gained NOTHING AT ALL.  Three gained over
-# 5%.  For that it holds min(20% of budget, 40 s) -- 40 s of a 240 s limit, five times the floor of
-# brk, which was removed for being neutral.
+# The case for removing it was: across 804 runs recording both the four worker objectives and the
+# final, median gain 0.00%, mean 0.33%, 419 of 804 gained NOTHING, three gained over 5% -- for a
+# reservation of min(20% of budget, 40 s).  Every one of those numbers is right.  The inference
+# from them is not.
 #
-# It also corrupts measurement.  One of those three outliers (10.53%, prob_24) landed on a single
-# arm and produced this session's "permutation search wins 14.5%" headline; beam-side the same
-# comparison is -4.4%.  A term that is zero half the time and 10% occasionally does not belong
-# between the search and the score.
+# The score is a MINIMUM over workers and it is awarded PER INSTANCE.  Both say the same thing: the
+# tail pays, not the centre.  A pass that earns nothing on seven instances and 20% on the eighth is
+# worth its reservation on the eighth, and a median pooled over all of them cannot see that.  This
+# is the argument that was used, correctly, to reject OGC_BEAMCAP in the same session -- "the
+# median worker improved and the minimum got worse, so the arm goes the wrong way" -- and it was
+# not applied here.
 #
-# OGC_POLISH=1 restores it.
-_POLISH = os.environ.get("OGC_POLISH", "0") == "1"
+# Measured, paired inside one queue at 240 s:
+#
+#     P16  ON 3,286,759  OFF 3,557,431   -7.61%      P4   ON 2,615,319  OFF 2,737,344   -4.46%
+#     P20  ON 8,854,193  OFF 9,215,638   -3.92%      P24  ON 2,632,054  OFF 2,788,156   -5.60%
+#
+# and at 60 s with OGC_ROUNDS=2, ON returns 2,796,522 in five separate cells to the last digit
+# against 3,520,718 / 3,835,016 for OFF -- an interaction, since neither the polish nor the extra
+# round does anything on its own.
+#
+# The reserve scales with the budget, which is why the old measurement could not see this: it is
+# 12 s at 60 s and 40 s at 240 s, and _z3_improve calls Engine.z3_reassign, whose body is
+# `hillclimb(); while (elapsed() < budget) { ruin_recreate(rng); hillclimb(); }` -- a loop that
+# absorbs whatever it is handed.  At 12 s it earns nothing at R=1; at 40 s it earns 4-8%.
+#
+# NOT SETTLED: prob_16 and prob_20 flip sign between replicates, because polish-OFF on those
+# instances spans 19.6% and occasionally lands below the polish's own answer.  The tally is 5-1
+# with two replicates outstanding.  On, because ON is what the submitted build does and because
+# no measurement supports having changed it.
+#
+# OGC_POLISH=0 disables it.
+_POLISH = os.environ.get("OGC_POLISH", "1") == "1"
 _BCAP = 96
 try:
     _BCAP = max(8, int(os.environ.get("OGC_BCAP", "96")))
