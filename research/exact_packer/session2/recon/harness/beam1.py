@@ -47,6 +47,25 @@ ap.add_argument("--useaxis", action="store_true",
                 help="take B and K from the axis (production behaviour) instead of --B/--K")
 ap.add_argument("--axis", type=int, default=0, help="index into myalgorithm._AXES")
 ap.add_argument("--data", default="data/stage2")
+# KNOBS _contact_beam ACCEPTS THAT NO AXIS EVER SETS.
+#
+# _AXES varies six things -- Bmul, K, pos_lam, order, fut_beta, w3mul, cohort -- and leaves the
+# rest at their defaults on all six entries.  prefw is 0.0 everywhere, and it is the weight on the
+# PREFERENCE term in the cell score, on a problem where w3*Z3 is 14-73% of the objective.  shadow,
+# span, lex, shadoww, conw, swy, swx, span2, hmatch and stay_w are likewise untouched.
+#
+# Work-budgeted measurement makes sweeping them cheap and exact, which it was not before today.
+ap.add_argument("--prefw", type=float, default=None)
+ap.add_argument("--order", default=None)
+ap.add_argument("--w3mul", type=float, default=None)
+ap.add_argument("--poslam", type=float, default=None)
+ap.add_argument("--futbeta", type=float, default=None)
+ap.add_argument("--mum", type=float, default=None)
+ap.add_argument("--cohort", type=float, default=None)
+ap.add_argument("--shadow", type=float, default=0.0)
+ap.add_argument("--span", type=float, default=0.0)
+ap.add_argument("--conw", type=float, default=1.0)
+ap.add_argument("--hmatch", type=float, default=0.0)
 ap.add_argument("--tag", default="")
 a = ap.parse_args()
 
@@ -61,12 +80,18 @@ useB, useK = a.B, a.K
 if a.useaxis:
     useB, useK = M._beam_width(cfg["Bmul"]), int(cfg["K"])
 
+def pick(v, k, d=None):
+    return v if v is not None else (cfg[k] if k in cfg else d)
+
 t0 = time.time()
 recs = M._contact_beam(prob, 10 ** 9,                    # time budget out of the way: work stops it
-                       B=useB, K=useK, pos_lam=cfg["pos_lam"], prefw=cfg["prefw"],
-                       order=cfg["order"], mum=cfg.get("mum", 1.0),
-                       cohort=cfg.get("cohort", 0.0), fut_beta=cfg["fut_beta"],
-                       w3mul=cfg["w3mul"], step=1)
+                       B=useB, K=useK,
+                       pos_lam=pick(a.poslam, "pos_lam"), prefw=pick(a.prefw, "prefw"),
+                       order=pick(a.order, "order"), mum=pick(a.mum, "mum", 1.0),
+                       cohort=pick(a.cohort, "cohort", 0.0),
+                       fut_beta=pick(a.futbeta, "fut_beta"),
+                       w3mul=pick(a.w3mul, "w3mul"),
+                       shadow=a.shadow, span=a.span, conw=a.conw, hmatch=a.hmatch, step=1)
 el = time.time() - t0
 
 n = len(prob["blocks"])
