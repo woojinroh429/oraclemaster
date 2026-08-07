@@ -71,3 +71,16 @@ P24  [p24.w3000.a3] work=3000      B=96   K=4 axis=3  obj=3637538      feas=y   
 P24  [p24.w3000.a4] work=3000      B=96   K=4 axis=4  obj=3275633      feas=y    12.0s  digest=f78d0f3b87fb36b3
 # [p24.w3000.a5]
 P24  [p24.w3000.a5] work=3000      B=96   K=4 axis=5  obj=3236366      feas=y    11.6s  digest=12b2b725df077bf5
+WORKDONE 3000
+# [p16.w6000.a0]
+P16  [p16.w6000.a0] work=6000      B=96   K=4 axis=0  obj=6408684      feas=y    26.4s  digest=72acee549a274a62
+# [p16.w6000.a1]
+P16  [p16.w6000.a1] work=6000      B=96   K=4 axis=1  obj=6214513      feas=y    27.9s  digest=f94e0d1d04fa8358
+# [p16.w6000.a2]
+P16  [p16.w6000.a2] work=6000      B=96   K=4 axis=2  obj=2477998      feas=y    19.9s  digest=973cef52e3c7c256
+# [p16.w6000.a3]
+P16  [p16.w6000.a3] work=6000      B=96   K=4 axis=3  obj=4876883      feas=y    27.3s  digest=d390889cceb4a278
+# [p16.w6000.a4]
+P16  [p16.w6000.a4] work=6000      B=96   K=4 axis=4  obj=9543435      feas=y    29.7s  digest=3745e9d0787eb0ec
+# [p16.w6000.a5]
+P16  [p16.w6000.a5] work=6000      B=96   K=4 axis=5  obj=6275935      feas=y    27.0s  digest=50301540579b5d9e
