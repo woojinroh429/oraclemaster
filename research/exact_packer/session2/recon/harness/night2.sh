@@ -49,7 +49,8 @@ say(){ echo "== $* ==" >> $L; }
 ci(){ ( cd "$(git rev-parse --show-toplevel)" \
         && git add research/exact_packer/session2/recon/results/audit/night2.log \
                   research/exact_packer/session2/recon/harness/CURRENT \
-        && git commit -q -m "in-flight: night2 $1" ) >/dev/null 2>&1; }
+        && git commit -q -m "in-flight: night2 $1" \
+        && git push -q origin claude/repair-plan-model-1ig6it ) >/dev/null 2>&1; }
 
 # SKIP ON A RESULT, NEVER ON THE MARKER.  The marker is written before the run, so a cell killed by
 # a restart must be retried -- excluding '# ' and '== ' lines is what makes the campaign resumable.
