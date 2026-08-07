@@ -128,3 +128,4 @@ DRAW wid=1 gen=3 axis=4 ask=9.4 took=12.5 obj=3367571
   opstat  TOTAL       6      57.0   98.1%                        
 WSTAT round=0 n=3 3007896 3018454 - 3029411  spread=0.72%
 P4  [r1.s60.4]      60s  obj=3007896     Z1=331.0    Z2=2931   Z3=3546.0    feas=y   ran 60s  py3.12
+# [r1.s240.4]
