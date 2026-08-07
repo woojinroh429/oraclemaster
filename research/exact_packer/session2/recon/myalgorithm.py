@@ -1374,6 +1374,20 @@ def _recs_to_ops(recs, n):
     return _build_operations([recs[b] for b in range(n)])
 
 
+# THE FINAL POLISH IS OFF BY DEFAULT: IT EARNS NOTHING AND IT HOLDS THE LARGEST RESERVATION.
+#
+# Measured across all 804 runs in results/audit that record both the four worker objectives and the
+# final: median gain 0.00%, mean 0.33%, and 419 of 804 gained NOTHING AT ALL.  Three gained over
+# 5%.  For that it holds min(20% of budget, 40 s) -- 40 s of a 240 s limit, five times the floor of
+# brk, which was removed for being neutral.
+#
+# It also corrupts measurement.  One of those three outliers (10.53%, prob_24) landed on a single
+# arm and produced this session's "permutation search wins 14.5%" headline; beam-side the same
+# comparison is -4.4%.  A term that is zero half the time and 10% occasionally does not belong
+# between the search and the score.
+#
+# OGC_POLISH=1 restores it.
+_POLISH = os.environ.get("OGC_POLISH", "0") == "1"
 _BCAP = 96
 try:
     _BCAP = max(8, int(os.environ.get("OGC_BCAP", "96")))
@@ -2612,7 +2626,11 @@ def algorithm(prob_info, timelimit=60):
     # starve it; it only stops the WORKER LOOP being cut short to fund time the polish will not
     # use.  OGC_RESERVE overrides for the A/B.
     _rv = os.environ.get("OGC_RESERVE")
-    reserve = (max(2.0, float(_rv)) if _rv else max(2.0, min(0.20 * timelimit, 40.0)))
+    # The reserve exists to leave room for the final polish.  With the polish off there is nothing
+    # to reserve for, so the ~38 s it held at a 240 s limit goes to the workers instead -- about
+    # 19% more search, which is where the measured gains are.
+    reserve = (max(2.0, float(_rv)) if _rv else
+               (max(2.0, min(0.20 * timelimit, 40.0)) if _POLISH else 3.0))
     wbudget = max(4.0, timelimit - reserve - (time.time() - t0) - 1.0)
 
     # ROUNDS: TRADE LENGTH FOR ATTEMPTS.  The answer is already a minimum over nw workers, so
@@ -2726,7 +2744,7 @@ def algorithm(prob_info, timelimit=60):
             pass
 
     left = timelimit - (time.time() - t0) - 1.0
-    if left > 3.0:
+    if _POLISH and left > 3.0:
         try:
             imp = _z3_improve(prob_info, best[1], left)
             if imp is not None:
