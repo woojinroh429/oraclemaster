@@ -2363,11 +2363,52 @@ def _worker(args):
     # solution, printed to stderr so it cannot land inside a results line.
     _DRAWSTAT = os.environ.get("OGC_DRAWSTAT") == "1"
 
+    # PER-DRAW AXIS JITTER (OGC_AXJIT=<fraction>, absent = off).
+    #
+    # _fresh takes no random input at all.  Its arguments are the problem, a slice of seconds and
+    # one of six axis dicts, and the beam is deterministic, so the set of constructions a run can
+    # reach is SIX -- everything else that varies between draws is the slice size.  A 240 s run
+    # takes about thirty draws out of that set of six.
+    #
+    # Why that is the wrong shape for this scoring rule.  The answer is min over workers, and a
+    # minimum is decided by the LEFT TAIL of the draw distribution, not by its centre.  Measured
+    # on prob_16: capping the slice tightened the worker spread from 24.15% to 17.95% and the
+    # minimum got WORSE, 3,479,878 -> 3,574,878, while the median worker improved 0.98%.  And the
+    # best answer this project has ever recorded on prob_16 at 240 s, 2,795,643, came from the
+    # OGC_ADAPTB=0 arm -- the arm with the LARGEST spread of any tried, 27.9%, which is why it was
+    # rejected when the goal was mistakenly "reduce variance".  Under min-of-N, spread at equal
+    # centre is worth paying for.
+    #
+    # So: jitter the continuous axis terms per draw, seeded on (wid, gen) so a rerun of the same
+    # build repeats exactly.  Multiplicative and symmetric in log space, so a jitter of j scales a
+    # term by between 1/(1+j) and (1+j) and cannot flip its sign or zero it.  fut_beta=0.0 and
+    # cohort=0.0 are structural choices on the axes that carry them, not magnitudes, so scaling
+    # leaves them at 0 and the axis keeps its identity.
+    _AXJIT = 0.0
+    try:
+        _AXJIT = max(0.0, float(os.environ.get("OGC_AXJIT", "0")))
+    except Exception:
+        _AXJIT = 0.0
+
+    def _jit(cfg, g):
+        if _AXJIT <= 0.0:
+            return cfg
+        r = random.Random(1000003 * (wid + 1) + 7919 * g)
+        out = dict(cfg)
+        for k in ("pos_lam", "fut_beta", "w3mul", "Bmul", "mum", "conw"):
+            v = out.get(k)
+            if isinstance(v, (int, float)) and v:
+                out[k] = float(v) * ((1.0 + _AXJIT) ** r.uniform(-1.0, 1.0))
+        kk = out.get("K")
+        if isinstance(kk, int) and kk > 0 and r.random() < _AXJIT:
+            out["K"] = max(1, kk + r.choice((-1, 1)))
+        return out
+
     def _fresh(t):
         gen[0] += 1
         ai = gen[0] % len(axes)
         _t = time.time()
-        s = _beam_once(prob_info, t, axes[ai], share)
+        s = _beam_once(prob_info, t, _jit(axes[ai], gen[0]), share)
         if _DRAWSTAT:
             import sys as _sy
             try:
