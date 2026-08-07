@@ -22,3 +22,15 @@ P4   [p4.w1500.a3] work=1500      B=96   K=4 axis=3  obj=3574300      feas=y    
 P4   [p4.w1500.a4] work=1500      B=96   K=4 axis=4  obj=4231372      feas=y    10.7s  digest=bfa4ffa92bba02e5
 # [p4.w1500.a5]
 P4   [p4.w1500.a5] work=1500      B=96   K=4 axis=5  obj=3437421      feas=y     9.3s  digest=5351389541f26704
+# [p24.w1500.a0]
+P24  [p24.w1500.a0] work=1500      B=96   K=4 axis=0  obj=3462529      feas=y     6.3s  digest=6f7d5b2e2b53aa6a
+# [p24.w1500.a1]
+P24  [p24.w1500.a1] work=1500      B=96   K=4 axis=1  obj=3242086      feas=y     6.3s  digest=58f3ff249eb968f4
+# [p24.w1500.a2]
+P24  [p24.w1500.a2] work=1500      B=96   K=4 axis=2  obj=3900130      feas=y     6.2s  digest=82d8d76596116249
+# [p24.w1500.a3]
+P24  [p24.w1500.a3] work=1500      B=96   K=4 axis=3  obj=3637538      feas=y     7.0s  digest=4b380afc89ebe57b
+# [p24.w1500.a4]
+P24  [p24.w1500.a4] work=1500      B=96   K=4 axis=4  obj=3736218      feas=y     6.7s  digest=a82a27fa7199248a
+# [p24.w1500.a5]
+P24  [p24.w1500.a5] work=1500      B=96   K=4 axis=5  obj=3168404      feas=y     6.1s  digest=4e9c71a53c03d384
