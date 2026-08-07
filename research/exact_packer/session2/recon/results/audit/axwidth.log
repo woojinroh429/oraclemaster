@@ -74,3 +74,11 @@ WIDTHDONE 3000
 P24  [p24.w3000.a5.bax] work=3000      B=48   K=6 axis=5  obj=3236366      feas=y    12.2s  digest=12b2b725df077bf5
 WIDTHDONE 3000
 # [p16.w6000.a0.bax]
+P16  [p16.w6000.a0.bax] work=6000      B=96   K=4 axis=0  obj=6408684      feas=y    26.6s  digest=72acee549a274a62
+# [p16.w6000.a1.bax]
+P16  [p16.w6000.a0.bax] work=6000      B=96   K=4 axis=0  obj=6408684      feas=y    26.5s  digest=72acee549a274a62
+# [p16.w6000.a1.bax]
+P16  [p16.w6000.a1.bax] work=6000      B=96   K=4 axis=1  obj=6214513      feas=y    29.1s  digest=f94e0d1d04fa8358
+# [p16.w6000.a2.bax]
+P16  [p16.w6000.a1.bax] work=6000      B=96   K=4 axis=1  obj=6214513      feas=y    28.9s  digest=f94e0d1d04fa8358
+# [p16.w6000.a2.bax]
