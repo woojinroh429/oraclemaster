@@ -36,3 +36,5 @@ P16 [r2.base.16]   240s  obj=3616510     Z1=182.0    Z2=1968   Z3=4736.0    feas
 WSTAT round=0 n=4 4498971 3410727 4274228 3930175  spread=31.91%
 P16 [r2.spread.16]   240s  obj=3386396     Z1=167.0    Z2=1345   Z3=4623.0    feas=y   ran 239s  py3.12
 # [r2.base.1]
+WSTAT round=0 n=4 612635 752151 501758 759092  spread=51.29%
+P1  [r2.base.1]    240s  obj=501758      Z1=17.0     Z2=7073   Z3=612.0     feas=y   ran 200s  py3.12
