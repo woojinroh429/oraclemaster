@@ -72,3 +72,5 @@ P24  [p24.w3000.a5.bax] work=3000      B=48   K=6 axis=5  obj=3236366      feas=
 WIDTHDONE 3000
 # [p16.w6000.a0.bax]
 P24  [p24.w3000.a5.bax] work=3000      B=48   K=6 axis=5  obj=3236366      feas=y    12.2s  digest=12b2b725df077bf5
+WIDTHDONE 3000
+# [p16.w6000.a0.bax]
