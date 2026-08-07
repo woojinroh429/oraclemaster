@@ -35,3 +35,5 @@ P1   [A.p1.a0.wm8.0] work=3000      B=96   K=4 axis=0  obj=1500279      feas=y  
 P1   [A.p1.a2.wm0.25] work=3000      B=96   K=4 axis=2  obj=612236       feas=y    16.1s  digest=f8d329a33cdd663d
 # [A.p1.a2.wm0.5]
 P1   [A.p1.a2.wm0.5] work=3000      B=96   K=4 axis=2  obj=587906       feas=y    16.0s  digest=39737f8bfcbdf615
+# [A.p1.a2.wm1.0]
+P1   [A.p1.a2.wm1.0] work=3000      B=96   K=4 axis=2  obj=587906       feas=y    16.1s  digest=39737f8bfcbdf615
