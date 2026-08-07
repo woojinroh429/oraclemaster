@@ -60,7 +60,11 @@ run(){ # rep arm prob env
 
 # rep-major: five repeats of each arm on each instance, so a partial queue is still balanced
 for rep in 1 2 3 4 5; do
-    for p in 24 20 6; do
+    # prob_16 is in the set BECAUSE it is the noisy one.  Its recorded 240 s draws span 25.3%
+    # (3,043,376 .. 3,813,686) while prob_24 has just repeated itself to the digit across two runs
+    # of the shipped configuration.  A variance experiment made only of quiet instances measures
+    # nothing; if the amplifier is real it should show up here or nowhere.
+    for p in 16 24 20 6; do
         run $rep adapt  $p "OGC_POLISH=1"
         run $rep pinned $p "OGC_POLISH=1 OGC_ADAPTB=0"
         run $rep det    $p "OGC_POLISH=1 OGC_ADAPTB=0 OGC_DET=1"
