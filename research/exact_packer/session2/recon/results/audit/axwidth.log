@@ -104,3 +104,9 @@ P4   [p4.w6000.a0.bax] work=6000      B=96   K=4 axis=0  obj=3205130      feas=y
 # [p4.w6000.a1.bax]
 P4   [p4.w6000.a1.bax] work=6000      B=96   K=4 axis=1  obj=3057550      feas=y    40.2s  digest=69b51b27d0ace5d3
 # [p4.w6000.a2.bax]
+P4   [p4.w6000.a2.bax] work=6000      B=67   K=5 axis=2  obj=2945225      feas=y    26.9s  digest=7be9afc2e3f6ac9a
+# [p4.w6000.a3.bax]
+P4   [p4.w6000.a3.bax] work=6000      B=67   K=5 axis=3  obj=3072805      feas=y    35.3s  digest=66e57024f655134d
+# [p4.w6000.a4.bax]
+P4   [p4.w6000.a4.bax] work=6000      B=96   K=3 axis=4  obj=4270310      feas=y    42.9s  digest=7e402a49005b9659
+# [p4.w6000.a5.bax]
