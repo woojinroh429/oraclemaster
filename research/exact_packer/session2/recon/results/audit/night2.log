@@ -84,3 +84,5 @@ P4   [A.p4.a2.wm1.0] work=3000      B=96   K=4 axis=2  obj=3138215      feas=y  
 P4   [A.p4.a2.wm2.0] work=3000      B=96   K=4 axis=2  obj=3115288      feas=y    13.6s  digest=70875476f0b03962
 # [A.p4.a2.wm4.0]
 P4   [A.p4.a2.wm4.0] work=3000      B=96   K=4 axis=2  obj=3028676      feas=y    14.0s  digest=d9368aaa7b7c23dc
+# [A.p4.a2.wm8.0]
+P4   [A.p4.a2.wm8.0] work=3000      B=96   K=4 axis=2  obj=3028676      feas=y    13.7s  digest=d9368aaa7b7c23dc
