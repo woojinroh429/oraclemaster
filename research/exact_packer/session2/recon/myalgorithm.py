@@ -2676,8 +2676,22 @@ def algorithm(prob_info, timelimit=60):
             _sy.stderr.flush()
 
     if best[1] is None:                                  # never leave without an answer
+        # SCORE THE FALLBACK, DO NOT STAMP IT 0.0.
+        #
+        # This used to record the floor solution as (0.0, sol).  The final polish below only
+        # adopts its result when `o < best[0]`, and no real objective is below zero -- so on the
+        # one path where every worker failed and the answer is the bare _safe_sequential floor,
+        # the polish ran, produced something better, and its output was discarded by a comparison
+        # against a placeholder.  That is the exact case where the polish is worth the most.
+        #
+        # Dead workers are not hypothetical: cliff40 recorded prob_36 at 60 s returning with two
+        # of four gone, and the whole reason _pool_round has a bounded wait is that a crashed
+        # worker used to hang the pool forever.  A full sweep is rarer but it is the disaster
+        # path, and it was the one path where the last improvement step could not apply.
         try:
-            best = (0.0, _safe_sequential(prob_info))
+            _fb = _safe_sequential(prob_info)
+            _fo, _ = _total(prob_info, _fb)
+            best = (_fo, _fb)
         except Exception:
             return {"operations": {}}
 
