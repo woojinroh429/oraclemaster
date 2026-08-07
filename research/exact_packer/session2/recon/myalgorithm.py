@@ -580,9 +580,26 @@ def _contact_beam(prob_info, deadline_s, B=24, K=4, pos_lam=0.1, prefw=0.0, orde
                 if os.environ.get("OGC_BEAMSTAT") == "1":
                     import sys as _sy
                     try:
-                        _sy.stderr.write("BEAMSTAT salv=%d capped=%d used=%.2f level=%.2f B=%d K=%d\n"
+                        # work= IS THE NUMBER THE WHOLE WORK-MODE CAMPAIGN RESTS ON.
+                        #
+                        # quality(axis, work) says a draw's result depends strongly on the
+                        # expansions it performs -- prob_16's winning axis reads 3,159,373 at
+                        # 3,000 and 2,477,998 at 6,000 -- and what PRODUCTION spends per draw has
+                        # only ever been an estimate: 14 s of measured draw time at the ~220
+                        # expansions/s beam1 shows.  Three different prescriptions follow from
+                        # three possible true values (too small / already optimal / past the
+                        # bottom), so it has to be read rather than inferred.  The engine
+                        # accumulates it exactly; this only prints it.
+                        _wk = "?"
+                        try:
+                            _wk = "%.0f" % E.beam_work()
+                        except Exception:
+                            pass          # engine predates beam_work(); the rest still prints
+                        _sy.stderr.write("BEAMSTAT salv=%d capped=%d used=%.2f level=%.2f "
+                                         "B=%d K=%d work=%s\n"
                                          % (int(E.beam_salvaged()), int(E.beam_width_capped()),
-                                            E.beam_used_frac(), E.beam_level_frac(), int(B), int(K)))
+                                            E.beam_used_frac(), E.beam_level_frac(), int(B), int(K),
+                                            _wk))
                         _sy.stderr.flush()
                     except Exception:
                         pass
