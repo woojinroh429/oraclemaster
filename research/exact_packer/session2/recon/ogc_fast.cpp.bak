@@ -1844,27 +1844,10 @@ struct Engine {
                 }
                 if(Kuse<1) Kuse=1;
             }
-            // WHICH BLOCK GOES NEXT IS NOW A DECISION, NOT A LOOKUP.
-            //
-            // `int bi=order[level]` placed the SAME block in every beam state, so every state at
-            // level k held the same block SET and differed only in placements.  The dedup below
-            // says exactly this and calls itself inert because of it: "our beam uses a FIXED
-            // dispatch order ... The reference needs this because its orders vary."
-            //
-            // The permutation is the largest lever measured on this problem -- cdecomp put the
-            // construction spread across orders at 32-210%, against about 2% for the combined
-            // range of budget policy, axis sets, the w3mul grid and brk removal.  So each state
-            // now expands the CBMCAND earliest unplaced blocks in `order` instead of just the
-            // first, and states diverge in which blocks they have placed.  CBMCAND=1 reproduces
-            // the old behaviour exactly.
-            //
-            // Depth is not traded for this.  Every state still places one block per level and the
-            // beam still keeps B survivors; what grows is the branching, which is what beam width
-            // was already there to absorb.
-            static const int CBMCAND=[](){const char*e=getenv("OGC_MCAND");int v=e?atoi(e):1;
-                                          return v<1?1:(v>8?8:v);}();
+            int bi=order[level]; int r=(int)shapes[bi].rt, pt=(int)shapes[bi].pt; double dd=shapes[bi].due;
+            double wl=workloads[bi]; const auto& pr=shapes[bi].prefs;
             int nbeam=(int)beam.size();
-            work += (double)nbeam*(double)CBMCAND;   // states expanded so far -> the cost unit
+            work += (double)nbeam;          // states expanded so far -> the cost unit
             std::vector<std::vector<CBState>> perstate(nbeam);
             #pragma omp parallel
             {
@@ -1881,13 +1864,6 @@ struct Engine {
                         #pragma omp atomic
                         cb_t_rebuild += _d; }
                     auto& outv=perstate[si];
-                    // the CBMCAND earliest unplaced blocks under this axis's priority
-                    int mycand[8]; int nmy=0;
-                    for(int q=0;q<nord && nmy<CBMCAND;q++){ int b=order[q]; if(!st.placed[b]) mycand[nmy++]=b; }
-                    if(nmy==0){ outv.push_back(st); continue; }
-                    for(int mi=0;mi<nmy;mi++){
-                    int bi=mycand[mi]; int r=(int)shapes[bi].rt, pt=(int)shapes[bi].pt; double dd=shapes[bi].due;
-                    double wl=workloads[bi]; const auto& pr=shapes[bi].prefs;
                     // AREA PRECHECK.  When the first-choice entry time has no free cell the
                     // search walks later entry times, and every attempt costs a full
                     // multi-bay, multi-orientation position scan -- measured 58707 of them on
@@ -2012,7 +1988,7 @@ struct Engine {
                                 _Pragma("omp atomic") cb_n_retry += 1.0; } }
                             if(!cc.empty()){ for(auto&cd:cc){ allc.push_back(cd); allc_ct.push_back({e,e+pt}); } break; } }
                     }
-                    if(allc.empty()){ continue; }   // try the next candidate block
+                    if(allc.empty()){ outv.push_back(st); continue; }
                     for(size_t ci=0;ci<allc.size();ci++){
                         auto& cd=allc[ci]; int en=allc_ct[ci].first, exx=allc_ct[ci].second;
                         int bay=cd[0],oi=cd[1],ix=cd[2],iy=cd[3],ct=cd[4];
@@ -2024,10 +2000,6 @@ struct Engine {
                         c.gz3=st.gz3+pen; c.gcontact=st.gcontact+ct;
                         outv.push_back(std::move(c));
                     }
-                    }   // end candidate-block loop
-                    // no candidate could be placed at all: carry the state forward once, as the
-                    // single-candidate version did.  Once, not once per failed candidate.
-                    if(outv.empty()) outv.push_back(st);
                 }
             }
             std::vector<CBState> children;
