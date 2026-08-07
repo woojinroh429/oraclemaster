@@ -1502,7 +1502,50 @@ def _beam_once(prob_info, budget, cfg, share=1.0):
         _DRAWN[_key] = _seen + 1
         if _seen:                      # first visit keeps the fixed order; repeats would be
             cfg = dict(cfg, order=_draw_order(prob_info, cfg, _dk))   # identical, so draw
+    # MONOTONE WIDTH LADDER (OGC_MONO=1): keep the narrow answer, replace it only when beaten.
+    #
+    # Nothing in this code forces obj(240 s) <= obj(60 s).  A long run does not start from what a
+    # short run found, and it is not even the same search: ogc_fast derives the beam width from
+    # measured seconds per state, so a bigger budget produces a WIDER beam, not a longer one.  A
+    # wider beam ranks more states by the same myopic proxy (accumulated tardiness + preference -
+    # contact + a future-tardiness estimate), and the proxy's optimum is not the objective's, so
+    # more width can systematically prefer states that look better early and finish worse.
+    #
+    # prob_16 is the case in hand: 2.79M is reached at 60 s and appeared once in ten recorded 240 s
+    # draws.  The basin is there at the long budget too -- the search simply stops entering it.
+    #
+    # So run a narrow beam first on a quarter of the slice, KEEP its answer, then run the full
+    # width on the rest and take whichever actually scores better.  The curve becomes
+    # non-increasing in width by construction, for the cost of one cheap beam, and a wide beam that
+    # lands in a worse basin can no longer throw the narrow answer away.
+    #
+    # Same shape as beam salvage, which is the one change on this project that clearly worked:
+    # that was "finish the partial instead of discarding it", this is "compare instead of
+    # discarding".  It cannot lose -- the narrow answer is only replaced by a strictly better one.
+    _MONO = os.environ.get("OGC_MONO") == "1" and not cfg.get("lex")
+    _mono_best = None
+    _mono_obj = float("inf")
     t0 = time.time()
+    if _MONO:
+        _nb = max(8, int(_beam_width(cfg["Bmul"]) * float(os.environ.get("OGC_MONOW", "0.25"))))
+        _nl = max(2.0, budget * float(os.environ.get("OGC_MONOF", "0.25")))
+        try:
+            _cfgn = _axis_env(cfg)
+            _rn = _contact_beam(prob_info, _nl, B=_nb, K=_cfgn["K"],
+                                pos_lam=_cfgn["pos_lam"], order=_cfgn["order"],
+                                fut_beta=_cfgn["fut_beta"], prefw=_cfgn["prefw"],
+                                w3mul=_cfgn["w3mul"], mum=_cfgn.get("mum", 1.0),
+                                cohort=_cfgn.get("cohort", 0.0), step=1)
+            if _rn:
+                _sn = _recs_to_ops(_rn, n)
+                if _sn is not None:
+                    _on = _total(prob_info, _sn)[0]
+                    if _on < float("inf"):
+                        _mono_best, _mono_obj = _sn, _on
+                        _bdbg("mono narrow B=%d took %.1fs -> %.0f" % (_nb, _nl, _on))
+        except Exception as _e:
+            _bdbg("mono narrow raised %r" % (_e,))
+
     for step, frac in ((1, 0.6), (2, 1.0)):
         left = budget - (time.time() - t0)
         if left < 2.0:
@@ -1524,10 +1567,18 @@ def _beam_once(prob_info, budget, cfg, share=1.0):
             elif _total(prob_info, s)[0] >= float("inf"):
                 _bdbg("step %d: infeasible" % step)
             else:
-                return s          # a coarse step can land infeasible -- keep only real answers
+                # a coarse step can land infeasible -- keep only real answers
+                if _mono_best is None:
+                    return s
+                _ow = _total(prob_info, s)[0]
+                if _ow < _mono_obj:
+                    _bdbg("mono wide %.0f beats narrow %.0f" % (_ow, _mono_obj))
+                    return s
+                _bdbg("mono narrow %.0f held against wide %.0f" % (_mono_obj, _ow))
+                return _mono_best
         else:
             _bdbg("step %d: no recs (left=%.1fs of budget %.1fs)" % (step, left, budget))
-    return None
+    return _mono_best          # the wide rungs produced nothing; the narrow answer stands
 
 
 # Diversification axes, all fed to a best-of on the TRUE objective.  These are not modes:
