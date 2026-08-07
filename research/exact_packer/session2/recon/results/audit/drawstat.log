@@ -37,3 +37,8 @@ DRAW wid=2 gen=3 axis=5 ask=11.2 took=12.0 obj=6836369
   opstat  TOTAL       7      54.2   97.7%                        
 WSTAT round=0 n=4 4365794 3513968 4570495 4081301  spread=30.07%
 P16 [r1.s60.16]     60s  obj=3513968     Z1=173.0    Z2=1203   Z3=4815.0    feas=y   ran 57s  py3.12
+# [r1.s240.16]
+DRAW wid=1 gen=1 axis=2 ask=47.2 took=16.5 obj=3656247
+DRAW wid=3 gen=1 axis=4 ask=47.2 took=17.9 obj=4999206
+DRAW wid=2 gen=1 axis=3 ask=47.2 took=25.5 obj=4675766
+DRAW wid=0 gen=1 axis=1 ask=47.2 took=25.7 obj=6464583
