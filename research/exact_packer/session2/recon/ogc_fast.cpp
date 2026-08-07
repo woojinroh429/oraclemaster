@@ -254,6 +254,36 @@ struct OrientData { std::vector<LayerData> layers; double x0,y0,x1,y1; };
 //
 // So it carries the same risk as any other perturbation and needs the same evidence, which it does
 // not have.  OGC_ORORD=1 enables it.
+// WORK-BUDGETED BEAM: A DETERMINISTIC MEASUREMENT MODE (OGC_WORKCAP=<state-expansions>).
+//
+// The obstacle to measuring anything on this project is that the same build, the same instance and
+// the same budget disagree with themselves: prob_16 spans 19.6% run to run, and the effects worth
+// chasing are 2-5%.  The cause is not RNG -- every seed here is constant -- it is that the beam
+// sets its own width from the CLOCK:
+//
+//     per  = elapsed()/work ;  left = time_budget_s*AIM - elapsed() ;  Bcur = left/(per*rem)
+//
+// recomputed at every one of ~250 levels, so a microsecond of drift picks a different width
+// trajectory and lands on a different attractor.  Measured the same day, two dead calls behind
+// switched-off flags moved prob_24 by 1.03%.
+//
+// With OGC_WORKCAP set, `work` -- states expanded, which the loop already accumulates -- replaces
+// seconds in all three places and in the stop test.  Nothing reads the clock, so one build on one
+// instance at one work cap returns the SAME answer every time, and an arm difference is signal
+// with no noise term at all.
+//
+// THIS IS NOT A SHIPPING MODE.  The competition budget is wall-clock, so the submitted build must
+// stay time-driven.  It makes a two-part evaluation possible instead:
+//
+//     1. equal-work A/B      does the arm search better per unit of work?      (zero noise)
+//     2. throughput          how much work does the arm get done in 240 s?     (an average over
+//                                                                               ~250 levels)
+//     3. combine             quality at work = throughput x 240
+//
+// which separates the two questions that were confounded all day -- whether an arm searches better
+// or merely does more work.  OGC_BEAMCAP could never be told apart on that.
+static double WORKCAP(){ static const double v=[](){ const char* e=std::getenv("OGC_WORKCAP");
+                                                     return e? atof(e) : 0.0; }(); return v; }
 static bool ORORD_on(){ static const bool v=[](){ const char* e=std::getenv("OGC_ORORD");
                                                   return (e && e[0]=='1'); }(); return v; }
 struct BlockShape {
@@ -1875,7 +1905,8 @@ struct Engine {
         const int Bmax=std::max(1,B), Bstart=ADAPTB?std::max(1,std::min(B,8)):B;
         int Bcur=Bstart; double work=0.0;   // work = sum over levels of (states expanded)
         for(int level=0; level<nord; level++){
-            if(elapsed()>time_budget_s*AIM){
+            const double _wcap=WORKCAP();
+            if(_wcap>0.0 ? (work>_wcap) : (elapsed()>time_budget_s*AIM)){
                 beam_salvaged_ = true;
                 beam_used_frac_ = elapsed()/std::max(1e-9,time_budget_s);
                 beam_level_frac_ = nord>0 ? (double)level/(double)nord : 1.0;
@@ -1912,8 +1943,9 @@ struct Engine {
                 return {1e18,{}};
             }
             if(ADAPTB && level>0 && work>0.0){
-                double per=elapsed()/work;                       // seconds per state-level
-                double left=time_budget_s*AIM-elapsed();
+                // work mode: the unit is a state expansion, not a second, and `per` is 1.
+                double per = _wcap>0.0 ? 1.0 : elapsed()/work;
+                double left = _wcap>0.0 ? (_wcap-work) : (time_budget_s*AIM-elapsed());
                 int rem=nord-level;
                 int fit=(per>1e-12&&rem>0)? (int)(left/(per*(double)rem)) : Bmax;
                 if(fit<1) fit=1;
@@ -1929,7 +1961,8 @@ struct Engine {
             static const bool ADAPTK=[](){const char*e=getenv("OGC_ADAPTK");return !(e&&e[0]=='0');}();
             int Kuse=K;
             if(ADAPTK && ADAPTB && level>0 && work>0.0){
-                double per=elapsed()/work, left2=time_budget_s*AIM-elapsed();
+                double per = _wcap>0.0 ? 1.0 : elapsed()/work;
+                double left2 = _wcap>0.0 ? (_wcap-work) : (time_budget_s*AIM-elapsed());
                 int rem2=nord-level;
                 if(per>1e-12 && rem2>0){
                     double afford=left2/(per*(double)rem2);      // states we could still expand
