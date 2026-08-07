@@ -11,3 +11,5 @@ P26 [r1.withbrk.26]   240s  obj=24715400    Z1=2400.0   Z2=9000   Z3=10882.0   f
 WSTAT round=0 n=4 27711035 24665316 27906514 25480366  spread=13.14%
 P26 [r1.nobrk.26]   240s  obj=24559522    Z1=2475.0   Z2=12297  Z3=10058.0   feas=y   ran 239s  py3.12
 # [r1.withbrk.20]
+WSTAT round=0 n=4 10874888 9948130 11244363 9449113  spread=19.00%
+P20 [r1.withbrk.20]   240s  obj=9449113     Z1=1199.0   Z2=2260   Z3=9582.0    feas=y   ran 238s  py3.12
