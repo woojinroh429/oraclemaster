@@ -377,3 +377,23 @@ Traceback (most recent call last):
     from shapely.geometry import Polygon as ShapelyPolygon
 ModuleNotFoundError: No module named 'shapely'
 P20 [full.a0.20] HANG-OR-CRASH rc=1
+# [beam.a1.20]
+Traceback (most recent call last):
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
+    mod = importlib.import_module(sys.argv[1])
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 995, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/myalgorithm.py", line 37, in <module>
+    import utils
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
+    from shapely.geometry import Polygon as ShapelyPolygon
+ModuleNotFoundError: No module named 'shapely'
+P20 [beam.a1.20] HANG-OR-CRASH rc=1
