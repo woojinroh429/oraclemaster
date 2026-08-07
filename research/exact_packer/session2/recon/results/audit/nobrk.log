@@ -17,3 +17,4 @@ P20 [r1.withbrk.20]   240s  obj=9449113     Z1=1199.0   Z2=2260   Z3=9582.0    f
 WSTAT round=0 n=4 10765810 9696200 11541955 9449113  spread=22.15%
 P20 [r1.nobrk.20]   240s  obj=9449113     Z1=1199.0   Z2=2260   Z3=9582.0    feas=y   ran 235s  py3.12
 # [r1.withbrk.2]
+# [r1.nobrk.2]
