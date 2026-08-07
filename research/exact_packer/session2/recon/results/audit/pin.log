@@ -30,3 +30,4 @@ REPDONE 1
 # [r2.adapt.24]
 WSTAT round=0 n=4 2865798 2940522 2809182 3183199  spread=13.31%
 P24 [r2.adapt.24]   240s  obj=2809182     Z1=656.0    Z2=2562   Z3=1008.0    feas=y   ran 207s  py3.12
+# [r2.pinned.24]
