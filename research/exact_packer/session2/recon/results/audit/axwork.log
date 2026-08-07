@@ -11,3 +11,14 @@ P16  [p16.w1500.a4] work=1500      B=96   K=4 axis=4  obj=9255020      feas=y   
 # [p16.w1500.a5]
 P16  [p16.w1500.a5] work=1500      B=96   K=4 axis=5  obj=6555177      feas=y     6.7s  digest=bd16ec722a112594
 # [p4.w1500.a0]
+P4   [p4.w1500.a0] work=1500      B=96   K=4 axis=0  obj=3513389      feas=y    10.4s  digest=ef3a4c9da3c770b4
+# [p4.w1500.a1]
+P4   [p4.w1500.a1] work=1500      B=96   K=4 axis=1  obj=3733242      feas=y    10.4s  digest=51ee0b451cec97d1
+# [p4.w1500.a2]
+P4   [p4.w1500.a2] work=1500      B=96   K=4 axis=2  obj=2916374      feas=y     7.4s  digest=6357325f8cd2bac6
+# [p4.w1500.a3]
+P4   [p4.w1500.a3] work=1500      B=96   K=4 axis=3  obj=3574300      feas=y     8.7s  digest=9dcfd62e4f6dd2d0
+# [p4.w1500.a4]
+P4   [p4.w1500.a4] work=1500      B=96   K=4 axis=4  obj=4231372      feas=y    10.7s  digest=bfa4ffa92bba02e5
+# [p4.w1500.a5]
+P4   [p4.w1500.a5] work=1500      B=96   K=4 axis=5  obj=3437421      feas=y     9.3s  digest=5351389541f26704
