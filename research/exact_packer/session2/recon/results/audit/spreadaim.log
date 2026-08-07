@@ -33,3 +33,5 @@ REPDONE 1
 WSTAT round=0 n=4 4345449 3642409 4140193 3953459  spread=19.30%
 P16 [r2.base.16]   240s  obj=3616510     Z1=182.0    Z2=1968   Z3=4736.0    feas=y   ran 239s  py3.12
 # [r2.spread.16]
+WSTAT round=0 n=4 4498971 3410727 4274228 3930175  spread=31.91%
+P16 [r2.spread.16]   240s  obj=3386396     Z1=167.0    Z2=1345   Z3=4623.0    feas=y   ran 239s  py3.12
