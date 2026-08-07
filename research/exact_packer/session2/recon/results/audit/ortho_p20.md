@@ -46,3 +46,30 @@ and costs at most that worker's draw if the shape signal is bad -- the minimum p
 
 Not yet established: this is one instance and one draw per arm.  The queue continues across the
 other eleven before the count effect is treated as general.
+
+## Both explanations refuted by the next two instances
+
+    inst   w1/w3    o4 vs base
+    P4      6.3x     -5.69%   win
+    P20    44.4x    +17.70%   loss
+    P2     88.9x     -0.51%   win
+
+Axis count: prob_20 ranked 5 axes above 4 (+12.0% vs +14.8/+17.7%), prob_2 ranks 5 axes LAST
+(+2.28% while both 4-axis arms win).  Not a general law.
+
+Exchange rate: the lowest-rate instance and the highest-rate instance both favour o4, and the
+middle one is the disaster.  No monotone relationship.
+
+And prob_20's loss is not a Z1/Z3 trade going the wrong way.  On prob_4, o4 traded tardiness down
+(379 -> 294) for preference up (2748 -> 3000) and the weights made that profitable.  On prob_20
+BOTH terms got worse (Z1 1123 -> 1349, Z3 8932 -> 9410); the construction was simply bad there.
+
+After three instances: o4 wins two and loses one, median -0.51%, and the single loss is +17.7% --
+exactly the tail this work exists to remove.  There is no explanation for prob_20, and a change
+with an unexplained 17% tail is not shippable however good its median looks.  The remaining nine
+instances decide whether prob_20 is one outlier or the first of a class.
+
+Note for w3grid: that queue was introduced as testing the w3mul-range explanation for this loss,
+and that link is now unsupported.  w3grid still stands on its own evidence -- the
+preliminary-to-final shift in the exchange-rate distribution (median 84.5 -> 23.3) and the four
+opening axes carrying only two distinct w3mul values -- but it does not follow from ortho.
