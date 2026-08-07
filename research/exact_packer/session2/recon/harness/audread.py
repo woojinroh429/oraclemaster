@@ -58,6 +58,26 @@ for p in probs:
 
 if rhos:
     print("\nn=%d  median rho %+.2f  top-pick hit %d/%d" % (len(rhos), statistics.median(rhos), hit, tot))
+    # SELECTION IS NOT THE ONLY USE OF A RANKING.  On prob_4 the audition's top pick lost 4.96%,
+    # but its bottom two were the full run's bottom two exactly -- and choosing the worst axis
+    # there costs 21.7%.  A prologue that DROPS the bottom k and gives the slots to the rest does
+    # not need to know which candidate wins, only which cannot; and since the answer is a minimum
+    # over the surviving workers, keeping the true best inside the survivor set is sufficient.
+    #
+    # So report, for each k, whether the full run's best axis survives an audition that cuts the
+    # k worst -- the quantity that decides whether dropping is usable when picking is not.
+    print()
+    for k in (1, 2, 3):
+        kept = 0
+        for p in probs:
+            bm = [(a, d.get((p, "beam", a))) for a in range(6)]
+            fl = [(a, d.get((p, "full", a))) for a in range(6)]
+            if any(v is None for _, v in bm) or any(v is None for _, v in fl):
+                continue
+            survivors = [a for a, _ in sorted(bm, key=lambda t: t[1])][:6 - k]
+            best_full = min(fl, key=lambda t: t[1])[0]
+            kept += best_full in survivors
+        print("  drop worst %d by beam -> the full run's best axis survives %d/%d" % (k, kept, tot))
     print("\nrho near +1: beam rank survives, a prologue can select on it.")
     print("rho near  0: the operator loop erases it -- auditioning cannot work, and beam quality")
     print("             does not reach the score either, so improving the beam would not pay.")
