@@ -30,3 +30,33 @@
 WSTAT round=0 n=4 4320129 3479878 3896089 3823937  spread=24.15%
 P16 [r1.base.16]   240s  obj=3479878     Z1=173.0    Z2=2923   Z3=4658.0    feas=y   ran 240s  py3.12
 # [r1.cap12.16]
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam       13     132.0   56.2%   8400090717 63636326.2
+  opstat  grow        2      29.2   12.4%            0        0.0
+  opstat  bal         1       0.1    0.1%            0        0.0
+  opstat  pref        2      25.0   10.6%        27147     1085.3
+  opstat  bay         1      47.7   20.3%            0        0.0
+  opstat  TOTAL      19     234.0   99.6%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        9     115.8   49.2%   8398333458 72496511.5
+  opstat  grow        1      41.9   17.8%      1029917    24601.3
+  opstat  bal         1       0.1    0.0%          530     5437.6
+  opstat  pref        2      25.9   11.0%       112296     4343.8
+  opstat  bay         1      50.0   21.3%            0        0.0
+  opstat  TOTAL      14     233.7   99.3%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        7      82.2   34.9%   8397719602 102163621.8
+  opstat  grow        2      77.4   32.9%      1979103    25571.9
+  opstat  bal         2       0.2    0.1%          548     2740.6
+  opstat  pref        2      27.3   11.6%        18556      680.1
+  opstat  bay         1      46.0   19.5%            0        0.0
+  opstat  TOTAL      14     233.0   99.0%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam       14     141.6   59.5%   8399975559 59337819.2
+  opstat  grow        2      24.1   10.1%            0        0.0
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        1      23.6    9.9%        48025     2032.8
+  opstat  bay         1      47.1   19.8%            0        0.0
+  opstat  TOTAL      19     236.5   99.4%                        
+WSTAT round=0 n=4 3974933 3574878 4216541 3669158  spread=17.95%
+P16 [r1.cap12.16]   240s  obj=3574878     Z1=183.0    Z2=1813   Z3=4518.0    feas=y   ran 239s  py3.12
