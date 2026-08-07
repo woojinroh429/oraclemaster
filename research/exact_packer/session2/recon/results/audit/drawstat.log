@@ -3,3 +3,37 @@ DRAW wid=3 gen=1 axis=4 ask=11.2 took=10.2 obj=4103551
 DRAW wid=1 gen=1 axis=2 ask=11.2 took=11.4 obj=3557431
 DRAW wid=0 gen=1 axis=1 ask=11.2 took=12.5 obj=6290116
 DRAW wid=2 gen=1 axis=3 ask=11.2 took=12.7 obj=5275773
+DRAW wid=3 gen=3 axis=0 ask=11.2 took=11.3 obj=5472182
+DRAW wid=1 gen=3 axis=4 ask=11.2 took=9.5 obj=4103551
+DRAW wid=0 gen=3 axis=3 ask=11.2 took=12.6 obj=5852941
+DRAW wid=2 gen=3 axis=5 ask=11.2 took=12.0 obj=6836369
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        2      24.8   45.1%   8398416969 338814854.4
+  opstat  grow        1      11.5   20.9%       695366    60523.3
+  opstat  bal         1       0.0    0.1%            0        0.0
+  opstat  pref        2       7.5   13.6%         9912     1327.8
+  opstat  bay         1      10.3   18.7%            0        0.0
+  opstat  TOTAL       7      54.1   98.3%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        2      25.0   45.3%   8397402626 335227759.5
+  opstat  grow        1      11.3   20.4%      1878046   166355.7
+  opstat  bal         1       0.0    0.1%            0        0.0
+  opstat  pref        2       7.8   14.1%        33026     4252.4
+  opstat  bay         1       9.9   17.8%        13250     1343.5
+  opstat  TOTAL       7      54.0   97.7%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        2      21.4   38.7%   8399589191 391936343.3
+  opstat  grow        1      12.8   23.2%            0        0.0
+  opstat  bal         1       0.0    0.1%            0        0.0
+  opstat  pref        2       9.7   17.5%        22250     2297.1
+  opstat  bay         1      10.4   18.8%            0        0.0
+  opstat  TOTAL       7      54.4   98.3%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        2      21.0   37.8%   8400135311 400745689.5
+  opstat  grow        1      12.6   22.7%            0        0.0
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        2       9.7   17.4%        30853     3197.0
+  opstat  bay         1      11.0   19.7%        12610     1151.0
+  opstat  TOTAL       7      54.2   97.7%                        
+WSTAT round=0 n=4 4365794 3513968 4570495 4081301  spread=30.07%
+P16 [r1.s60.16]     60s  obj=3513968     Z1=173.0    Z2=1203   Z3=4815.0    feas=y   ran 57s  py3.12
