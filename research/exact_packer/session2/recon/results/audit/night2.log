@@ -192,3 +192,5 @@ P20  [A.p20.a2.wm0.25] work=3000      B=96   K=4 axis=2  obj=11888425     feas=y
 P20  [A.p20.a2.wm0.5] work=3000      B=96   K=4 axis=2  obj=11945589     feas=y    13.1s  digest=314424dd642803b4
 # [A.p20.a2.wm1.0]
 P20  [A.p20.a2.wm1.0] work=3000      B=96   K=4 axis=2  obj=12679235     feas=y    11.1s  digest=d34f856c2efdeb8d
+# [A.p20.a2.wm2.0]
+P20  [A.p20.a2.wm2.0] work=3000      B=96   K=4 axis=2  obj=13045251     feas=y    11.1s  digest=706998215057277f
