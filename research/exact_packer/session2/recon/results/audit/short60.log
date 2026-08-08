@@ -28,3 +28,5 @@ P4  [b60.p4.odedd]    60s  obj=2680341     Z1=294.0    Z2=1313   Z3=3178.0    fe
 P4  [b60.p4.odcohort]    60s  obj=2820005     Z1=313.0    Z2=2829   Z3=3307.0    feas=y   ran 59s  py3.12
 # [b60.p4.wm0.5]
 P4  [b60.p4.wm0.5]    60s  obj=2871452     Z1=301.0    Z2=3422   Z3=3473.0    feas=y   ran 60s  py3.12
+# [b60.p4.wm2.0]
+P4  [b60.p4.wm2.0]    60s  obj=2862296     Z1=334.0    Z2=3045   Z3=3253.0    feas=y   ran 59s  py3.12
