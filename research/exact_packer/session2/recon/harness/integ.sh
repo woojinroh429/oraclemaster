@@ -99,6 +99,29 @@ for p in 1 20 6 4 24; do
 done
 echo "== DIR 60 done ==" >> $L
 
+# Phase 2b -- ROUNDS, RE-ASKED, because the measurement that retired it could not have worked.
+#
+# OGC_ROUNDS trades round LENGTH for round COUNT: R rounds of nw workers at wbudget/R each is the
+# same wall clock for R times the draws.  Under a scoring rule that is a MINIMUM over draws that is
+# the direct lever, and the file's own numbers say the length is not what is binding -- prob_20 on
+# unchanged code returned 12,746,324 / 10,628,401 / 10,531,622, two of three finding the same
+# solution and one missing it by 20%, while 240 s and 360 s return the SAME answer on prob_1.
+#
+# It was measured once, at 60 s, and retired.  But the round loop then demanded a FULL round plus
+# the polish reserve before starting another, and at 60 s wbudget ~ 47, _rb ~ 23, reserve ~ 12 --
+# the second round was unaffordable by that arithmetic, so R=2 ran ONE round and the arm measured
+# nothing.  That bug is fixed (a short last round now runs instead of being discarded) and the
+# knob has never been read since.
+#
+# Each round gets a fresh round index, so seeds and axis rotations differ and a later round cannot
+# re-derive the earlier one.  R=1 is the shipped default and its own baseline here.
+for p in 1 20 6 4 24; do
+  for r in 1 2 3; do
+    run "r60.p$p.R$r" $p 60 "OGC_ROUNDS=$r"
+  done
+done
+echo "== ROUNDS 60 done ==" >> $L
+
 # Phase 3 -- the axis integration at 120 s.  Every finding in this project that was read at one
 # budget reversed at another, so the 60 s answer is not shipped until 120 s has seen it.
 for p in 1 20 6 4 24; do
@@ -119,6 +142,13 @@ for p in 1 20 6 4 24; do
   run "d120.p$p.both" $p 120 "OGC_Z1PASS=0 $D5 OGC_Z1OP=1"
 done
 echo "== DIR 120 done ==" >> $L
+
+for p in 1 20 6 4 24; do
+  for r in 1 2 3; do
+    run "r120.p$p.R$r" $p 120 "OGC_ROUNDS=$r"
+  done
+done
+echo "== ROUNDS 120 done ==" >> $L
 
 # d60.pX.base repeats a60.pX.base exactly -- same env, same budget, same build.  That is deliberate
 # and it is the only repeatability estimate this queue produces: every conclusion below is a

@@ -3357,7 +3357,13 @@ def algorithm(prob_info, timelimit=60):
             # because the Z3 pass can then trade against a lower tardiness baseline, and each is
             # adopted only when it strictly improves the full objective.
             #
-            # OGC_Z1PASS=0 turns the tardiness pass off and restores the previous single-pass tail.
+            # DEFAULT OFF, because the only budget where it was ever ahead is the short one.  It
+            # shipped on, and 120 s then lost 3 of 4 -- P1 by 28.78%.  A pass that is right at 60 s
+            # and wrong at 120 s cannot be a default when the hidden set gives 60-120: OGC_Z1OP=1
+            # is where it belongs, registered in the operator roster where gain/spent decides how
+            # much of the budget it gets instead of a constant deciding in advance.
+            #
+            # OGC_Z1PASS=1 restores the fixed-share tail pass for measurement.
             #
             # THE SPLIT IS THE WHOLE QUESTION, and half-and-half was a guess.  Paired, one cell per
             # arm, off vs on:
@@ -3370,7 +3376,7 @@ def algorithm(prob_info, timelimit=60):
             # z3 has converged and that half was idle; at 120 s it was still working (P1 off ends at
             # Z3=608, on at Z3=910 -- the preference the halved z3 never collected).  So the share
             # is the knob, not the pass.  OGC_Z1FRAC sweeps it; 0 is the same as OGC_Z1PASS=0.
-            _z1on = os.environ.get("OGC_Z1PASS", "1") != "0"
+            _z1on = os.environ.get("OGC_Z1PASS", "0") != "0"
             try:
                 _z1f = min(0.90, max(0.0, float(os.environ.get("OGC_Z1FRAC", "0.5"))))
             except Exception:
