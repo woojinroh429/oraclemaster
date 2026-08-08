@@ -174,3 +174,4 @@ P36 [am.p36.hi]    240s  obj=87795877    Z1=12456.0  Z2=2925   Z3=5936.0    feas
 P36 [am.p36.adapt]   240s  obj=75196066    Z1=10474.0  Z2=2708   Z3=6704.0    feas=y   ran 238s  py3.12
 # [am.p1.base]
 P1  [am.p1.base]   240s  obj=470530      Z1=19.0     Z2=7419   Z3=536.0     feas=y   ran 201s  py3.12
+# [am.p1.lo]
