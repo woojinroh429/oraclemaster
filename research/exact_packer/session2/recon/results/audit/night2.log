@@ -282,3 +282,5 @@ P16  [B.p16.sac3] work=3000      B=96   K=4 axis=0  obj=10141688     feas=y    1
 P16  [B.p16.aspect] work=3000      B=96   K=4 axis=0  obj=12208761     feas=y    17.5s  digest=34a2abaa52b0693d
 # [B.p16.boxfill]
 P16  [B.p16.boxfill] work=3000      B=96   K=4 axis=0  obj=13647982     feas=y    17.1s  digest=7487fd121fc576dd
+# [B.p16.cohort]
+P16  [B.p16.cohort] work=3000      B=96   K=4 axis=0  obj=3625371      feas=y     9.1s  digest=39280d3ed8be0811
