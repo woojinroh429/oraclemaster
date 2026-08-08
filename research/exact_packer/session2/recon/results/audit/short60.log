@@ -44,3 +44,5 @@ P24 [b60.p24.odlst]    60s  obj=2712398     Z1=566.0    Z2=4160   Z3=1328.0    f
 P24 [b60.p24.odedd]    60s  obj=2551655     Z1=471.0    Z2=3116   Z3=1600.0    feas=y   ran 59s  py3.12
 # [b60.p24.odcohort]
 P24 [b60.p24.odcohort]    60s  obj=2578859     Z1=505.0    Z2=3842   Z3=1448.0    feas=y   ran 59s  py3.12
+# [b60.p24.wm0.5]
+P24 [b60.p24.wm0.5]    60s  obj=2734136     Z1=500.0    Z2=3548   Z3=1738.0    feas=y   ran 59s  py3.12
