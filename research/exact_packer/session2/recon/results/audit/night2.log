@@ -308,3 +308,5 @@ P20  [B.p20.cohort] work=3000      B=96   K=4 axis=0  obj=12510372     feas=y   
 P1   [C.p1.shadow0.25] work=3000      B=96   K=4 axis=0  obj=1174681      feas=y    16.9s  digest=70a2b32ad25991a0
 # [C.p1.shadow1.0]
 P1   [C.p1.shadow1.0] work=3000      B=96   K=4 axis=0  obj=1333384      feas=y    18.6s  digest=ed90ded9630959db
+# [C.p1.span0.25]
+P1   [C.p1.span0.25] work=3000      B=96   K=4 axis=0  obj=1273625      feas=y    17.9s  digest=cc1fe1447196bb17
