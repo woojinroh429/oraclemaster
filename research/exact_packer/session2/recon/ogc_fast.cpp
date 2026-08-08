@@ -1963,20 +1963,38 @@ struct Engine {
         beam_level_frac_ = 0.0;
         const int Bmax=std::max(1,B), Bstart=ADAPTB?std::max(1,std::min(B,8)):B;
         int Bcur=Bstart; double work=0.0;   // work = sum over levels of (states expanded)
-        // ONE CLOCK READ FOR THE SIZE OF THE SEARCH, NONE FOR ITS SHAPE.  In rate mode the slice
-        // becomes a work cap here, once, from the rate the previous beam measured; the controllers
-        // below then run in the work arm they already have and read no clock.  _tguard is the
-        // backstop: an estimate taken from a beam of different width can be optimistic, and an
-        // overrun is disqualification rather than a bad score, so wall clock still stops the loop a
-        // little past the aim and the salvage path finishes the partial as it does today.
+        // THE WIDTH CONTROLLER LOSES THE CLOCK; THE STOP TEST KEEPS IT.
+        //
+        // Both used the same expression and only one of them is the amplifier.  The stop test reads
+        // the clock and compares it to a threshold -- it is a boundary, and nothing it computes
+        // feeds back into anything.  The width controller reads the clock and turns it into Bcur,
+        // which decides how much time the next level costs, which moves the clock: that is the
+        // 250-step feedback loop, and it is the whole of the noise.
+        //
+        // The first two versions moved the stop test too, and both measurements say not to:
+        //
+        //     v1 armed from every beam       P20 0.55->0.00% mean -2.88%   P1 3.44->26.68% +6.12%
+        //     v2 armed only when slice-bound P20 0.94->0.79% mean -3.47%   P1 2.42-> 0.00% +11.00%
+        //
+        // v2 makes prob_1 perfectly deterministic and 11% worse, which is the useful reading: the
+        // feedback loop IS the noise and removing it IS achievable, but a work cap that stops the
+        // loop also decides WHEN the beam stops, and there it stops too early -- every beam exits
+        // through the salvage path with a rolled-out partial instead of completing its levels.
+        //
+        // So the cap becomes the width controller's budget and nothing else.  The beam still stops
+        // exactly where it stops today, so the number of draws, the salvage behaviour and the
+        // overrun margin are all unchanged; what changes is that the trajectory to that point is
+        // computed from expansions rather than re-derived from a drifting clock at every level.
+        //
+        // OGC_WORKCAP is untouched: it still replaces the stop test as well, because measurement
+        // mode wants no clock anywhere and does not have to respect a wall-clock budget.
         double _wcap=WORKCAP();
         const bool _hardwork = (_wcap>0.0);            // OGC_WORKCAP: measurement mode, no clock
         if(!_hardwork && WRATE_on() && beam_rate_>0.0 && time_budget_s>0.0)
             _wcap = beam_rate_ * time_budget_s * AIM;
-        const double _tguard = _hardwork ? 1e300
-                             : time_budget_s * std::min(0.98, AIM*1.15);
+        bool _useW = (_wcap>0.0);      // retires mid-run if the estimate is exhausted; see below
         for(int level=0; level<nord; level++){
-            if(_wcap>0.0 ? (work>_wcap || elapsed()>_tguard) : (elapsed()>time_budget_s*AIM)){
+            if(_hardwork ? (work>_wcap) : (elapsed()>time_budget_s*AIM)){
                 beam_salvaged_ = true;
                 beam_used_frac_ = elapsed()/std::max(1e-9,time_budget_s);
                 beam_work_ = work;
@@ -2021,10 +2039,17 @@ struct Engine {
                 }
                 return {1e18,{}};
             }
+            // Rate mode's estimate can run out before the clock does -- it came from a beam of a
+            // different width on different occupancy.  When it does, `_wcap-work` goes negative and
+            // a controller reading it would collapse the width to 1 for the rest of the run while
+            // real time remained.  So the work arm simply retires and the clock takes the tail,
+            // exactly as it does today.  The deterministic phase covers the normal case; the
+            // degradation is graceful rather than a cliff.
+            if(_useW && !_hardwork && work >= _wcap) _useW=false;
             if(ADAPTB && level>0 && work>0.0){
                 // work mode: the unit is a state expansion, not a second, and `per` is 1.
-                double per = _wcap>0.0 ? 1.0 : elapsed()/work;
-                double left = _wcap>0.0 ? (_wcap-work) : (time_budget_s*AIM-elapsed());
+                double per = _useW ? 1.0 : elapsed()/work;
+                double left = _useW ? (_wcap-work) : (time_budget_s*AIM-elapsed());
                 int rem=nord-level;
                 int fit=(per>1e-12&&rem>0)? (int)(left/(per*(double)rem)) : Bmax;
                 if(fit<1) fit=1;
@@ -2040,8 +2065,8 @@ struct Engine {
             static const bool ADAPTK=[](){const char*e=getenv("OGC_ADAPTK");return !(e&&e[0]=='0');}();
             int Kuse=K;
             if(ADAPTK && ADAPTB && level>0 && work>0.0){
-                double per = _wcap>0.0 ? 1.0 : elapsed()/work;
-                double left2 = _wcap>0.0 ? (_wcap-work) : (time_budget_s*AIM-elapsed());
+                double per = _useW ? 1.0 : elapsed()/work;
+                double left2 = _useW ? (_wcap-work) : (time_budget_s*AIM-elapsed());
                 int rem2=nord-level;
                 if(per>1e-12 && rem2>0){
                     double afford=left2/(per*(double)rem2);      // states we could still expand
