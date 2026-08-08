@@ -2443,8 +2443,31 @@ def _worker(args):
     #
     # The C++ reads OGC_HZ1V2 once per process into a static, so this has to happen before the first
     # beam call -- which is what being here guarantees.  A caller that sets it wins, for the A/B.
+    # THE SPLIT WAS MEASURED AND IT DOES NOT SHIP EITHER.  240 s, one cell per arm:
+    #
+    #     inst        off          on          spl        spl vs off
+    #     P16    3,522,150   3,286,759   3,271,186    -7.13%   spl best of the three
+    #     P36   77,450,051  75,161,373  75,161,373    -2.96%   spl == on
+    #     P20    9,144,888   9,712,921   9,041,517    -1.13%   spl best of the three
+    #     P6     5,048,880   5,173,338   5,237,234    +3.73%   spl worse than both
+    #     P1       470,530     540,247     540,247   +14.82%   spl == on
+    #
+    # A SPLIT IS NOT min(all-off, all-on).  Each arm runs four workers; the split runs two and two,
+    # so it draws twice from each setting instead of four times, and a minimum over two is worse
+    # than a minimum over four.  That is why it can land BELOW both parents (P6) as easily as above
+    # them (P16, P20).  The file already measured this failure once, spreading the beam aim across
+    # four values instead of stacking 2:2 -- "what breaks is the guarantee of a pair at each end".
+    # With four workers and the aim already split 2:2, a second binary split leaves ONE worker per
+    # combination, which is exactly the losing configuration.
+    #
+    # And prob_1 loses 14.82% under BOTH on and spl, identically, which is a mechanism rather than
+    # noise: hz1 is a TARDINESS lookahead, prob_1 carries 22.6% of its objective in w1*Z1 and 73% in
+    # w3*Z3, and making the tardiness term larger buys time the objective there does not pay for.
+    #
+    # Kept for the record and for the A/B: OGC_HZ1V2=1 enables the corrected lookahead, OGC_HZ1SET
+    # splits it across workers.  Neither is on.
     if "OGC_HZ1V2" not in os.environ:
-        _hz = [h for h in os.environ.get("OGC_HZ1SET", "0,1").split(",") if h.strip()]
+        _hz = [h for h in os.environ.get("OGC_HZ1SET", "0").split(",") if h.strip()]
         os.environ["OGC_HZ1V2"] = _hz[wid % len(_hz)].strip()
 
     rng = random.Random(1234 + wid)
