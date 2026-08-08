@@ -215,3 +215,5 @@ P6  [rd.p6.R1]     240s  obj=5048880     Z1=321.0    Z2=3667   Z3=5644.0    feas
 P6  [rd.p6.R2]     240s  obj=5308404     Z1=338.0    Z2=3430   Z3=5900.0    feas=y   ran 233s  py3.12
 # [rd.p6.R4]
 P6  [rd.p6.R4]     240s  obj=5443337     Z1=341.0    Z2=4116   Z3=6588.0    feas=y   ran 240s  py3.12
+== ROUNDS 240 done ==
+# [po.p1.base]
