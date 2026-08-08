@@ -201,3 +201,4 @@ P16 [rd.p16.R1]    240s  obj=3286759     Z1=158.0    Z2=1965   Z3=4697.0    feas
 == CENSUS done ==
 == AIM 240 done ==
 # [rd.p16.R2]
+P16 [rd.p16.R2]    240s  obj=3286759     Z1=158.0    Z2=1965   Z3=4697.0    feas=y   ran 240s  py3.12
