@@ -276,3 +276,5 @@ P16  [B.p16.defer_big] work=3000      B=96   K=4 axis=0  obj=6671345      feas=y
 P16  [B.p16.big_first] work=3000      B=96   K=4 axis=0  obj=9707740      feas=y    12.8s  digest=93aed05d680b5f70
 # [B.p16.rank]
 P16  [B.p16.rank] work=3000      B=96   K=4 axis=0  obj=10066586     feas=y    11.3s  digest=6c02e0ed0ce6ec26
+# [B.p16.sac3]
+P16  [B.p16.sac3] work=3000      B=96   K=4 axis=0  obj=10141688     feas=y    12.5s  digest=b40b2575301485da
