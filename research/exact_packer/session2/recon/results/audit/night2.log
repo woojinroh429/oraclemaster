@@ -288,3 +288,5 @@ P16  [B.p16.cohort] work=3000      B=96   K=4 axis=0  obj=3625371      feas=y   
 P20  [B.p20.edd] work=3000      B=96   K=4 axis=0  obj=13562348     feas=y    14.3s  digest=e1d6081e2edd7f3b
 # [B.p20.lst]
 P20  [B.p20.lst] work=3000      B=96   K=4 axis=0  obj=12142815     feas=y    11.4s  digest=307831228fb3fba4
+# [B.p20.defer_big]
+P20  [B.p20.defer_big] work=3000      B=96   K=4 axis=0  obj=10663479     feas=y     9.6s  digest=9ed632839866a27b
