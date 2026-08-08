@@ -216,3 +216,5 @@ P20  [A.p20.a3.wm8.0] work=3000      B=96   K=4 axis=3  obj=13621051     feas=y 
 P1   [B.p1.edd] work=3000      B=96   K=4 axis=0  obj=753892       feas=y     9.4s  digest=7ede2d91bdd5c2c2
 # [B.p1.lst]
 P1   [B.p1.lst] work=3000      B=96   K=4 axis=0  obj=690840       feas=y     9.9s  digest=94d47da753e78c99
+# [B.p1.defer_big]
+P1   [B.p1.defer_big] work=3000      B=96   K=4 axis=0  obj=1174681      feas=y    12.4s  digest=70a2b32ad25991a0
