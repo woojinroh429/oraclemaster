@@ -318,3 +318,5 @@ P1   [C.p1.conw0.5] work=3000      B=96   K=4 axis=0  obj=1537086      feas=y   
 P1   [C.p1.conw2.0] work=3000      B=96   K=4 axis=0  obj=1450407      feas=y    11.4s  digest=f29f72d4032f01f4
 # [C.p1.hmatch0.25]
 P1   [C.p1.hmatch0.25] work=3000      B=96   K=4 axis=0  obj=1353423      feas=y    20.9s  digest=0fb046df14d4e938
+# [C.p1.hmatch1.0]
+P1   [C.p1.hmatch1.0] work=3000      B=96   K=4 axis=0  obj=1462458      feas=y    21.8s  digest=6363553fd0d52013
