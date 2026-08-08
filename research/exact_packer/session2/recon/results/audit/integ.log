@@ -1,12 +1,2 @@
 # [a60.p1.base]
 P1  [a60.p1.base]    60s  obj=610313      Z1=17.0     Z2=5858   Z3=799.0     feas=y   ran 49s  py3.12
-# [a60.p1.p1a]
-P1  [a60.p1.p1a]    60s  obj=679647      Z1=3.0      Z2=6082   Z3=1069.0    feas=y   ran 56s  py3.12
-# [a60.p1.p1b]
-P1  [a60.p1.p1b]    60s  obj=679647      Z1=3.0      Z2=6082   Z3=1069.0    feas=y   ran 56s  py3.12
-# [a60.p1.p1c]
-P1  [a60.p1.p1c]    60s  obj=653879      Z1=17.0     Z2=3380   Z3=884.0     feas=y   ran 52s  py3.12
-# [a60.p20.base]
-P20 [a60.p20.base]    60s  obj=8876985     Z1=1125.0   Z2=2220   Z3=9059.0    feas=y   ran 59s  py3.12
-# [a60.p20.p1a]
-P20 [a60.p20.p1a]    60s  obj=9162795     Z1=1169.0   Z2=2984   Z3=8968.0    feas=y   ran 59s  py3.12
