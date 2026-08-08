@@ -2460,13 +2460,14 @@ def _worker(args):
             #
             # No axis has ever carried w3mul below 1.0, so this direction is not merely
             # under-weighted in the portfolio, it is unreachable.
+            # BY AXIS IDENTITY, NOT BY POSITION.  `axes` is ROTATED per worker -- position 5 in
+            # worker 3's list is _AXES[2] -- so indexing by position replaces a DIFFERENT axis in
+            # every worker, which removes nothing from the pool and adds the new config four times
+            # over.  Measured that way p1a and p1b returned the identical solution on P1
+            # (679,647, Z1=3 Z2=6082 Z3=1069) because they were, in effect, the same arm.
             _lo = dict(order="lst", w3mul=0.5)
-            if _as == "p1a":                  # slot 5 (narrow-deep: Bmul 0.5, K 6)
-                axes = [dict(_c, **_lo) if _i == 5 else _c for _i, _c in enumerate(axes)]
-            elif _as == "p1b":                # slot 0 (wide-shallow: Bmul 1.0, K 4)
-                axes = [dict(_c, **_lo) if _i == 0 else _c for _i, _c in enumerate(axes)]
-            else:                             # both, to give the direction twice the draws
-                axes = [dict(_c, **_lo) if _i in (0, 5) else _c for _i, _c in enumerate(axes)]
+            _tgt = {"p1a": (5,), "p1b": (0,)}.get(_as, (0, 5))
+            axes = [dict(_c, **_lo) if _AXIDX.get(id(_c)) in _tgt else _c for _c in axes]
         elif _as in ("a4", "a5", "a5d"):
             # AXIS COUNT, not just axis content.  Only 1, 6 and 7 have ever been measured and
             # they came out 1 > 6 > 7: a single fixed order beat the six on 3 of 4 instances, and
@@ -2645,7 +2646,84 @@ def _worker(args):
     # An instrument that moves the measurement is worse than no instrument, and this one would have
     # shipped inside the submitted algorithm.  So the flags are read once, here, and the hot
     # definition contains nothing that was not in the original three lines.
-    if not _DRAWSTAT and _AXJIT <= 0.0:
+    # WHICH AXIS THE NEXT DRAW USES IS DECIDED BY A COUNTER (OGC_AXDIR=1 replaces it).
+    #
+    #     axes[gen[0] % len(axes)]
+    #
+    # That single expression is round-robin over the six configs, and it sits directly on top of
+    # this project's largest measured spread.  From the OGC_AXIS note above: running the six configs
+    # separately moves the objective 32% to 210% across five instances, while repeating ONE config
+    # moves it 0.0% to 12.6%.  Which valley a draw reaches is chosen by the axis and by almost
+    # nothing else -- and the axis is chosen by nothing at all.
+    #
+    # Every other allocation in this file is measured.  The operator loop below spends by
+    # gain/spent, the contact weight is a bandit, the worker aims are a portfolio.  One level down,
+    # inside the operator that earns most of the objective, the budget is split six equal ways
+    # regardless of what any of them returned.  At 240 s that is ~30 draws over 6 axes, five each;
+    # at the 60 s the hidden set gives its early instances it is closer to one each, so the axis
+    # that would have won gets a single draw and the run is decided by which one that was.
+    #
+    # WHAT THE REWARD HAS TO BE.  Credit-on-improvement -- the operator loop's rule -- is far too
+    # sparse here: after the first few draws almost nothing beats the incumbent, every axis scores
+    # zero, and the argmax goes back to being arbitrary.  So the signal is the RELATIVE DEFICIT of
+    # each draw against the incumbent it was measured against, d = (obj - best)/best, floored at 0
+    # and capped: an axis landing 3% off the incumbent is a live candidate to beat it next time, one
+    # landing 80% off is not, and that is readable from every draw rather than from the rare good
+    # one.  The cap matters -- one catastrophic draw must not retire an axis permanently, because
+    # quality(axis, work) is NOT monotone here (P16 axis 4 degrades as its slice grows, P1 axis 2
+    # bottoms at work=6000 and rebounds at 12000).
+    #
+    # NOTHING IS ELIMINATED.  For the same reason, and because the answer is a MIN over draws: under
+    # min-of-N, spread at equal centre is worth paying for (measured -- prob_16's best result ever
+    # came from the arm with the largest worker spread of any tried).  A director that narrows to
+    # one axis would trade exactly the tail this scoring rule pays for.  So the rule is
+    # untried-first, then an exploration share, then the best mean deficit.
+    #
+    # OGC_AXSCAN shortens the FIRST draw of each axis, so that surveying six of them at 60 s does
+    # not consume every draw there is.  It is separated from the director itself because it carries
+    # the one assumption the non-monotonicity above puts in doubt -- that a cheap draw ranks an axis
+    # the same way a full one would -- and that has to be priced on its own.
+    _AXDIR = os.environ.get("OGC_AXDIR") == "1"
+    try:
+        _AXEPS = min(0.9, max(0.0, float(os.environ.get("OGC_AXEPS", "0.25"))))
+    except Exception:
+        _AXEPS = 0.25
+    try:
+        _AXSCAN = min(1.0, max(0.05, float(os.environ.get("OGC_AXSCAN", "1.0"))))
+    except Exception:
+        _AXSCAN = 1.0
+    _adef = [0.0] * len(axes)
+    _acnt = [0] * len(axes)
+
+    def _ax_pick():
+        unt = [i for i, c in enumerate(_acnt) if c == 0]
+        if unt:
+            return unt[0], (_AXSCAN if len(unt) > 1 else 1.0)
+        if rng.random() < _AXEPS:
+            return rng.randrange(len(axes)), 1.0
+        return min(range(len(axes)), key=lambda i: _adef[i] / _acnt[i]), 1.0
+
+    def _ax_tell(ai, s):
+        _acnt[ai] += 1
+        try:
+            v = _total(prob_info, s)[0] if s is not None else float("inf")
+        except Exception:
+            v = float("inf")
+        ref = pool[0][0] if pool else float("inf")
+        if v >= float("inf") or ref >= float("inf") or ref <= 0.0:
+            d = 4.0
+        else:
+            d = max(0.0, (v - ref) / ref)
+        _adef[ai] += min(d, 4.0)
+
+    if _AXDIR:
+        def _fresh(t):
+            gen[0] += 1
+            ai, sc = _ax_pick()
+            s = _beam_once(prob_info, t * sc, _jit(axes[ai], gen[0]), share)
+            _ax_tell(ai, s)
+            return s
+    elif not _DRAWSTAT and _AXJIT <= 0.0:
         def _fresh(t):
             gen[0] += 1
             return _beam_once(prob_info, t, axes[gen[0] % len(axes)], share)
@@ -2717,7 +2795,25 @@ def _worker(args):
            # thing today established is that policy changes get judged on 40 paired instances,
            # not on a hunch.
            ("pref", lambda t: _z3_improve(prob_info, pool[0][1], t), True,
-            os.environ.get("OGC_PREFSEARCH") == "1", 0.5)]
+            os.environ.get("OGC_PREFSEARCH") == "1", 0.5),
+           # THE TARDINESS PASS, SCHEDULED RATHER THAN GIVEN A FIXED SHARE OF THE TAIL.
+           #
+           # ruin_tardy was wired into the polish tail at a guessed half-and-half against
+           # z3_reassign, and the guess is what broke: 60 s won 5 of 5 and 120 s lost 3 of 4,
+           # because at 60 s the half it took from the preference pass was idle time and at 120 s
+           # it was not (P1 ends Z3=608 with it off, Z3=910 with it on).
+           #
+           # A constant cannot be right for both, and there is already a mechanism here that does
+           # not need one: gain/spent hands the next slice to whatever is actually paying in
+           # objective units per second, on this instance, at this budget.  pref -- the same kind
+           # of pass, aimed at the other term -- is registered exactly this way.
+           #
+           # Repair-pass treatment (field 4 = False) is right for it: the seed is fixed, so an
+           # unchanged incumbent returns the same nothing, which is what empty_at is for.
+           ("z1", lambda t: _z1_improve(prob_info, pool[0][1], t), True,
+            False, 0.5)]
+    if os.environ.get("OGC_Z1OP") != "1":
+        ops = [o for o in ops if o[0] != "z1"]
     # pull / pmov / swap / cpas stay DEFINED and UNREGISTERED.  Each was measured: _pull_early
     # bought 0.05% for 22 s, _pref_move fired on nothing, _bay_swap survived no candidate, and
     # _cpassign was 34% worse.  Registered they still draw probe slices, and the roster ablation

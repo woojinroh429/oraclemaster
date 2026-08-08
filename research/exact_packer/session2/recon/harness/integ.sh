@@ -75,14 +75,29 @@ for p in 1 20 6 4 24; do
 done
 echo "== AXSET 60 done ==" >> $L
 
-# Phase 2 -- the Z1 share at 120 s, where half-and-half lost 3 of 4.  frac 0 IS the off arm, so the
-# ladder carries its own baseline and no separate control cell is needed.
-for p in 1 20 6; do
-  for f in 0 0.15 0.30 0.50; do
-    run "f120.p$p.$f" $p 120 "OGC_Z1FRAC=$f"
-  done
+# Phase 2 -- THE AXIS DIRECTOR, and the tardiness pass as a scheduled operator instead of a
+# constant share.  Both replace a hand-set number with a measured one, which is why they are in the
+# same phase: the Z1 fraction sweep this phase used to hold is superseded by registering the pass in
+# the gain/spent roster, and a sweep would only have found the constant that the roster does not
+# need.
+#
+#     base   round-robin axes, tail pass off          the thing to beat
+#     dir    OGC_AXDIR=1                              deficit-ranked axis choice, full first draws
+#     dir5   OGC_AXDIR=1 OGC_AXSCAN=0.5               survey the six on half slices first
+#     z1op   OGC_Z1OP=1                               ruin_tardy scheduled by gain/spent
+#     both   dir5 + z1op
+#
+# Every arm carries OGC_Z1PASS=0 so the tail is the same in all of them and the reading is the
+# mechanism under test rather than the tail pass it replaces.
+D5="OGC_AXDIR=1 OGC_AXSCAN=0.5"
+for p in 1 20 6 4 24; do
+  run "d60.p$p.base" $p 60 "OGC_Z1PASS=0"
+  run "d60.p$p.dir"  $p 60 "OGC_Z1PASS=0 OGC_AXDIR=1"
+  run "d60.p$p.dir5" $p 60 "OGC_Z1PASS=0 $D5"
+  run "d60.p$p.z1op" $p 60 "OGC_Z1PASS=0 OGC_Z1OP=1"
+  run "d60.p$p.both" $p 60 "OGC_Z1PASS=0 $D5 OGC_Z1OP=1"
 done
-echo "== Z1FRAC 120 done ==" >> $L
+echo "== DIR 60 done ==" >> $L
 
 # Phase 3 -- the axis integration at 120 s.  Every finding in this project that was read at one
 # budget reversed at another, so the 60 s answer is not shipped until 120 s has seen it.
@@ -94,20 +109,21 @@ for p in 1 20 6 4 24; do
 done
 echo "== AXSET 120 done ==" >> $L
 
-# Phase 4 -- the Z1 share at 60 s, where half-and-half won 5 of 5.  If a small share keeps most of
-# the 60 s gain and drops the 120 s loss, one number ships; if the optimum is 0.5 at 60 and 0.1 at
-# 120, the pass needs a scheduler rather than a constant.
-#
-# frac 0 is re-run here rather than reused from z1pass.log: those cells were taken while the 7th
-# submission's defaults were still in force, so every one of them -- both arms -- sat on top of
-# order=lst, w3mul=0.5 and a 50% reserve.  The 5-of-5 at 60 s and the 1-of-4 at 120 s are readings
-# about the Z1 pass ON THAT BASE, and the base has since been reverted.  They do not carry over.
-for p in 1 20 6; do
-  for f in 0 0.15 0.30 0.50; do
-    run "f60.p$p.$f" $p 60 "OGC_Z1FRAC=$f"
-  done
+# Phase 4 -- the director and the scheduled pass at 120 s.  Same reason phase 3 exists: nothing in
+# this project has held its sign across budgets, and 60-120 s is the range the hidden set gives.
+for p in 1 20 6 4 24; do
+  run "d120.p$p.base" $p 120 "OGC_Z1PASS=0"
+  run "d120.p$p.dir"  $p 120 "OGC_Z1PASS=0 OGC_AXDIR=1"
+  run "d120.p$p.dir5" $p 120 "OGC_Z1PASS=0 $D5"
+  run "d120.p$p.z1op" $p 120 "OGC_Z1PASS=0 OGC_Z1OP=1"
+  run "d120.p$p.both" $p 120 "OGC_Z1PASS=0 $D5 OGC_Z1OP=1"
 done
-echo "== Z1FRAC 60 done ==" >> $L
+echo "== DIR 120 done ==" >> $L
+
+# d60.pX.base repeats a60.pX.base exactly -- same env, same budget, same build.  That is deliberate
+# and it is the only repeatability estimate this queue produces: every conclusion below is a
+# difference between single cells, and the size of the base-to-base gap is what says whether a
+# difference of that size means anything at all.
 
 echo "INTEGDONE" >> $L
 echo idle > harness/CURRENT
