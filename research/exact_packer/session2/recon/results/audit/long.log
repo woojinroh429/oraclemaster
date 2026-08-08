@@ -128,3 +128,6 @@ P6  [cen.p6]       240s  obj=5237234     Z1=334.0    Z2=3347   Z3=5769.0    feas
 == CENSUS done ==
 # [op.p1.base]
 P1  [op.p1.base]   240s  obj=470530      Z1=19.0     Z2=7419   Z3=536.0     feas=y   ran 200s  py3.12
+== CENSUS done ==
+# [op.p1.nobay]
+P1  [op.p1.nobay]   240s  obj=470530      Z1=19.0     Z2=7419   Z3=536.0     feas=y   ran 200s  py3.12
