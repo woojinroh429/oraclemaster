@@ -31,3 +31,5 @@ P4  [a60.p4.base]    60s  obj=3023148     Z1=392.0    Z2=2309   Z3=3199.0    fea
 P4  [a60.p4.p1a]    60s  obj=3046098     Z1=389.0    Z2=2183   Z3=3262.0    feas=y   ran 60s  py3.12
 # [a60.p4.p1b]
 P4  [a60.p4.p1b]    60s  obj=2774178     Z1=377.0    Z2=3022   Z3=2819.0    feas=y   ran 60s  py3.12
+# [a60.p4.p1c]
+P4  [a60.p4.p1c]    60s  obj=2957435     Z1=326.0    Z2=2248   Z3=3489.0    feas=y   ran 59s  py3.12
