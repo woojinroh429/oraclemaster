@@ -44,3 +44,7 @@ P24 [a60.p24.p1c]    60s  obj=2631837     Z1=538.0    Z2=2469   Z3=1369.0    fea
 == AXSET 60 done ==
 # [d60.p1.base]
 P1  [d60.p1.base]    60s  obj=650596      Z1=25.0     Z2=3307   Z3=790.0     feas=y   ran 53s  py3.12
+# [d60.p1.dir]
+== AXSET 60 done ==
+# [c120.p16.base]
+P16 [c120.p16.base]   120s  obj=3933854     Z1=210.0    Z2=1058   Z3=4523.0    feas=y   ran 119s  py3.12
