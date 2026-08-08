@@ -224,3 +224,5 @@ P1   [B.p1.big_first] work=3000      B=96   K=4 axis=0  obj=1175085      feas=y 
 P1   [B.p1.rank] work=3000      B=96   K=4 axis=0  obj=1157208      feas=y     8.1s  digest=5f954439d65ea666
 # [B.p1.sac3]
 P1   [B.p1.sac3] work=3000      B=96   K=4 axis=0  obj=1297164      feas=y     8.6s  digest=b4c4c2c57f4f9c0d
+# [B.p1.aspect]
+P1   [B.p1.aspect] work=3000      B=96   K=4 axis=0  obj=1107676      feas=y     9.9s  digest=b9307569e8c21049
