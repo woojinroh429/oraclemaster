@@ -164,3 +164,5 @@ P16 [am.p16.lo]    240s  obj=3530471     Z1=185.0    Z2=2122   Z3=4230.0    feas
 P16 [am.p16.hi]    240s  obj=3067661     Z1=142.0    Z2=1125   Z3=4684.0    feas=y   ran 240s  py3.12
 # [am.p16.adapt]
 P16 [am.p16.adapt]   240s  obj=3281165     Z1=168.0    Z2=2407   Z3=4136.0    feas=y   ran 239s  py3.12
+# [am.p36.base]
+P36 [am.p36.base]   240s  obj=75775974    Z1=10641.0  Z2=427    Z3=6040.0    feas=y   ran 240s  py3.12
