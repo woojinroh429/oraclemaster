@@ -390,9 +390,25 @@ struct Engine {
     // 14 s at ~220 expansions/s.  An estimate is not good enough to hang a prescription on, and
     // the loop already accumulates the exact value.
     double beam_work_ = 0.0;
-    // EXPANSIONS PER SECOND THE LAST BEAM ACHIEVED.  Rate mode's whole state: it is what lets the
-    // next beam turn its slice into a work cap without reading the clock again.  Zero until a beam
-    // has completed one call, which is why the first beam of a process runs in time mode.
+    // EXPANSIONS PER SECOND THE LAST SLICE-BOUND BEAM ACHIEVED.  Rate mode's whole state: it is
+    // what lets the next beam turn its slice into a work cap without reading the clock again.
+    //
+    // ONLY A BEAM THE SLICE BOUND MAY SET IT, and zero disarms rate mode for the next call.  The
+    // first version armed from every beam and the first measurement said why that is wrong:
+    //
+    //     P20 (250 blocks, slice-bound)   spread 0.55% -> 0.00%   mean -2.88%   three cells
+    //                                     returning 8,924,228 to the digit
+    //     P1  (150 blocks, beam finishes) spread 3.44% -> 26.68%  mean +6.12%
+    //
+    // On prob_1 the beam completes its level loop well inside its aim -- the file's own note says
+    // the salvage never runs there -- so elapsed() is a short, noisy interval and the rate taken
+    // from it swings.  Worse, a cap built from a swinging rate CUTS a beam that would otherwise
+    // have finished, converting a complete construction into a salvaged partial for no reason.
+    //
+    // Where the slice is not binding there is nothing for the width controller to decide and
+    // nothing for rate mode to stabilise, so it stays out: a completed beam sets this to zero and
+    // the next one runs in today's time mode.  It re-arms by itself the moment a beam runs out of
+    // slice again, so a run that changes regime mid-flight follows it.
     double beam_rate_ = 0.0;
     void   set_beam_aim(double a){ beam_aim_ = a<0.02?0.02:(a>0.98?0.98:a); }
     double get_beam_aim() const { return beam_aim_; }
@@ -1968,6 +1984,9 @@ struct Engine {
                 // whose rate is measured over a full slice, so it is the most informative sample
                 // there is -- and without it a process whose first beam salvages would never leave
                 // time mode at all.
+                // CALIBRATE ONLY FROM A BEAM THE SLICE ACTUALLY BOUND.  This exit is that beam: it
+                // ran out of budget mid-level-loop.  The other exit is not, and arming rate mode
+                // from it is what broke prob_1 -- see the note beside the declaration.
                 if(!_hardwork){ double _el=elapsed(); if(_el>1e-6 && work>0.0) beam_rate_=work/_el; }
                 beam_level_frac_ = nord>0 ? (double)level/(double)nord : 1.0;
                 // FINISH THE BEST PARTIAL INSTEAD OF RETURNING NOTHING.
@@ -2392,7 +2411,9 @@ struct Engine {
         // there is room to raise it.
 beam_work_ = work;
         beam_used_frac_ = elapsed()/std::max(1e-9,time_budget_s);
-        if(!_hardwork){ double _el=elapsed(); if(_el>1e-6 && work>0.0) beam_rate_=work/_el; }
+        // THE BEAM FINISHED INSIDE ITS SLICE, so the slice was not what decided anything and rate
+        // mode has no business running on the next one.  Disarm.
+        if(!_hardwork) beam_rate_ = 0.0;
         beam_width_capped_ = (Bcur >= Bmax);
         beam_level_frac_ = 1.0;
         return {best_obj,best_flat};
