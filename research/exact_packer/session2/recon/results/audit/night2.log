@@ -302,3 +302,7 @@ P20  [B.p20.aspect] work=3000      B=96   K=4 axis=0  obj=17222056     feas=y   
 P20  [B.p20.boxfill] work=3000      B=96   K=4 axis=0  obj=16101337     feas=y    15.2s  digest=f4158d25fe2a72bb
 # [B.p20.cohort]
 P20  [B.p20.cohort] work=3000      B=96   K=4 axis=0  obj=12510372     feas=y    13.2s  digest=876b39ac0841d8fe
+== PHASE B done ==
+== PHASE C untouched knobs ==
+# [C.p1.shadow0.25]
+P1   [C.p1.shadow0.25] work=3000      B=96   K=4 axis=0  obj=1174681      feas=y    16.9s  digest=70a2b32ad25991a0
