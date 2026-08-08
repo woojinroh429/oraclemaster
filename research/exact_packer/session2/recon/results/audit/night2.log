@@ -268,3 +268,5 @@ P24  [B.p24.boxfill] work=3000      B=96   K=4 axis=0  obj=4487400      feas=y  
 P24  [B.p24.cohort] work=3000      B=96   K=4 axis=0  obj=4092375      feas=y    11.8s  digest=72fe75a4579cfcdf
 # [B.p16.edd]
 P16  [B.p16.edd] work=3000      B=96   K=4 axis=0  obj=5556697      feas=y    10.3s  digest=2b9d126b2143343f
+# [B.p16.lst]
+P16  [B.p16.lst] work=3000      B=96   K=4 axis=0  obj=3379892      feas=y     9.2s  digest=5dd4559d58bff552
