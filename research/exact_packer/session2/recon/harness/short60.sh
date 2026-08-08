@@ -50,20 +50,20 @@ run(){ # tag prob limit env
 
 # prob_1 first and complete: it is the hidden set's closest analogue and its 240 s baseline repeats
 # to the last digit.  prob_4 second for the same reason, then prob_24 as the Z1-leaning check.
-for L in 60 120; do
+for BUD in 60 120; do
   for p in 1 4 24; do
-    run "b$L.p$p.base"      $p $L ""
+    run "b$BUD.p$p.base"      $p $BUD ""
     for od in lst edd cohort; do
-      run "b$L.p$p.od$od"   $p $L "OGC_ORDER=$od"
+      run "b$BUD.p$p.od$od"   $p $BUD "OGC_ORDER=$od"
     done
     for wm in 0.5 2.0; do
-      run "b$L.p$p.wm$wm"   $p $L "OGC_W3MUL=$wm"
+      run "b$BUD.p$p.wm$wm"   $p $BUD "OGC_W3MUL=$wm"
     done
     for rf in 0.10 0.35 0.50; do
-      run "b$L.p$p.rf$rf"   $p $L "OGC_RESFRAC=$rf"
+      run "b$BUD.p$p.rf$rf"   $p $BUD "OGC_RESFRAC=$rf"
     done
   done
-  echo "== BUDGET $L done ==" >> $L
+  echo "== BUDGET $BUD done ==" >> $L
 done
 echo "SHORT60DONE" >> $L
 echo idle > harness/CURRENT
