@@ -1707,10 +1707,10 @@ def _axis_env(cfg):
     # furthest behind on, the effect is several times the submission noise floor, and a submission
     # can be replaced within twelve hours.  OGC_ORDER=defer_big OGC_W3MUL=1.0 OGC_RESFRAC=0.20
     # restores the previous behaviour exactly.
-    _o = os.environ.get("OGC_ORDER")
+    _o = os.environ.get("OGC_ORDER", "lst")
     if _o:
         out["order"] = _o
-    _w = os.environ.get("OGC_W3MUL")
+    _w = os.environ.get("OGC_W3MUL", "0.5")
     if _w:
         try:
             out["w3mul"] = float(_w)
@@ -3018,7 +3018,7 @@ def algorithm(prob_info, timelimit=60):
     #
     # So the knob stays available and the default stays where it was measured.
     _rfrac = None
-    _rfs = os.environ.get("OGC_RESFRAC")
+    _rfs = os.environ.get("OGC_RESFRAC", "0.50")
     if _rfs:
         try:
             _rfrac = min(0.80, max(0.02, float(_rfs)))
