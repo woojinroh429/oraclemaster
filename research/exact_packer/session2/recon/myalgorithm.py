@@ -2419,6 +2419,34 @@ def _worker(args):
         _aims = [a for a in os.environ.get("OGC_AIMSET", "0.90,0.10").split(",") if a.strip()]
         os.environ["OGC_BEAMAIM"] = _aims[wid % len(_aims)].strip()
 
+    # THE LOOKAHEAD FIX AS A PORTFOLIO POSITION, FOR THE REASON THE 7TH SUBMISSION TAUGHT.
+    #
+    # wb_hz1 scores an unplaced block's ENTRY against a due date that applies to its EXIT, so the
+    # whole of sum(pt) is missing from the beam's only view past the block it is placing.  Fixing it
+    # is unambiguously more correct arithmetic and it is NOT unambiguously better search, 240 s:
+    #
+    #     P16  3,522,150 -> 3,286,759  -6.68%   Z1 184 -> 158
+    #     P36 77,450,051 -> 75,161,373 -2.96%   Z1 10723 -> 10427
+    #     P6   5,048,880 ->  5,173,338 +2.46%
+    #     P20  9,144,888 ->  9,712,921 +6.21%
+    #
+    # Two large wins with Z1 falling exactly as the change predicts, and two losses.  Shipping it as
+    # a DEFAULT is the mistake this session already made once: order=lst and w3mul=0.5 were right on
+    # P1 and P3 and cost 14-19% on P2, P5 and P8, because a global override rewrote every axis and
+    # the portfolio stopped being one.  Right somewhere and wrong elsewhere is the definition of a
+    # PORTFOLIO POSITION.
+    #
+    # The workers are separate processes and their answer is a MINIMUM, so half of them can carry it
+    # and half not, exactly as the beam aim is already split 2:2 above.  An instance that wants the
+    # sharper lookahead gets it from two workers; one that does not is not harmed, because the min
+    # discards the losing half.  Nothing is gated on any instance property.
+    #
+    # The C++ reads OGC_HZ1V2 once per process into a static, so this has to happen before the first
+    # beam call -- which is what being here guarantees.  A caller that sets it wins, for the A/B.
+    if "OGC_HZ1V2" not in os.environ:
+        _hz = [h for h in os.environ.get("OGC_HZ1SET", "0,1").split(",") if h.strip()]
+        os.environ["OGC_HZ1V2"] = _hz[wid % len(_hz)].strip()
+
     rng = random.Random(1234 + wid)
     axes = [_AXES[(wid + i) % len(_AXES)] for i in range(len(_AXES))]
     # OGC_AXIS=<k> pins every worker to _AXES[k].  MEASUREMENT ONLY, absent by default, and the

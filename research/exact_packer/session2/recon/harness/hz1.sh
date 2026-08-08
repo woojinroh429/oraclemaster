@@ -58,10 +58,23 @@ run(){ # tag prob limit env
 # The Z1-heavy instances first, because they are where the argument says the effect is, and a
 # campaign that runs out of night should have spent it on the decisive cells.  Arms interleaved
 # within an instance so machine drift cannot be read as an arm difference.
+#
+# THE THIRD ARM IS THE ONE THAT WOULD SHIP.  rep 1 came back two large wins and two losses:
+#
+#     P16  -6.68%  Z1 184 -> 158        P6   +2.46%
+#     P36  -2.96%  Z1 10723 -> 10427    P20  +6.21%
+#
+# Right on two instances and wrong on two is not a default -- that is what the 7th submission was,
+# and it cost 14-19% on three hidden instances.  It is a PORTFOLIO POSITION.  The workers are
+# separate processes combined by a MINIMUM, so half can carry the sharper lookahead and half not,
+# exactly as the beam aim is already split 2:2; the instance that wants it gets it from two workers
+# and the instance that does not is unharmed, because the min discards the losing half.  `spl` is
+# that split and it is now the unset default, so the off arm has to say so explicitly.
 for rep in 1 2; do
   for p in 6 36 16 20 1; do
-    run "b240.p$p.off.r$rep" $p 240 ""
+    run "b240.p$p.off.r$rep" $p 240 "OGC_HZ1V2=0"
     run "b240.p$p.on.r$rep"  $p 240 "OGC_HZ1V2=1"
+    run "b240.p$p.spl.r$rep" $p 240 "OGC_HZ1SET=0,1"
   done
   echo "== HZ1 240 rep $rep done ==" >> $L
 done
