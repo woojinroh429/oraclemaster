@@ -250,3 +250,5 @@ P4   [B.p4.boxfill] work=3000      B=96   K=4 axis=0  obj=4299154      feas=y   
 P4   [B.p4.cohort] work=3000      B=96   K=4 axis=0  obj=3274635      feas=y    11.1s  digest=75009f83175a3b88
 # [B.p24.edd]
 P24  [B.p24.edd] work=3000      B=96   K=4 axis=0  obj=3815891      feas=y    12.9s  digest=5b49b4dc3ce26b4e
+# [B.p24.lst]
+P24  [B.p24.lst] work=3000      B=96   K=4 axis=0  obj=3408582      feas=y    11.5s  digest=ce1a65ebf225b291
