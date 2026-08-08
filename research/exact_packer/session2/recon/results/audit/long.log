@@ -228,3 +228,4 @@ P1  [po.p1.both]   240s  obj=470530      Z1=19.0     Z2=7419   Z3=536.0     feas
 P20 [po.p20.base]   240s  obj=8939039     Z1=1131.0   Z2=589    Z3=9293.0    feas=y   ran 239s  py3.12
 # [po.p20.dir5]
 P20 [po.p20.dir5]   240s  obj=8908086     Z1=1118.0   Z2=1910   Z3=9594.0    feas=y   ran 239s  py3.12
+# [po.p20.z1op]
