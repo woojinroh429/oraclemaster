@@ -3073,21 +3073,86 @@ def algorithm(prob_info, timelimit=60):
         except Exception:
             return {"operations": {}}
 
+    # THE TAIL OF THE BUDGET IS BEING THROWN AWAY, AND IT IS 43% OF IT.
+    #
+    # Measured on stage-2 prob_1 with OGC_RESERVE=120 at a 240 s limit: algorithm() returns after
+    # 136.7 s.  The workers take their 119 s, the polish is handed ~120 s and comes back in about
+    # 17, and the remaining ~103 s is simply not used.
+    #
+    # The polish stops early by construction, not by choice.  Engine::z3_reassign runs
+    # hillclimb + ruin_recreate until its budget is gone, EXCEPT:
+    #
+    #     if(!did){ if(++nofuel>4*n_bays+8) break; continue; }   // nothing left to ruin
+    #
+    # so once ruin_recreate has nothing to tear up, twenty consecutive misses on a three-bay
+    # instance end the pass whatever time remains.
+    #
+    # Handing that time back to the workers is the cheap use for it, and it is also the RIGHT use:
+    # the answer is a minimum over draws, so another round is another sample of the attractor set,
+    # while a longer polish on the same layout is the pass that already declared itself finished.
+    # Each extra round gets a fresh round index, so seeds and axis rotations differ and it cannot
+    # re-derive what the previous rounds already produced.
+    #
+    # OGC_FILL=0 disables it; the loop then runs exactly once and this is the old code path.
+    _FILL = os.environ.get("OGC_FILL", "1") != "0"
+    _fr = _R                                   # next round index: continues, never repeats
+    while True:
+        left = timelimit - (time.time() - t0) - 1.0
+        if _POLISH and left > 3.0:
+            try:
+                imp = _z3_improve(prob_info, best[1], left)
+                if imp is not None:
+                    o, _ = _total(prob_info, imp)
+                    if o < best[0]:
+                        best = (o, imp)
+            except Exception:
+                pass
+        if not _FILL:
+            break
+        left = timelimit - (time.time() - t0) - 1.0
+        # A round needs enough time to be worth starting.  The same floor the round loop uses --
+        # a quarter of a nominal round -- and never less than the beam's own 4 s floor.
+        # MARGIN, BECAUSE AN OVERRUN IS DISQUALIFICATION, NOT A BAD SCORE.  A fill round only ever
+        # replaces `best` when it is strictly better, so the answer cannot get worse -- the only
+        # way this loop can hurt is by running past the wall clock.  Hence 8 s of headroom on both
+        # the decision to start a round and the budget handed to it, against the 1 s the main loop
+        # uses; the round also receives `left` as its hard room bound, and the beam's salvage path
+        # returns a finished partial rather than overrunning.
+        _need = max(8.0, 0.25 * _rb)
+        if left < _need + 8.0:
+            break
+        _rb2 = max(4.0, min(_rb, left - 8.0))
+        try:
+            if nw > 1:
+                out = _pool_round(prob_info, _rb2, _fr, nw, cwd, _shdir, left)
+            else:
+                out = [_worker((prob_info, _rb2, _fr * nw, cwd, 1.0, _shdir))]
+        except Exception:
+            break
+        _fr += 1
+        _moved = False
+        for s in out:
+            if s is None:
+                continue
+            try:
+                o, _ = _total(prob_info, s)
+            except Exception:
+                continue
+            if o < best[0]:
+                best = (o, s); _moved = True
+        if os.environ.get("OGC_WSTAT"):
+            import sys as _sy
+            _sy.stderr.write("FILL round=%d budget=%.0f moved=%d best=%.0f\n"
+                             % (_fr - 1, _rb2, int(_moved), best[0]))
+            _sy.stderr.flush()
+    # AFTER the fill rounds, not before them: they run _pool_round and the workers publish their
+    # incumbent into this directory.  Removing it first left the fill rounds writing into a path
+    # that no longer existed -- harmless, since every read is best-effort, but it silently turned
+    # the share channel off for exactly the rounds that were added to use the spare time.
     if _shdir:                                   # one directory per solve; do not leak them
         try:
             import shutil as _sh
             _sh.rmtree(_shdir, ignore_errors=True)
-        except Exception:
-            pass
-
-    left = timelimit - (time.time() - t0) - 1.0
-    if _POLISH and left > 3.0:
-        try:
-            imp = _z3_improve(prob_info, best[1], left)
-            if imp is not None:
-                o, _ = _total(prob_info, imp)
-                if o < best[0]:
-                    best = (o, imp)
         except Exception:
             pass
     return best[1]
