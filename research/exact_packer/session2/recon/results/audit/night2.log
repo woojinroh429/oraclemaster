@@ -234,3 +234,5 @@ P1   [B.p1.cohort] work=3000      B=96   K=4 axis=0  obj=716348       feas=y    
 P4   [B.p4.edd] work=3000      B=96   K=4 axis=0  obj=3562076      feas=y    15.2s  digest=66aa5d9977b119a7
 # [B.p4.lst]
 P4   [B.p4.lst] work=3000      B=96   K=4 axis=0  obj=3471994      feas=y    11.2s  digest=b8e246ceb232c49a
+# [B.p4.defer_big]
+P4   [B.p4.defer_big] work=3000      B=96   K=4 axis=0  obj=3408101      feas=y    18.3s  digest=06f3cbf8714cf2ff
