@@ -127,3 +127,5 @@ P24  [A.p24.a2.wm8.0] work=3000      B=96   K=4 axis=2  obj=3738623      feas=y 
 P24  [A.p24.a3.wm0.25] work=3000      B=96   K=4 axis=3  obj=3863374      feas=y    14.0s  digest=4b2314c6a9e20dab
 # [A.p24.a3.wm0.5]
 P24  [A.p24.a3.wm0.5] work=3000      B=96   K=4 axis=3  obj=3761834      feas=y    13.5s  digest=cb8141058805f77e
+# [A.p24.a3.wm1.0]
+P24  [A.p24.a3.wm1.0] work=3000      B=96   K=4 axis=3  obj=3637538      feas=y    13.1s  digest=4b380afc89ebe57b
