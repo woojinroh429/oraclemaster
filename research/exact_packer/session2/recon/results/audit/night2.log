@@ -294,3 +294,5 @@ P20  [B.p20.defer_big] work=3000      B=96   K=4 axis=0  obj=10663479     feas=y
 P20  [B.p20.big_first] work=3000      B=96   K=4 axis=0  obj=11007061     feas=y    11.1s  digest=8a85ae6ff2b0d8af
 # [B.p20.rank]
 P20  [B.p20.rank] work=3000      B=96   K=4 axis=0  obj=16958484     feas=y    17.0s  digest=263be3c4fef7eeea
+# [B.p20.sac3]
+P20  [B.p20.sac3] work=3000      B=96   K=4 axis=0  obj=14461132     feas=y    12.7s  digest=9e631e2606d0cb22
