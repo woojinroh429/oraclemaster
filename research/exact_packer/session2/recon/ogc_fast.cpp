@@ -2926,21 +2926,54 @@ beam_work_ = work;
         std::vector<std::pair<int,double>> ev;
         for(size_t i=0;i+6<flat.size();i+=7){ int en=flat[i+5],ex=flat[i+6];
             ev.push_back({en,1.0}); ev.push_back({ex,-1.0}); }
-        std::vector<std::pair<int,double>> rem; int minrel=INT_MAX;
-        for(int b=0;b<nb;b++) if(!placed[b]){ rem.push_back({(int)shapes[b].due,areas[b]}); minrel=std::min(minrel,(int)shapes[b].rt); }
+        // THE ESTIMATE SCORES ENTRY AGAINST A DUE DATE THAT APPLIES TO EXIT (OGC_HZ1V2=1 fixes it).
+        //
+        // Z1 is sum over blocks of max(0, EXIT - due) and exit is entry + processing_time.  The
+        // relaxation below computes tau, the time by which a block's area can be absorbed -- that
+        // is its ENTRY -- and then compares tau directly against due.  Every unplaced block is
+        // therefore scored as though it left the yard the instant it arrived, so the whole of
+        // sum(pt) is missing from the lookahead, and it is missing UNEVENLY: a long-processing
+        // block against a tight due date reads as free.
+        //
+        // The second miss is the release time.  minrel is used once, to start the clock at the
+        // earliest release in the set; after that a block released late is treated as available
+        // immediately.  A block cannot enter before it exists.
+        //
+        // Both make the bound too LOW, which is the direction that matters -- hz1 is the beam's
+        // only lookahead, it enters the rank as w1*hz1, and a term that understates future
+        // tardiness lets the beam prefer states that look cheap now and finish late.  That is
+        // exactly the myopia the term was added to remove.
+        //
+        // This is a RANK term, not the pruning bound (wb_lb is, and it is untouched), so raising it
+        // cannot prune the optimum -- it can only change which states survive to be expanded.
+        struct Rem{ int due; double area; int pt; int rt; };
+        std::vector<Rem> rem; int minrel=INT_MAX;
+        for(int b=0;b<nb;b++) if(!placed[b]){
+            rem.push_back(Rem{(int)shapes[b].due,areas[b],(int)shapes[b].pt,(int)shapes[b].rt});
+            minrel=std::min(minrel,(int)shapes[b].rt); }
         if(rem.empty()) return 0.0;
-        std::sort(rem.begin(),rem.end());
+        std::sort(rem.begin(),rem.end(),[](const Rem&a,const Rem&b){
+            if(a.due!=b.due) return a.due<b.due; return a.area<b.area; });
         std::sort(ev.begin(),ev.end());
+        static const bool HZ1V2=[](){const char*e=getenv("OGC_HZ1V2");return(e&&e[0]=='1');}();
         double t=(minrel==INT_MAX)?0.0:(double)minrel;
         double F=0.0, occ=0.0, tardy=0.0, D=0.0; int idx=0;
         while(idx<(int)ev.size() && (double)ev[idx].first<=t){ occ+=ev[idx].second; idx++; }
         for(auto& rd : rem){
-            int due_k=rd.first; D += rd.second;
+            int due_k=rd.due; D += rd.area;
             while(true){
                 double cap=std::max(area_total*0.15, area_total-occ*avg_a);
                 double nxt=(idx<(int)ev.size())?(double)ev[idx].first:1e18;
                 double need_t=(D-F)/cap;
-                if(t+need_t<=nxt){ double tau=t+need_t; if(tau>due_k) tardy+=(tau-due_k); F=D; if(tau>t)t=tau; break; }
+                if(t+need_t<=nxt){
+                    double tau=t+need_t;
+                    if(HZ1V2){
+                        if(tau<(double)rd.rt) tau=(double)rd.rt;   // cannot enter before release
+                        double ex=tau+(double)rd.pt;               // due applies to EXIT
+                        if(ex>due_k) tardy+=(ex-due_k);
+                    } else if(tau>due_k) tardy+=(tau-due_k);
+                    F=D; if(tau>t)t=tau; break;
+                }
                 else { F+=cap*(nxt-t); t=nxt; occ+=ev[idx].second; idx++; }
             }
         }
