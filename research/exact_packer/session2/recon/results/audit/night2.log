@@ -312,3 +312,5 @@ P1   [C.p1.shadow1.0] work=3000      B=96   K=4 axis=0  obj=1333384      feas=y 
 P1   [C.p1.span0.25] work=3000      B=96   K=4 axis=0  obj=1273625      feas=y    17.9s  digest=cc1fe1447196bb17
 # [C.p1.span1.0]
 P1   [C.p1.span1.0] work=3000      B=96   K=4 axis=0  obj=1225808      feas=y    18.4s  digest=44b801bf6fe29d75
+# [C.p1.conw0.5]
+P1   [C.p1.conw0.5] work=3000      B=96   K=4 axis=0  obj=1537086      feas=y    13.5s  digest=8b1d315989b2f957
