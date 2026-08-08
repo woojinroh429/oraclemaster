@@ -300,3 +300,5 @@ P20  [B.p20.sac3] work=3000      B=96   K=4 axis=0  obj=14461132     feas=y    1
 P20  [B.p20.aspect] work=3000      B=96   K=4 axis=0  obj=17222056     feas=y    17.9s  digest=665ad8c691d7ce5a
 # [B.p20.boxfill]
 P20  [B.p20.boxfill] work=3000      B=96   K=4 axis=0  obj=16101337     feas=y    15.2s  digest=f4158d25fe2a72bb
+# [B.p20.cohort]
+P20  [B.p20.cohort] work=3000      B=96   K=4 axis=0  obj=12510372     feas=y    13.2s  digest=876b39ac0841d8fe
