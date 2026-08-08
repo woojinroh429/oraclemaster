@@ -109,3 +109,5 @@ P24  [A.p24.a0.wm2.0] work=3000      B=96   K=4 axis=0  obj=3080029      feas=y 
 == PHASE A w3mul ==
 # [A.p24.a0.wm4.0]
 P24  [A.p24.a0.wm4.0] work=3000      B=96   K=4 axis=0  obj=3179342      feas=y    12.1s  digest=f0ef37530afba03b
+# [A.p24.a0.wm8.0]
+P24  [A.p24.a0.wm8.0] work=3000      B=96   K=4 axis=0  obj=3179342      feas=y    11.4s  digest=f0ef37530afba03b
