@@ -228,3 +228,5 @@ P1   [B.p1.sac3] work=3000      B=96   K=4 axis=0  obj=1297164      feas=y     8
 P1   [B.p1.aspect] work=3000      B=96   K=4 axis=0  obj=1107676      feas=y     9.9s  digest=b9307569e8c21049
 # [B.p1.boxfill]
 P1   [B.p1.boxfill] work=3000      B=96   K=4 axis=0  obj=1512746      feas=y    10.9s  digest=3deed782a7442ef3
+# [B.p1.cohort]
+P1   [B.p1.cohort] work=3000      B=96   K=4 axis=0  obj=716348       feas=y     9.7s  digest=d5aafc13e46efdf6
