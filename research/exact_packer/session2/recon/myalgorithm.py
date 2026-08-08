@@ -72,9 +72,40 @@ except Exception:
 # Detected here (find_spec only, fork-safe); imported lazily inside the engine
 # builder.  When present and enabled, construction runs entirely in C++.
 #
-# OGC_ADAPTAIM=1 lets each worker tune its own beam aim from the beam's own overrun reports.
-# Off by default until it is measured against the fixed 0.90/0.10 portfolio; see _adapt_aim.
-_ADAPTAIM = bool(os.environ.get("OGC_ADAPTAIM"))
+# ON BY DEFAULT.  Each worker tunes its own beam aim from the beam's own overrun reports.
+#
+# It was written, switched off pending a measurement against the fixed 0.90/0.10 portfolio, and
+# never measured.  240 s, one cell per arm:
+#
+#     arm              P16                    P36                    P1
+#     base (2:2)   3,286,759              75,775,974               470,530
+#     lo  (0.10)   3,530,471  + 7.42%     75,907,319  + 0.17%      740,405  +57.35%
+#     hi  (0.90)   3,067,661  - 6.67%     87,795,877  +15.86%      524,295  +11.43%
+#     adapt        3,281,165  - 0.17%     75,196,066  - 0.76%      470,530    0.00%
+#
+# WHAT THIS IS NOT.  It is not a gain: -0.17%, -0.76% and an exactly identical answer are a tie with
+# the shipped split on all three, well inside the replicate spread these instances carry.  Nothing
+# here says the algorithm gets better.
+#
+# WHAT IT IS.  Every FIXED aim has a floor somewhere, and the floors are large and unpredictable:
+# hi is the best arm on P16 and 15.86% worse on P36 -- both 300-block instances, opposite
+# directions -- and lo costs 57.35% on prob_1.  The shipped 2:2 split has no floor on these three,
+# but it is a constant chosen once, and the final set is structurally unlike the practice set (ten
+# of forty instances carry twelve orientations, density median 0.72 against 0.40).  Under a
+# per-instance minimum, an unmeasured instance type that a constant happens to be wrong about costs
+# more than any of these arms won.
+#
+# adapt reaches the same answers without being told which instance it is on: multiplicative
+# decrease when the beam reports it was salvaged, additive increase when it finished at full width,
+# clamped to the range the sweep covered.  It pays nothing on the measured set and is the only arm
+# that cannot have a floor by construction.
+#
+# The file's older sweep, which put aim 0.10 at -17.8% on P36, does not reproduce and is not
+# evidence against this: it was taken at 180 s on a different build, and its best P20 cell is
+# 9,255,809 against the 8,908,086 this build returns.
+#
+# OGC_ADAPTAIM=0 restores the fixed portfolio.
+_ADAPTAIM = os.environ.get("OGC_ADAPTAIM", "1") != "0"
 # OGC_SHARE=1 lets a worker that is far behind the others restart from a fresh seed instead of
 # spending the rest of the budget on a basin the final minimum will discard.  OGC_SHAREGAP is how
 # far behind it has to be, as a fraction; 0.5 means fifty per cent worse than the best other
