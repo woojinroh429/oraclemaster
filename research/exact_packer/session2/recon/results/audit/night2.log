@@ -142,3 +142,5 @@ P24  [A.p24.a3.wm8.0] work=3000      B=96   K=4 axis=3  obj=3778567      feas=y 
 P16  [A.p16.a0.wm0.25] work=3000      B=96   K=4 axis=0  obj=6739594      feas=y    12.1s  digest=07bccd0d6dbc65ef
 # [A.p16.a0.wm0.5]
 P16  [A.p16.a0.wm0.5] work=3000      B=96   K=4 axis=0  obj=6727305      feas=y    13.0s  digest=13d95e8cee45ce58
+# [A.p16.a0.wm1.0]
+P16  [A.p16.a0.wm1.0] work=3000      B=96   K=4 axis=0  obj=6671345      feas=y    11.7s  digest=c6e4496f9a52c7c2
