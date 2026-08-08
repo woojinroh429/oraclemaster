@@ -174,3 +174,5 @@ P16  [A.p16.a3.wm2.0] work=3000      B=96   K=4 axis=3  obj=4890499      feas=y 
 P16  [A.p16.a3.wm4.0] work=3000      B=96   K=4 axis=3  obj=5159337      feas=y    13.6s  digest=d0fe6cf16bfa8033
 # [A.p16.a3.wm8.0]
 P16  [A.p16.a3.wm8.0] work=3000      B=96   K=4 axis=3  obj=5250681      feas=y    13.5s  digest=41034ea96d526b46
+# [A.p20.a0.wm0.25]
+P20  [A.p20.a0.wm0.25] work=3000      B=96   K=4 axis=0  obj=11395418     feas=y    11.8s  digest=690ebcb1dd04961c
