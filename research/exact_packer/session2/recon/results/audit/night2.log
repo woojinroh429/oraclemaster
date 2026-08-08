@@ -262,3 +262,5 @@ P24  [B.p24.rank] work=3000      B=96   K=4 axis=0  obj=5318547      feas=y    1
 P24  [B.p24.sac3] work=3000      B=96   K=4 axis=0  obj=4646621      feas=y    12.4s  digest=f5b55995c5a89826
 # [B.p24.aspect]
 P24  [B.p24.aspect] work=3000      B=96   K=4 axis=0  obj=5471671      feas=y    14.1s  digest=15de6c27b13e6587
+# [B.p24.boxfill]
+P24  [B.p24.boxfill] work=3000      B=96   K=4 axis=0  obj=4487400      feas=y    12.6s  digest=6e0cf55d31845267
