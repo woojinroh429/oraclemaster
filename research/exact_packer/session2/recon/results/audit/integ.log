@@ -17,3 +17,5 @@ P20 [a60.p20.p1b]    60s  obj=8876985     Z1=1125.0   Z2=2220   Z3=9059.0    fea
 P20 [a60.p20.p1c]    60s  obj=8973323     Z1=1127.0   Z2=183    Z3=9721.0    feas=y   ran 60s  py3.12
 # [a60.p6.base]
 P6  [a60.p6.base]    60s  obj=5553657     Z1=354.0    Z2=3963   Z3=6120.0    feas=y   ran 60s  py3.12
+# [a60.p6.p1a]
+P6  [a60.p6.p1a]    60s  obj=5712436     Z1=364.0    Z2=4052   Z3=6308.0    feas=y   ran 60s  py3.12
