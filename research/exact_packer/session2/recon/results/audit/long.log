@@ -153,3 +153,6 @@ P20 [op.p20.beamonly]   240s  obj=9144888     Z1=1166.0   Z2=1052   Z3=9085.0   
 P20 [op.p20.fill]   240s  obj=8962507     Z1=1127.0   Z2=181    Z3=9649.0    feas=y   ran 239s  py3.12
 # [op.p16.base]
 P16 [op.p16.base]   240s  obj=3271186     Z1=162.0    Z2=1080   Z3=4432.0    feas=y   ran 239s  py3.12
+# [op.p16.nobay]
+== CENSUS done ==
+# [am.p16.base]
