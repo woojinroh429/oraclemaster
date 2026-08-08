@@ -110,6 +110,71 @@ for p in $INST; do
 done
 echo "== ROUNDS 240 done ==" >> $L
 
+# POLICY MOVED AHEAD OF THE REST.  Four phases have now refuted the premise this campaign was
+# built on -- that a long budget is misallocated.  The census found bay taking a fifth of every
+# worker for nothing and removing it changed nothing; the roster ladder put every arm inside the
+# replicate spread; the fill gate recovered 32 idle seconds and returned the identical answer;
+# rounds degrade prob_1 monotonically, +45.13% at R=4.  At 240 s prob_1 has converged and moving
+# budget between operators does not buy a better answer.
+#
+# What does still vary is which BASIN construction reaches: prob_1 returned 524,295 from a plain
+# 60 s baseline cell against 470,530 as its best 240 s result, and prob_20 on unchanged code spans
+# 12,746,324 / 10,628,401 / 10,531,622.  That is diversity, not allocation, and the two arms below
+# are the ones aimed at it -- the axis director, which spends draws on the construction that is
+# actually working on THIS instance, and ruin_tardy scheduled beside the beam rather than given a
+# constant share of the tail.
+
+# D -- POLICY.  The axis director and the scheduled tardiness pass, at 240 s.  More draws is also
+# more evidence for the director to rank axes on, so its case is strongest exactly here; and the
+# tardiness pass registered as an operator competes for budget on measured yield instead of a
+# constant share, which is what broke it at a fixed half of the tail.
+#
+# OGC_ADAPTAIM IS IN THIS PHASE BECAUSE THE CLIFF LADDER PUT IT THERE.  aim is the fraction of its
+# slice a beam may spend and it becomes width directly.  The sweep in the file is the largest single
+# effect recorded anywhere in it:
+#
+#     aim        0.90         0.45         0.20         0.10
+#     P36   89,254,771   84,214,242   75,600,230   73,339,019      -17.8%
+#     P25   83,469,231   77,800,747   69,865,266   68,973,666
+#     P13   75,460,745   72,861,873   68,648,923   66,618,791
+#     P20   10,553,084    9,826,336    9,543,763    9,255,809
+#
+# and on prob_1, where the beam finishes, the same 0.10 is +25.09% because the low aim only takes
+# width away from a beam that had nothing to salvage.  So the portfolio ships a fixed 2:2 split of
+# 0.90 and 0.10 and every worker is stuck with whichever it drew.
+#
+# The cliff ladder is what makes this urgent under an ample-time assumption.  P36 does not improve
+# with more budget at all -- base is 76,060,831 at 120 s and 76,875,827 at 240 s -- which is the
+# same non-monotonicity: a longer budget buys WIDTH, and on a saturated 300-block instance width is
+# what is hurting.  More time cannot help an instance whose beam is already too wide for it; a lower
+# aim can, and 73.3M against 89.3M is four times any other effect in this campaign.
+#
+# _adapt_aim already implements it -- multiplicative decrease when the beam salvaged, additive
+# increase when it finished at full width, clamped to the swept range -- and it has been off by
+# default and unmeasured since it was written.  It is the same shape as the axis director: replace a
+# fixed portfolio position with what this instance's own behaviour reports.
+D5="OGC_AXDIR=1 OGC_AXSCAN=0.5"
+#
+# The separate ADAPTAIM arm is gone: it is the default now, so base already carries it and a
+# dedicated cell would be a duplicate.  Four arms, and the two that matter are read separately
+# before being read together, because this session has twice shipped a combination whose parts were
+# never priced.
+#
+# z1op IS THE RUIN-AND-RECREATE ONE.  Engine::ruin_tardy tears out late blocks and rebuilds, scoring
+# the full objective internally and keeping its own incumbent, so it cannot return something worse
+# than it was handed.  It measured 5 of 5 at 60 s and 1 of 4 at 120 s -- but on a base that has
+# since been reverted, and given a CONSTANT half of the polish tail, which is exactly what broke it:
+# at 60 s the half it took from z3_reassign was idle and at 120 s it was still collecting
+# preference.  Registered in the roster it takes what it earns instead, competing with the beam on
+# measured yield, which is the arm that has never been read.
+for p in $INST; do
+  run "po.p$p.base" $p 240 ""
+  run "po.p$p.dir5" $p 240 "$D5"
+  run "po.p$p.z1op" $p 240 "OGC_Z1OP=1"
+  run "po.p$p.both" $p 240 "$D5 OGC_Z1OP=1"
+done
+echo "== POLICY 240 done ==" >> $L
+
 # A1 -- THE ROSTER, BECAUSE THE CENSUS CAME BACK UNAMBIGUOUS.  Summed over the four workers of each
 # 240 s cell:
 #
@@ -155,45 +220,6 @@ for p in $INST; do
   done
 done
 echo "== RESERVE 240 done ==" >> $L
-
-# D -- POLICY.  The axis director and the scheduled tardiness pass, at 240 s.  More draws is also
-# more evidence for the director to rank axes on, so its case is strongest exactly here; and the
-# tardiness pass registered as an operator competes for budget on measured yield instead of a
-# constant share, which is what broke it at a fixed half of the tail.
-#
-# OGC_ADAPTAIM IS IN THIS PHASE BECAUSE THE CLIFF LADDER PUT IT THERE.  aim is the fraction of its
-# slice a beam may spend and it becomes width directly.  The sweep in the file is the largest single
-# effect recorded anywhere in it:
-#
-#     aim        0.90         0.45         0.20         0.10
-#     P36   89,254,771   84,214,242   75,600,230   73,339,019      -17.8%
-#     P25   83,469,231   77,800,747   69,865,266   68,973,666
-#     P13   75,460,745   72,861,873   68,648,923   66,618,791
-#     P20   10,553,084    9,826,336    9,543,763    9,255,809
-#
-# and on prob_1, where the beam finishes, the same 0.10 is +25.09% because the low aim only takes
-# width away from a beam that had nothing to salvage.  So the portfolio ships a fixed 2:2 split of
-# 0.90 and 0.10 and every worker is stuck with whichever it drew.
-#
-# The cliff ladder is what makes this urgent under an ample-time assumption.  P36 does not improve
-# with more budget at all -- base is 76,060,831 at 120 s and 76,875,827 at 240 s -- which is the
-# same non-monotonicity: a longer budget buys WIDTH, and on a saturated 300-block instance width is
-# what is hurting.  More time cannot help an instance whose beam is already too wide for it; a lower
-# aim can, and 73.3M against 89.3M is four times any other effect in this campaign.
-#
-# _adapt_aim already implements it -- multiplicative decrease when the beam salvaged, additive
-# increase when it finished at full width, clamped to the swept range -- and it has been off by
-# default and unmeasured since it was written.  It is the same shape as the axis director: replace a
-# fixed portfolio position with what this instance's own behaviour reports.
-D5="OGC_AXDIR=1 OGC_AXSCAN=0.5"
-for p in $INST; do
-  run "po.p$p.base" $p 240 ""
-  run "po.p$p.aim"  $p 240 "OGC_ADAPTAIM=1"
-  run "po.p$p.dir5" $p 240 "$D5"
-  run "po.p$p.z1op" $p 240 "OGC_Z1OP=1"
-  run "po.p$p.both" $p 240 "$D5 OGC_Z1OP=1 OGC_ADAPTAIM=1"
-done
-echo "== POLICY 240 done ==" >> $L
 
 echo "LONGDONE" >> $L
 echo idle > harness/CURRENT
