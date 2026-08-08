@@ -323,3 +323,4 @@ P1   [C.p1.hmatch1.0] work=3000      B=96   K=4 axis=0  obj=1462458      feas=y 
 # [C.p1.mum0.5]
 P1   [C.p1.mum0.5] work=3000      B=96   K=4 axis=0  obj=1174681      feas=y    10.8s  digest=70a2b32ad25991a0
 # [C.p1.mum2.0]
+P1   [C.p1.mum2.0] work=3000      B=96   K=4 axis=0  obj=1174681      feas=y    11.0s  digest=70a2b32ad25991a0
