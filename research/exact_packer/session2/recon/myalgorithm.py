@@ -2444,6 +2444,29 @@ def _worker(args):
                     dict(_c, order="rank") if _i == 1 else _c for _i, _c in enumerate(axes)]
         elif _as == "v3":                     # append instead of replacing, to price the toll
             axes = axes + [dict(_AXES[5], order="sac3")]
+        elif _as in ("p1a", "p1b", "p1c"):
+            # THE 7TH SUBMISSION, PUT BACK AS AN AXIS INSTEAD OF A PIN.
+            #
+            # order=lst + w3mul=0.5 was shipped as a GLOBAL override, so it rewrote all six axes at
+            # once and the portfolio stopped being a portfolio.  On the hidden set it took P1 and P3
+            # to their best-ever scores and lost 14-19% on P2, P5 and P8 -- exactly what happens
+            # when the alternatives are deleted rather than added to.  min() over the true objective
+            # cannot lose to any member it still contains.
+            #
+            # NOT APPENDED.  A seventh axis was measured at 10.8% worse than six on P1, and choosing
+            # among six already costs 1-9% against spending everything on one, so the count stays at
+            # six and a defer_big slot pays -- slots 0, 1 and 5 all sort on due as their second key
+            # and won nothing in the axis attribution.
+            #
+            # No axis has ever carried w3mul below 1.0, so this direction is not merely
+            # under-weighted in the portfolio, it is unreachable.
+            _lo = dict(order="lst", w3mul=0.5)
+            if _as == "p1a":                  # slot 5 (narrow-deep: Bmul 0.5, K 6)
+                axes = [dict(_c, **_lo) if _i == 5 else _c for _i, _c in enumerate(axes)]
+            elif _as == "p1b":                # slot 0 (wide-shallow: Bmul 1.0, K 4)
+                axes = [dict(_c, **_lo) if _i == 0 else _c for _i, _c in enumerate(axes)]
+            else:                             # both, to give the direction twice the draws
+                axes = [dict(_c, **_lo) if _i in (0, 5) else _c for _i, _c in enumerate(axes)]
         elif _as in ("a4", "a5", "a5d"):
             # AXIS COUNT, not just axis content.  Only 1, 6 and 7 have ever been measured and
             # they came out 1 > 6 > 7: a single fixed order beat the six on 3 of 4 instances, and
@@ -3239,10 +3262,26 @@ def algorithm(prob_info, timelimit=60):
             # adopted only when it strictly improves the full objective.
             #
             # OGC_Z1PASS=0 turns the tardiness pass off and restores the previous single-pass tail.
+            #
+            # THE SPLIT IS THE WHOLE QUESTION, and half-and-half was a guess.  Paired, one cell per
+            # arm, off vs on:
+            #
+            #      60 s   P1 -9.56%  P6 -6.10%  P20 -3.53%  P4 -4.10%  P24 -3.01%   5 of 5
+            #     120 s   P1 +28.78%  P20 +0.39%
+            #
+            # The Z1 pass is adopted only when it strictly improves, so it cannot itself make the
+            # answer worse -- what it can do is take half the tail away from z3_reassign.  At 60 s
+            # z3 has converged and that half was idle; at 120 s it was still working (P1 off ends at
+            # Z3=608, on at Z3=910 -- the preference the halved z3 never collected).  So the share
+            # is the knob, not the pass.  OGC_Z1FRAC sweeps it; 0 is the same as OGC_Z1PASS=0.
             _z1on = os.environ.get("OGC_Z1PASS", "1") != "0"
-            if _z1on:
+            try:
+                _z1f = min(0.90, max(0.0, float(os.environ.get("OGC_Z1FRAC", "0.5"))))
+            except Exception:
+                _z1f = 0.5
+            if _z1on and _z1f > 0.0:
                 try:
-                    imp = _z1_improve(prob_info, best[1], max(2.0, left * 0.5))
+                    imp = _z1_improve(prob_info, best[1], max(2.0, left * _z1f))
                     if imp is not None:
                         o, _ = _total(prob_info, imp)
                         if o < best[0]:
