@@ -1667,6 +1667,30 @@ def _axis_env(cfg):
                 out[k] = float(v)
             except Exception:
                 pass
+    # ORDER AND W3MUL, MEASURED IN WORK SPACE AND NOT YET IN THE PIPELINE.
+    #
+    # Work-budgeted sweeps (no clock in the search, so no noise term) put both of these well
+    # outside anything else this project has found, on instances where w3*Z3 carries the score:
+    #
+    #     order   prob_1, axis-0 parameters, only the order swapped:
+    #             defer_big 1,174,681 -> lst 690,840          -41.2%
+    #             and axes 0, 1 and 5 all ship defer_big
+    #     w3mul   prob_1 axis 2  default band 684,687 -> 0.5 587,906   -14.1%
+    #             prob_1 axis 3  1.0 737,578 -> 0.5 612,492            -17.0%
+    #
+    # Both are CONDITIONAL: across 15 work-space rows w3mul=0.5 is 5-1 on the instances where
+    # w3*Z3 is at least half the objective (median -5.34%) and 2-7 where it is not (+3.42%), and
+    # prob_24 prefers the shipped defer_big.  So neither can become a default without carrying that
+    # condition, and both are env-only until the full pipeline confirms them.
+    _o = os.environ.get("OGC_ORDER")
+    if _o:
+        out["order"] = _o
+    _w = os.environ.get("OGC_W3MUL")
+    if _w:
+        try:
+            out["w3mul"] = float(_w)
+        except Exception:
+            pass
     return out
 
 
