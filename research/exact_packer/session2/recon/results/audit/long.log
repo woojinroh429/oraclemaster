@@ -178,3 +178,5 @@ P1  [am.p1.base]   240s  obj=470530      Z1=19.0     Z2=7419   Z3=536.0     feas
 P1  [am.p1.lo]     240s  obj=740405      Z1=32.0     Z2=6687   Z3=845.0     feas=y   ran 239s  py3.12
 # [am.p1.hi]
 P1  [am.p1.hi]     240s  obj=524295      Z1=21.0     Z2=6496   Z3=608.0     feas=y   ran 228s  py3.12
+# [am.p1.adapt]
+P1  [am.p1.adapt]   240s  obj=470530      Z1=19.0     Z2=7419   Z3=536.0     feas=y   ran 201s  py3.12
