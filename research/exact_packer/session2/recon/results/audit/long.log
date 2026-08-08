@@ -234,3 +234,8 @@ P20 [po.p20.z1op]   240s  obj=9445374     Z1=1206.0   Z2=3609   Z3=9174.0    fea
 P20 [po.p20.both]   240s  obj=9198949     Z1=1177.0   Z2=1680   Z3=8923.0    feas=y   ran 240s  py3.12
 # [po.p16.base]
 P16 [po.p16.base]   240s  obj=3281165     Z1=168.0    Z2=2407   Z3=4136.0    feas=y   ran 239s  py3.12
+== CENSUS done ==
+== AIM 240 done ==
+== ROUNDS 240 done ==
+# [po.p16.dir5]
+P16 [po.p16.dir5]   240s  obj=3286759     Z1=158.0    Z2=1965   Z3=4697.0    feas=y   ran 240s  py3.12
