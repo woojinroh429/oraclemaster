@@ -185,3 +185,5 @@ P1  [am.p1.adapt]   240s  obj=470530      Z1=19.0     Z2=7419   Z3=536.0     fea
 == AIM 240 done ==
 # [rd.p1.R1]
 P1  [rd.p1.R1]     240s  obj=470530      Z1=19.0     Z2=7419   Z3=536.0     feas=y   ran 201s  py3.12
+# [rd.p1.R2]
+P1  [rd.p1.R2]     240s  obj=544247      Z1=23.0     Z2=7502   Z3=614.0     feas=y   ran 239s  py3.12
