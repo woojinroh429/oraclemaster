@@ -838,6 +838,72 @@ def _z3_improve(prob_info, sol, budget):
         return None
 
 
+def _z1_improve(prob_info, sol, budget, seed=12345):
+    """Tardiness-directed ruin-and-recreate (C++ Engine.ruin_tardy), which has never been called.
+
+    THE IMPROVEMENT PASS ONLY EVER CHASED Z3.  z3_reassign's move loop opens with
+
+        if(cur_pen<=0) continue;                          // skip any block already in its best bay
+        for(int tb=0;tb<n_bays;tb++){
+            if(prefv(b,tb)<=prefv(b,cur_bay)) continue;   // only consider MORE-preferred bays
+
+    so a block that is late but already sits in its favourite bay is never touched, and a move
+    that gives up a little preference to remove a lot of tardiness is never even generated -- even
+    though the acceptance test, w1*dtardy + w3*dpen < 0, would take it.  w1*Z1 is 22-85% of the
+    objective across the instances measured (85.4% on prob_20, 85.3% on prob_6, 67.2% on prob_16).
+
+    ruin_tardy is the pass that aims there.  It is implemented, it is exposed to Python, and
+    myalgorithm has never called it.  The comment on it says why it was shelved: on the real P6,
+    102 of 102 completed rounds were rejected because "throughput is fixed and Z1 is conserved
+    under rearrangement".  That is a property of a SATURATED yard -- P6 runs at 85% w1*Z1 -- and
+    the instances this project is furthest behind on are the loose ones: prob_1 peaks at 59.3% of
+    bay area and carries 73.2% of its objective in Z3, with Z1 at 17-28 units that nothing is
+    currently trying to remove.  Shelved on the wrong instance type.
+
+    Scores the FULL objective internally (w1*Z1 + w3*Z3, plus w2 when workloads are supplied), and
+    keeps a separate incumbent, so it cannot return something worse than it was given.  Returns an
+    operations dict or None; the caller keeps the original on None.
+    """
+    try:
+        if not HAVE_OGC_FAST:
+            return None
+        E = _ogc_fast_engine(prob_info)
+        if not hasattr(E, "ruin_tardy"):
+            return None
+        ops = (sol or {}).get("operations", {})
+        n = len(prob_info["blocks"])
+        ent = {}; ext = {}; bay = {}; xx = {}; yy = {}; oo = {}
+        for tstr, row in ops.items():
+            t = int(tstr)
+            for op in row:
+                b = op["block_id"]
+                if op["type"] == "ENTRY":
+                    ent[b] = t; bay[b] = op["bay_id"]; xx[b] = op["x"]; yy[b] = op["y"]
+                    oo[b] = op["orient_idx"]
+                else:
+                    ext[b] = t
+        flat = []
+        for b in range(n):
+            if b not in ent or b not in ext:
+                return None
+            flat += [b, int(bay[b]), int(oo[b]), int(round(xx[b])), int(round(yy[b])),
+                     int(ent[b]), int(ext[b])]
+        w = prob_info["weights"]
+        w1 = float(w["w1"]); w2 = float(w.get("w2", 0)); w3 = float(w.get("w3", 0))
+        wls = [float(b.get("workload", 0.0)) for b in prob_info["blocks"]]
+        flat2 = list(E.ruin_tardy(flat, w1, w2, w3, wls, float(budget), int(seed)))
+        if len(flat2) != 7 * n:
+            return None
+        assigns = []
+        for i in range(0, len(flat2), 7):
+            b, bb, o, ix, iy, en, ex = flat2[i:i + 7]
+            assigns.append({"block_id": b, "bay_id": bb, "orient_idx": o,
+                            "x": ix, "y": iy, "entry_time": en, "exit_time": ex})
+        return _build_operations(assigns)
+    except Exception:
+        return None
+
+
 def _cpassign(prob_info, budget):
     """Decide EVERY block's bay at once with CP-SAT, then let the beam realise it geometrically.
 
@@ -3158,12 +3224,33 @@ def algorithm(prob_info, timelimit=60):
     while True:
         left = timelimit - (time.time() - t0) - 1.0
         if _POLISH and left > 3.0:
+            # TWO PASSES, NOT ONE.  z3_reassign only generates moves toward a MORE-preferred bay
+            # and skips any block already in its best one, so it cannot remove tardiness from a
+            # block that is late where it wants to be -- and w1*Z1 is 22-85% of the objective.
+            # ruin_tardy is the pass that aims there; it has been implemented and exposed since
+            # before this session and never called.  Each is given half of what remains, Z1 first
+            # because the Z3 pass can then trade against a lower tardiness baseline, and each is
+            # adopted only when it strictly improves the full objective.
+            #
+            # OGC_Z1PASS=0 turns the tardiness pass off and restores the previous single-pass tail.
+            _z1on = os.environ.get("OGC_Z1PASS", "1") != "0"
+            if _z1on:
+                try:
+                    imp = _z1_improve(prob_info, best[1], max(2.0, left * 0.5))
+                    if imp is not None:
+                        o, _ = _total(prob_info, imp)
+                        if o < best[0]:
+                            best = (o, imp)
+                except Exception:
+                    pass
+                left = timelimit - (time.time() - t0) - 1.0
             try:
-                imp = _z3_improve(prob_info, best[1], left)
-                if imp is not None:
-                    o, _ = _total(prob_info, imp)
-                    if o < best[0]:
-                        best = (o, imp)
+                if left > 3.0:
+                    imp = _z3_improve(prob_info, best[1], left)
+                    if imp is not None:
+                        o, _ = _total(prob_info, imp)
+                        if o < best[0]:
+                            best = (o, imp)
             except Exception:
                 pass
         if not _FILL:
