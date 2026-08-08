@@ -244,3 +244,5 @@ P4   [B.p4.rank] work=3000      B=96   K=4 axis=0  obj=5136701      feas=y    16
 P4   [B.p4.sac3] work=3000      B=96   K=4 axis=0  obj=4683285      feas=y    14.9s  digest=150b8eeb4faff9e5
 # [B.p4.aspect]
 P4   [B.p4.aspect] work=3000      B=96   K=4 axis=0  obj=4191189      feas=y    16.5s  digest=b6a2c0a5ad309493
+# [B.p4.boxfill]
+P4   [B.p4.boxfill] work=3000      B=96   K=4 axis=0  obj=4299154      feas=y    16.9s  digest=86722af384d5aa60
