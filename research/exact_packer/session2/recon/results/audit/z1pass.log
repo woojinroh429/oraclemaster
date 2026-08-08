@@ -28,3 +28,6 @@ P1  [r1.b120.p1.on]   120s  obj=675186      Z1=18.0     Z2=3060   Z3=910.0     f
 P20 [r1.b120.p20.off]   120s  obj=8962507     Z1=1127.0   Z2=181    Z3=9649.0    feas=y   ran 98s  py3.12
 # [r1.b120.p20.on]
 P20 [r1.b120.p20.on]   120s  obj=8997894     Z1=1140.0   Z2=2133   Z3=9203.0    feas=y   ran 119s  py3.12
+== BUDGET 60 rep 1 done ==
+# [r1.b120.p6.off]
+P6  [r1.b120.p6.off]   120s  obj=5429672     Z1=341.0    Z2=3777   Z3=6498.0    feas=y   ran 119s  py3.12
