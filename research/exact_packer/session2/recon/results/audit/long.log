@@ -138,3 +138,4 @@ P1  [op.p1.beamonly]   240s  obj=530650      Z1=7.0      Z2=4927   Z3=782.0     
 # [op.p20.base]
 == CENSUS done ==
 # [op.p1.fill]
+P1  [op.p1.fill]   240s  obj=470530      Z1=19.0     Z2=7419   Z3=536.0     feas=y   ran 232s  py3.12
