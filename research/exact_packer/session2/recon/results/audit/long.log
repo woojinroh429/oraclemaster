@@ -123,3 +123,7 @@ P16 [cen.p16]      240s  obj=3522150     Z1=184.0    Z2=876    Z3=4265.0    feas
   opstat  TOTAL      11     200.9   99.2%                        
 WSTAT round=0 n=4 5237234 5239906 5447166 5731682  spread=9.44%
 P6  [cen.p6]       240s  obj=5237234     Z1=334.0    Z2=3347   Z3=5769.0    feas=y   ran 239s  py3.12
+== CENSUS done ==
+# [am.p16.base]
+== CENSUS done ==
+# [op.p1.base]

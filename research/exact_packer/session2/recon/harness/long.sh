@@ -61,6 +61,34 @@ for p in $INST; do
 done
 echo "== CENSUS done ==" >> $L
 
+# A1 -- THE ROSTER, BECAUSE THE CENSUS CAME BACK UNAMBIGUOUS.  Summed over the four workers of each
+# 240 s cell:
+#
+#     cell     op    tried    sec   %budget            gain
+#     p1       bay      4    109.8   13.8%          69,945
+#     p20      bay      5    161.0   20.3%               0
+#     p16      bay      4    158.2   19.9%           9,647
+#     p6       bay      4    144.4   18.0%           8,326
+#
+# against the beam's 3.9e9 to 3.4e10 on the same cells.  bay is registered as a SEARCH operator, so
+# its opening probe is a fifth of the budget rather than the budget/(2n) a repair pass gets; it
+# spends that fifth, returns nothing, and gain/spent never picks it again -- but the fifth is gone.
+# Every worker, every instance, ~19% of the compute for a rounding error.  Under a minimum over
+# draws that is draws not taken.
+#
+# The other two are smaller and not obviously wrong.  grow books 0.9-2.3M for 10-18%, pref 45k-317k
+# for 10-15%; both are real, both are three to four orders of magnitude below the beam per second.
+# The beam's own figure is inflated -- its total is dominated by the first draw replacing the
+# fallback -- so the ladder is measured rather than argued: drop bay, then bay+bal+pref, then
+# everything but the beam, and see where it stops paying.
+for p in $INST; do
+  run "op.p$p.base"     $p 240 ""
+  run "op.p$p.nobay"    $p 240 "OGC_OPS=beam,grow,bal,pref"
+  run "op.p$p.beamgrow" $p 240 "OGC_OPS=beam,grow"
+  run "op.p$p.beamonly" $p 240 "OGC_OPS=beam"
+done
+echo "== ROSTER 240 done ==" >> $L
+
 # A2 -- THE AIM SPLIT, PROMOTED TO SECOND BECAUSE THE CLIFF LADDER SAYS IT IS THE BIGGEST NUMBER
 # HERE.  P36 returned 76,060,831 at 120 s and 76,875,827 at 240 s: doubling the budget bought
 # nothing and cost a little.  A longer budget buys WIDTH -- the adaptive controller spends whatever
