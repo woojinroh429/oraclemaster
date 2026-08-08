@@ -284,6 +284,37 @@ struct OrientData { std::vector<LayerData> layers; double x0,y0,x1,y1; };
 // or merely does more work.  OGC_BEAMCAP could never be told apart on that.
 static double WORKCAP(){ static const double v=[](){ const char* e=std::getenv("OGC_WORKCAP");
                                                      return e? atof(e) : 0.0; }(); return v; }
+// RATE MODE (OGC_WRATE=1): THE SHIPPABLE HALF OF THE ABOVE.
+//
+// OGC_WORKCAP removes the noise and cannot ship, because the competition budget is wall clock and a
+// fixed expansion count either overruns it or leaves it unspent.  But the two things that mode does
+// are separable, and only one of them is why it cannot ship:
+//
+//     how much total search this slice can afford   <- must come from the clock, machine-dependent
+//     which width trajectory the beam takes to it   <- need not, and is where the noise comes from
+//
+// Today both come from the same expression, re-evaluated at every one of ~250 levels, so the second
+// question is answered ~250 times by a quantity that drifts.  That feedback loop is the amplifier:
+// a microsecond of drift picks a different width, a different width costs different time, and the
+// run lands on a different attractor.  Two dead calls behind switched-off flags moved prob_24 1.03%,
+// and identical configurations differ 2.5-25% run to run.
+//
+// Rate mode asks the clock ONCE per beam instead.  Each Engine remembers the expansion rate its
+// last beam achieved; the next one converts its slice into a work cap up front (rate x seconds x
+// aim) and then runs the existing work-mode controllers, which read no clock at all.  The amount of
+// search still tracks the machine -- a slower core measures a lower rate and asks for less -- while
+// the trajectory to it stops being a 250-step feedback loop.
+//
+// THE CLOCK STAYS AS A BACKSTOP.  A rate estimate is taken from a beam with different width and
+// different occupancy, so it can be wrong; an overrun is disqualification, not a bad score.  So the
+// stop test keeps a wall-clock arm at a slightly looser aim.  In the normal case the work arm fires
+// first and the run is trajectory-stable; when the estimate was optimistic the clock still stops it
+// and the salvage path finishes the partial exactly as it does today.
+//
+// The first beam of a process has no estimate and runs in today's time mode, which is also what
+// calibrates it.  OGC_WRATE unset reproduces current behaviour exactly.
+static bool WRATE_on(){ static const bool v=[](){ const char* e=std::getenv("OGC_WRATE");
+                                                  return (e && e[0]=='1'); }(); return v; }
 static bool ORORD_on(){ static const bool v=[](){ const char* e=std::getenv("OGC_ORORD");
                                                   return (e && e[0]=='1'); }(); return v; }
 struct BlockShape {
@@ -359,6 +390,10 @@ struct Engine {
     // 14 s at ~220 expansions/s.  An estimate is not good enough to hang a prescription on, and
     // the loop already accumulates the exact value.
     double beam_work_ = 0.0;
+    // EXPANSIONS PER SECOND THE LAST BEAM ACHIEVED.  Rate mode's whole state: it is what lets the
+    // next beam turn its slice into a work cap without reading the clock again.  Zero until a beam
+    // has completed one call, which is why the first beam of a process runs in time mode.
+    double beam_rate_ = 0.0;
     void   set_beam_aim(double a){ beam_aim_ = a<0.02?0.02:(a>0.98?0.98:a); }
     double get_beam_aim() const { return beam_aim_; }
     bool   beam_salvaged() const { return beam_salvaged_; }
@@ -1912,12 +1947,28 @@ struct Engine {
         beam_level_frac_ = 0.0;
         const int Bmax=std::max(1,B), Bstart=ADAPTB?std::max(1,std::min(B,8)):B;
         int Bcur=Bstart; double work=0.0;   // work = sum over levels of (states expanded)
+        // ONE CLOCK READ FOR THE SIZE OF THE SEARCH, NONE FOR ITS SHAPE.  In rate mode the slice
+        // becomes a work cap here, once, from the rate the previous beam measured; the controllers
+        // below then run in the work arm they already have and read no clock.  _tguard is the
+        // backstop: an estimate taken from a beam of different width can be optimistic, and an
+        // overrun is disqualification rather than a bad score, so wall clock still stops the loop a
+        // little past the aim and the salvage path finishes the partial as it does today.
+        double _wcap=WORKCAP();
+        const bool _hardwork = (_wcap>0.0);            // OGC_WORKCAP: measurement mode, no clock
+        if(!_hardwork && WRATE_on() && beam_rate_>0.0 && time_budget_s>0.0)
+            _wcap = beam_rate_ * time_budget_s * AIM;
+        const double _tguard = _hardwork ? 1e300
+                             : time_budget_s * std::min(0.98, AIM*1.15);
         for(int level=0; level<nord; level++){
-            const double _wcap=WORKCAP();
-            if(_wcap>0.0 ? (work>_wcap) : (elapsed()>time_budget_s*AIM)){
+            if(_wcap>0.0 ? (work>_wcap || elapsed()>_tguard) : (elapsed()>time_budget_s*AIM)){
                 beam_salvaged_ = true;
                 beam_used_frac_ = elapsed()/std::max(1e-9,time_budget_s);
                 beam_work_ = work;
+                // Calibrate from this call too.  A beam that ran out of slice is precisely the one
+                // whose rate is measured over a full slice, so it is the most informative sample
+                // there is -- and without it a process whose first beam salvages would never leave
+                // time mode at all.
+                if(!_hardwork){ double _el=elapsed(); if(_el>1e-6 && work>0.0) beam_rate_=work/_el; }
                 beam_level_frac_ = nord>0 ? (double)level/(double)nord : 1.0;
                 // FINISH THE BEST PARTIAL INSTEAD OF RETURNING NOTHING.
                 //
@@ -2341,6 +2392,7 @@ struct Engine {
         // there is room to raise it.
 beam_work_ = work;
         beam_used_frac_ = elapsed()/std::max(1e-9,time_budget_s);
+        if(!_hardwork){ double _el=elapsed(); if(_el>1e-6 && work>0.0) beam_rate_=work/_el; }
         beam_width_capped_ = (Bcur >= Bmax);
         beam_level_frac_ = 1.0;
         return {best_obj,best_flat};
