@@ -1769,14 +1769,20 @@ def _axis_env(cfg):
     # also measured only at 240 s while the hidden set reportedly gives its early instances 60-120,
     # which is why the reserve is a fraction rather than the 120 s that was actually measured.
     #
-    # It ships because prob_1 is the closest analogue this project has to the hidden instances it is
-    # furthest behind on, the effect is several times the submission noise floor, and a submission
-    # can be replaced within twelve hours.  OGC_ORDER=defer_big OGC_W3MUL=1.0 OGC_RESFRAC=0.20
-    # restores the previous behaviour exactly.
-    _o = os.environ.get("OGC_ORDER", "lst")
+    # IT SHIPPED AND IT LOST.  Submitted as the 7th entry, scored on the hidden set against the 6th:
+    #
+    #     P1  -6.86%   P3 -2.55%   P6 -7.06%      |  P2 +14.23%  P5 +19.03%  P8 +14.00%
+    #     total +9.50%, median +4.04%, 3 better / 5 worse
+    #
+    # Identical code resubmitted (3rd vs 4th entry) reads median -0.07%, range -5.16%..+8.66%, so a
+    # +19% cell is well outside the noise floor: this is resolvable and it is a regression.  The 60 s
+    # warning below was right.  Unset env is back to the previously shipped behaviour -- order and
+    # w3mul take the axis value, reserve is min(0.20*limit, 40) -- and the knobs stay live so the
+    # search can be redone at 60-120 s, the budget the hidden set actually gives.
+    _o = os.environ.get("OGC_ORDER")
     if _o:
         out["order"] = _o
-    _w = os.environ.get("OGC_W3MUL", "0.5")
+    _w = os.environ.get("OGC_W3MUL")
     if _w:
         try:
             out["w3mul"] = float(_w)
@@ -3084,7 +3090,7 @@ def algorithm(prob_info, timelimit=60):
     #
     # So the knob stays available and the default stays where it was measured.
     _rfrac = None
-    _rfs = os.environ.get("OGC_RESFRAC", "0.50")
+    _rfs = os.environ.get("OGC_RESFRAC")
     if _rfs:
         try:
             _rfrac = min(0.80, max(0.02, float(_rfs)))
