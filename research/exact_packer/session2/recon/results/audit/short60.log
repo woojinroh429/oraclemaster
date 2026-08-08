@@ -21,3 +21,5 @@ P1  [b60.p1.rf0.50]    60s  obj=706255      Z1=34.0     Z2=5859   Z3=770.0     f
 P4  [b60.p4.base]    60s  obj=3018454     Z1=290.0    Z2=1246   Z3=3838.0    feas=y   ran 56s  py3.12
 # [b60.p4.odlst]
 P4  [b60.p4.odlst]    60s  obj=2845686     Z1=320.0    Z2=3299   Z3=3307.0    feas=y   ran 59s  py3.12
+# [b60.p4.odedd]
+P4  [b60.p4.odedd]    60s  obj=2680341     Z1=294.0    Z2=1313   Z3=3178.0    feas=y   ran 59s  py3.12
