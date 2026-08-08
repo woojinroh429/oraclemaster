@@ -1682,10 +1682,35 @@ def _axis_env(cfg):
     # w3*Z3 is at least half the objective (median -5.34%) and 2-7 where it is not (+3.42%), and
     # prob_24 prefers the shipped defer_big.  So neither can become a default without carrying that
     # condition, and both are env-only until the full pipeline confirms them.
-    _o = os.environ.get("OGC_ORDER")
+    # SHIPPED: order=lst and w3mul=0.5 on every axis, with the polish reserve at half the limit.
+    #
+    # Measured on stage-2 prob_1 at 240 s, one knob at a time and then together, against a baseline
+    # that repeats to the last digit across six runs (501,758):
+    #
+    #     order=lst        483,050   - 3.7%
+    #     w3mul=0.5        504,490   + 0.5%
+    #     reserve 50%      470,530   - 6.2%
+    #     all three        422,629 / 422,629 / 437,697   -13.0% .. -15.8%
+    #
+    # The parts sum to -9.4% and the combination gives -13% or better, so they are not independent:
+    # lst builds a layout on which a beam that chases preference less is finally worth having, and
+    # the larger reserve lets the polish buy the preference back.  Z1 falls to 7 in the combination
+    # against 14-19 in every single-knob arm.
+    #
+    # WHAT THIS IS NOT.  It is one instance.  prob_4, prob_16, prob_20 and prob_24 have not been run
+    # with the combination -- the queue that would have was still going when this shipped -- and
+    # scoring is per instance, so a large loss on any one of them is not paid for by prob_1.  It is
+    # also measured only at 240 s while the hidden set reportedly gives its early instances 60-120,
+    # which is why the reserve is a fraction rather than the 120 s that was actually measured.
+    #
+    # It ships because prob_1 is the closest analogue this project has to the hidden instances it is
+    # furthest behind on, the effect is several times the submission noise floor, and a submission
+    # can be replaced within twelve hours.  OGC_ORDER=defer_big OGC_W3MUL=1.0 OGC_RESFRAC=0.20
+    # restores the previous behaviour exactly.
+    _o = os.environ.get("OGC_ORDER", "lst")
     if _o:
         out["order"] = _o
-    _w = os.environ.get("OGC_W3MUL")
+    _w = os.environ.get("OGC_W3MUL", "0.5")
     if _w:
         try:
             out["w3mul"] = float(_w)
@@ -2966,8 +2991,31 @@ def algorithm(prob_info, timelimit=60):
     # The reserve exists to leave room for the final polish.  With the polish off there is nothing
     # to reserve for, so the ~38 s it held at a 240 s limit goes to the workers instead -- about
     # 19% more search, which is where the measured gains are.
+    # RESERVE AS A FRACTION, NOT A CONSTANT.
+    #
+    # OGC_RESERVE is absolute seconds and that is fine for an A/B at one budget, but it cannot be a
+    # default: the winning value at 240 s is 120, and `reserve = max(2, 120)` against a 60 s limit
+    # leaves `wbudget = max(4, 60-120-...) = 4` -- the beam gets four seconds.  The hidden set is
+    # reported to give the early instances 60-120 s, which is exactly where that lands.
+    #
+    # So the shipped knob is a FRACTION of the limit.  Measured on stage-2 prob_1 at 240 s, with
+    # order=lst and w3mul=0.5 also set:
+    #
+    #     reserve  40 s (17%)   501,758        reserve 120 s (50%)   422,629 / 437,697
+    #     reserve 240 s (100%)  560,224        -- the beam starves, so it is a U and not a slope
+    #
+    # 0.50 reproduces the measured point at 240 s and degrades gracefully: 60 s at a 120 s limit,
+    # 30 s at 60 s, and the beam always keeps half.  NOT measured at those budgets yet -- the
+    # fraction is the safe SHAPE for the knob, not a validated value away from 240 s.
+    #
+    # OGC_RESERVE (absolute) still wins when set, for A/B work.
+    try:
+        _rfrac = float(os.environ.get("OGC_RESFRAC", "0.50"))
+    except Exception:
+        _rfrac = 0.20
+    _rfrac = min(0.80, max(0.02, _rfrac))
     reserve = (max(2.0, float(_rv)) if _rv else
-               (max(2.0, min(0.20 * timelimit, 40.0)) if _POLISH else 3.0))
+               (max(2.0, _rfrac * timelimit) if _POLISH else 3.0))
     wbudget = max(4.0, timelimit - reserve - (time.time() - t0) - 1.0)
 
     # ROUNDS: TRADE LENGTH FOR ATTEMPTS.  The answer is already a minimum over nw workers, so
