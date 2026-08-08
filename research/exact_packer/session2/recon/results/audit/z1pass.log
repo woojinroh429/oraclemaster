@@ -12,3 +12,4 @@ P6  [r1.b60.p6.off]    60s  obj=5428374     Z1=341.0    Z2=3810   Z3=6487.0    f
 P6  [r1.b60.p6.on]    60s  obj=5097026     Z1=312.0    Z2=4950   Z3=6860.0    feas=y   ran 59s  py3.12
 # [r1.b60.p4.off]
 P4  [r1.b60.p4.off]    60s  obj=2871452     Z1=301.0    Z2=3422   Z3=3473.0    feas=y   ran 59s  py3.12
+# [r1.b60.p4.on]
