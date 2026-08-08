@@ -158,3 +158,5 @@ P16  [A.p16.a2.wm0.5] work=3000      B=96   K=4 axis=2  obj=3266111      feas=y 
 P16  [A.p16.a2.wm1.0] work=3000      B=96   K=4 axis=2  obj=3031963      feas=y     8.0s  digest=160a7824b61d747d
 # [A.p16.a2.wm2.0]
 P16  [A.p16.a2.wm2.0] work=3000      B=96   K=4 axis=2  obj=2507632      feas=y     9.7s  digest=c5adce88bf334f5c
+# [A.p16.a2.wm4.0]
+P16  [A.p16.a2.wm4.0] work=3000      B=96   K=4 axis=2  obj=3070648      feas=y     8.2s  digest=568dcb84ba88723c
