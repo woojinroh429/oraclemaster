@@ -236,3 +236,5 @@ P4   [B.p4.edd] work=3000      B=96   K=4 axis=0  obj=3562076      feas=y    15.
 P4   [B.p4.lst] work=3000      B=96   K=4 axis=0  obj=3471994      feas=y    11.2s  digest=b8e246ceb232c49a
 # [B.p4.defer_big]
 P4   [B.p4.defer_big] work=3000      B=96   K=4 axis=0  obj=3408101      feas=y    18.3s  digest=06f3cbf8714cf2ff
+# [B.p4.big_first]
+P4   [B.p4.big_first] work=3000      B=96   K=4 axis=0  obj=4600291      feas=y    20.7s  digest=30d5b321d289ee3b
