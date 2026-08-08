@@ -2,3 +2,5 @@
 P1  [r1.b60.p1.off]    60s  obj=751509      Z1=42.0     Z2=6965   Z3=751.0     feas=y   ran 53s  py3.12
 # [r1.b60.p1.on]
 P1  [r1.b60.p1.on]    60s  obj=679647      Z1=3.0      Z2=6082   Z3=1069.0    feas=y   ran 53s  py3.12
+# [r1.b60.p20.off]
+P20 [r1.b60.p20.off]    60s  obj=9250517     Z1=1177.0   Z2=476    Z3=9331.0    feas=y   ran 59s  py3.12
