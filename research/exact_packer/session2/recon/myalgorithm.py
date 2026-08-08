@@ -1707,10 +1707,10 @@ def _axis_env(cfg):
     # furthest behind on, the effect is several times the submission noise floor, and a submission
     # can be replaced within twelve hours.  OGC_ORDER=defer_big OGC_W3MUL=1.0 OGC_RESFRAC=0.20
     # restores the previous behaviour exactly.
-    _o = os.environ.get("OGC_ORDER", "lst")
+    _o = os.environ.get("OGC_ORDER")
     if _o:
         out["order"] = _o
-    _w = os.environ.get("OGC_W3MUL", "0.5")
+    _w = os.environ.get("OGC_W3MUL")
     if _w:
         try:
             out["w3mul"] = float(_w)
@@ -3009,13 +3009,24 @@ def algorithm(prob_info, timelimit=60):
     # fraction is the safe SHAPE for the knob, not a validated value away from 240 s.
     #
     # OGC_RESERVE (absolute) still wins when set, for A/B work.
-    try:
-        _rfrac = float(os.environ.get("OGC_RESFRAC", "0.50"))
-    except Exception:
-        _rfrac = 0.20
-    _rfrac = min(0.80, max(0.02, _rfrac))
+    # UNSET REPRODUCES THE PREVIOUSLY SHIPPED FORMULA EXACTLY.  A fraction of 0.50 was briefly the
+    # default, on the strength of the 240 s prob_1 combination, and it is a catastrophe at the
+    # budget the hidden set actually gives its early instances.  Paired on an idle machine:
+    #
+    #     240 s   old 501,758   order=lst + w3mul=0.5 + reserve 50%   422,629   -15.8%
+    #      60 s   old 636,140   the same three                        774,699   +21.8%
+    #
+    # So the knob stays available and the default stays where it was measured.
+    _rfrac = None
+    _rfs = os.environ.get("OGC_RESFRAC")
+    if _rfs:
+        try:
+            _rfrac = min(0.80, max(0.02, float(_rfs)))
+        except Exception:
+            _rfrac = None
     reserve = (max(2.0, float(_rv)) if _rv else
-               (max(2.0, _rfrac * timelimit) if _POLISH else 3.0))
+               (max(2.0, _rfrac * timelimit) if (_rfrac is not None and _POLISH) else
+                (max(2.0, min(0.20 * timelimit, 40.0)) if _POLISH else 3.0)))
     wbudget = max(4.0, timelimit - reserve - (time.time() - t0) - 1.0)
 
     # ROUNDS: TRADE LENGTH FOR ATTEMPTS.  The answer is already a minimum over nw workers, so
