@@ -86,6 +86,12 @@ for p in $INST; do
   run "op.p$p.nobay"    $p 240 "OGC_OPS=beam,grow,bal,pref"
   run "op.p$p.beamgrow" $p 240 "OGC_OPS=beam,grow"
   run "op.p$p.beamonly" $p 240 "OGC_OPS=beam"
+  # THE IDLE TAIL, WHICH THE ROSTER CELLS THEMSELVES EXPOSED.  op.p1.base ran 200 s of its 240:
+  # reserve 40, workers 199, polish back in about a second, 39 s left -- and the fill loop's gate
+  # is max(8, 0.25*_rb) + 8 = 57.8 s, so it never opens.  16% of a long budget, idle, every run.
+  # A fill round cannot make the answer worse (best spans the rounds and is replaced only when
+  # beaten), so the gate is a preference about round length being paid for in search.
+  run "op.p$p.fill"     $p 240 "OGC_FILLMIN=1"
 done
 echo "== ROSTER 240 done ==" >> $L
 

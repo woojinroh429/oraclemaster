@@ -3411,7 +3411,26 @@ def algorithm(prob_info, timelimit=60):
         # the decision to start a round and the budget handed to it, against the 1 s the main loop
         # uses; the round also receives `left` as its hard room bound, and the beam's salvage path
         # returns a finished partial rather than overrunning.
+        # THE GATE SCALES WITH THE ROUND AND THE LEFTOVER DOES NOT, SO ON A LONG BUDGET IT NEVER
+        # OPENS.  Measured on stage-2 prob_1 at 240 s: reserve 40, wbudget 199, the workers take
+        # their 199 s, the polish comes back in about a second, and 39 s are left.  _rb is 199, so
+        # _need is 49.8 and the round needs 57.8 s -- the loop breaks and algorithm() returns at
+        # 200 s of 240.  Sixteen per cent of the budget, idle, on every long run.
+        #
+        # A fill round cannot make the answer worse: `best` spans the rounds and a round only ever
+        # replaces it by beating it.  The only way this loop can hurt is by running past the wall
+        # clock, and that is what the 8 s of headroom and `left` as the round's hard room bound are
+        # for -- neither of which the 0.25*_rb term contributes to.  It is a quality heuristic ("a
+        # quarter-length round is not worth starting"), and it is spending real search to enforce a
+        # preference about rounds that cost nothing to be wrong about.
+        #
+        # Capped at 20 s so short budgets are untouched -- at 60 s _rb is ~47 and 0.25*_rb is 11.8,
+        # below the cap, so only long budgets move.  OGC_FILLMIN=1 enables it; it is off by default
+        # only until the queue reads it, because a mid-campaign default change would make every
+        # cell taken before it incomparable with every cell taken after.
         _need = max(8.0, 0.25 * _rb)
+        if os.environ.get("OGC_FILLMIN") == "1":
+            _need = min(_need, 20.0)
         if left < _need + 8.0:
             break
         _rb2 = max(4.0, min(_rb, left - 8.0))
