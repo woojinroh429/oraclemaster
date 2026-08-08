@@ -278,3 +278,5 @@ P16  [B.p16.big_first] work=3000      B=96   K=4 axis=0  obj=9707740      feas=y
 P16  [B.p16.rank] work=3000      B=96   K=4 axis=0  obj=10066586     feas=y    11.3s  digest=6c02e0ed0ce6ec26
 # [B.p16.sac3]
 P16  [B.p16.sac3] work=3000      B=96   K=4 axis=0  obj=10141688     feas=y    12.5s  digest=b40b2575301485da
+# [B.p16.aspect]
+P16  [B.p16.aspect] work=3000      B=96   K=4 axis=0  obj=12208761     feas=y    17.5s  digest=34a2abaa52b0693d
