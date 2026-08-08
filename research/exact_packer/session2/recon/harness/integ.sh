@@ -75,6 +75,50 @@ for p in 1 20 6 4 24; do
 done
 echo "== AXSET 60 done ==" >> $L
 
+# Phase 1b -- THE RESERVE, ON THE INSTANCE CLASS THAT HAS NOT BEEN TESTED ALL DAY.
+#
+# The 7th submission's losers were 14-19% and its winners 2.5-7%.  The noise floor for IDENTICAL
+# code is median -0.07% with a range of -5.16%..+8.66%, so the losses are outside it and the wins
+# are inside it: only one half of that submission is signal, and it is the half that lost.
+#
+# Of the three knobs it carried, resfrac is the only one that hits every instance the same way --
+# it took the beam from ~80% of the budget to 50% everywhere.  And the beam's failure mode is a
+# CLIFF, not a slope.  From the salvage table in _contact_beam, one run per cell:
+#
+#     blocks          60s  90s 110s 130s 150s 180s
+#     prob_36  300     X    X    X   ok   ok   ok       needs ~130 s
+#     prob_20  250     X    X   ok   ok   ok   ok       needs ~110 s
+#     prob_24  150    ok   ok   ok   ok   ok   ok       under 60 s
+#
+# At 240 s the shipped reserve of 40 leaves the beam ~199 s; resfrac 0.50 leaves it ~119.  For a
+# 300-block instance that is the difference between comfortably clear of the cliff and under it,
+# and going under it was measured at 42x on prob_36 and 143x on prob_20.  A partial fall is what a
+# 14-19% loss looks like.  Meanwhile prob_1 never approaches the cliff at any budget, which is why
+# the same change reads as harmless or better there.
+#
+# EVERY INSTANCE MEASURED TODAY IS 150-250 BLOCKS.  prob_1, prob_4, prob_6, prob_20 and prob_24 --
+# the whole queue -- and the cliff lives at 300.  Ten of the forty stage-2 instances are 300 and
+# nothing in this session has run one.  prob_16 (300 blocks, 5 bays) and prob_36 (300 blocks, 2
+# bays, the instance the cliff table was measured on) close that gap.
+#
+# 120 s and 240 s, because 60 s is under the cliff for both of them and a cell that always falls
+# off measures nothing.
+for p in 16 36; do
+  for BUD in 120 240; do
+    run "c$BUD.p$p.base"  $p $BUD ""
+    run "c$BUD.p$p.rf35"  $p $BUD "OGC_RESFRAC=0.35"
+    run "c$BUD.p$p.rf50"  $p $BUD "OGC_RESFRAC=0.50"
+  done
+done
+echo "== CLIFF done ==" >> $L
+
+# EVERYTHING BELOW WAS BUILT FOR A 60-120 s BUDGET AND THAT ASSUMPTION IS WITHDRAWN.  The working
+# assumption is now that the hidden set gives every instance ample time, which changes what is
+# binding: a beam that finishes has nothing left to gain from a wider slice, and the answer becomes
+# a minimum over DRAWS.  harness/long.sh is that campaign.  The 60 s phases stay in the file
+# because their cells are already in the log and re-reading them costs nothing.
+exec bash harness/long.sh
+
 # Phase 2 -- THE AXIS DIRECTOR, and the tardiness pass as a scheduled operator instead of a
 # constant share.  Both replace a hand-set number with a measured one, which is why they are in the
 # same phase: the Z1 fraction sweep this phase used to hold is superseded by registering the pass in
