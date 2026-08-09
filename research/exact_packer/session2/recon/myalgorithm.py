@@ -3315,8 +3315,23 @@ def _pool_round(prob_info, budget, rnd, nw, cwd, share_dir, room):
                 got.append((-1, None))   # this worker raised; it delivered, and None is handled
                 continue
             if procs:                 # nothing ready: has one of them stopped existing?
+                # A CLEAN EXIT IS NOT A DEAD WORKER, and with maxtasksperchild=1 it is the normal
+                # case.  This test read `exitcode is not None`, which was right while pool
+                # processes lived for the whole round -- then only a crash could set it.  Once
+                # every task gets a fresh fork, a worker that FINISHES exits with code 0, the
+                # detector counted it as dead, `want` fell below nw, and the loop stopped
+                # collecting before the remaining results arrived.
+                #
+                # Caught by OGC_WSTAT on prob_1: `round=0 n=3 612635 678217 470530 -` -- one of
+                # four draws silently discarded, on an instance whose answer is a MINIMUM over
+                # those draws and which returns 470,530 only about a third of the time.  Throwing
+                # away a quarter of the samples is the most expensive bug of the night.
+                #
+                # exitcode 0 is a completed task; anything else -- a non-zero status or a negative
+                # signal number, which is what the segfault this guard exists for produces -- is a
+                # worker that will never deliver.
                 try:
-                    gone = sum(1 for p in procs if p.exitcode is not None)
+                    gone = sum(1 for p in procs if p.exitcode not in (None, 0))
                     if gone:
                         want = max(1, nw - gone)
                 except Exception:
