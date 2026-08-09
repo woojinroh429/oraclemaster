@@ -1,0 +1,3 @@
+# [p1.base.r1]
+WSTAT round=0 n=4 472330 772500 504490 752084  spread=63.55%
+P1  [p1.base.r1]   240s  obj=472330      Z1=1.0      Z2=2221   Z3=765.0     feas=y   ran 200s  py3.12
