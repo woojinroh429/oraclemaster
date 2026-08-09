@@ -2581,7 +2581,8 @@ def _worker(args):
     # NOT SETTLED: which pair wins is instance-dependent -- on prob_20 the answer comes from the ODD
     # worker w3 -- so the even-pair placement is right for the instances that matter here and
     # arbitrary elsewhere.  OGC_DIRSET=0 disables it, 1 puts it on the odd pair.
-    # OGC_THRUBEAM ON BY DEFAULT.  It multiplies the future-tardiness term by OGC_THRUHZ (3.0)
+    # OGC_THRUBEAM, ADOPTED AND THEN WITHDRAWN -- see the withdrawal note below the evidence that
+    # bought it.  It multiplies the future-tardiness term by OGC_THRUHZ (3.0)
     # inside the beam's level rank and does nothing else -- its name predates its own comment, which
     # records that dropping the Z3 term blew Z3 up for a tiny Z1 gain, so Z3 stayed.  It has been off
     # since it was written and was never measured.  Ten paired cells at 240 s across seven
@@ -2609,8 +2610,37 @@ def _worker(args):
     # ranking that does not decide the answer on that class.
     #
     # OGC_THRUBEAM=0 restores the previous behaviour exactly.
-    if "OGC_THRUBEAM" not in os.environ:
-        os.environ["OGC_THRUBEAM"] = "1"
+    #
+    # WITHDRAWN.  The ten paired cells above do not survive a look at what they were paired against,
+    # and a clean single-build sweep of the multiplier says the knob is not doing the work its
+    # adoption note credits it with.
+    #
+    # THE SWEEP (results/audit/hz.log).  THRUHZ=1.0 is ALGEBRAICALLY IDENTICAL to the flag being
+    # off -- w1*(gt + 1.0*hz) against w1*gt + w1*hz, the same sum in a different association order --
+    # so a ladder over 1.0/2.0/3.0/5.0 spans the adopt/reject decision itself:
+    #
+    #     prob_1    438,791   472,330   438,791   438,791     <- 1.0, 3.0 and 5.0 BIT-IDENTICAL
+    #     prob_16 2,672,611 2,727,389 2,671,274 2,481,642
+    #     prob_24 2,427,040 2,892,063 2,644,178 2,545,328
+    #
+    # prob_1 settles it.  Three different multipliers return the same objective AND the same
+    # Z1/Z2/Z3, and the WSTAT lines say why: the answer comes from w0 every time, w0 returns 438,791
+    # under every multiplier, and w2 returns 504,490 under all four.  The even pair runs m=1, where
+    # every child at a level has placed the SAME block set, so wb_hz1's future-tardiness estimate
+    # barely separates them and scaling that term does not reorder the beam.  Half the workers are
+    # structurally deaf to this knob, and on this instance they are the half that wins.
+    #
+    # WHY THE ORIGINAL PAIRS LOOKED GOOD.  prob_16's -7.31% pairs a control at 2,647,880 against
+    # 2,454,368, but four env-free controls on this build read 2,469,078 / 2,469,078 / 2,526,153 /
+    # 2,647,880 -- the pair takes the WORST control against a value 0.6% under the BEST one.  The
+    # prob_24 pair is worse than that: prob_24 discards 8.3% of its budget (mean 220 s of 240 over
+    # 41 runs, min 203, max 239), and in the sweep the four cells ran 215/204/205/217 s with the
+    # objectives ordering almost exactly by elapsed time.  Those cells were not given equal compute.
+    #
+    # So it goes back to off -- not because it was refuted, but because nothing measured it, and an
+    # unverified GLOBAL DEFAULT is the exact class of change that cost the 7th submission.  A knob
+    # that only half the workers can hear belongs on the wid%2 split if it belongs anywhere.
+    _ = "OGC_THRUBEAM"          # off unless the environment asks for it
 
     _dsv = os.environ.get("OGC_DIRSET", "2")
     if (_dsv == "1" and (wid % 2) == 1) or (_dsv == "2" and (wid % 2) == 0):
