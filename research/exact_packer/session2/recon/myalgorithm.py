@@ -1810,30 +1810,6 @@ def _axis_env(cfg):
     # warning below was right.  Unset env is back to the previously shipped behaviour -- order and
     # w3mul take the axis value, reserve is min(0.20*limit, 40) -- and the knobs stay live so the
     # search can be redone at 60-120 s, the budget the hidden set actually gives.
-    # OGC_DK: THE REPEAT-DRAW RANDOMISER, WHICH EVERY AXIS SHIPS SWITCHED OFF.
-    #
-    # _beam_once already has the machinery: on the SECOND and later visit to an axis it can replace
-    # the fixed dispatch order with a uniform pick from the top-k of what remains, so a repeat visit
-    # produces a different construction instead of re-deriving the first one.  It is gated on
-    # cfg["dk"] > 1 and all six axes carry dk=0, so it has never run.
-    #
-    # Why that matters now.  A worker takes 14-55 beam draws in a 240 s run and cycles six
-    # deterministic configs, so the number of DISTINCT constructions it can reach is six -- and the
-    # WSTAT lines show what that looks like: w0 returned exactly 612,635 in three consecutive runs,
-    # spending the whole budget without ever moving off its first answer.  The score is a minimum
-    # over draws and the draws are being repeated rather than sampled.
-    #
-    # This is not OGC_AXJIT, which jittered the axis PARAMETERS per draw and measured +6.5%.  That
-    # perturbs the ranking function; this perturbs the dispatch ORDER, which the file calls the
-    # largest lever on the problem (32-210% construction spread across orders, against about 2% for
-    # everything else combined).  Randomising inside the top-k of an axis's own priority stays
-    # within that axis's idea and still lands somewhere new.
-    try:
-        _dk = int(os.environ.get("OGC_DK", "0") or 0)
-        if _dk > 1:
-            out["dk"] = _dk
-    except Exception:
-        pass
     _o = os.environ.get("OGC_ORDER")
     if _o:
         out["order"] = _o
@@ -2797,6 +2773,26 @@ def _worker(args):
                 _set = [_l0, _AXES[1], _AXES[2], _AXES[3], _AXES[4],
                         dict(_AXES[5], order="sac3")]
             axes = [_set[(wid + i) % len(_set)] for i in range(len(_set))]
+    except Exception:
+        pass
+    # OGC_DK HAS TO BE SET HERE, NOT IN _axis_env, AND THE FIRST ATTEMPT PUT IT IN THE WRONG PLACE.
+    #
+    # _beam_once reads cfg["dk"] BEFORE it calls the beam; _axis_env is applied inside
+    # _contact_beam, which is downstream of that read.  So an OGC_DK handled in _axis_env never
+    # reaches the code it gates, and the measurement said so immediately -- prob_1 returned 438,791
+    # for dk3 and for off, to the digit, because dk3 was off.
+    #
+    # What it gates: on the SECOND and later visit to an axis, replace the fixed dispatch order with
+    # a uniform pick from the top-k of what remains, so a repeat visit builds something new instead
+    # of re-deriving the first answer.  A worker takes 14-55 beam draws per run and cycles six
+    # deterministic configs, so without this the number of DISTINCT constructions it can reach is
+    # six -- and the WSTAT lines show w0 returning exactly 612,635 in three consecutive runs of
+    # prob_1, a worker that spent the whole budget without moving off its first draw.  A minimum
+    # over draws gains nothing from a repeated draw.
+    try:
+        _dkv = int(os.environ.get("OGC_DK", "0") or 0)
+        if _dkv > 1:
+            axes = [dict(_c, dk=_dkv) for _c in axes]
     except Exception:
         pass
     pool = [best] if best[1] is not None else []
