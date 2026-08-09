@@ -5,3 +5,5 @@ P1  [r1.p1.all]    240s  obj=472330      Z1=1.0      Z2=2221   Z3=765.0     feas
 WSTAT round=0 n=4 438791 765262 439374 740964  spread=74.40%
 P1  [r1.p1.nobay]   240s  obj=438791      Z1=8.0      Z2=4085   Z3=622.0     feas=y   ran 200s  py3.12
 # [r1.p1.beam]
+WSTAT round=0 n=4 521191 810653 512304 759388  spread=58.24%
+P1  [r1.p1.beam]   240s  obj=504490      Z1=19.0     Z2=7339   Z3=593.0     feas=y   ran 197s  py3.12
