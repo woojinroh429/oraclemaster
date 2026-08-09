@@ -75,4 +75,8 @@ run "ref.ship"    1 240 ""
 run "a1.plain.r2" 1 240 "$A1"
 run "a1.w05.r2"   1 240 "$A1 OGC_W3MUL=0.5"
 echo "AX1Z1DONE" >> $L
-echo idle > harness/CURRENT
+
+# then the throughput work: the beam is 50-60% of every worker and the minimum is over draws, so
+# a faster beam is more draws is a tighter minimum -- the one lever needing no judgement about
+# which direction is right.
+exec bash harness/speed.sh
