@@ -79,4 +79,4 @@ echo "AX1Z1DONE" >> $L
 # then the throughput work: the beam is 50-60% of every worker and the minimum is over draws, so
 # a faster beam is more draws is a tighter minimum -- the one lever needing no judgement about
 # which direction is right.
-exec bash harness/speed.sh
+exec bash harness/rf240.sh
