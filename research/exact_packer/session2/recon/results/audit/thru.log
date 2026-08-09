@@ -10,3 +10,5 @@ P16 [n.p16.off]    240s  obj=2647880     Z1=112.0    Z2=1528   Z3=4600.0    feas
 # [n.p16.thru]
 WSTAT round=0 n=4 2509989 3116590 2826297 3164676  spread=26.08%
 P16 [n.p16.thru]   240s  obj=2454368     Z1=94.0     Z2=1772   Z3=4783.0    feas=y   ran 239s  py3.12
+== THRU new instances done ==
+# [r2.p20.off]
