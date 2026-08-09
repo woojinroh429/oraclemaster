@@ -1,3 +1,4 @@
 # [r1.p1.all]
 WSTAT round=0 n=4 472330 788591 504490 740964  spread=66.96%
 P1  [r1.p1.all]    240s  obj=472330      Z1=1.0      Z2=2221   Z3=765.0     feas=y   ran 200s  py3.12
+# [r1.p1.nobay]
