@@ -9,3 +9,4 @@ P16 [r1.p16.free]   240s  obj=2734389     Z1=110.0    Z2=1003   Z3=5059.0    fea
 # [r2.p16.base]
 WSTAT round=0 n=4 2804630 3127761 2911347 3838972  spread=36.88%
 P16 [r2.p16.base]   240s  obj=2727346     Z1=110.0    Z2=1072   Z3=5030.0    feas=y   ran 240s  py3.12
+# [r2.p16.free]
