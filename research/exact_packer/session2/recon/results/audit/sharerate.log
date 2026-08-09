@@ -28,3 +28,4 @@ P1  [r2.share3]    240s  obj=472330      Z1=1.0      Z2=2221   Z3=765.0     feas
 P1 [r3.off] CRASH rc=143
 # [r3.share]
 P1 [r3.share] CRASH rc=143
+# [r3.share3]
