@@ -86,7 +86,10 @@ for p in 6 20 36 16 24 4; do
 done
 echo "== DIR2 generalisation done ==" >> $L
 
-for rep in 1 2; do
+# ONE PASS ONLY.  The pinned-axis reading is already decisive -- ax1 returns Z1=1 and ax3 ties the
+# best value ever seen on this instance -- and the follow-up that chases the Z1=1 floor is worth
+# more than a second replicate of the survey.
+for rep in 1; do
   run "r$rep.base" 1 240 ""
   for k in 0 1 2 3 4 5; do
     run "r$rep.ax$k" 1 240 "OGC_AXIS=$k"
