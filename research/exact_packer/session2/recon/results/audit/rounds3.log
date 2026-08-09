@@ -24,3 +24,5 @@ WSTAT round=2 n=4 3721393 4191276 3488197 3495836  spread=20.16%
 P16 [r2.p16.R3]    240s  obj=3192646     Z1=145.0    Z2=2287   Z3=5010.0    feas=y   ran 239s  py3.12
 == ROUNDS3 veto done ==
 # [r1.p1.R1]
+WSTAT round=0 n=4 438791 693791 504490 689851  spread=58.11%
+P1  [r1.p1.R1]     240s  obj=438791      Z1=8.0      Z2=4085   Z3=622.0     feas=y   ran 200s  py3.12
