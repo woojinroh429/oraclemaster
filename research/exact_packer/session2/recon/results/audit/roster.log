@@ -44,3 +44,4 @@ P24 [r1.p24.all]   240s  obj=2871197     Z1=653.0    Z2=3764   Z3=1114.0    feas
 # [r1.p24.nobay]
 WSTAT round=0 n=4 2968457 2848145 3012705 2920941  spread=5.78%
 P24 [r1.p24.nobay]   240s  obj=2848145     Z1=578.0    Z2=3353   Z3=1497.0    feas=y   ran 239s  py3.12
+# [r1.p3.all]
