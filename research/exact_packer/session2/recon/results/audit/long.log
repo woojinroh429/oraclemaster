@@ -243,3 +243,4 @@ P16 [po.p16.dir5]   240s  obj=3286759     Z1=158.0    Z2=1965   Z3=4697.0    fea
 == AIM 240 done ==
 == ROUNDS 240 done ==
 # [po.p16.z1op]
+P16 [po.p16.z1op]   240s  obj=3398993     Z1=185.0    Z2=2296   Z3=3702.0    feas=y   ran 240s  py3.12
