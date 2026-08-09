@@ -77,3 +77,5 @@ P1  [r1.dir2share]   240s  obj=438791      Z1=8.0      Z2=4085   Z3=622.0     fe
 # [r1.dir2]
 WSTAT round=0 n=4 472330 765211 457938 805091  spread=75.81%
 P1  [r1.dir2]      240s  obj=457938      Z1=15.0     Z2=7311   Z3=560.0     feas=y   ran 201s  py3.12
+== AXP1 rep 1 done ==
+AXP1DONE

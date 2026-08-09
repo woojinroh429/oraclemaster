@@ -83,4 +83,8 @@ for p in 36 6 20; do
   run "s.p$p.thru"  $p 240 "OGC_THRUBEAM=1"
 done
 echo "SPEEDDONE" >> $L
-echo idle > harness/CURRENT
+
+# then the replicate study OGC_SHARE needs: its first cell composed with dir2 for -4.18%, but
+# prob_1 single cells cannot separate 437k from 439k and the same configuration spanned 12.9% in
+# one queue.  What SHARE can change is the RATE of landing in the good cluster.
+exec bash harness/sharerate.sh
