@@ -34,3 +34,4 @@ P1  [r2.p1.free]   240s  obj=438791      Z1=8.0      Z2=4085   Z3=622.0     feas
 # [r3.p1.base]
 WSTAT round=0 n=4 438791 689851 504490 780214  spread=77.81%
 P1  [r3.p1.base]   240s  obj=438791      Z1=8.0      Z2=4085   Z3=622.0     feas=y   ran 200s  py3.12
+# [r3.p1.free]
