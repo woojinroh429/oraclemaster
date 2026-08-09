@@ -3751,6 +3751,50 @@ def algorithm(prob_info, timelimit=60):
             # is spent on a converged repair or on another worker round.
             #
             # OGC_POLCAP is that cap in seconds; unset keeps the old behaviour exactly.
+            # THE EXACT BAY PASS NEVER SEES THE ANSWER (OGC_TAILASSIGN).
+            #
+            # `_assign` is CP-SAT over every block's bay at once with the entry times pinned, and it
+            # is registered ONLY as the `bay` operator inside the worker loop, where it competes for
+            # bandit time and only ever sees that worker's own pool[0].  The solution the run
+            # actually returns -- `best`, the minimum across every worker and round -- is never
+            # handed to it.  What the tail runs instead is z3_reassign, and that is a hill-climb:
+            #
+            #     if(cur_pen<=0) continue;
+            #     for(int tb=0;tb<n_bays;tb++){ if(prefv(b,tb)<=prefv(b,cur_bay)) continue;
+            #
+            # single-block moves to a strictly more preferred bay, plus two-block swaps.  A block
+            # can only move if that bay is free at that block's exact time window, so on a full yard
+            # the first pass finds nothing and the pass is done.  Three-cycles are never generated.
+            #
+            # WHY THAT IS THE EXPENSIVE GAP.  prob_1 carries 76.8% of its objective in Z3 -- 600*541
+            # of 422,629 -- and the aggregate capacity relaxation admits Z3 = 0: give every block its
+            # most preferred bay and the three bays sit at 0.28 / 0.63 / 0.80 utilisation.  What
+            # holds Z3 at 541 is a local optimum of a two-move neighbourhood, and CP-SAT over all
+            # 150 assignments is the escape.  results/audit/z3floor.md has the arithmetic.
+            #
+            # Additive: `_assign` scores on the true objective and returns None rather than
+            # something worse, and it is accepted only when it beats `best`.  It runs FIRST because
+            # z3_reassign is a hill-climb and will simply confirm whatever CP-SAT leaves.
+            # OGC_TAILFRAC is its share of the tail; the remainder goes to the old pass.
+            try:
+                if left > 6.0 and os.environ.get("OGC_TAILASSIGN", "0") != "0":
+                    try:
+                        _tf = min(0.95, max(0.05, float(os.environ.get("OGC_TAILFRAC", "0.6"))))
+                    except Exception:
+                        _tf = 0.6
+                    imp = _assign(prob_info, best[1], max(3.0, left * _tf))
+                    if imp is not None:
+                        o, _ = _total(prob_info, imp)
+                        if os.environ.get("OGC_WSTAT"):
+                            import sys as _sy
+                            _sy.stderr.write("TAILASSIGN budget=%.0f obj=%.0f best=%.0f moved=%d\n"
+                                             % (left * _tf, o, best[0], int(o < best[0])))
+                            _sy.stderr.flush()
+                        if o < best[0]:
+                            best = (o, imp)
+                    left = timelimit - (time.time() - t0) - 1.0
+            except Exception:
+                pass
             try:
                 if left > 3.0:
                     _pc = os.environ.get("OGC_POLCAP")
