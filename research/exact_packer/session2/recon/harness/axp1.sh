@@ -67,6 +67,22 @@ for rep in 1 2; do
     run "r$rep.ax$k" 1 240 "OGC_AXIS=$k"
   done
   run "r$rep.dir"  1 240 "OGC_AXDIR=1 OGC_AXSCAN=0.5"
+  # THREE OF FOUR WORKERS ARE WASTED ON THIS INSTANCE, AND THERE IS ALREADY A MECHANISM FOR THAT.
+  #
+  # The WSTAT lines read 612,635 / 689,851 / 470,530 / 738,538: one worker supplies the answer and
+  # the other three spend the entire budget 30-57% behind it.  The minimum hides that -- the run
+  # still scores 470,530 -- but three cores bought nothing, and on an instance decided by whether
+  # ANY draw reaches a good basin, three wasted cores is three draws not taken.
+  #
+  # OGC_SHARE is exactly this: a worker that is more than OGC_SHAREGAP behind the best other worker
+  # restarts from a fresh seed instead of finishing a basin the minimum will discard.  It is
+  # implemented, it has a published rationale in the file ("P7's control returned 937,453 /
+  # 923,531 / 1,196,169 / 2,932,676: one core spent the entire budget on something 3.2x behind the
+  # winner"), and it has been off by default and never measured.  At the shipped gap of 0.5, w3 at
+  # +57% would restart here and w1 at +47% would not.
+  run "r$rep.share"     1 240 "OGC_SHARE=1"
+  run "r$rep.dir2share" 1 240 "OGC_DIRSET=2 OGC_SHARE=1"
+  run "r$rep.dir2"      1 240 "OGC_DIRSET=2"
   echo "== AXP1 rep $rep done ==" >> $L
 done
 echo "AXP1DONE" >> $L
