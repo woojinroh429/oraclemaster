@@ -44,3 +44,38 @@ not have to trade at all.
 OGC_OPSTAT=1 and OGC_BEAMSTAT=1 on prob_1: seconds given to `bay`, gain returned, and where it
 stops.  Then, if it is starved, price giving it more; if it runs and returns nothing, the binding
 constraint is geometric and the question becomes which blocks it cannot move and why.
+
+## THE ANSWER: THE BOUND IS AN AREA RELAXATION AND 2D PACKING DOES NOT ALLOW IT
+
+`_regroup` (myalgorithm.py) was built to collect it and the measurement closes the direction.
+
+Take a real prob_1 incumbent, ask CP-SAT for a bay plan at capf = 1.00 (the exact per-time-slice
+area capacity, no over-subscription), empty EVERY block the plan wants to move so the interlock is
+gone, then re-place each one in its wanted bay at its own pinned entry time:
+
+    capf 1.00   plan moves 15   realised  1   obj 691,480 against a base of 683,809
+    capf 1.15   plan moves 18   realised  2   INFEASIBLE
+    capf 1.30   plan moves 15   realised  0   identical to base
+
+One to two of fifteen.  The blocks are not blocked by each other -- this routine removed all of
+them first -- they are blocked by the blocks that are NOT moving.  Time-slice area feasibility is
+a necessary condition and nowhere near a sufficient one, so the Z3 = 387 the plan promises is a
+relaxation bound, not a reachable solution.  Reassignment alone cannot collect it; the packing
+itself would have to be rebuilt, which is what the beam already does.
+
+TWO ENGINE FACTS FOUND ON THE WAY, both worth keeping.
+
+  - `find_best_placement` misses placements that provably exist.  Remove a block and ask it to put
+    that same block back in the same bay at the same time: found=False on 2 of 12 sampled prob_1
+    blocks whose own slot `placement_feasible` confirms is free.  GRIDDIV 4 -> 16 -> 64 does not
+    change the count, so it is the candidate set and not the grid resolution.  `feasible_scan` with
+    step=1 finds the single legal position in those cases.
+
+  - `feasible_scan` is a static-overlap test and does not model the entry/exit path, so a solution
+    assembled purely from its positions can come back infeasible -- the capf 1.15 row above.
+    `_total` returns inf for that and the caller rejects it, so nothing unsafe ships, but the scan
+    cannot be used as a placement oracle on its own.
+
+`_regroup` stays in the file, unwired and unreferenced, because the measurement is the point: the
+largest single term in the objective on the Z3-dominated instances is not sitting behind a missing
+operator.

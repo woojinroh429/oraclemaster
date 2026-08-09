@@ -2190,6 +2190,166 @@ def _follow(prob_info, sol, want, budget):
     return _build_operations(recs)
 
 
+def _regroup(prob_info, sol, budget):
+    """REALISE THE CP-SAT BAY PLAN AS A SET, NOT AS A SEQUENCE OF SINGLE MOVES.
+
+    Every route to Z3 in this file moves ONE block at a time.  `z3_reassign` opens with
+
+        if(cur_pen<=0) continue;
+        for(int tb=0;tb<n_bays;tb++){ if(prefv(b,tb)<=prefv(b,cur_bay)) continue;
+
+    so it is single moves to a strictly better bay plus two-block swaps, and `_follow` is the
+    same neighbourhood by construction -- "for each block the plan wants to move, try that one
+    move ... keep it only if it pays".  Neither can express a three-cycle, and a full bay has no
+    single feasible move at all: the first pass finds nothing and the pass is over.
+
+    WHAT THAT COSTS.  Measured on prob_1, entry times pinned, CP-SAT respecting the SAME
+    per-time-slice area capacity the realiser has to honour (capf = 1.00, no over-subscription):
+
+        incumbent           Z3 = 821
+        CP-SAT plan         Z3 = 387    -53%,  12 of 150 blocks move
+        capf 1.15           Z3 = 223    -73%,  17 blocks
+        capf 1.30           Z3 = 128    -84%,  17 blocks
+
+    At w3 = 600 the first line alone is 260,400 points on an instance whose best recorded
+    objective is 422,629, and prob_1 carries 76.8% of that objective in Z3.  The moves are
+    interlocking -- block A has nowhere to go until block B has left -- which is exactly what a
+    one-at-a-time neighbourhood cannot see and why `_follow` leaves Z3 at 579-608.
+
+    THE PROCEDURE, AND WHY IT CANNOT LOSE.  Empty every block the plan wants to move, THEN
+    re-place them one by one at their own pinned entry times.  A block that finds no room in its
+    wanted bay goes back to the bay it came from -- and that slot is guaranteed free, because this
+    routine is what emptied it.  So the result is always feasible, entry and exit times never
+    change (so Z1 is identical by construction), and the caller keeps it only if the true
+    objective improves.
+
+    This is not `_assign`.  That one hands the plan to a realiser that may WAIT rather than spill,
+    which moves entry times and cascades: isolated on a prob_1 incumbent it returns Z1 12 -> 63,
+    Z2 3990 -> 7486, Z3 579 -> 658, +90.56%, in 10 s whatever budget it is given.  Its own
+    docstring's invariant -- times pinned, so Z1 cannot move -- does not hold.  Here nothing may
+    move in time at all.
+    """
+    try:
+        if not HAVE_ORTOOLS or not HAVE_OGC_FAST:
+            return None
+        B = prob_info["blocks"]; n = len(B); m = len(prob_info["bays"])
+        if m < 2 or n == 0:
+            return None
+        ent = {}; ext = {}; bay = {}; ori = {}; px = {}; py = {}
+        for tstr, row in (sol or {}).get("operations", {}).items():
+            t = int(tstr)
+            for op in row:
+                b = op["block_id"]
+                if op["type"] == "ENTRY":
+                    ent[b] = t; bay[b] = op["bay_id"]; ori[b] = op["orient_idx"]
+                    px[b] = op["x"]; py[b] = op["y"]
+                else:
+                    ext[b] = t
+        if len(ent) != n or len(ext) != n:
+            return None
+        pref = [B[b]["bay_preferences"] for b in range(n)]
+        E = _ogc_fast_engine(prob_info)
+        if not hasattr(E, "find_best_placement") or not hasattr(E, "clear_all"):
+            return None
+        t0 = time.time()
+        base_o, _ = _total(prob_info, sol)
+        best = None; best_o = base_o
+        for capf0 in (1.0, 1.15, 1.30):
+            left = budget - (time.time() - t0)
+            if left < 4.0:
+                break
+            try:
+                want = _assign_once(prob_info, ent, ext, bay, [capf0] * m, min(10.0, left * 0.5))
+            except Exception:
+                if os.environ.get("OGC_DEBUG") == "1":
+                    raise
+                break
+            if os.environ.get("OGC_DEBUG") == "1":
+                import sys as _sy
+                _sy.stderr.write("REGROUP capf=%.2f left=%.1f want=%s\n"
+                                 % (capf0, left, "None" if want is None else ("len %d" % len(want))))
+                _sy.stderr.flush()
+            if want is None:
+                continue
+            M = [b for b in range(n) if int(want[b]) != int(bay[b])]
+            if os.environ.get("OGC_DEBUG") == "1":
+                import sys as _sy
+                _sy.stderr.write("REGROUP capf=%.2f moves=%d\n" % (capf0, len(M)))
+                _sy.stderr.flush()
+            if not M:
+                continue
+            # The interlock is why this is done as a set: empty them all first.  Re-place in
+            # order of what the plan thinks each move is worth, so a partial realisation keeps
+            # the moves that carry the preference rather than whichever came first by index.
+            M.sort(key=lambda b: -(pref[b][int(want[b])] - pref[b][int(bay[b])]))
+            try:
+                E.clear_all()
+                for b in range(n):
+                    E.add(int(bay[b]), int(b), int(ori[b]), float(px[b]), float(py[b]),
+                          int(ent[b]), int(ext[b]))
+                for b in M:
+                    E.remove(int(b))
+            except Exception:
+                if os.environ.get("OGC_DEBUG") == "1":
+                    raise
+                return best
+            nb = dict(bay); no = dict(ori); nx = dict(px); ny = dict(py)
+            for b in M:
+                placed = False
+                try:
+                    # feasible_scan, NOT find_best_placement.  The latter misses placements that
+                    # provably exist: remove a block and ask it to put that same block back in the
+                    # same bay at the same time and it answers found=False on blocks whose own
+                    # slot placement_feasible confirms is free -- 2 of 12 sampled on prob_1, and
+                    # raising GRIDDIV from 4 to 16 to 64 does not change the count, so it is the
+                    # candidate set and not the grid.  feasible_scan enumerates (bay, orient, x, y)
+                    # exactly and step=1 finds the single legal position where the scan found none.
+                    rows = E.feasible_scan(int(b), [int(want[b])], int(ent[b]), int(ext[b]), 1)
+                    for row in rows:
+                        _bb, _oo, _ix, _iy = int(row[0]), int(row[1]), int(row[2]), int(row[3])
+                        E.add(_bb, int(b), _oo, float(_ix), float(_iy), int(ent[b]), int(ext[b]))
+                        nb[b] = _bb; no[b] = _oo; nx[b] = float(_ix); ny[b] = float(_iy)
+                        placed = True
+                        break
+                except Exception:
+                    placed = False
+                if not placed:
+                    # back where it came from.  That slot is free because this routine emptied it,
+                    # so this branch cannot fail and the result cannot be infeasible.
+                    E.add(int(bay[b]), int(b), int(ori[b]), float(px[b]), float(py[b]),
+                          int(ent[b]), int(ext[b]))
+            try:
+                cand = _build_operations([
+                    {"block_id": b, "bay_id": nb[b], "orient_idx": no[b],
+                     "x": nx[b], "y": ny[b], "entry_time": ent[b], "exit_time": ext[b]}
+                    for b in range(n)])
+                o, _c = _total(prob_info, cand)
+            except Exception:
+                if os.environ.get("OGC_DEBUG") == "1":
+                    raise
+                continue
+            if os.environ.get("OGC_DEBUG") == "1":
+                import sys as _sy
+                _rl = sum(1 for b in M if nb[b] != bay[b])
+                _sy.stderr.write("REGROUP capf=%.2f realised=%d/%d obj=%.0f base=%.0f feas=%s\n"
+                                 % (capf0, _rl, len(M), o, base_o,
+                                    (_c or {}).get("feasible")))
+                _sy.stderr.flush()
+            if o < best_o:
+                best_o = o; best = cand
+        try:
+            E.clear_all()               # the engine is cached and shared; leave it as found
+        except Exception:
+            pass
+        return best
+    except Exception:
+        # A pass that swallows its own failure is how `dk` and `THRUBEAM` shipped switched off:
+        # the wiring was there, nothing ran, and the log said nothing.  OGC_DEBUG=1 re-raises.
+        if os.environ.get("OGC_DEBUG") == "1":
+            raise
+        return None
+
+
 def _assign(prob_info, sol, budget):
     """ASSIGNMENT SEARCH -- the half of the space the beam structurally cannot see.
 
