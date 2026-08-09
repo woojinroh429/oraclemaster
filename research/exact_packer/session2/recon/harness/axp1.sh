@@ -111,4 +111,7 @@ for rep in 1 2; do
   echo "== AXP1 rep $rep done ==" >> $L
 done
 echo "AXP1DONE" >> $L
-echo idle > harness/CURRENT
+
+# _AXES[1] reaches Z1=1 on prob_1, which is a different instance floor than anything shipped has
+# seen.  Chase it.
+exec bash harness/ax1z1.sh
