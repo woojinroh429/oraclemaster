@@ -1,3 +1,7 @@
 # [p1.base.r1]
 WSTAT round=0 n=4 472330 772500 504490 752084  spread=63.55%
 P1  [p1.base.r1]   240s  obj=472330      Z1=1.0      Z2=2221   Z3=765.0     feas=y   ran 200s  py3.12
+# [p1.rf35.r1]
+WSTAT round=0 n=4 498554 751375 457938 805091  spread=75.81%
+FILL round=1 budget=75 moved=0 best=457938
+P1  [p1.rf35.r1]   240s  obj=457938      Z1=15.0     Z2=7311   Z3=560.0     feas=y   ran 232s  py3.12
