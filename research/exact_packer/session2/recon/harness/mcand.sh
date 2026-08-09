@@ -1,73 +1,78 @@
 #!/bin/bash
-# THE PERMUTATION SEARCH ITSELF, IN THE BEAM, WITH DEPTH UNCHANGED.
+# A MEASURED 14.5% WIN THAT WAS NEVER TURNED ON.
 #
-# ogc_fast.cpp used to place order[level] in every beam state, so every state at level k held the
-# same block SET and differed only in placements.  Its own dedup comment recorded the consequence
-# and called itself dead code: "our beam uses a FIXED dispatch order ... The reference needs this
-# because its orders vary."
+# OGC_MCAND is how many candidate blocks each beam state expands.  With m=1 every state at level k
+# holds the same block SET and differs only in placements; with m>1 each state expands the m
+# earliest unplaced blocks in the dispatch order, so states diverge in WHICH blocks they have
+# placed.  The file calls the permutation the largest lever on this problem -- construction spread
+# across orders is 32-210%, against about 2% for the combined range of budget policy, axis sets, the
+# w3mul grid and brk removal -- and m>1 is the only thing in the engine that searches it.
 #
-# Each state now expands the CBMCAND earliest UNPLACED blocks under its axis's priority, so states
-# diverge in which blocks they have placed and the permutation becomes part of the search.
-# OGC_MCAND=1 is the old code path exactly.
+# Its own recorded measurement, 240 s:
 #
-# WHAT IS AND IS NOT TRADED.  Every state still places one block per level and the beam still keeps
-# B survivors, so no worker loses depth -- the thing that killed ROUNDS, the redraw and the aim
-# race's second phase.  What grows is branching: m times as many children per level, competing for
-# the same B slots.  So the bet is that a permutation worth finding is worth more than the
-# placement diversity those slots were holding.
+#     m=2   prob_24 -14.50%   prob_4 -3.74%     won both
+#     m=3   prob_24 + 2.40%   prob_4 +10.89%    lost both
 #
-# First draws on prob_24 at 60 s: m=1 2,631,837, m=2 2,943,281.  One draw each on the noisiest
-# possible budget, and m=2 is 11.8% worse -- which is exactly what it looks like if the extra
-# permutations are not paying for the width they displace.  That is the question, and it needs a
-# paired set rather than a smoke.
+# and the default is 1.  The note beside it reads "raising the ceiling is the direct test of whether
+# m=3 lost to the branching or to the slot shortage" -- so the m=3 question was left open and m=2,
+# which won, was never adopted either.  Two instances is thin, and nothing since has re-read it.
 #
-# The DEDUP-off arm has already done its job and is retired: under a fixed order the dedup was
-# identical to the last digit on five instances, and with branching on it moved prob_24 by 1.7%
-# (2,905,816 -> 2,857,312) and prob_4 by 9.8% (2,829,562 -> 2,577,614).  States really do reach the
-# same layout by different orders now, which is the structural claim behind the whole change and
-# was not previously possible.
+# It is also the one lever tonight's refutations do NOT touch.  Everything measured in this session
+# moved budget BETWEEN operators and none of it moved the answer: bay is a fifth of every worker for
+# nothing and removing it changes nothing, the idle tail returns the identical solution, more rounds
+# is monotonically worse, the roster cannot be cut.  At 240 s prob_1 returned 470,530 from nine
+# different configurations.  What none of that changes is WHICH construction the beam performs, and
+# m is exactly that knob: it does not redistribute budget, it widens the neighbourhood the beam
+# searches.
+#
+# m=3 is included because its loss was attributed to running out of survivor slots rather than to
+# the branching, and OGC_BCAP raises the ceiling -- so if m=3 recovers at a higher cap, the reading
+# was about the cap and not about m.
 set -u
-cd "$(dirname "$0")/.." || exit 1
+cd /home/user/oraclemaster/research/exact_packer/session2/recon || exit 1
 echo mcand > harness/CURRENT
+( cd "$(git rev-parse --show-toplevel)" \
+  && git add research/exact_packer/session2/recon/harness/CURRENT \
+  && git commit -q -m "queue: CURRENT=mcand" \
+  && git push -q origin claude/repair-plan-model-1ig6it ) >/dev/null 2>&1
 L=results/audit/mcand.log
 mkdir -p results/audit; touch $L
+ci(){ ( cd "$(git rev-parse --show-toplevel)" \
+        && git add research/exact_packer/session2/recon/results/audit/mcand.log \
+                  research/exact_packer/session2/recon/harness/CURRENT \
+        && git commit -q -m "in-flight: mcand $1" \
+        && git push -q origin claude/repair-plan-model-1ig6it ) >/dev/null 2>&1; }
 
-run(){ # rep arm prob env
-    local tag="r$1.$2.$3"
+run(){ # tag prob limit env
+    local tag="$1"
     grep -vE '^# ' $L 2>/dev/null | grep -q "\[$tag\]" && return
     echo "# [$tag]" >> $L
-    env $4 OGC_WSTAT=1 timeout 960 /usr/bin/python3.12 harness/run1.py myalgorithm $3 240 \
-        "[$tag]" --data data/stage2 >> $L 2>&1 \
-        || echo "P$3 [$tag] HANG-OR-CRASH rc=$?" >> $L
-    ( cd "$(git rev-parse --show-toplevel)" \
-      && git add research/exact_packer/session2/recon/results/audit/mcand.log \
-      && git commit -q -m "in-flight: mcand $tag" ) >/dev/null 2>&1
+    env $4 timeout $(( $3 * 4 )) /usr/bin/python3.12 harness/run1.py myalgorithm $2 $3 \
+        "[$tag]" --data data/stage2 >> $L 2>&1 || echo "P$2 [$tag] CRASH rc=$?" >> $L
+    ci "$tag"
 }
 
-for rep in 1 2; do
-    for p in 24 4 20 26 13 6; do
-        run $rep m1  $p "OGC_MCAND=1"
-        run $rep m2  $p "OGC_MCAND=2"
-        run $rep m3  $p "OGC_MCAND=3"
-        # DID m=3 LOSE TO THE BRANCHING, OR TO THE SLOT SHORTAGE IT CAUSES?
-        #
-        # m times as many children compete for the same B survivor slots, so the effective width
-        # per block-set falls to B/m.  m=2 won on prob_24 and prob_4 (-14.50%, -3.74%) and m=3 lost
-        # both (+2.40%, +10.89%), and on both the worker spread peaked at m=2 and then collapsed
-        # BELOW the m=1 baseline at m=3 -- 5.9/13.5/8.4% and 19.5/25.9/9.2%.  A search running out
-        # of width looks exactly like that.
-        #
-        # So give the width back in proportion.  OGC_BCAP was the hard 96 ceiling inside
-        # _beam_width, and ogc_fast's own instrumentation says it binds: beam_width_capped_ is
-        # (Bcur >= Bmax) and Bmax is precisely what _beam_width returns, so three of the six axes
-        # (Bmul 1.0, 1.4, 1.0) were pinned there whatever the budget allowed.
-        #
-        # The adaptive controller still refuses width it cannot afford, so a larger ceiling costs
-        # nothing on instances with no time for it -- these arms ask for width, they do not force it.
-        run $rep m2w $p "OGC_MCAND=2 OGC_BCAP=192"
-        run $rep m3w $p "OGC_MCAND=3 OGC_BCAP=288"
-    done
-    echo "REPDONE $rep" >> $L
+# prob_24 and prob_4 first: they are the two the 14.50% and 3.74% were measured on, so a failure to
+# reproduce there says the reading was wrong before any generalisation is attempted.  Then the five
+# this session has replicate spreads for.
+for p in 24 4 1 20 16 6 36; do
+  run "m240.p$p.m1" $p 240 "OGC_MCAND=1"
+  run "m240.p$p.m2" $p 240 "OGC_MCAND=2"
+done
+echo "== MCAND base done ==" >> $L
+
+# m=3 with the survivor ceiling raised, on the instances where m=2 pays, to settle whether m=3 lost
+# to branching or to slots.
+for p in 24 4 20; do
+  run "m240.p$p.m3"     $p 240 "OGC_MCAND=3"
+  run "m240.p$p.m3cap"  $p 240 "OGC_MCAND=3 OGC_BCAP=192"
+done
+echo "== MCAND m3 done ==" >> $L
+
+# replicate the pair on the instances that carry spread, because a single cell decides nothing here
+for p in 24 4 1 20 16 6 36; do
+  run "m240.p$p.m1.r2" $p 240 "OGC_MCAND=1"
+  run "m240.p$p.m2.r2" $p 240 "OGC_MCAND=2"
 done
 echo "MCANDDONE" >> $L
 echo idle > harness/CURRENT
