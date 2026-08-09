@@ -24,3 +24,4 @@ P1  [r3.base]      240s  obj=537698      Z1=20.0     Z2=3386   Z3=657.0     feas
 # [r3.dir]
 WSTAT round=0 n=4 610313 661525 544247 676657  spread=24.33%
 P1  [r3.dir]       240s  obj=544247      Z1=23.0     Z2=7502   Z3=614.0     feas=y   ran 239s  py3.12
+# [r3.dir2]
