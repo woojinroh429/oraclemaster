@@ -2464,6 +2464,31 @@ def _worker(args):
     # noise: hz1 is a TARDINESS lookahead, prob_1 carries 22.6% of its objective in w1*Z1 and 73% in
     # w3*Z3, and making the tardiness term larger buys time the objective there does not pay for.
     #
+    # m AS A PER-WORKER PORTFOLIO POSITION (OGC_MSET), because the sign varies by instance.
+    #
+    # OGC_MCAND is how many candidate blocks each beam state expands.  m=1 makes every state at a
+    # level place the SAME block, so the dispatch order is fixed and the permutation -- which this
+    # file calls the largest lever on the problem, 32-210% against about 2% for everything else --
+    # is not searched at all.  m=2 lets each state choose between the two earliest unplaced blocks.
+    # Measured at 240 s:
+    #
+    #     P24  2,695,530 -> 2,454,698  -8.93%      P4   2,679,086 -> 2,840,189  +6.01%
+    #     P20  9,459,219 -> 8,868,533  -6.25%      P1     544,247 ->   693,845 +27.49%
+    #
+    # Two wins, two losses, so neither value is a default.  The answer is a MINIMUM over workers and
+    # the workers are separate processes, so both values can be in the portfolio at once and the min
+    # keeps whichever the instance prefers -- exactly how the beam aim is already split 2:2.
+    #
+    # THIS IS NOT FREE AND THE FILE HAS ALREADY MEASURED THE COST.  A 2:2 split draws twice from
+    # each setting instead of four times, and a minimum over two is worse than a minimum over four,
+    # so a split can land BELOW both parents.  The same split applied to the hz1 lookahead was best
+    # of three arms on P16 and P20 and worse than both parents on P6.  Whether the diversity is
+    # worth the density is an instance property and has to be read, not assumed -- which is what
+    # OGC_MSET exists to do.  Default "1" is today's behaviour exactly.
+    if "OGC_MCAND" not in os.environ:
+        _ms = [m for m in os.environ.get("OGC_MSET", "1").split(",") if m.strip()]
+        os.environ["OGC_MCAND"] = _ms[wid % len(_ms)].strip()
+
     # THE ENGINE SOURCE IS REVERTED TOO, so this block is gone rather than left switched off.
     # ogc_fast.cpp carries its own sha into every .so and harness/mkzip.sh refuses to package a set
     # that disagrees with the source; the four shipped binaries were built before tonight, so the
