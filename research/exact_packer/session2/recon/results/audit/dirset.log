@@ -1,3 +1,4 @@
 # [d240.p1.base]
 P1  [d240.p1.base]   240s  obj=501758      Z1=17.0     Z2=7073   Z3=612.0     feas=y   ran 201s  py3.12
 # [d240.p1.dir]
+P1  [d240.p1.dir]   240s  obj=470530      Z1=19.0     Z2=7419   Z3=536.0     feas=y   ran 200s  py3.12
