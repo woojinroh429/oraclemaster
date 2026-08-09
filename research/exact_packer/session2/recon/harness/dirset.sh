@@ -66,7 +66,21 @@ run(){ # tag prob limit env
 # prob_1 is the loose one this should help (peak occupancy 59.3% of bay area, 73% of its objective
 # in Z3) and prob_6, prob_36 and prob_20 are the saturated ones it must not hurt.  prob_16 and
 # prob_24 sit between.  Arms adjacent so machine drift is not read as an arm difference.
-for p in 1 6 20 16 24 36; do
+#
+# prob_1 GETS FOUR REPLICATES BEFORE ANYTHING ELSE RUNS, because one cell there is not evidence.
+# The pool fix flipped the pair -- base/dir read 470,530/501,758 before it and 501,758/470,530
+# after -- and those two numbers are both known prob_1 attractors at this budget, 6.2% apart.
+# Which one a configuration lands on is decided by timing, so a single paired cell reads the coin
+# and not the arm.  What an arm can actually change is HOW OFTEN it reaches the better one, and
+# that needs a count.  prob_1 is also the instance the user's priority is about, so it gets the
+# cells.
+for rep in 1 2 3 4; do
+  run "d240.p1.base.x$rep" 1 240 ""
+  run "d240.p1.dir.x$rep"  1 240 "OGC_DIRSET=1"
+done
+echo "== DIRSET prob_1 replicates done ==" >> $L
+
+for p in 6 20 16 24 36; do
   run "d240.p$p.base" $p 240 ""
   run "d240.p$p.dir"  $p 240 "OGC_DIRSET=1"
 done
