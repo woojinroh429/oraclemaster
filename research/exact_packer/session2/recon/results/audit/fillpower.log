@@ -1,3 +1,4 @@
 prob   arm                    round-0     fill(budget,moved,best)      final
 1      full round 0, C        438791      31, 0, 438791                438791
 1      full budget, B split   437484      75, 0, 437484                437484
+1      half budget, C         522147      -                            522147
