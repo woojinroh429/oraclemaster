@@ -2464,11 +2464,15 @@ def _worker(args):
     # noise: hz1 is a TARDINESS lookahead, prob_1 carries 22.6% of its objective in w1*Z1 and 73% in
     # w3*Z3, and making the tardiness term larger buys time the objective there does not pay for.
     #
-    # Kept for the record and for the A/B: OGC_HZ1V2=1 enables the corrected lookahead, OGC_HZ1SET
-    # splits it across workers.  Neither is on.
-    if "OGC_HZ1V2" not in os.environ:
-        _hz = [h for h in os.environ.get("OGC_HZ1SET", "0").split(",") if h.strip()]
-        os.environ["OGC_HZ1V2"] = _hz[wid % len(_hz)].strip()
+    # THE ENGINE SOURCE IS REVERTED TOO, so this block is gone rather than left switched off.
+    # ogc_fast.cpp carries its own sha into every .so and harness/mkzip.sh refuses to package a set
+    # that disagrees with the source; the four shipped binaries were built before tonight, so the
+    # corrected lookahead existed in the source and in none of them.  Rebuilding to close that gap
+    # would replace the binary every measurement tonight was taken against -- this project has
+    # measured a proved bit-identical speedup move an objective 7.7%, because code layout changes
+    # timing and the beam derives its width from timing.  Reverting the source costs nothing,
+    # because the feature is refuted, and it keeps the submission byte-identical to what was
+    # measured.  The patch and its numbers are in the history and in results/audit/.
 
     rng = random.Random(1234 + wid)
     axes = [_AXES[(wid + i) % len(_AXES)] for i in range(len(_AXES))]

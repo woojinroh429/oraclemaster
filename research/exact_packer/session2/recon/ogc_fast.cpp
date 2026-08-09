@@ -284,37 +284,6 @@ struct OrientData { std::vector<LayerData> layers; double x0,y0,x1,y1; };
 // or merely does more work.  OGC_BEAMCAP could never be told apart on that.
 static double WORKCAP(){ static const double v=[](){ const char* e=std::getenv("OGC_WORKCAP");
                                                      return e? atof(e) : 0.0; }(); return v; }
-// RATE MODE (OGC_WRATE=1): THE SHIPPABLE HALF OF THE ABOVE.
-//
-// OGC_WORKCAP removes the noise and cannot ship, because the competition budget is wall clock and a
-// fixed expansion count either overruns it or leaves it unspent.  But the two things that mode does
-// are separable, and only one of them is why it cannot ship:
-//
-//     how much total search this slice can afford   <- must come from the clock, machine-dependent
-//     which width trajectory the beam takes to it   <- need not, and is where the noise comes from
-//
-// Today both come from the same expression, re-evaluated at every one of ~250 levels, so the second
-// question is answered ~250 times by a quantity that drifts.  That feedback loop is the amplifier:
-// a microsecond of drift picks a different width, a different width costs different time, and the
-// run lands on a different attractor.  Two dead calls behind switched-off flags moved prob_24 1.03%,
-// and identical configurations differ 2.5-25% run to run.
-//
-// Rate mode asks the clock ONCE per beam instead.  Each Engine remembers the expansion rate its
-// last beam achieved; the next one converts its slice into a work cap up front (rate x seconds x
-// aim) and then runs the existing work-mode controllers, which read no clock at all.  The amount of
-// search still tracks the machine -- a slower core measures a lower rate and asks for less -- while
-// the trajectory to it stops being a 250-step feedback loop.
-//
-// THE CLOCK STAYS AS A BACKSTOP.  A rate estimate is taken from a beam with different width and
-// different occupancy, so it can be wrong; an overrun is disqualification, not a bad score.  So the
-// stop test keeps a wall-clock arm at a slightly looser aim.  In the normal case the work arm fires
-// first and the run is trajectory-stable; when the estimate was optimistic the clock still stops it
-// and the salvage path finishes the partial exactly as it does today.
-//
-// The first beam of a process has no estimate and runs in today's time mode, which is also what
-// calibrates it.  OGC_WRATE unset reproduces current behaviour exactly.
-static bool WRATE_on(){ static const bool v=[](){ const char* e=std::getenv("OGC_WRATE");
-                                                  return (e && e[0]=='1'); }(); return v; }
 static bool ORORD_on(){ static const bool v=[](){ const char* e=std::getenv("OGC_ORORD");
                                                   return (e && e[0]=='1'); }(); return v; }
 struct BlockShape {
@@ -390,26 +359,6 @@ struct Engine {
     // 14 s at ~220 expansions/s.  An estimate is not good enough to hang a prescription on, and
     // the loop already accumulates the exact value.
     double beam_work_ = 0.0;
-    // EXPANSIONS PER SECOND THE LAST SLICE-BOUND BEAM ACHIEVED.  Rate mode's whole state: it is
-    // what lets the next beam turn its slice into a work cap without reading the clock again.
-    //
-    // ONLY A BEAM THE SLICE BOUND MAY SET IT, and zero disarms rate mode for the next call.  The
-    // first version armed from every beam and the first measurement said why that is wrong:
-    //
-    //     P20 (250 blocks, slice-bound)   spread 0.55% -> 0.00%   mean -2.88%   three cells
-    //                                     returning 8,924,228 to the digit
-    //     P1  (150 blocks, beam finishes) spread 3.44% -> 26.68%  mean +6.12%
-    //
-    // On prob_1 the beam completes its level loop well inside its aim -- the file's own note says
-    // the salvage never runs there -- so elapsed() is a short, noisy interval and the rate taken
-    // from it swings.  Worse, a cap built from a swinging rate CUTS a beam that would otherwise
-    // have finished, converting a complete construction into a salvaged partial for no reason.
-    //
-    // Where the slice is not binding there is nothing for the width controller to decide and
-    // nothing for rate mode to stabilise, so it stays out: a completed beam sets this to zero and
-    // the next one runs in today's time mode.  It re-arms by itself the moment a beam runs out of
-    // slice again, so a run that changes regime mid-flight follows it.
-    double beam_rate_ = 0.0;
     void   set_beam_aim(double a){ beam_aim_ = a<0.02?0.02:(a>0.98?0.98:a); }
     double get_beam_aim() const { return beam_aim_; }
     bool   beam_salvaged() const { return beam_salvaged_; }
@@ -1963,49 +1912,12 @@ struct Engine {
         beam_level_frac_ = 0.0;
         const int Bmax=std::max(1,B), Bstart=ADAPTB?std::max(1,std::min(B,8)):B;
         int Bcur=Bstart; double work=0.0;   // work = sum over levels of (states expanded)
-        // THE WIDTH CONTROLLER LOSES THE CLOCK; THE STOP TEST KEEPS IT.
-        //
-        // Both used the same expression and only one of them is the amplifier.  The stop test reads
-        // the clock and compares it to a threshold -- it is a boundary, and nothing it computes
-        // feeds back into anything.  The width controller reads the clock and turns it into Bcur,
-        // which decides how much time the next level costs, which moves the clock: that is the
-        // 250-step feedback loop, and it is the whole of the noise.
-        //
-        // The first two versions moved the stop test too, and both measurements say not to:
-        //
-        //     v1 armed from every beam       P20 0.55->0.00% mean -2.88%   P1 3.44->26.68% +6.12%
-        //     v2 armed only when slice-bound P20 0.94->0.79% mean -3.47%   P1 2.42-> 0.00% +11.00%
-        //
-        // v2 makes prob_1 perfectly deterministic and 11% worse, which is the useful reading: the
-        // feedback loop IS the noise and removing it IS achievable, but a work cap that stops the
-        // loop also decides WHEN the beam stops, and there it stops too early -- every beam exits
-        // through the salvage path with a rolled-out partial instead of completing its levels.
-        //
-        // So the cap becomes the width controller's budget and nothing else.  The beam still stops
-        // exactly where it stops today, so the number of draws, the salvage behaviour and the
-        // overrun margin are all unchanged; what changes is that the trajectory to that point is
-        // computed from expansions rather than re-derived from a drifting clock at every level.
-        //
-        // OGC_WORKCAP is untouched: it still replaces the stop test as well, because measurement
-        // mode wants no clock anywhere and does not have to respect a wall-clock budget.
-        double _wcap=WORKCAP();
-        const bool _hardwork = (_wcap>0.0);            // OGC_WORKCAP: measurement mode, no clock
-        if(!_hardwork && WRATE_on() && beam_rate_>0.0 && time_budget_s>0.0)
-            _wcap = beam_rate_ * time_budget_s * AIM;
-        bool _useW = (_wcap>0.0);      // retires mid-run if the estimate is exhausted; see below
         for(int level=0; level<nord; level++){
-            if(_hardwork ? (work>_wcap) : (elapsed()>time_budget_s*AIM)){
+            const double _wcap=WORKCAP();
+            if(_wcap>0.0 ? (work>_wcap) : (elapsed()>time_budget_s*AIM)){
                 beam_salvaged_ = true;
                 beam_used_frac_ = elapsed()/std::max(1e-9,time_budget_s);
                 beam_work_ = work;
-                // Calibrate from this call too.  A beam that ran out of slice is precisely the one
-                // whose rate is measured over a full slice, so it is the most informative sample
-                // there is -- and without it a process whose first beam salvages would never leave
-                // time mode at all.
-                // CALIBRATE ONLY FROM A BEAM THE SLICE ACTUALLY BOUND.  This exit is that beam: it
-                // ran out of budget mid-level-loop.  The other exit is not, and arming rate mode
-                // from it is what broke prob_1 -- see the note beside the declaration.
-                if(!_hardwork){ double _el=elapsed(); if(_el>1e-6 && work>0.0) beam_rate_=work/_el; }
                 beam_level_frac_ = nord>0 ? (double)level/(double)nord : 1.0;
                 // FINISH THE BEST PARTIAL INSTEAD OF RETURNING NOTHING.
                 //
@@ -2039,17 +1951,10 @@ struct Engine {
                 }
                 return {1e18,{}};
             }
-            // Rate mode's estimate can run out before the clock does -- it came from a beam of a
-            // different width on different occupancy.  When it does, `_wcap-work` goes negative and
-            // a controller reading it would collapse the width to 1 for the rest of the run while
-            // real time remained.  So the work arm simply retires and the clock takes the tail,
-            // exactly as it does today.  The deterministic phase covers the normal case; the
-            // degradation is graceful rather than a cliff.
-            if(_useW && !_hardwork && work >= _wcap) _useW=false;
             if(ADAPTB && level>0 && work>0.0){
                 // work mode: the unit is a state expansion, not a second, and `per` is 1.
-                double per = _useW ? 1.0 : elapsed()/work;
-                double left = _useW ? (_wcap-work) : (time_budget_s*AIM-elapsed());
+                double per = _wcap>0.0 ? 1.0 : elapsed()/work;
+                double left = _wcap>0.0 ? (_wcap-work) : (time_budget_s*AIM-elapsed());
                 int rem=nord-level;
                 int fit=(per>1e-12&&rem>0)? (int)(left/(per*(double)rem)) : Bmax;
                 if(fit<1) fit=1;
@@ -2065,8 +1970,8 @@ struct Engine {
             static const bool ADAPTK=[](){const char*e=getenv("OGC_ADAPTK");return !(e&&e[0]=='0');}();
             int Kuse=K;
             if(ADAPTK && ADAPTB && level>0 && work>0.0){
-                double per = _useW ? 1.0 : elapsed()/work;
-                double left2 = _useW ? (_wcap-work) : (time_budget_s*AIM-elapsed());
+                double per = _wcap>0.0 ? 1.0 : elapsed()/work;
+                double left2 = _wcap>0.0 ? (_wcap-work) : (time_budget_s*AIM-elapsed());
                 int rem2=nord-level;
                 if(per>1e-12 && rem2>0){
                     double afford=left2/(per*(double)rem2);      // states we could still expand
@@ -2436,9 +2341,6 @@ struct Engine {
         // there is room to raise it.
 beam_work_ = work;
         beam_used_frac_ = elapsed()/std::max(1e-9,time_budget_s);
-        // THE BEAM FINISHED INSIDE ITS SLICE, so the slice was not what decided anything and rate
-        // mode has no business running on the next one.  Disarm.
-        if(!_hardwork) beam_rate_ = 0.0;
         beam_width_capped_ = (Bcur >= Bmax);
         beam_level_frac_ = 1.0;
         return {best_obj,best_flat};
@@ -2926,54 +2828,21 @@ beam_work_ = work;
         std::vector<std::pair<int,double>> ev;
         for(size_t i=0;i+6<flat.size();i+=7){ int en=flat[i+5],ex=flat[i+6];
             ev.push_back({en,1.0}); ev.push_back({ex,-1.0}); }
-        // THE ESTIMATE SCORES ENTRY AGAINST A DUE DATE THAT APPLIES TO EXIT (OGC_HZ1V2=1 fixes it).
-        //
-        // Z1 is sum over blocks of max(0, EXIT - due) and exit is entry + processing_time.  The
-        // relaxation below computes tau, the time by which a block's area can be absorbed -- that
-        // is its ENTRY -- and then compares tau directly against due.  Every unplaced block is
-        // therefore scored as though it left the yard the instant it arrived, so the whole of
-        // sum(pt) is missing from the lookahead, and it is missing UNEVENLY: a long-processing
-        // block against a tight due date reads as free.
-        //
-        // The second miss is the release time.  minrel is used once, to start the clock at the
-        // earliest release in the set; after that a block released late is treated as available
-        // immediately.  A block cannot enter before it exists.
-        //
-        // Both make the bound too LOW, which is the direction that matters -- hz1 is the beam's
-        // only lookahead, it enters the rank as w1*hz1, and a term that understates future
-        // tardiness lets the beam prefer states that look cheap now and finish late.  That is
-        // exactly the myopia the term was added to remove.
-        //
-        // This is a RANK term, not the pruning bound (wb_lb is, and it is untouched), so raising it
-        // cannot prune the optimum -- it can only change which states survive to be expanded.
-        struct Rem{ int due; double area; int pt; int rt; };
-        std::vector<Rem> rem; int minrel=INT_MAX;
-        for(int b=0;b<nb;b++) if(!placed[b]){
-            rem.push_back(Rem{(int)shapes[b].due,areas[b],(int)shapes[b].pt,(int)shapes[b].rt});
-            minrel=std::min(minrel,(int)shapes[b].rt); }
+        std::vector<std::pair<int,double>> rem; int minrel=INT_MAX;
+        for(int b=0;b<nb;b++) if(!placed[b]){ rem.push_back({(int)shapes[b].due,areas[b]}); minrel=std::min(minrel,(int)shapes[b].rt); }
         if(rem.empty()) return 0.0;
-        std::sort(rem.begin(),rem.end(),[](const Rem&a,const Rem&b){
-            if(a.due!=b.due) return a.due<b.due; return a.area<b.area; });
+        std::sort(rem.begin(),rem.end());
         std::sort(ev.begin(),ev.end());
-        static const bool HZ1V2=[](){const char*e=getenv("OGC_HZ1V2");return(e&&e[0]=='1');}();
         double t=(minrel==INT_MAX)?0.0:(double)minrel;
         double F=0.0, occ=0.0, tardy=0.0, D=0.0; int idx=0;
         while(idx<(int)ev.size() && (double)ev[idx].first<=t){ occ+=ev[idx].second; idx++; }
         for(auto& rd : rem){
-            int due_k=rd.due; D += rd.area;
+            int due_k=rd.first; D += rd.second;
             while(true){
                 double cap=std::max(area_total*0.15, area_total-occ*avg_a);
                 double nxt=(idx<(int)ev.size())?(double)ev[idx].first:1e18;
                 double need_t=(D-F)/cap;
-                if(t+need_t<=nxt){
-                    double tau=t+need_t;
-                    if(HZ1V2){
-                        if(tau<(double)rd.rt) tau=(double)rd.rt;   // cannot enter before release
-                        double ex=tau+(double)rd.pt;               // due applies to EXIT
-                        if(ex>due_k) tardy+=(ex-due_k);
-                    } else if(tau>due_k) tardy+=(tau-due_k);
-                    F=D; if(tau>t)t=tau; break;
-                }
+                if(t+need_t<=nxt){ double tau=t+need_t; if(tau>due_k) tardy+=(tau-due_k); F=D; if(tau>t)t=tau; break; }
                 else { F+=cap*(nxt-t); t=nxt; occ+=ev[idx].second; idx++; }
             }
         }
