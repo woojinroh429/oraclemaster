@@ -1,0 +1,3 @@
+# [a1.plain]
+WSTAT round=0 n=4 438791 689417 438791 709634  spread=61.72%
+P1  [a1.plain]     240s  obj=438791      Z1=8.0      Z2=4085   Z3=622.0     feas=y   ran 201s  py3.12
