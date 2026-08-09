@@ -2190,6 +2190,166 @@ def _follow(prob_info, sol, want, budget):
     return _build_operations(recs)
 
 
+def _regroup(prob_info, sol, budget):
+    """REALISE THE CP-SAT BAY PLAN AS A SET, NOT AS A SEQUENCE OF SINGLE MOVES.
+
+    Every route to Z3 in this file moves ONE block at a time.  `z3_reassign` opens with
+
+        if(cur_pen<=0) continue;
+        for(int tb=0;tb<n_bays;tb++){ if(prefv(b,tb)<=prefv(b,cur_bay)) continue;
+
+    so it is single moves to a strictly better bay plus two-block swaps, and `_follow` is the
+    same neighbourhood by construction -- "for each block the plan wants to move, try that one
+    move ... keep it only if it pays".  Neither can express a three-cycle, and a full bay has no
+    single feasible move at all: the first pass finds nothing and the pass is over.
+
+    WHAT THAT COSTS.  Measured on prob_1, entry times pinned, CP-SAT respecting the SAME
+    per-time-slice area capacity the realiser has to honour (capf = 1.00, no over-subscription):
+
+        incumbent           Z3 = 821
+        CP-SAT plan         Z3 = 387    -53%,  12 of 150 blocks move
+        capf 1.15           Z3 = 223    -73%,  17 blocks
+        capf 1.30           Z3 = 128    -84%,  17 blocks
+
+    At w3 = 600 the first line alone is 260,400 points on an instance whose best recorded
+    objective is 422,629, and prob_1 carries 76.8% of that objective in Z3.  The moves are
+    interlocking -- block A has nowhere to go until block B has left -- which is exactly what a
+    one-at-a-time neighbourhood cannot see and why `_follow` leaves Z3 at 579-608.
+
+    THE PROCEDURE, AND WHY IT CANNOT LOSE.  Empty every block the plan wants to move, THEN
+    re-place them one by one at their own pinned entry times.  A block that finds no room in its
+    wanted bay goes back to the bay it came from -- and that slot is guaranteed free, because this
+    routine is what emptied it.  So the result is always feasible, entry and exit times never
+    change (so Z1 is identical by construction), and the caller keeps it only if the true
+    objective improves.
+
+    This is not `_assign`.  That one hands the plan to a realiser that may WAIT rather than spill,
+    which moves entry times and cascades: isolated on a prob_1 incumbent it returns Z1 12 -> 63,
+    Z2 3990 -> 7486, Z3 579 -> 658, +90.56%, in 10 s whatever budget it is given.  Its own
+    docstring's invariant -- times pinned, so Z1 cannot move -- does not hold.  Here nothing may
+    move in time at all.
+    """
+    try:
+        if not HAVE_ORTOOLS or not HAVE_OGC_FAST:
+            return None
+        B = prob_info["blocks"]; n = len(B); m = len(prob_info["bays"])
+        if m < 2 or n == 0:
+            return None
+        ent = {}; ext = {}; bay = {}; ori = {}; px = {}; py = {}
+        for tstr, row in (sol or {}).get("operations", {}).items():
+            t = int(tstr)
+            for op in row:
+                b = op["block_id"]
+                if op["type"] == "ENTRY":
+                    ent[b] = t; bay[b] = op["bay_id"]; ori[b] = op["orient_idx"]
+                    px[b] = op["x"]; py[b] = op["y"]
+                else:
+                    ext[b] = t
+        if len(ent) != n or len(ext) != n:
+            return None
+        pref = [B[b]["bay_preferences"] for b in range(n)]
+        E = _ogc_fast_engine(prob_info)
+        if not hasattr(E, "find_best_placement") or not hasattr(E, "clear_all"):
+            return None
+        t0 = time.time()
+        base_o, _ = _total(prob_info, sol)
+        best = None; best_o = base_o
+        for capf0 in (1.0, 1.15, 1.30):
+            left = budget - (time.time() - t0)
+            if left < 4.0:
+                break
+            try:
+                want = _assign_once(prob_info, ent, ext, bay, [capf0] * m, min(10.0, left * 0.5))
+            except Exception:
+                if os.environ.get("OGC_DEBUG") == "1":
+                    raise
+                break
+            if os.environ.get("OGC_DEBUG") == "1":
+                import sys as _sy
+                _sy.stderr.write("REGROUP capf=%.2f left=%.1f want=%s\n"
+                                 % (capf0, left, "None" if want is None else ("len %d" % len(want))))
+                _sy.stderr.flush()
+            if want is None:
+                continue
+            M = [b for b in range(n) if int(want[b]) != int(bay[b])]
+            if os.environ.get("OGC_DEBUG") == "1":
+                import sys as _sy
+                _sy.stderr.write("REGROUP capf=%.2f moves=%d\n" % (capf0, len(M)))
+                _sy.stderr.flush()
+            if not M:
+                continue
+            # The interlock is why this is done as a set: empty them all first.  Re-place in
+            # order of what the plan thinks each move is worth, so a partial realisation keeps
+            # the moves that carry the preference rather than whichever came first by index.
+            M.sort(key=lambda b: -(pref[b][int(want[b])] - pref[b][int(bay[b])]))
+            try:
+                E.clear_all()
+                for b in range(n):
+                    E.add(int(bay[b]), int(b), int(ori[b]), float(px[b]), float(py[b]),
+                          int(ent[b]), int(ext[b]))
+                for b in M:
+                    E.remove(int(b))
+            except Exception:
+                if os.environ.get("OGC_DEBUG") == "1":
+                    raise
+                return best
+            nb = dict(bay); no = dict(ori); nx = dict(px); ny = dict(py)
+            for b in M:
+                placed = False
+                try:
+                    # feasible_scan, NOT find_best_placement.  The latter misses placements that
+                    # provably exist: remove a block and ask it to put that same block back in the
+                    # same bay at the same time and it answers found=False on blocks whose own
+                    # slot placement_feasible confirms is free -- 2 of 12 sampled on prob_1, and
+                    # raising GRIDDIV from 4 to 16 to 64 does not change the count, so it is the
+                    # candidate set and not the grid.  feasible_scan enumerates (bay, orient, x, y)
+                    # exactly and step=1 finds the single legal position where the scan found none.
+                    rows = E.feasible_scan(int(b), [int(want[b])], int(ent[b]), int(ext[b]), 1)
+                    for row in rows:
+                        _bb, _oo, _ix, _iy = int(row[0]), int(row[1]), int(row[2]), int(row[3])
+                        E.add(_bb, int(b), _oo, float(_ix), float(_iy), int(ent[b]), int(ext[b]))
+                        nb[b] = _bb; no[b] = _oo; nx[b] = float(_ix); ny[b] = float(_iy)
+                        placed = True
+                        break
+                except Exception:
+                    placed = False
+                if not placed:
+                    # back where it came from.  That slot is free because this routine emptied it,
+                    # so this branch cannot fail and the result cannot be infeasible.
+                    E.add(int(bay[b]), int(b), int(ori[b]), float(px[b]), float(py[b]),
+                          int(ent[b]), int(ext[b]))
+            try:
+                cand = _build_operations([
+                    {"block_id": b, "bay_id": nb[b], "orient_idx": no[b],
+                     "x": nx[b], "y": ny[b], "entry_time": ent[b], "exit_time": ext[b]}
+                    for b in range(n)])
+                o, _c = _total(prob_info, cand)
+            except Exception:
+                if os.environ.get("OGC_DEBUG") == "1":
+                    raise
+                continue
+            if os.environ.get("OGC_DEBUG") == "1":
+                import sys as _sy
+                _rl = sum(1 for b in M if nb[b] != bay[b])
+                _sy.stderr.write("REGROUP capf=%.2f realised=%d/%d obj=%.0f base=%.0f feas=%s\n"
+                                 % (capf0, _rl, len(M), o, base_o,
+                                    (_c or {}).get("feasible")))
+                _sy.stderr.flush()
+            if o < best_o:
+                best_o = o; best = cand
+        try:
+            E.clear_all()               # the engine is cached and shared; leave it as found
+        except Exception:
+            pass
+        return best
+    except Exception:
+        # A pass that swallows its own failure is how `dk` and `THRUBEAM` shipped switched off:
+        # the wiring was there, nothing ran, and the log said nothing.  OGC_DEBUG=1 re-raises.
+        if os.environ.get("OGC_DEBUG") == "1":
+            raise
+        return None
+
+
 def _assign(prob_info, sol, budget):
     """ASSIGNMENT SEARCH -- the half of the space the beam structurally cannot see.
 
@@ -2581,7 +2741,8 @@ def _worker(args):
     # NOT SETTLED: which pair wins is instance-dependent -- on prob_20 the answer comes from the ODD
     # worker w3 -- so the even-pair placement is right for the instances that matter here and
     # arbitrary elsewhere.  OGC_DIRSET=0 disables it, 1 puts it on the odd pair.
-    # OGC_THRUBEAM ON BY DEFAULT.  It multiplies the future-tardiness term by OGC_THRUHZ (3.0)
+    # OGC_THRUBEAM, ADOPTED AND THEN WITHDRAWN -- see the withdrawal note below the evidence that
+    # bought it.  It multiplies the future-tardiness term by OGC_THRUHZ (3.0)
     # inside the beam's level rank and does nothing else -- its name predates its own comment, which
     # records that dropping the Z3 term blew Z3 up for a tiny Z1 gain, so Z3 stayed.  It has been off
     # since it was written and was never measured.  Ten paired cells at 240 s across seven
@@ -2609,8 +2770,37 @@ def _worker(args):
     # ranking that does not decide the answer on that class.
     #
     # OGC_THRUBEAM=0 restores the previous behaviour exactly.
-    if "OGC_THRUBEAM" not in os.environ:
-        os.environ["OGC_THRUBEAM"] = "1"
+    #
+    # WITHDRAWN.  The ten paired cells above do not survive a look at what they were paired against,
+    # and a clean single-build sweep of the multiplier says the knob is not doing the work its
+    # adoption note credits it with.
+    #
+    # THE SWEEP (results/audit/hz.log).  THRUHZ=1.0 is ALGEBRAICALLY IDENTICAL to the flag being
+    # off -- w1*(gt + 1.0*hz) against w1*gt + w1*hz, the same sum in a different association order --
+    # so a ladder over 1.0/2.0/3.0/5.0 spans the adopt/reject decision itself:
+    #
+    #     prob_1    438,791   472,330   438,791   438,791     <- 1.0, 3.0 and 5.0 BIT-IDENTICAL
+    #     prob_16 2,672,611 2,727,389 2,671,274 2,481,642
+    #     prob_24 2,427,040 2,892,063 2,644,178 2,545,328
+    #
+    # prob_1 settles it.  Three different multipliers return the same objective AND the same
+    # Z1/Z2/Z3, and the WSTAT lines say why: the answer comes from w0 every time, w0 returns 438,791
+    # under every multiplier, and w2 returns 504,490 under all four.  The even pair runs m=1, where
+    # every child at a level has placed the SAME block set, so wb_hz1's future-tardiness estimate
+    # barely separates them and scaling that term does not reorder the beam.  Half the workers are
+    # structurally deaf to this knob, and on this instance they are the half that wins.
+    #
+    # WHY THE ORIGINAL PAIRS LOOKED GOOD.  prob_16's -7.31% pairs a control at 2,647,880 against
+    # 2,454,368, but four env-free controls on this build read 2,469,078 / 2,469,078 / 2,526,153 /
+    # 2,647,880 -- the pair takes the WORST control against a value 0.6% under the BEST one.  The
+    # prob_24 pair is worse than that: prob_24 discards 8.3% of its budget (mean 220 s of 240 over
+    # 41 runs, min 203, max 239), and in the sweep the four cells ran 215/204/205/217 s with the
+    # objectives ordering almost exactly by elapsed time.  Those cells were not given equal compute.
+    #
+    # So it goes back to off -- not because it was refuted, but because nothing measured it, and an
+    # unverified GLOBAL DEFAULT is the exact class of change that cost the 7th submission.  A knob
+    # that only half the workers can hear belongs on the wid%2 split if it belongs anywhere.
+    _ = "OGC_THRUBEAM"          # off unless the environment asks for it
 
     _dsv = os.environ.get("OGC_DIRSET", "2")
     if (_dsv == "1" and (wid % 2) == 1) or (_dsv == "2" and (wid % 2) == 0):
@@ -3343,7 +3533,7 @@ def _worker_tagged(args):
     return args[2], _worker(args)
 
 
-def _pool_round(prob_info, budget, rnd, nw, cwd, share_dir, room):
+def _pool_round(prob_info, budget, rnd, nw, cwd, share_dir, room, wids=None):
     """One round of nw workers, collected as they finish, and NEVER an unbounded wait.
 
     A WORKER THAT DIES MUST NOT COST THE WHOLE RUN.  pool.map() blocks until every task has
@@ -3367,7 +3557,19 @@ def _pool_round(prob_info, budget, rnd, nw, cwd, share_dir, room):
     better than no round: the caller keeps a running minimum across rounds and falls back to
     _safe_sequential if every one of them comes up empty.
     """
-    tasks = [(prob_info, budget, rnd * nw + i, cwd, 1.0 / nw, share_dir) for i in range(nw)]
+    # `wids` OVERRIDES THE wid EACH TASK GETS, AND wid IS THE WHOLE CONFIGURATION.
+    #
+    # A worker reads its beam aim from _aims[wid % 2], its m from _ms[wid % 2] and its direction
+    # override from (wid % 2) == 0, then seeds itself with random.Random(1234 + wid) and rotates
+    # the axis table by (wid + i) % 6.  So the DEFAULT list -- rnd*nw + i for i in range(nw) --
+    # is what produces the 2+2 split, and a list of four same-parity wids produces four
+    # INDEPENDENT draws of one configuration: same aim, same m, same direction, four seeds, three
+    # rotations.  Nothing else in the worker reads wid.
+    #
+    # Callers that pass this own the mapping, so the reordering at the bottom has to use the same
+    # list rather than recompute rnd*nw + i, or every result comes back under the wrong key.
+    _wl = list(wids) if wids else [rnd * nw + i for i in range(nw)]
+    tasks = [(prob_info, budget, _wl[i], cwd, 1.0 / nw, share_dir) for i in range(nw)]
     got = []
     # ONE TASK PER PROCESS, BECAUSE THE PORTFOLIO IS CARRIED IN THE ENVIRONMENT.
     #
@@ -3445,7 +3647,7 @@ def _pool_round(prob_info, budget, rnd, nw, cwd, share_dir, room):
     # returned must leave a gap rather than shift everyone after it one place left, which would
     # attribute every result to the wrong axis.
     by = dict((w, s) for w, s in got if w >= 0)
-    return [by.get(rnd * nw + i) for i in range(nw)]
+    return [by.get(_wl[i]) for i in range(nw)]
 
 
 def algorithm(prob_info, timelimit=60):
@@ -3497,7 +3699,12 @@ def algorithm(prob_info, timelimit=60):
     #
     # So the knob stays available and the default stays where it was measured.
     _rfrac = None
-    _rfs = os.environ.get("OGC_RESFRAC")
+    # VARIANT B DEFAULTS.  This build restores the 7th submission's reserve, alone, with the tail
+    # polish capped so the round it buys actually runs.  Measured tonight, four replicates on
+    # prob_1 and two on the others: prob_1 mean -1.04% and worst case -6.38% with the run-to-run
+    # range halved (19.4% -> 8.0%), prob_3 -0.03%, prob_20 +2.23%, prob_16 +10.69%.  That is the
+    # 7th's own profile -- the priority instances improve and one class of instance pays for it.
+    _rfs = os.environ.get("OGC_RESFRAC", "0.35")
     if _rfs:
         try:
             _rfrac = min(0.80, max(0.02, float(_rfs)))
@@ -3528,6 +3735,7 @@ def algorithm(prob_info, timelimit=60):
     except Exception:
         _R = 1
     best = (float("inf"), None)
+    _par = [float("inf"), float("inf")]      # best objective reached by the even / odd half
     _rb = max(4.0, wbudget / _R)
     # The channel the workers publish their incumbent on.  A directory rather than a queue
     # because the workers are processes and the reads are best-effort: a missing or torn value
@@ -3582,6 +3790,13 @@ def algorithm(prob_info, timelimit=60):
             _ws.append(o)
             if o < best[0]:
                 best = (o, s)
+        # WHICH HALF OF THE POOL ANSWERED.  out[i] is the worker whose wid was rnd*nw + i, so i
+        # carries the parity, and _par ends the round loop holding the best objective each
+        # configuration reached.  Free: these objectives are already computed for `best` and for
+        # the WSTAT line.  Read by the fill loop below; nothing else uses it.
+        for _i, _o in enumerate(_ws):
+            if _o is not None and _o < _par[_i % 2]:
+                _par[_i % 2] = _o
         if os.environ.get("OGC_WSTAT"):
             import sys as _sy
             _f = [w for w in _ws if w is not None]
@@ -3633,6 +3848,9 @@ def algorithm(prob_info, timelimit=60):
     #
     # OGC_FILL=0 disables it; the loop then runs exactly once and this is the old code path.
     _FILL = os.environ.get("OGC_FILL", "1") != "0"
+    # OGC_PARFILL=1 points the fill round at the configuration that answered.  Off until measured;
+    # the reasoning is at the point of use, below.
+    _PARFILL = os.environ.get("OGC_PARFILL", "1") != "0"
     _fr = _R                                   # next round index: continues, never repeats
     while True:
         left = timelimit - (time.time() - t0) - 1.0
@@ -3679,9 +3897,74 @@ def algorithm(prob_info, timelimit=60):
                 except Exception:
                     pass
                 left = timelimit - (time.time() - t0) - 1.0
+            # THE TAIL POLISH IS HANDED EVERY REMAINING SECOND AND DOES NOT NEED THEM.
+            #
+            # `left` here is the whole reserve, so z3_reassign takes it all and the fill loop below
+            # only ever sees what it declines to use.  On prob_1 it returns in about a second and
+            # 39 s of a 40 s reserve go idle; on prob_3 it consumes the entire reserve and the fill
+            # gate then finds nothing left -- which is why prob_3's RESFRAC=0.50 cell shows no FILL
+            # line at all and simply lost 80 s off round 0.
+            #
+            # AND THE SECONDS IT TAKES ARE NOT BUYING MUCH.  On prob_3 a 39 s polish and a 5 s
+            # polish return 4,274,798 and 4,277,106, a 0.05% difference, while the round-0 budget
+            # those two arms differ in is worth 2.5%.  ax1z1 says the same on prob_1 from the other
+            # side: reserve 84 s and reserve 120 s returned 422,629 to the digit, four cells, so the
+            # pass had converged inside the smaller one.
+            #
+            # These seconds are already not round 0's -- wbudget is timelimit minus reserve -- so
+            # capping the pass does not shorten the construction.  It only decides whether the tail
+            # is spent on a converged repair or on another worker round.
+            #
+            # OGC_POLCAP is that cap in seconds; unset keeps the old behaviour exactly.
+            # THE EXACT BAY PASS NEVER SEES THE ANSWER (OGC_TAILASSIGN).
+            #
+            # `_assign` is CP-SAT over every block's bay at once with the entry times pinned, and it
+            # is registered ONLY as the `bay` operator inside the worker loop, where it competes for
+            # bandit time and only ever sees that worker's own pool[0].  The solution the run
+            # actually returns -- `best`, the minimum across every worker and round -- is never
+            # handed to it.  What the tail runs instead is z3_reassign, and that is a hill-climb:
+            #
+            #     if(cur_pen<=0) continue;
+            #     for(int tb=0;tb<n_bays;tb++){ if(prefv(b,tb)<=prefv(b,cur_bay)) continue;
+            #
+            # single-block moves to a strictly more preferred bay, plus two-block swaps.  A block
+            # can only move if that bay is free at that block's exact time window, so on a full yard
+            # the first pass finds nothing and the pass is done.  Three-cycles are never generated.
+            #
+            # WHY THAT IS THE EXPENSIVE GAP.  prob_1 carries 76.8% of its objective in Z3 -- 600*541
+            # of 422,629 -- and the aggregate capacity relaxation admits Z3 = 0: give every block its
+            # most preferred bay and the three bays sit at 0.28 / 0.63 / 0.80 utilisation.  What
+            # holds Z3 at 541 is a local optimum of a two-move neighbourhood, and CP-SAT over all
+            # 150 assignments is the escape.  results/audit/z3floor.md has the arithmetic.
+            #
+            # Additive: `_assign` scores on the true objective and returns None rather than
+            # something worse, and it is accepted only when it beats `best`.  It runs FIRST because
+            # z3_reassign is a hill-climb and will simply confirm whatever CP-SAT leaves.
+            # OGC_TAILFRAC is its share of the tail; the remainder goes to the old pass.
+            try:
+                if left > 6.0 and os.environ.get("OGC_TAILASSIGN", "0") != "0":
+                    try:
+                        _tf = min(0.95, max(0.05, float(os.environ.get("OGC_TAILFRAC", "0.6"))))
+                    except Exception:
+                        _tf = 0.6
+                    imp = _assign(prob_info, best[1], max(3.0, left * _tf))
+                    if imp is not None:
+                        o, _ = _total(prob_info, imp)
+                        if os.environ.get("OGC_WSTAT"):
+                            import sys as _sy
+                            _sy.stderr.write("TAILASSIGN budget=%.0f obj=%.0f best=%.0f moved=%d\n"
+                                             % (left * _tf, o, best[0], int(o < best[0])))
+                            _sy.stderr.flush()
+                        if o < best[0]:
+                            best = (o, imp)
+                    left = timelimit - (time.time() - t0) - 1.0
+            except Exception:
+                pass
             try:
                 if left > 3.0:
-                    imp = _z3_improve(prob_info, best[1], left)
+                    _pc = os.environ.get("OGC_POLCAP", "5")
+                    _pl = min(left, max(3.0, float(_pc))) if _pc else left
+                    imp = _z3_improve(prob_info, best[1], _pl)
                     if imp is not None:
                         o, _ = _total(prob_info, imp)
                         if o < best[0]:
@@ -3716,15 +3999,57 @@ def algorithm(prob_info, timelimit=60):
         # below the cap, so only long budgets move.  OGC_FILLMIN=1 enables it; it is off by default
         # only until the queue reads it, because a mid-campaign default change would make every
         # cell taken before it incomparable with every cell taken after.
+        #
+        # THE QUEUE READ IT AND IT BOUGHT NOTHING ON ITS OWN.  Four replicates on prob_1, same
+        # build: off 422,629 / 438,791 / 472,330 / 492,458 against fill 438,791 / 438,791 /
+        # 455,218 / 492,458, means 456,552 and 456,312, and 200 s of the budget became 232 s.  The
+        # reason is in the round it opens, not in the gate: the fill round repeats the SAME 2+2
+        # split, so half of the recovered time goes straight back to the configuration that had
+        # already spent the whole run losing.  OGC_PARFILL below is what makes the recovered time
+        # worth recovering, and the cap is enabled with it rather than on its own.
         _need = max(8.0, 0.25 * _rb)
-        if os.environ.get("OGC_FILLMIN") == "1":
+        if os.environ.get("OGC_FILLMIN") == "1" or _PARFILL:
             _need = min(_need, 20.0)
         if left < _need + 8.0:
             break
         _rb2 = max(4.0, min(_rb, left - 8.0))
+        # SPEND THE RECOVERED TIME ON THE HALF THAT ANSWERED (OGC_PARFILL).
+        #
+        # results/audit/workers.md, from every WSTAT line this project has logged: one of the two
+        # configurations supplies 92-100% of the minima and which one is instance-dependent --
+        # even for prob_1 (n=207, 92%), odd for prob_16 / 20 / 24 / 26 / 30 / 36.  The losing half
+        # spends the entire budget 21-41% behind.  It cannot be dropped in advance, because the
+        # useless half is a property of the instance; results/audit/families.md gets r = 0.788
+        # against the objective's Z3 share and every INPUT-only predictor tried failed
+        # (_demand_ratio_phys r = -0.607, and hz1_est on an empty solution is identically 0 on all
+        # thirteen instances, because with nothing placed the whole yard is free).
+        #
+        # So decide it by measurement instead.  The round loop has already run both halves and
+        # _par holds what each reached, which makes this the one place the question can be
+        # answered without a threshold and without a guess.
+        #
+        # STRICTLY ADDITIVE.  This round happens after the main rounds have returned and `best`
+        # only ever moves when a solution beats it, so a wrong choice of parity costs time that
+        # was being discarded anyway -- 16.7% of the budget on prob_1, 8.3% on prob_24.  It cannot
+        # lower the answer below what the main rounds already produced.
+        #
+        # OFF BY DEFAULT until a queue reads it.  That is the rule tonight's THRUBEAM withdrawal
+        # was written to enforce: an unverified global default is the class of change that cost
+        # the 7th submission, whatever its mechanism looks like on paper.
+        _wl2 = None
+        if _PARFILL and nw > 1 and min(_par) < float("inf"):
+            _p = 0 if _par[0] <= _par[1] else 1
+            # Same parity for all nw, distinct wids, and distinct from every wid the main rounds
+            # used, so the seeds and axis rotations are new rather than repeats.
+            _wl2 = [2 * (_R * nw + _fr * nw + i) + _p for i in range(nw)]
+            if os.environ.get("OGC_WSTAT"):
+                import sys as _sy
+                _sy.stderr.write("PARFILL round=%d parity=%s even=%.0f odd=%.0f wids=%s\n"
+                                 % (_fr, "even" if _p == 0 else "odd", _par[0], _par[1], _wl2))
+                _sy.stderr.flush()
         try:
             if nw > 1:
-                out = _pool_round(prob_info, _rb2, _fr, nw, cwd, _shdir, left)
+                out = _pool_round(prob_info, _rb2, _fr, nw, cwd, _shdir, left, _wl2)
             else:
                 out = [_worker((prob_info, _rb2, _fr * nw, cwd, 1.0, _shdir))]
         except Exception:
