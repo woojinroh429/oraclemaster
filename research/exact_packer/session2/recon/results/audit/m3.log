@@ -7,3 +7,4 @@ P1  [p1.m3]        240s  obj=582851      Z1=14.0     Z2=6171   Z3=785.0     feas
 # [p1.m3cap]
 P1  [p1.m3cap]     240s  obj=644106      Z1=27.0     Z2=6499   Z3=741.0     feas=y   ran 201s  py3.12
 # [p1.mix13]
+P1  [p1.mix13]     240s  obj=470530      Z1=19.0     Z2=7419   Z3=536.0     feas=y   ran 200s  py3.12
