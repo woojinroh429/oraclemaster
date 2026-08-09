@@ -66,4 +66,4 @@ done
 echo "DKDONE" >> $L
 
 # then throughput, then the SHARE rate study.
-exec bash harness/speed.sh
+exec bash harness/fillrate.sh
