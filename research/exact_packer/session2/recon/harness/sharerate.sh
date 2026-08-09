@@ -1,25 +1,25 @@
 #!/bin/bash
-# DOES OGC_SHARE RAISE THE RATE, OR DID IT JUST DRAW WELL ONCE.
+# OGC_SHARE, MEASURED AS A RATE, BECAUSE prob_1 SINGLE CELLS LIE.
 #
-# First reading on prob_1 at 240 s:
+# The mechanism: a worker more than OGC_SHAREGAP behind the best other worker abandons its basin and
+# restarts from a fresh seed.  The case for it is the WSTAT line -- 612,635 / 689,851 / 470,530 /
+# 738,538 -- where one worker supplies the answer and three spend the whole budget 30-57% behind it.
+# The minimum hides that; three cores bought nothing.
 #
-#     share       472,330   Z1= 1     bit-identical to pinning _AXES[1]
-#     dir2        457,938   Z1=15
-#     dir2share   438,791   Z1= 8
+# First readings on prob_1 at 240 s:
 #
-# which looks like SHARE composing with the shipped direction.  But prob_1's good values cluster at
-# 437,484 / 438,791 / 439,374 and single cells cannot separate them, and in the SAME queue the base
-# arm (which now defaults to dir2) returned 516,577 while the explicit dir2 arm returned 457,938 --
-# the identical configuration, 12.9% apart.  So one cell says nothing here.
+#     share       472,330   Z1=1   -- identical to pinning _AXES[1], so the restarts found that basin
+#     dir2        457,938
+#     dir2share   438,791          -- -4.18% against dir2 alone
 #
-# What SHARE can actually change is how OFTEN a run lands in the good cluster.  On prob_1 the WSTAT
-# lines read 612,635 / 689,851 / 470,530 / 738,538: one worker supplies the answer and three finish
-# 30-57% behind, so three cores buy nothing.  SHARE restarts a worker that far behind from a fresh
-# seed, turning a dead core into another draw -- and the answer is a minimum over draws.  If that
-# mechanism is real the rate goes up; if it was luck the rate does not move.
+# WHY A RATE AND NOT A DIFFERENCE.  The same configuration returned 516,577 and 457,938 in one
+# queue, 12.9% apart, and the good values on this instance cluster at 422,629 / 437,484 / 438,791 /
+# 439,374 -- a single cell cannot separate them.  What a mechanism can change is how OFTEN a run
+# lands in that cluster, and only a count reads that.  Six replicates per arm, arms interleaved so
+# machine drift is shared.
 #
-# Six replicates per arm, arms interleaved so machine drift is shared.  dir2 is the shipped default,
-# so this is measured as an increment on what already ships rather than against a stale baseline.
+# The gap is swept too.  At 0.5 a worker restarts when it is 50% behind; on prob_1 that fires for
+# the +57% worker and not the +47% one, so the shipped value is right at the edge of doing nothing.
 set -u
 cd /home/user/oraclemaster/research/exact_packer/session2/recon || exit 1
 echo sharerate > harness/CURRENT
@@ -45,18 +45,16 @@ run(){ # tag prob limit env
 }
 
 for rep in 1 2 3 4 5 6; do
-  run "p1.r$rep.off" 1 240 ""
-  run "p1.r$rep.on"  1 240 "OGC_SHARE=1"
+  run "r$rep.off"    1 240 ""
+  run "r$rep.share"  1 240 "OGC_SHARE=1"
+  run "r$rep.share3" 1 240 "OGC_SHARE=1 OGC_SHAREGAP=0.3"
 done
 echo "== SHARERATE prob_1 done ==" >> $L
 
-# then the instances SHARE could plausibly hurt: where the four workers already agree, restarting
-# one costs a draw and buys nothing.  prob_6's workers span 4.05%, so its gap never triggers and
-# the arm should be inert there; prob_20's span 23% with the ODD worker winning, which is the case
-# where a restart could kill the worker that was going to supply the answer.
-for p in 6 20 16 36; do
-  run "g.p$p.off" $p 240 ""
-  run "g.p$p.on"  $p 240 "OGC_SHARE=1"
+# then the instances it must not hurt, one pair each
+for p in 16 36 20 6; do
+  run "g.p$p.off"   $p 240 ""
+  run "g.p$p.share" $p 240 "OGC_SHARE=1"
 done
 echo "SHARERATEDONE" >> $L
 echo idle > harness/CURRENT
