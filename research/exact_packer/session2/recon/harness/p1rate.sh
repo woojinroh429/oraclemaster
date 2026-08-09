@@ -57,9 +57,14 @@ run(){ # tag prob limit env
 
 # WSTAT on every cell, so each one also reports whether all four workers delivered and how far
 # apart they were.  Arms interleaved so machine drift is shared.
+# THREE ARMS.  The WSTAT lines say the entire prob_1 answer comes from the EVEN worker pair --
+# w2 supplies the minimum in every run recorded and w1 is the worst worker in three of four -- so
+# DIRSET=1, which rewrites the odd pair, can only decorate what the minimum discards.  dir2 puts
+# the direction on the pair that actually decides the instance.
 for rep in 1 2 3 4 5 6; do
   run "r$rep.base" 1 240 ""
   run "r$rep.dir"  1 240 "OGC_DIRSET=1"
+  run "r$rep.dir2" 1 240 "OGC_DIRSET=2"
 done
 echo "P1RATEDONE" >> $L
 echo idle > harness/CURRENT

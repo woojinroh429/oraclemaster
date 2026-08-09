@@ -2535,7 +2535,26 @@ def _worker(args):
     # resfrac is deliberately NOT included.  It is decided once in algorithm(), not per worker, so
     # it cannot be split -- and halving the beam's budget on every instance is the part of the 7th
     # that had no upside anywhere.  Off by default until the queue reads it.
-    if os.environ.get("OGC_DIRSET") == "1" and (wid % 2) == 1:
+    # WHICH HALF IT GOES ON IS NOT OBVIOUS, AND THE WSTAT LINES SAY THE FIRST GUESS WAS WRONG.
+    # Printed in wid order on prob_1 at 240 s, four separate runs:
+    #
+    #     w0        w1        w2        w3
+    #     612,635   689,851   470,530   738,538
+    #     612,635   704,888   537,482   738,497
+    #     612,635   791,945   544,247   693,845
+    #     542,500   739,970   544,247   623,321
+    #
+    # w0 and w2 carry (aim 0.90, m=1) and w1 and w3 carry (aim 0.10, m=2), so on this instance the
+    # ENTIRE answer comes from the even pair -- w2 supplies the minimum in every run and w1 is the
+    # worst worker in three of four.  DIRSET=1 rewrites the odd pair, which is the half that never
+    # wins here, so it can only decorate what the minimum already discards.  That is why it read as
+    # a coin toss.
+    #
+    # DIRSET=2 puts the direction on the even pair instead -- the half that actually decides prob_1.
+    # It is the riskier placement by construction, since it perturbs the workers that are winning,
+    # which is exactly why it has to be measured rather than assumed.
+    _dsv = os.environ.get("OGC_DIRSET", "")
+    if (_dsv == "1" and (wid % 2) == 1) or (_dsv == "2" and (wid % 2) == 0):
         os.environ.setdefault("OGC_ORDER", "lst")
         os.environ.setdefault("OGC_W3MUL", "0.5")
 
