@@ -10,3 +10,4 @@ P1  [d240.p1.base.x1]   240s  obj=470530      Z1=19.0     Z2=7419   Z3=536.0    
 # [d240.p1.dir.x1]
 P1  [d240.p1.dir.x1]   240s  obj=501758      Z1=17.0     Z2=7073   Z3=612.0     feas=y   ran 200s  py3.12
 # [d240.p1.base.x2]
+P1  [d240.p1.base.x2]   240s  obj=501758      Z1=17.0     Z2=7073   Z3=612.0     feas=y   ran 200s  py3.12
