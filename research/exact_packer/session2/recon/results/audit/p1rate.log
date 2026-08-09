@@ -27,3 +27,4 @@ P1  [r3.dir]       240s  obj=544247      Z1=23.0     Z2=7502   Z3=614.0     feas
 # [r3.dir2]
 WSTAT round=0 n=4 438791 719868 437484 738497  spread=68.81%
 P1  [r3.dir2]      240s  obj=437484      Z1=15.0     Z2=4293   Z3=541.0     feas=y   ran 201s  py3.12
+P1RATEDONE

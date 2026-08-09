@@ -61,6 +61,31 @@ run(){ # tag prob limit env
     ci "$tag"
 }
 
+# FIRST: DOES dir2 SURVIVE THE INSTANCES THE 7TH SUBMISSION LOST ON.  This is the shipping
+# decision and it comes before the study.
+#
+#     prob_1, three replicates per arm, 240 s
+#         base   470,530  537,482  537,698     mean 515,237
+#         dir    544,247  542,500  544,247     mean 543,665
+#         dir2   457,938  439,374  437,484     mean 444,932    -13.65%
+#
+# Three of three under every base cell, and the WSTAT line on the last one says why:
+#
+#     438,791   719,868   437,484   738,497
+#
+# BOTH even workers now produce ~437-439k.  w0 had been frozen at 612,635 for three consecutive
+# runs; the direction unstuck it.  The odd pair is still useless here, so the instance is now
+# decided by two good draws instead of one -- which is the whole mechanism, and it is also the
+# warning: dir2 rewrites the pair that wins on prob_1, and on a saturated instance that same pair
+# may be winning with the OPPOSITE direction.  The 7th shipped this direction globally and cost
+# +14.23% on P2, +14.00% on P8 and +19.03% on P5.  If dir2 reproduces that on prob_6, prob_20 or
+# prob_36 it does not ship, however good prob_1 looks.
+for p in 6 20 36 16 24 4; do
+  run "g240.p$p.base" $p 240 ""
+  run "g240.p$p.dir2" $p 240 "OGC_DIRSET=2"
+done
+echo "== DIR2 generalisation done ==" >> $L
+
 for rep in 1 2; do
   run "r$rep.base" 1 240 ""
   for k in 0 1 2 3 4 5; do
