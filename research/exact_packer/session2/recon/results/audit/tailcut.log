@@ -26,3 +26,5 @@ P1  [r4.p1.base]   240s  obj=438791      Z1=8.0      Z2=4085   Z3=622.0     feas
 WSTAT round=0 n=4 472330 695248 437484 596780  spread=58.92%
 FILL round=1 budget=75 moved=0 best=437484
 P1  [r4.p1.cut]    240s  obj=437484      Z1=15.0     Z2=4293   Z3=541.0     feas=y   ran 232s  py3.12
+== TAILCUT prob_1 done ==
+# [r1.p3.base]
