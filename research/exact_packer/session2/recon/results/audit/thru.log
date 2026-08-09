@@ -35,3 +35,5 @@ P4  [r2.p4.off]    240s  obj=2634710     Z1=296.0    Z2=3006   Z3=3064.0    feas
 # [r2.p4.thru]
 WSTAT round=0 n=4 2553859 2730653 2788655 2871674  spread=12.44%
 P4  [r2.p4.thru]   240s  obj=2553859     Z1=238.0    Z2=1407   Z3=3290.0    feas=y   ran 236s  py3.12
+== THRU replicate done ==
+# [h.p20.1.5]

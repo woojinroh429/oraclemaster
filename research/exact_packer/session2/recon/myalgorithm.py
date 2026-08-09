@@ -2581,6 +2581,37 @@ def _worker(args):
     # NOT SETTLED: which pair wins is instance-dependent -- on prob_20 the answer comes from the ODD
     # worker w3 -- so the even-pair placement is right for the instances that matter here and
     # arbitrary elsewhere.  OGC_DIRSET=0 disables it, 1 puts it on the odd pair.
+    # OGC_THRUBEAM ON BY DEFAULT.  It multiplies the future-tardiness term by OGC_THRUHZ (3.0)
+    # inside the beam's level rank and does nothing else -- its name predates its own comment, which
+    # records that dropping the Z3 term blew Z3 up for a tiny Z1 gain, so Z3 stayed.  It has been off
+    # since it was written and was never measured.  Ten paired cells at 240 s across seven
+    # instances:
+    #
+    #     prob_16   2,647,880 -> 2,454,368   -7.31%   all-time best for the instance
+    #     prob_24   2,739,434 -> 2,637,537   -3.72%
+    #     prob_4    2,634,710 -> 2,553,859   -3.07%
+    #     prob_20   9,504,772 -> 9,195,833   -3.25%  and  8,868,533 -> 8,868,533   0.00%
+    #     prob_6    5,358,595 -> 5,288,127   -1.31%  and  5,280,752 -> 5,280,792  +0.00%
+    #     prob_1      422,629 ->   422,629    0.00%   both already at the instance's best
+    #     prob_36  75,290,776 -> 75,290,776   0.00%   identical to the digit
+    #
+    # Five wins, five ties, no losses.  The prob_20 pair is the caution: -3.25% in one pass and
+    # exactly 0.00% in the next, where the second pass's control was 6.7% better than the first's --
+    # so that win was the control's bad draw.  The honest claim is not that it wins, it is that it
+    # never loses and sometimes wins large, which is the same profile as the adaptive aim and the m
+    # portfolio and is why those ship.
+    #
+    # WHERE IT DOES NOTHING, AND WHY.  prob_36 returns the identical answer because it is saturated
+    # -- Z1 = 10,454 against prob_16's 112 on the same 300 blocks -- and in a saturated yard
+    # throughput is fixed and Z1 is conserved under rearrangement, so no ranking change can move it.
+    # That is ruin_tardy's own shelving note, and it also explains a run of failures tonight: the
+    # corrected hz1 lookahead, the tardiness operator and several rank edits were all changes to a
+    # ranking that does not decide the answer on that class.
+    #
+    # OGC_THRUBEAM=0 restores the previous behaviour exactly.
+    if "OGC_THRUBEAM" not in os.environ:
+        os.environ["OGC_THRUBEAM"] = "1"
+
     _dsv = os.environ.get("OGC_DIRSET", "2")
     if (_dsv == "1" and (wid % 2) == 1) or (_dsv == "2" and (wid % 2) == 0):
         os.environ.setdefault("OGC_ORDER", "lst")
