@@ -3271,7 +3271,21 @@ def _pool_round(prob_info, budget, rnd, nw, cwd, share_dir, room):
     """
     tasks = [(prob_info, budget, rnd * nw + i, cwd, 1.0 / nw, share_dir) for i in range(nw)]
     got = []
-    pool = multiprocessing.Pool(processes=nw)
+    # ONE TASK PER PROCESS, BECAUSE THE PORTFOLIO IS CARRIED IN THE ENVIRONMENT.
+    #
+    # Each worker decides its own beam aim and its own m from `wid` and writes them into
+    # os.environ, guarded by `if "OGC_..." not in os.environ` -- and the C++ reads OGC_MCAND once
+    # per process into a `static const`.  Pool processes are REUSED between tasks, so a process
+    # that took two of them would keep the first task's aim and the first task's m for the second,
+    # and the guard would make that silent: the second worker looks like it configured itself and
+    # actually inherited.  With four tasks and four processes the usual distribution is one each,
+    # which is why the split measures correctly -- but imap_unordered does not promise it, and a
+    # portfolio that quietly collapses to one configuration is exactly the failure this file has
+    # spent the day removing elsewhere.
+    #
+    # maxtasksperchild=1 makes every task a fresh fork: clean environment, fresh statics, and the
+    # cost is one fork per task on a path that already forks four times per round.
+    pool = multiprocessing.Pool(processes=nw, maxtasksperchild=1)
     try:
         # HOLD THE PROCESS OBJECTS, NOT THEIR PIDS.  exitcode is None while a worker runs and is
         # set once it dies, and a retained reference keeps reporting it after _join_exited_workers
