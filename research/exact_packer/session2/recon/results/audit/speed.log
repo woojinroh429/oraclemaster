@@ -176,3 +176,7 @@ BEAMSTAT salv=1 capped=0 used=0.10 level=0.43 B=96 K=4 work=156
 BEAMSTAT salv=1 capped=0 used=0.10 level=0.70 B=96 K=4 work=780
 BEAMSTAT salv=1 capped=0 used=0.10 level=0.34 B=96 K=4 work=698
 BEAMSTAT salv=1 capped=0 used=0.10 level=0.41 B=67 K=5 work=170
+BEAMSTAT salv=1 capped=0 used=0.10 level=0.35 B=67 K=5 work=124
+BEAMSTAT salv=1 capped=0 used=0.10 level=0.31 B=67 K=5 work=104
+BEAMSTAT salv=1 capped=0 used=0.10 level=0.33 B=96 K=3 work=108
+BEAMSTAT salv=1 capped=0 used=0.10 level=0.33 B=67 K=5 work=116
