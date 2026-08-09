@@ -28,3 +28,5 @@ WSTAT round=0 n=4 640040 736954 566541 721507  spread=30.08%
 P1  [a1.nodir]     240s  obj=566541      Z1=24.0     Z2=4511   Z3=655.0     feas=y   ran 201s  py3.12
 == AX1Z1 pass 1 done ==
 # [ref.ship]
+WSTAT round=0 n=4 438791 730471 457938 738538  spread=68.31%
+P1  [ref.ship]     240s  obj=438791      Z1=8.0      Z2=4085   Z3=622.0     feas=y   ran 201s  py3.12
