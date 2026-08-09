@@ -2479,14 +2479,30 @@ def _worker(args):
     # the workers are separate processes, so both values can be in the portfolio at once and the min
     # keeps whichever the instance prefers -- exactly how the beam aim is already split 2:2.
     #
-    # THIS IS NOT FREE AND THE FILE HAS ALREADY MEASURED THE COST.  A 2:2 split draws twice from
-    # each setting instead of four times, and a minimum over two is worse than a minimum over four,
-    # so a split can land BELOW both parents.  The same split applied to the hz1 lookahead was best
-    # of three arms on P16 and P20 and worse than both parents on P6.  Whether the diversity is
-    # worth the density is an instance property and has to be read, not assumed -- which is what
-    # OGC_MSET exists to do.  Default "1" is today's behaviour exactly.
+    # IT WAS MEASURED AND IT SHIPS.  240 s, three arms on one build, one cell per arm:
+    #
+    #     inst      m1          m2          mix       mix vs m1
+    #     P24   2,838,471   2,739,434   2,620,889     -7.67%   below BOTH parents
+    #     P4    2,761,139   2,718,640   2,621,290     -5.06%   below BOTH parents
+    #     P20   9,530,012   8,962,893   9,274,964     -2.68%   between them
+    #     P1      470,530     601,265     470,530      0.00%   identical to m1
+    #
+    # Never worse than the shipped default on any of the four, and below both parents on two.  The
+    # split does not merely pick the better setting -- on prob_24 and prob_4 the minimum over two
+    # unlike constructions lands somewhere neither reaches alone, because m=1 leans its error into
+    # Z3 and m=2 into Z1 and the two produce different basins rather than better and worse ones.
+    #
+    # The density cost is real and visible: on prob_20, where m=2 is simply better on every term,
+    # two workers at m=2 cannot reach what four did, and the split gives back 3.48% of m2's win.
+    # It still beats the default there.  prob_1 is the case that decides adoption -- m=2 costs
+    # 27.78% and the split returned m1's answer to the digit.
+    #
+    # WHY A PORTFOLIO RATHER THAN PICKING THE BETTER VALUE.  The sign of m is not stable even for a
+    # fixed instance: prob_4 read m=2 at +6.01% in one build and -1.54% in this one, the difference
+    # being unrelated code added to the worker.  A default has to be right in advance; a minimum
+    # over both does not.  OGC_MSET=1 restores the previous behaviour exactly.
     if "OGC_MCAND" not in os.environ:
-        _ms = [m for m in os.environ.get("OGC_MSET", "1").split(",") if m.strip()]
+        _ms = [m for m in os.environ.get("OGC_MSET", "1,2").split(",") if m.strip()]
         os.environ["OGC_MCAND"] = _ms[wid % len(_ms)].strip()
 
     # THE ENGINE SOURCE IS REVERTED TOO, so this block is gone rather than left switched off.
