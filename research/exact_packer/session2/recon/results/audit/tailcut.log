@@ -55,3 +55,6 @@ P3  [r2.p3.base]   240s  obj=4314066     Z1=120.0    Z2=5371   Z3=7273.0    feas
 WSTAT round=0 n=4 4391632 4902115 4307691 4772564  spread=13.80%
 FILL round=1 budget=68 moved=0 best=4307691
 P3  [r2.p3.cut]    240s  obj=4307691     Z1=171.0    Z2=6294   Z3=6930.0    feas=y   ran 236s  py3.12
+# [r2.p16.base]
+WSTAT round=0 n=4 2682520 3440823 2959019 3150147  spread=28.27%
+P16 [r2.p16.base]   240s  obj=2625761     Z1=107.0    Z2=960    Z3=4785.0    feas=y   ran 240s  py3.12
