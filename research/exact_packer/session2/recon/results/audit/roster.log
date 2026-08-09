@@ -49,3 +49,4 @@ WSTAT round=0 n=4 4315669 4761741 4278269 4720363  spread=11.30%
 P3  [r1.p3.all]    240s  obj=4278269     Z1=126.0    Z2=5243   Z3=7170.0    feas=y   ran 239s  py3.12
 # [r1.p3.nobay]
 WSTAT round=0 n=4 4415774 4772996 4397433 4650431  spread=8.54%
+P3  [r1.p3.nobay]   240s  obj=4397433     Z1=143.0    Z2=9375   Z3=7233.0    feas=y   ran 239s  py3.12
