@@ -3373,7 +3373,7 @@ def _worker_tagged(args):
     return args[2], _worker(args)
 
 
-def _pool_round(prob_info, budget, rnd, nw, cwd, share_dir, room):
+def _pool_round(prob_info, budget, rnd, nw, cwd, share_dir, room, wids=None):
     """One round of nw workers, collected as they finish, and NEVER an unbounded wait.
 
     A WORKER THAT DIES MUST NOT COST THE WHOLE RUN.  pool.map() blocks until every task has
@@ -3397,7 +3397,19 @@ def _pool_round(prob_info, budget, rnd, nw, cwd, share_dir, room):
     better than no round: the caller keeps a running minimum across rounds and falls back to
     _safe_sequential if every one of them comes up empty.
     """
-    tasks = [(prob_info, budget, rnd * nw + i, cwd, 1.0 / nw, share_dir) for i in range(nw)]
+    # `wids` OVERRIDES THE wid EACH TASK GETS, AND wid IS THE WHOLE CONFIGURATION.
+    #
+    # A worker reads its beam aim from _aims[wid % 2], its m from _ms[wid % 2] and its direction
+    # override from (wid % 2) == 0, then seeds itself with random.Random(1234 + wid) and rotates
+    # the axis table by (wid + i) % 6.  So the DEFAULT list -- rnd*nw + i for i in range(nw) --
+    # is what produces the 2+2 split, and a list of four same-parity wids produces four
+    # INDEPENDENT draws of one configuration: same aim, same m, same direction, four seeds, three
+    # rotations.  Nothing else in the worker reads wid.
+    #
+    # Callers that pass this own the mapping, so the reordering at the bottom has to use the same
+    # list rather than recompute rnd*nw + i, or every result comes back under the wrong key.
+    _wl = list(wids) if wids else [rnd * nw + i for i in range(nw)]
+    tasks = [(prob_info, budget, _wl[i], cwd, 1.0 / nw, share_dir) for i in range(nw)]
     got = []
     # ONE TASK PER PROCESS, BECAUSE THE PORTFOLIO IS CARRIED IN THE ENVIRONMENT.
     #
@@ -3475,7 +3487,7 @@ def _pool_round(prob_info, budget, rnd, nw, cwd, share_dir, room):
     # returned must leave a gap rather than shift everyone after it one place left, which would
     # attribute every result to the wrong axis.
     by = dict((w, s) for w, s in got if w >= 0)
-    return [by.get(rnd * nw + i) for i in range(nw)]
+    return [by.get(_wl[i]) for i in range(nw)]
 
 
 def algorithm(prob_info, timelimit=60):
@@ -3558,6 +3570,7 @@ def algorithm(prob_info, timelimit=60):
     except Exception:
         _R = 1
     best = (float("inf"), None)
+    _par = [float("inf"), float("inf")]      # best objective reached by the even / odd half
     _rb = max(4.0, wbudget / _R)
     # The channel the workers publish their incumbent on.  A directory rather than a queue
     # because the workers are processes and the reads are best-effort: a missing or torn value
@@ -3612,6 +3625,13 @@ def algorithm(prob_info, timelimit=60):
             _ws.append(o)
             if o < best[0]:
                 best = (o, s)
+        # WHICH HALF OF THE POOL ANSWERED.  out[i] is the worker whose wid was rnd*nw + i, so i
+        # carries the parity, and _par ends the round loop holding the best objective each
+        # configuration reached.  Free: these objectives are already computed for `best` and for
+        # the WSTAT line.  Read by the fill loop below; nothing else uses it.
+        for _i, _o in enumerate(_ws):
+            if _o is not None and _o < _par[_i % 2]:
+                _par[_i % 2] = _o
         if os.environ.get("OGC_WSTAT"):
             import sys as _sy
             _f = [w for w in _ws if w is not None]
@@ -3663,6 +3683,9 @@ def algorithm(prob_info, timelimit=60):
     #
     # OGC_FILL=0 disables it; the loop then runs exactly once and this is the old code path.
     _FILL = os.environ.get("OGC_FILL", "1") != "0"
+    # OGC_PARFILL=1 points the fill round at the configuration that answered.  Off until measured;
+    # the reasoning is at the point of use, below.
+    _PARFILL = os.environ.get("OGC_PARFILL", "0") != "0"
     _fr = _R                                   # next round index: continues, never repeats
     while True:
         left = timelimit - (time.time() - t0) - 1.0
@@ -3746,15 +3769,57 @@ def algorithm(prob_info, timelimit=60):
         # below the cap, so only long budgets move.  OGC_FILLMIN=1 enables it; it is off by default
         # only until the queue reads it, because a mid-campaign default change would make every
         # cell taken before it incomparable with every cell taken after.
+        #
+        # THE QUEUE READ IT AND IT BOUGHT NOTHING ON ITS OWN.  Four replicates on prob_1, same
+        # build: off 422,629 / 438,791 / 472,330 / 492,458 against fill 438,791 / 438,791 /
+        # 455,218 / 492,458, means 456,552 and 456,312, and 200 s of the budget became 232 s.  The
+        # reason is in the round it opens, not in the gate: the fill round repeats the SAME 2+2
+        # split, so half of the recovered time goes straight back to the configuration that had
+        # already spent the whole run losing.  OGC_PARFILL below is what makes the recovered time
+        # worth recovering, and the cap is enabled with it rather than on its own.
         _need = max(8.0, 0.25 * _rb)
-        if os.environ.get("OGC_FILLMIN") == "1":
+        if os.environ.get("OGC_FILLMIN") == "1" or _PARFILL:
             _need = min(_need, 20.0)
         if left < _need + 8.0:
             break
         _rb2 = max(4.0, min(_rb, left - 8.0))
+        # SPEND THE RECOVERED TIME ON THE HALF THAT ANSWERED (OGC_PARFILL).
+        #
+        # results/audit/workers.md, from every WSTAT line this project has logged: one of the two
+        # configurations supplies 92-100% of the minima and which one is instance-dependent --
+        # even for prob_1 (n=207, 92%), odd for prob_16 / 20 / 24 / 26 / 30 / 36.  The losing half
+        # spends the entire budget 21-41% behind.  It cannot be dropped in advance, because the
+        # useless half is a property of the instance; results/audit/families.md gets r = 0.788
+        # against the objective's Z3 share and every INPUT-only predictor tried failed
+        # (_demand_ratio_phys r = -0.607, and hz1_est on an empty solution is identically 0 on all
+        # thirteen instances, because with nothing placed the whole yard is free).
+        #
+        # So decide it by measurement instead.  The round loop has already run both halves and
+        # _par holds what each reached, which makes this the one place the question can be
+        # answered without a threshold and without a guess.
+        #
+        # STRICTLY ADDITIVE.  This round happens after the main rounds have returned and `best`
+        # only ever moves when a solution beats it, so a wrong choice of parity costs time that
+        # was being discarded anyway -- 16.7% of the budget on prob_1, 8.3% on prob_24.  It cannot
+        # lower the answer below what the main rounds already produced.
+        #
+        # OFF BY DEFAULT until a queue reads it.  That is the rule tonight's THRUBEAM withdrawal
+        # was written to enforce: an unverified global default is the class of change that cost
+        # the 7th submission, whatever its mechanism looks like on paper.
+        _wl2 = None
+        if _PARFILL and nw > 1 and min(_par) < float("inf"):
+            _p = 0 if _par[0] <= _par[1] else 1
+            # Same parity for all nw, distinct wids, and distinct from every wid the main rounds
+            # used, so the seeds and axis rotations are new rather than repeats.
+            _wl2 = [2 * (_R * nw + _fr * nw + i) + _p for i in range(nw)]
+            if os.environ.get("OGC_WSTAT"):
+                import sys as _sy
+                _sy.stderr.write("PARFILL round=%d parity=%s even=%.0f odd=%.0f wids=%s\n"
+                                 % (_fr, "even" if _p == 0 else "odd", _par[0], _par[1], _wl2))
+                _sy.stderr.flush()
         try:
             if nw > 1:
-                out = _pool_round(prob_info, _rb2, _fr, nw, cwd, _shdir, left)
+                out = _pool_round(prob_info, _rb2, _fr, nw, cwd, _shdir, left, _wl2)
             else:
                 out = [_worker((prob_info, _rb2, _fr * nw, cwd, 1.0, _shdir))]
         except Exception:
