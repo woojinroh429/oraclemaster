@@ -41,3 +41,5 @@ P4  [g240.p4.dir2]   240s  obj=2637801     Z1=289.0    Z2=3067   Z3=3113.0    fe
 # [r1.ax0]
 == DIR2 generalisation done ==
 # [r1.ax0]
+WSTAT round=0 n=4 518731 762095 583242 834257  spread=60.83%
+P1  [r1.ax0]       240s  obj=518731      Z1=19.0     Z2=3686   Z3=635.0     feas=y   ran 201s  py3.12
