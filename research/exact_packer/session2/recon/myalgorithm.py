@@ -2505,6 +2505,40 @@ def _worker(args):
         _ms = [m for m in os.environ.get("OGC_MSET", "1,2").split(",") if m.strip()]
         os.environ["OGC_MCAND"] = _ms[wid % len(_ms)].strip()
 
+    # THE 7TH SUBMISSION'S DIRECTION, AS HALF THE PORTFOLIO INSTEAD OF ALL OF IT (OGC_DIRSET=1).
+    #
+    # order=lst + w3mul=0.5 shipped as a GLOBAL override and scored, against the 6th entry:
+    #
+    #     P6 -7.06%   P1 -6.86%   P3 -2.55%   |   P4 +2.67%  P7 +5.41%  P8 +14.00%
+    #                                             P2 +14.23%  P5 +19.03%
+    #
+    # P1 and P3 are this project's best-ever scores on those instances and they came from here, so
+    # the direction is not noise.  Ordered by the 6th entry's own objective the deltas are almost
+    # monotone -- P6 1.05M -7.06%, P1 2.88M -6.86%, P4 4.37M +2.67%, P3 5.72M -2.55%, P5 6.06M
+    # +19.03%, P7 16.1M +5.41%, P8 17.3M +14.00%, P2 19.8M +14.23% -- which is what the mechanism
+    # predicts.  w3mul=0.5 tells the beam to chase preferred bays LESS during construction and
+    # leaves the preference to z3_reassign afterwards; that pass only ever moves a block to a MORE
+    # preferred bay and only when w1*dtardy + w3*dpen < 0, so it needs somewhere for the block to
+    # go.  On a loose yard there is room and the trade pays; on a saturated one there is none, the
+    # polish collects nothing, and the construction was weakened for free.  A large objective IS a
+    # saturated yard.
+    #
+    # So it is a portfolio position, and -- this is the part that makes it cheap -- it costs NO
+    # portfolio slots.  The aim and m splits above both index by wid % 2, so they are correlated
+    # rather than crossed: the four workers hold two configurations, two workers each.  Attaching a
+    # third knob to the same parity does not create a third configuration, it only makes the two
+    # existing ones further apart.  The pair-at-each-end guarantee is untouched.
+    #
+    #     workers 0,2   aim 0.90  m=1  default order/w3mul
+    #     workers 1,3   aim 0.10  m=2  order=lst  w3mul=0.5
+    #
+    # resfrac is deliberately NOT included.  It is decided once in algorithm(), not per worker, so
+    # it cannot be split -- and halving the beam's budget on every instance is the part of the 7th
+    # that had no upside anywhere.  Off by default until the queue reads it.
+    if os.environ.get("OGC_DIRSET") == "1" and (wid % 2) == 1:
+        os.environ.setdefault("OGC_ORDER", "lst")
+        os.environ.setdefault("OGC_W3MUL", "0.5")
+
     # THE ENGINE SOURCE IS REVERTED TOO, so this block is gone rather than left switched off.
     # ogc_fast.cpp carries its own sha into every .so and harness/mkzip.sh refuses to package a set
     # that disagrees with the source; the four shipped binaries were built before tonight, so the
