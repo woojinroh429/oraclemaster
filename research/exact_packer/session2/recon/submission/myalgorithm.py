@@ -2505,6 +2505,87 @@ def _worker(args):
         _ms = [m for m in os.environ.get("OGC_MSET", "1,2").split(",") if m.strip()]
         os.environ["OGC_MCAND"] = _ms[wid % len(_ms)].strip()
 
+    # THE 7TH SUBMISSION'S DIRECTION, AS HALF THE PORTFOLIO INSTEAD OF ALL OF IT (OGC_DIRSET=1).
+    #
+    # order=lst + w3mul=0.5 shipped as a GLOBAL override and scored, against the 6th entry:
+    #
+    #     P6 -7.06%   P1 -6.86%   P3 -2.55%   |   P4 +2.67%  P7 +5.41%  P8 +14.00%
+    #                                             P2 +14.23%  P5 +19.03%
+    #
+    # P1 and P3 are this project's best-ever scores on those instances and they came from here, so
+    # the direction is not noise.  Ordered by the 6th entry's own objective the deltas are almost
+    # monotone -- P6 1.05M -7.06%, P1 2.88M -6.86%, P4 4.37M +2.67%, P3 5.72M -2.55%, P5 6.06M
+    # +19.03%, P7 16.1M +5.41%, P8 17.3M +14.00%, P2 19.8M +14.23% -- which is what the mechanism
+    # predicts.  w3mul=0.5 tells the beam to chase preferred bays LESS during construction and
+    # leaves the preference to z3_reassign afterwards; that pass only ever moves a block to a MORE
+    # preferred bay and only when w1*dtardy + w3*dpen < 0, so it needs somewhere for the block to
+    # go.  On a loose yard there is room and the trade pays; on a saturated one there is none, the
+    # polish collects nothing, and the construction was weakened for free.  A large objective IS a
+    # saturated yard.
+    #
+    # So it is a portfolio position, and -- this is the part that makes it cheap -- it costs NO
+    # portfolio slots.  The aim and m splits above both index by wid % 2, so they are correlated
+    # rather than crossed: the four workers hold two configurations, two workers each.  Attaching a
+    # third knob to the same parity does not create a third configuration, it only makes the two
+    # existing ones further apart.  The pair-at-each-end guarantee is untouched.
+    #
+    #     workers 0,2   aim 0.90  m=1  default order/w3mul
+    #     workers 1,3   aim 0.10  m=2  order=lst  w3mul=0.5
+    #
+    # resfrac is deliberately NOT included.  It is decided once in algorithm(), not per worker, so
+    # it cannot be split -- and halving the beam's budget on every instance is the part of the 7th
+    # that had no upside anywhere.  Off by default until the queue reads it.
+    # WHICH HALF IT GOES ON IS NOT OBVIOUS, AND THE WSTAT LINES SAY THE FIRST GUESS WAS WRONG.
+    # Printed in wid order on prob_1 at 240 s, four separate runs:
+    #
+    #     w0        w1        w2        w3
+    #     612,635   689,851   470,530   738,538
+    #     612,635   704,888   537,482   738,497
+    #     612,635   791,945   544,247   693,845
+    #     542,500   739,970   544,247   623,321
+    #
+    # w0 and w2 carry (aim 0.90, m=1) and w1 and w3 carry (aim 0.10, m=2), so on this instance the
+    # ENTIRE answer comes from the even pair -- w2 supplies the minimum in every run and w1 is the
+    # worst worker in three of four.  DIRSET=1 rewrites the odd pair, which is the half that never
+    # wins here, so it can only decorate what the minimum already discards.  That is why it read as
+    # a coin toss.
+    #
+    # DIRSET=2 puts the direction on the even pair instead -- the half that actually decides prob_1.
+    # It is the riskier placement by construction, since it perturbs the workers that are winning,
+    # which is exactly why it has to be measured rather than assumed.
+    # DEFAULT 2.  Generalisation at 240 s, one paired cell per instance except prob_1 (three):
+    #
+    #     prob_16   3,495,836 -> 2,646,248   -24.30%   all-time best for the instance
+    #     prob_1      515,237 ->   444,932   -13.65%   mean of three replicates each
+    #     prob_36  76,795,351 -> 75,178,259   -2.11%
+    #     prob_24   2,739,434 -> 2,739,434    0.00%   identical
+    #     prob_6    5,302,050 -> 5,345,947   +0.83%
+    #     prob_4    2,602,038 -> 2,637,801   +1.37%
+    #     prob_20   8,868,533 -> 9,164,502   +3.34%
+    #
+    # Three wins, one tie, three losses, and the shape is what matters: the wins run 2-24% and the
+    # losses are capped at 3.34%.  The 7th submission shipped this same direction GLOBALLY and went
+    # 3-5 with a worst cell of +19.03%, because rewriting all six axes left a saturated instance no
+    # alternative.  Carried by two workers of four, the minimum still holds the other pair, so where
+    # the direction is wrong the damage is bounded by what the unchanged half already achieves --
+    # prob_20 is held to +3.34% against the 7th's +14.23% on that class, and prob_24 comes back
+    # bit-identical because the minimum simply never took the changed pair.
+    #
+    # WHY THE EVEN PAIR.  OGC_WSTAT prints the four workers' objectives, and on prob_1 they read
+    # 612,635 / 689,851 / 470,530 / 738,538: the even pair supplies the answer and w0 had been
+    # frozen at 612,635 across three consecutive runs -- 240 s spent without improving on its first
+    # draw.  The direction unstuck it, and prob_16 shows the same thing (w0 4,557,909 -> 2,676,209).
+    # DIRSET=1, on the odd pair, was measured first and read as a coin toss, because it was
+    # rewriting the half the minimum discards.
+    #
+    # NOT SETTLED: which pair wins is instance-dependent -- on prob_20 the answer comes from the ODD
+    # worker w3 -- so the even-pair placement is right for the instances that matter here and
+    # arbitrary elsewhere.  OGC_DIRSET=0 disables it, 1 puts it on the odd pair.
+    _dsv = os.environ.get("OGC_DIRSET", "2")
+    if (_dsv == "1" and (wid % 2) == 1) or (_dsv == "2" and (wid % 2) == 0):
+        os.environ.setdefault("OGC_ORDER", "lst")
+        os.environ.setdefault("OGC_W3MUL", "0.5")
+
     # THE ENGINE SOURCE IS REVERTED TOO, so this block is gone rather than left switched off.
     # ogc_fast.cpp carries its own sha into every .so and harness/mkzip.sh refuses to package a set
     # that disagrees with the source; the four shipped binaries were built before tonight, so the
@@ -3237,7 +3318,21 @@ def _pool_round(prob_info, budget, rnd, nw, cwd, share_dir, room):
     """
     tasks = [(prob_info, budget, rnd * nw + i, cwd, 1.0 / nw, share_dir) for i in range(nw)]
     got = []
-    pool = multiprocessing.Pool(processes=nw)
+    # ONE TASK PER PROCESS, BECAUSE THE PORTFOLIO IS CARRIED IN THE ENVIRONMENT.
+    #
+    # Each worker decides its own beam aim and its own m from `wid` and writes them into
+    # os.environ, guarded by `if "OGC_..." not in os.environ` -- and the C++ reads OGC_MCAND once
+    # per process into a `static const`.  Pool processes are REUSED between tasks, so a process
+    # that took two of them would keep the first task's aim and the first task's m for the second,
+    # and the guard would make that silent: the second worker looks like it configured itself and
+    # actually inherited.  With four tasks and four processes the usual distribution is one each,
+    # which is why the split measures correctly -- but imap_unordered does not promise it, and a
+    # portfolio that quietly collapses to one configuration is exactly the failure this file has
+    # spent the day removing elsewhere.
+    #
+    # maxtasksperchild=1 makes every task a fresh fork: clean environment, fresh statics, and the
+    # cost is one fork per task on a path that already forks four times per round.
+    pool = multiprocessing.Pool(processes=nw, maxtasksperchild=1)
     try:
         # HOLD THE PROCESS OBJECTS, NOT THEIR PIDS.  exitcode is None while a worker runs and is
         # set once it dies, and a retained reference keeps reporting it after _join_exited_workers
@@ -3267,8 +3362,23 @@ def _pool_round(prob_info, budget, rnd, nw, cwd, share_dir, room):
                 got.append((-1, None))   # this worker raised; it delivered, and None is handled
                 continue
             if procs:                 # nothing ready: has one of them stopped existing?
+                # A CLEAN EXIT IS NOT A DEAD WORKER, and with maxtasksperchild=1 it is the normal
+                # case.  This test read `exitcode is not None`, which was right while pool
+                # processes lived for the whole round -- then only a crash could set it.  Once
+                # every task gets a fresh fork, a worker that FINISHES exits with code 0, the
+                # detector counted it as dead, `want` fell below nw, and the loop stopped
+                # collecting before the remaining results arrived.
+                #
+                # Caught by OGC_WSTAT on prob_1: `round=0 n=3 612635 678217 470530 -` -- one of
+                # four draws silently discarded, on an instance whose answer is a MINIMUM over
+                # those draws and which returns 470,530 only about a third of the time.  Throwing
+                # away a quarter of the samples is the most expensive bug of the night.
+                #
+                # exitcode 0 is a completed task; anything else -- a non-zero status or a negative
+                # signal number, which is what the segfault this guard exists for produces -- is a
+                # worker that will never deliver.
                 try:
-                    gone = sum(1 for p in procs if p.exitcode is not None)
+                    gone = sum(1 for p in procs if p.exitcode not in (None, 0))
                     if gone:
                         want = max(1, nw - gone)
                 except Exception:

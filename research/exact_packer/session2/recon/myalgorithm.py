@@ -2553,7 +2553,35 @@ def _worker(args):
     # DIRSET=2 puts the direction on the even pair instead -- the half that actually decides prob_1.
     # It is the riskier placement by construction, since it perturbs the workers that are winning,
     # which is exactly why it has to be measured rather than assumed.
-    _dsv = os.environ.get("OGC_DIRSET", "")
+    # DEFAULT 2.  Generalisation at 240 s, one paired cell per instance except prob_1 (three):
+    #
+    #     prob_16   3,495,836 -> 2,646,248   -24.30%   all-time best for the instance
+    #     prob_1      515,237 ->   444,932   -13.65%   mean of three replicates each
+    #     prob_36  76,795,351 -> 75,178,259   -2.11%
+    #     prob_24   2,739,434 -> 2,739,434    0.00%   identical
+    #     prob_6    5,302,050 -> 5,345,947   +0.83%
+    #     prob_4    2,602,038 -> 2,637,801   +1.37%
+    #     prob_20   8,868,533 -> 9,164,502   +3.34%
+    #
+    # Three wins, one tie, three losses, and the shape is what matters: the wins run 2-24% and the
+    # losses are capped at 3.34%.  The 7th submission shipped this same direction GLOBALLY and went
+    # 3-5 with a worst cell of +19.03%, because rewriting all six axes left a saturated instance no
+    # alternative.  Carried by two workers of four, the minimum still holds the other pair, so where
+    # the direction is wrong the damage is bounded by what the unchanged half already achieves --
+    # prob_20 is held to +3.34% against the 7th's +14.23% on that class, and prob_24 comes back
+    # bit-identical because the minimum simply never took the changed pair.
+    #
+    # WHY THE EVEN PAIR.  OGC_WSTAT prints the four workers' objectives, and on prob_1 they read
+    # 612,635 / 689,851 / 470,530 / 738,538: the even pair supplies the answer and w0 had been
+    # frozen at 612,635 across three consecutive runs -- 240 s spent without improving on its first
+    # draw.  The direction unstuck it, and prob_16 shows the same thing (w0 4,557,909 -> 2,676,209).
+    # DIRSET=1, on the odd pair, was measured first and read as a coin toss, because it was
+    # rewriting the half the minimum discards.
+    #
+    # NOT SETTLED: which pair wins is instance-dependent -- on prob_20 the answer comes from the ODD
+    # worker w3 -- so the even-pair placement is right for the instances that matter here and
+    # arbitrary elsewhere.  OGC_DIRSET=0 disables it, 1 puts it on the odd pair.
+    _dsv = os.environ.get("OGC_DIRSET", "2")
     if (_dsv == "1" and (wid % 2) == 1) or (_dsv == "2" and (wid % 2) == 0):
         os.environ.setdefault("OGC_ORDER", "lst")
         os.environ.setdefault("OGC_W3MUL", "0.5")

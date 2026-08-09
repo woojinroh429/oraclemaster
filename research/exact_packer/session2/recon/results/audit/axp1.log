@@ -37,3 +37,7 @@ P4  [g240.p4.base]   240s  obj=2602038     Z1=353.0    Z2=1222   Z3=2663.0    fe
 # [g240.p4.dir2]
 WSTAT round=0 n=4 2781836 2718640 2637801 3007549  spread=14.02%
 P4  [g240.p4.dir2]   240s  obj=2637801     Z1=289.0    Z2=3067   Z3=3113.0    feas=y   ran 237s  py3.12
+== DIR2 generalisation done ==
+# [r1.ax0]
+== DIR2 generalisation done ==
+# [r1.ax0]
