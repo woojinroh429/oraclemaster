@@ -65,3 +65,7 @@ P1  [r1.ax5]       240s  obj=561136      Z1=10.0     Z2=7222   Z3=788.0     feas
 WSTAT round=0 n=4 538303 725211 504490 721435  spread=43.75%
 P1  [r1.dir]       240s  obj=504490      Z1=19.0     Z2=7339   Z3=593.0     feas=y   ran 201s  py3.12
 # [r1.share]
+RESTART wid=1 at 37% mine=765211 lead=472330
+RESTART wid=3 at 43% mine=850750 lead=472330
+WSTAT round=0 n=4 472330 765211 504490 682240  spread=62.01%
+P1  [r1.share]     240s  obj=472330      Z1=1.0      Z2=2221   Z3=765.0     feas=y   ran 201s  py3.12
