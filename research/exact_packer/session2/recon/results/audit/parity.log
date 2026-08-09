@@ -8,3 +8,5 @@ P1  [r1.p1.alleven]   240s  obj=437484      Z1=15.0     Z2=4293   Z3=541.0     f
 WSTAT round=0 n=4 816568 693791 786311 689851  spread=18.37%
 P1  [r1.p1.allodd]   240s  obj=689851      Z1=28.0     Z2=5325   Z3=812.0     feas=y   ran 200s  py3.12
 # [r2.p1.ship]
+WSTAT round=0 n=4 438791 706975 504490 693845  spread=61.12%
+P1  [r2.p1.ship]   240s  obj=438791      Z1=8.0      Z2=4085   Z3=622.0     feas=y   ran 200s  py3.12
