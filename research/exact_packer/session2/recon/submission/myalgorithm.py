@@ -72,9 +72,40 @@ except Exception:
 # Detected here (find_spec only, fork-safe); imported lazily inside the engine
 # builder.  When present and enabled, construction runs entirely in C++.
 #
-# OGC_ADAPTAIM=1 lets each worker tune its own beam aim from the beam's own overrun reports.
-# Off by default until it is measured against the fixed 0.90/0.10 portfolio; see _adapt_aim.
-_ADAPTAIM = bool(os.environ.get("OGC_ADAPTAIM"))
+# ON BY DEFAULT.  Each worker tunes its own beam aim from the beam's own overrun reports.
+#
+# It was written, switched off pending a measurement against the fixed 0.90/0.10 portfolio, and
+# never measured.  240 s, one cell per arm:
+#
+#     arm              P16                    P36                    P1
+#     base (2:2)   3,286,759              75,775,974               470,530
+#     lo  (0.10)   3,530,471  + 7.42%     75,907,319  + 0.17%      740,405  +57.35%
+#     hi  (0.90)   3,067,661  - 6.67%     87,795,877  +15.86%      524,295  +11.43%
+#     adapt        3,281,165  - 0.17%     75,196,066  - 0.76%      470,530    0.00%
+#
+# WHAT THIS IS NOT.  It is not a gain: -0.17%, -0.76% and an exactly identical answer are a tie with
+# the shipped split on all three, well inside the replicate spread these instances carry.  Nothing
+# here says the algorithm gets better.
+#
+# WHAT IT IS.  Every FIXED aim has a floor somewhere, and the floors are large and unpredictable:
+# hi is the best arm on P16 and 15.86% worse on P36 -- both 300-block instances, opposite
+# directions -- and lo costs 57.35% on prob_1.  The shipped 2:2 split has no floor on these three,
+# but it is a constant chosen once, and the final set is structurally unlike the practice set (ten
+# of forty instances carry twelve orientations, density median 0.72 against 0.40).  Under a
+# per-instance minimum, an unmeasured instance type that a constant happens to be wrong about costs
+# more than any of these arms won.
+#
+# adapt reaches the same answers without being told which instance it is on: multiplicative
+# decrease when the beam reports it was salvaged, additive increase when it finished at full width,
+# clamped to the range the sweep covered.  It pays nothing on the measured set and is the only arm
+# that cannot have a floor by construction.
+#
+# The file's older sweep, which put aim 0.10 at -17.8% on P36, does not reproduce and is not
+# evidence against this: it was taken at 180 s on a different build, and its best P20 cell is
+# 9,255,809 against the 8,908,086 this build returns.
+#
+# OGC_ADAPTAIM=0 restores the fixed portfolio.
+_ADAPTAIM = os.environ.get("OGC_ADAPTAIM", "1") != "0"
 # OGC_SHARE=1 lets a worker that is far behind the others restart from a fresh seed instead of
 # spending the rest of the budget on a basin the final minimum will discard.  OGC_SHAREGAP is how
 # far behind it has to be, as a fraction; 0.5 means fifty per cent worse than the best other
@@ -826,6 +857,72 @@ def _z3_improve(prob_info, sol, budget):
             flat += [b, int(bay[b]), int(oo[b]), int(round(xx[b])), int(round(yy[b])), int(ent[b]), int(ext[b])]
         w = prob_info["weights"]; w1 = float(w["w1"]); w3 = float(w.get("w3", 0))
         flat2 = list(E.z3_reassign(flat, w1, w3, float(budget)))
+        if len(flat2) != 7 * n:
+            return None
+        assigns = []
+        for i in range(0, len(flat2), 7):
+            b, bb, o, ix, iy, en, ex = flat2[i:i + 7]
+            assigns.append({"block_id": b, "bay_id": bb, "orient_idx": o,
+                            "x": ix, "y": iy, "entry_time": en, "exit_time": ex})
+        return _build_operations(assigns)
+    except Exception:
+        return None
+
+
+def _z1_improve(prob_info, sol, budget, seed=12345):
+    """Tardiness-directed ruin-and-recreate (C++ Engine.ruin_tardy), which has never been called.
+
+    THE IMPROVEMENT PASS ONLY EVER CHASED Z3.  z3_reassign's move loop opens with
+
+        if(cur_pen<=0) continue;                          // skip any block already in its best bay
+        for(int tb=0;tb<n_bays;tb++){
+            if(prefv(b,tb)<=prefv(b,cur_bay)) continue;   // only consider MORE-preferred bays
+
+    so a block that is late but already sits in its favourite bay is never touched, and a move
+    that gives up a little preference to remove a lot of tardiness is never even generated -- even
+    though the acceptance test, w1*dtardy + w3*dpen < 0, would take it.  w1*Z1 is 22-85% of the
+    objective across the instances measured (85.4% on prob_20, 85.3% on prob_6, 67.2% on prob_16).
+
+    ruin_tardy is the pass that aims there.  It is implemented, it is exposed to Python, and
+    myalgorithm has never called it.  The comment on it says why it was shelved: on the real P6,
+    102 of 102 completed rounds were rejected because "throughput is fixed and Z1 is conserved
+    under rearrangement".  That is a property of a SATURATED yard -- P6 runs at 85% w1*Z1 -- and
+    the instances this project is furthest behind on are the loose ones: prob_1 peaks at 59.3% of
+    bay area and carries 73.2% of its objective in Z3, with Z1 at 17-28 units that nothing is
+    currently trying to remove.  Shelved on the wrong instance type.
+
+    Scores the FULL objective internally (w1*Z1 + w3*Z3, plus w2 when workloads are supplied), and
+    keeps a separate incumbent, so it cannot return something worse than it was given.  Returns an
+    operations dict or None; the caller keeps the original on None.
+    """
+    try:
+        if not HAVE_OGC_FAST:
+            return None
+        E = _ogc_fast_engine(prob_info)
+        if not hasattr(E, "ruin_tardy"):
+            return None
+        ops = (sol or {}).get("operations", {})
+        n = len(prob_info["blocks"])
+        ent = {}; ext = {}; bay = {}; xx = {}; yy = {}; oo = {}
+        for tstr, row in ops.items():
+            t = int(tstr)
+            for op in row:
+                b = op["block_id"]
+                if op["type"] == "ENTRY":
+                    ent[b] = t; bay[b] = op["bay_id"]; xx[b] = op["x"]; yy[b] = op["y"]
+                    oo[b] = op["orient_idx"]
+                else:
+                    ext[b] = t
+        flat = []
+        for b in range(n):
+            if b not in ent or b not in ext:
+                return None
+            flat += [b, int(bay[b]), int(oo[b]), int(round(xx[b])), int(round(yy[b])),
+                     int(ent[b]), int(ext[b])]
+        w = prob_info["weights"]
+        w1 = float(w["w1"]); w2 = float(w.get("w2", 0)); w3 = float(w.get("w3", 0))
+        wls = [float(b.get("workload", 0.0)) for b in prob_info["blocks"]]
+        flat2 = list(E.ruin_tardy(flat, w1, w2, w3, wls, float(budget), int(seed)))
         if len(flat2) != 7 * n:
             return None
         assigns = []
@@ -1703,14 +1800,20 @@ def _axis_env(cfg):
     # also measured only at 240 s while the hidden set reportedly gives its early instances 60-120,
     # which is why the reserve is a fraction rather than the 120 s that was actually measured.
     #
-    # It ships because prob_1 is the closest analogue this project has to the hidden instances it is
-    # furthest behind on, the effect is several times the submission noise floor, and a submission
-    # can be replaced within twelve hours.  OGC_ORDER=defer_big OGC_W3MUL=1.0 OGC_RESFRAC=0.20
-    # restores the previous behaviour exactly.
-    _o = os.environ.get("OGC_ORDER", "lst")
+    # IT SHIPPED AND IT LOST.  Submitted as the 7th entry, scored on the hidden set against the 6th:
+    #
+    #     P1  -6.86%   P3 -2.55%   P6 -7.06%      |  P2 +14.23%  P5 +19.03%  P8 +14.00%
+    #     total +9.50%, median +4.04%, 3 better / 5 worse
+    #
+    # Identical code resubmitted (3rd vs 4th entry) reads median -0.07%, range -5.16%..+8.66%, so a
+    # +19% cell is well outside the noise floor: this is resolvable and it is a regression.  The 60 s
+    # warning below was right.  Unset env is back to the previously shipped behaviour -- order and
+    # w3mul take the axis value, reserve is min(0.20*limit, 40) -- and the knobs stay live so the
+    # search can be redone at 60-120 s, the budget the hidden set actually gives.
+    _o = os.environ.get("OGC_ORDER")
     if _o:
         out["order"] = _o
-    _w = os.environ.get("OGC_W3MUL", "0.5")
+    _w = os.environ.get("OGC_W3MUL")
     if _w:
         try:
             out["w3mul"] = float(_w)
@@ -2316,6 +2419,102 @@ def _worker(args):
         _aims = [a for a in os.environ.get("OGC_AIMSET", "0.90,0.10").split(",") if a.strip()]
         os.environ["OGC_BEAMAIM"] = _aims[wid % len(_aims)].strip()
 
+    # THE LOOKAHEAD FIX AS A PORTFOLIO POSITION, FOR THE REASON THE 7TH SUBMISSION TAUGHT.
+    #
+    # wb_hz1 scores an unplaced block's ENTRY against a due date that applies to its EXIT, so the
+    # whole of sum(pt) is missing from the beam's only view past the block it is placing.  Fixing it
+    # is unambiguously more correct arithmetic and it is NOT unambiguously better search, 240 s:
+    #
+    #     P16  3,522,150 -> 3,286,759  -6.68%   Z1 184 -> 158
+    #     P36 77,450,051 -> 75,161,373 -2.96%   Z1 10723 -> 10427
+    #     P6   5,048,880 ->  5,173,338 +2.46%
+    #     P20  9,144,888 ->  9,712,921 +6.21%
+    #
+    # Two large wins with Z1 falling exactly as the change predicts, and two losses.  Shipping it as
+    # a DEFAULT is the mistake this session already made once: order=lst and w3mul=0.5 were right on
+    # P1 and P3 and cost 14-19% on P2, P5 and P8, because a global override rewrote every axis and
+    # the portfolio stopped being one.  Right somewhere and wrong elsewhere is the definition of a
+    # PORTFOLIO POSITION.
+    #
+    # The workers are separate processes and their answer is a MINIMUM, so half of them can carry it
+    # and half not, exactly as the beam aim is already split 2:2 above.  An instance that wants the
+    # sharper lookahead gets it from two workers; one that does not is not harmed, because the min
+    # discards the losing half.  Nothing is gated on any instance property.
+    #
+    # The C++ reads OGC_HZ1V2 once per process into a static, so this has to happen before the first
+    # beam call -- which is what being here guarantees.  A caller that sets it wins, for the A/B.
+    # THE SPLIT WAS MEASURED AND IT DOES NOT SHIP EITHER.  240 s, one cell per arm:
+    #
+    #     inst        off          on          spl        spl vs off
+    #     P16    3,522,150   3,286,759   3,271,186    -7.13%   spl best of the three
+    #     P36   77,450,051  75,161,373  75,161,373    -2.96%   spl == on
+    #     P20    9,144,888   9,712,921   9,041,517    -1.13%   spl best of the three
+    #     P6     5,048,880   5,173,338   5,237,234    +3.73%   spl worse than both
+    #     P1       470,530     540,247     540,247   +14.82%   spl == on
+    #
+    # A SPLIT IS NOT min(all-off, all-on).  Each arm runs four workers; the split runs two and two,
+    # so it draws twice from each setting instead of four times, and a minimum over two is worse
+    # than a minimum over four.  That is why it can land BELOW both parents (P6) as easily as above
+    # them (P16, P20).  The file already measured this failure once, spreading the beam aim across
+    # four values instead of stacking 2:2 -- "what breaks is the guarantee of a pair at each end".
+    # With four workers and the aim already split 2:2, a second binary split leaves ONE worker per
+    # combination, which is exactly the losing configuration.
+    #
+    # And prob_1 loses 14.82% under BOTH on and spl, identically, which is a mechanism rather than
+    # noise: hz1 is a TARDINESS lookahead, prob_1 carries 22.6% of its objective in w1*Z1 and 73% in
+    # w3*Z3, and making the tardiness term larger buys time the objective there does not pay for.
+    #
+    # m AS A PER-WORKER PORTFOLIO POSITION (OGC_MSET), because the sign varies by instance.
+    #
+    # OGC_MCAND is how many candidate blocks each beam state expands.  m=1 makes every state at a
+    # level place the SAME block, so the dispatch order is fixed and the permutation -- which this
+    # file calls the largest lever on the problem, 32-210% against about 2% for everything else --
+    # is not searched at all.  m=2 lets each state choose between the two earliest unplaced blocks.
+    # Measured at 240 s:
+    #
+    #     P24  2,695,530 -> 2,454,698  -8.93%      P4   2,679,086 -> 2,840,189  +6.01%
+    #     P20  9,459,219 -> 8,868,533  -6.25%      P1     544,247 ->   693,845 +27.49%
+    #
+    # Two wins, two losses, so neither value is a default.  The answer is a MINIMUM over workers and
+    # the workers are separate processes, so both values can be in the portfolio at once and the min
+    # keeps whichever the instance prefers -- exactly how the beam aim is already split 2:2.
+    #
+    # IT WAS MEASURED AND IT SHIPS.  240 s, three arms on one build, one cell per arm:
+    #
+    #     inst      m1          m2          mix       mix vs m1
+    #     P24   2,838,471   2,739,434   2,620,889     -7.67%   below BOTH parents
+    #     P4    2,761,139   2,718,640   2,621,290     -5.06%   below BOTH parents
+    #     P20   9,530,012   8,962,893   9,274,964     -2.68%   between them
+    #     P1      470,530     601,265     470,530      0.00%   identical to m1
+    #
+    # Never worse than the shipped default on any of the four, and below both parents on two.  The
+    # split does not merely pick the better setting -- on prob_24 and prob_4 the minimum over two
+    # unlike constructions lands somewhere neither reaches alone, because m=1 leans its error into
+    # Z3 and m=2 into Z1 and the two produce different basins rather than better and worse ones.
+    #
+    # The density cost is real and visible: on prob_20, where m=2 is simply better on every term,
+    # two workers at m=2 cannot reach what four did, and the split gives back 3.48% of m2's win.
+    # It still beats the default there.  prob_1 is the case that decides adoption -- m=2 costs
+    # 27.78% and the split returned m1's answer to the digit.
+    #
+    # WHY A PORTFOLIO RATHER THAN PICKING THE BETTER VALUE.  The sign of m is not stable even for a
+    # fixed instance: prob_4 read m=2 at +6.01% in one build and -1.54% in this one, the difference
+    # being unrelated code added to the worker.  A default has to be right in advance; a minimum
+    # over both does not.  OGC_MSET=1 restores the previous behaviour exactly.
+    if "OGC_MCAND" not in os.environ:
+        _ms = [m for m in os.environ.get("OGC_MSET", "1,2").split(",") if m.strip()]
+        os.environ["OGC_MCAND"] = _ms[wid % len(_ms)].strip()
+
+    # THE ENGINE SOURCE IS REVERTED TOO, so this block is gone rather than left switched off.
+    # ogc_fast.cpp carries its own sha into every .so and harness/mkzip.sh refuses to package a set
+    # that disagrees with the source; the four shipped binaries were built before tonight, so the
+    # corrected lookahead existed in the source and in none of them.  Rebuilding to close that gap
+    # would replace the binary every measurement tonight was taken against -- this project has
+    # measured a proved bit-identical speedup move an objective 7.7%, because code layout changes
+    # timing and the beam derives its width from timing.  Reverting the source costs nothing,
+    # because the feature is refuted, and it keeps the submission byte-identical to what was
+    # measured.  The patch and its numbers are in the history and in results/audit/.
+
     rng = random.Random(1234 + wid)
     axes = [_AXES[(wid + i) % len(_AXES)] for i in range(len(_AXES))]
     # OGC_AXIS=<k> pins every worker to _AXES[k].  MEASUREMENT ONLY, absent by default, and the
@@ -2372,6 +2571,30 @@ def _worker(args):
                     dict(_c, order="rank") if _i == 1 else _c for _i, _c in enumerate(axes)]
         elif _as == "v3":                     # append instead of replacing, to price the toll
             axes = axes + [dict(_AXES[5], order="sac3")]
+        elif _as in ("p1a", "p1b", "p1c"):
+            # THE 7TH SUBMISSION, PUT BACK AS AN AXIS INSTEAD OF A PIN.
+            #
+            # order=lst + w3mul=0.5 was shipped as a GLOBAL override, so it rewrote all six axes at
+            # once and the portfolio stopped being a portfolio.  On the hidden set it took P1 and P3
+            # to their best-ever scores and lost 14-19% on P2, P5 and P8 -- exactly what happens
+            # when the alternatives are deleted rather than added to.  min() over the true objective
+            # cannot lose to any member it still contains.
+            #
+            # NOT APPENDED.  A seventh axis was measured at 10.8% worse than six on P1, and choosing
+            # among six already costs 1-9% against spending everything on one, so the count stays at
+            # six and a defer_big slot pays -- slots 0, 1 and 5 all sort on due as their second key
+            # and won nothing in the axis attribution.
+            #
+            # No axis has ever carried w3mul below 1.0, so this direction is not merely
+            # under-weighted in the portfolio, it is unreachable.
+            # BY AXIS IDENTITY, NOT BY POSITION.  `axes` is ROTATED per worker -- position 5 in
+            # worker 3's list is _AXES[2] -- so indexing by position replaces a DIFFERENT axis in
+            # every worker, which removes nothing from the pool and adds the new config four times
+            # over.  Measured that way p1a and p1b returned the identical solution on P1
+            # (679,647, Z1=3 Z2=6082 Z3=1069) because they were, in effect, the same arm.
+            _lo = dict(order="lst", w3mul=0.5)
+            _tgt = {"p1a": (5,), "p1b": (0,)}.get(_as, (0, 5))
+            axes = [dict(_c, **_lo) if _AXIDX.get(id(_c)) in _tgt else _c for _c in axes]
         elif _as in ("a4", "a5", "a5d"):
             # AXIS COUNT, not just axis content.  Only 1, 6 and 7 have ever been measured and
             # they came out 1 > 6 > 7: a single fixed order beat the six on 3 of 4 instances, and
@@ -2550,7 +2773,84 @@ def _worker(args):
     # An instrument that moves the measurement is worse than no instrument, and this one would have
     # shipped inside the submitted algorithm.  So the flags are read once, here, and the hot
     # definition contains nothing that was not in the original three lines.
-    if not _DRAWSTAT and _AXJIT <= 0.0:
+    # WHICH AXIS THE NEXT DRAW USES IS DECIDED BY A COUNTER (OGC_AXDIR=1 replaces it).
+    #
+    #     axes[gen[0] % len(axes)]
+    #
+    # That single expression is round-robin over the six configs, and it sits directly on top of
+    # this project's largest measured spread.  From the OGC_AXIS note above: running the six configs
+    # separately moves the objective 32% to 210% across five instances, while repeating ONE config
+    # moves it 0.0% to 12.6%.  Which valley a draw reaches is chosen by the axis and by almost
+    # nothing else -- and the axis is chosen by nothing at all.
+    #
+    # Every other allocation in this file is measured.  The operator loop below spends by
+    # gain/spent, the contact weight is a bandit, the worker aims are a portfolio.  One level down,
+    # inside the operator that earns most of the objective, the budget is split six equal ways
+    # regardless of what any of them returned.  At 240 s that is ~30 draws over 6 axes, five each;
+    # at the 60 s the hidden set gives its early instances it is closer to one each, so the axis
+    # that would have won gets a single draw and the run is decided by which one that was.
+    #
+    # WHAT THE REWARD HAS TO BE.  Credit-on-improvement -- the operator loop's rule -- is far too
+    # sparse here: after the first few draws almost nothing beats the incumbent, every axis scores
+    # zero, and the argmax goes back to being arbitrary.  So the signal is the RELATIVE DEFICIT of
+    # each draw against the incumbent it was measured against, d = (obj - best)/best, floored at 0
+    # and capped: an axis landing 3% off the incumbent is a live candidate to beat it next time, one
+    # landing 80% off is not, and that is readable from every draw rather than from the rare good
+    # one.  The cap matters -- one catastrophic draw must not retire an axis permanently, because
+    # quality(axis, work) is NOT monotone here (P16 axis 4 degrades as its slice grows, P1 axis 2
+    # bottoms at work=6000 and rebounds at 12000).
+    #
+    # NOTHING IS ELIMINATED.  For the same reason, and because the answer is a MIN over draws: under
+    # min-of-N, spread at equal centre is worth paying for (measured -- prob_16's best result ever
+    # came from the arm with the largest worker spread of any tried).  A director that narrows to
+    # one axis would trade exactly the tail this scoring rule pays for.  So the rule is
+    # untried-first, then an exploration share, then the best mean deficit.
+    #
+    # OGC_AXSCAN shortens the FIRST draw of each axis, so that surveying six of them at 60 s does
+    # not consume every draw there is.  It is separated from the director itself because it carries
+    # the one assumption the non-monotonicity above puts in doubt -- that a cheap draw ranks an axis
+    # the same way a full one would -- and that has to be priced on its own.
+    _AXDIR = os.environ.get("OGC_AXDIR") == "1"
+    try:
+        _AXEPS = min(0.9, max(0.0, float(os.environ.get("OGC_AXEPS", "0.25"))))
+    except Exception:
+        _AXEPS = 0.25
+    try:
+        _AXSCAN = min(1.0, max(0.05, float(os.environ.get("OGC_AXSCAN", "1.0"))))
+    except Exception:
+        _AXSCAN = 1.0
+    _adef = [0.0] * len(axes)
+    _acnt = [0] * len(axes)
+
+    def _ax_pick():
+        unt = [i for i, c in enumerate(_acnt) if c == 0]
+        if unt:
+            return unt[0], (_AXSCAN if len(unt) > 1 else 1.0)
+        if rng.random() < _AXEPS:
+            return rng.randrange(len(axes)), 1.0
+        return min(range(len(axes)), key=lambda i: _adef[i] / _acnt[i]), 1.0
+
+    def _ax_tell(ai, s):
+        _acnt[ai] += 1
+        try:
+            v = _total(prob_info, s)[0] if s is not None else float("inf")
+        except Exception:
+            v = float("inf")
+        ref = pool[0][0] if pool else float("inf")
+        if v >= float("inf") or ref >= float("inf") or ref <= 0.0:
+            d = 4.0
+        else:
+            d = max(0.0, (v - ref) / ref)
+        _adef[ai] += min(d, 4.0)
+
+    if _AXDIR:
+        def _fresh(t):
+            gen[0] += 1
+            ai, sc = _ax_pick()
+            s = _beam_once(prob_info, t * sc, _jit(axes[ai], gen[0]), share)
+            _ax_tell(ai, s)
+            return s
+    elif not _DRAWSTAT and _AXJIT <= 0.0:
         def _fresh(t):
             gen[0] += 1
             return _beam_once(prob_info, t, axes[gen[0] % len(axes)], share)
@@ -2622,7 +2922,25 @@ def _worker(args):
            # thing today established is that policy changes get judged on 40 paired instances,
            # not on a hunch.
            ("pref", lambda t: _z3_improve(prob_info, pool[0][1], t), True,
-            os.environ.get("OGC_PREFSEARCH") == "1", 0.5)]
+            os.environ.get("OGC_PREFSEARCH") == "1", 0.5),
+           # THE TARDINESS PASS, SCHEDULED RATHER THAN GIVEN A FIXED SHARE OF THE TAIL.
+           #
+           # ruin_tardy was wired into the polish tail at a guessed half-and-half against
+           # z3_reassign, and the guess is what broke: 60 s won 5 of 5 and 120 s lost 3 of 4,
+           # because at 60 s the half it took from the preference pass was idle time and at 120 s
+           # it was not (P1 ends Z3=608 with it off, Z3=910 with it on).
+           #
+           # A constant cannot be right for both, and there is already a mechanism here that does
+           # not need one: gain/spent hands the next slice to whatever is actually paying in
+           # objective units per second, on this instance, at this budget.  pref -- the same kind
+           # of pass, aimed at the other term -- is registered exactly this way.
+           #
+           # Repair-pass treatment (field 4 = False) is right for it: the seed is fixed, so an
+           # unchanged incumbent returns the same nothing, which is what empty_at is for.
+           ("z1", lambda t: _z1_improve(prob_info, pool[0][1], t), True,
+            False, 0.5)]
+    if os.environ.get("OGC_Z1OP") != "1":
+        ops = [o for o in ops if o[0] != "z1"]
     # pull / pmov / swap / cpas stay DEFINED and UNREGISTERED.  Each was measured: _pull_early
     # bought 0.05% for 22 s, _pref_move fired on nothing, _bay_swap survived no candidate, and
     # _cpassign was 34% worse.  Registered they still draw probe slices, and the roster ablation
@@ -3018,7 +3336,7 @@ def algorithm(prob_info, timelimit=60):
     #
     # So the knob stays available and the default stays where it was measured.
     _rfrac = None
-    _rfs = os.environ.get("OGC_RESFRAC", "0.50")
+    _rfs = os.environ.get("OGC_RESFRAC")
     if _rfs:
         try:
             _rfrac = min(0.80, max(0.02, float(_rfs)))
@@ -3158,12 +3476,55 @@ def algorithm(prob_info, timelimit=60):
     while True:
         left = timelimit - (time.time() - t0) - 1.0
         if _POLISH and left > 3.0:
+            # TWO PASSES, NOT ONE.  z3_reassign only generates moves toward a MORE-preferred bay
+            # and skips any block already in its best one, so it cannot remove tardiness from a
+            # block that is late where it wants to be -- and w1*Z1 is 22-85% of the objective.
+            # ruin_tardy is the pass that aims there; it has been implemented and exposed since
+            # before this session and never called.  Each is given half of what remains, Z1 first
+            # because the Z3 pass can then trade against a lower tardiness baseline, and each is
+            # adopted only when it strictly improves the full objective.
+            #
+            # DEFAULT OFF, because the only budget where it was ever ahead is the short one.  It
+            # shipped on, and 120 s then lost 3 of 4 -- P1 by 28.78%.  A pass that is right at 60 s
+            # and wrong at 120 s cannot be a default when the hidden set gives 60-120: OGC_Z1OP=1
+            # is where it belongs, registered in the operator roster where gain/spent decides how
+            # much of the budget it gets instead of a constant deciding in advance.
+            #
+            # OGC_Z1PASS=1 restores the fixed-share tail pass for measurement.
+            #
+            # THE SPLIT IS THE WHOLE QUESTION, and half-and-half was a guess.  Paired, one cell per
+            # arm, off vs on:
+            #
+            #      60 s   P1 -9.56%  P6 -6.10%  P20 -3.53%  P4 -4.10%  P24 -3.01%   5 of 5
+            #     120 s   P1 +28.78%  P20 +0.39%
+            #
+            # The Z1 pass is adopted only when it strictly improves, so it cannot itself make the
+            # answer worse -- what it can do is take half the tail away from z3_reassign.  At 60 s
+            # z3 has converged and that half was idle; at 120 s it was still working (P1 off ends at
+            # Z3=608, on at Z3=910 -- the preference the halved z3 never collected).  So the share
+            # is the knob, not the pass.  OGC_Z1FRAC sweeps it; 0 is the same as OGC_Z1PASS=0.
+            _z1on = os.environ.get("OGC_Z1PASS", "0") != "0"
             try:
-                imp = _z3_improve(prob_info, best[1], left)
-                if imp is not None:
-                    o, _ = _total(prob_info, imp)
-                    if o < best[0]:
-                        best = (o, imp)
+                _z1f = min(0.90, max(0.0, float(os.environ.get("OGC_Z1FRAC", "0.5"))))
+            except Exception:
+                _z1f = 0.5
+            if _z1on and _z1f > 0.0:
+                try:
+                    imp = _z1_improve(prob_info, best[1], max(2.0, left * _z1f))
+                    if imp is not None:
+                        o, _ = _total(prob_info, imp)
+                        if o < best[0]:
+                            best = (o, imp)
+                except Exception:
+                    pass
+                left = timelimit - (time.time() - t0) - 1.0
+            try:
+                if left > 3.0:
+                    imp = _z3_improve(prob_info, best[1], left)
+                    if imp is not None:
+                        o, _ = _total(prob_info, imp)
+                        if o < best[0]:
+                            best = (o, imp)
             except Exception:
                 pass
         if not _FILL:
@@ -3177,7 +3538,26 @@ def algorithm(prob_info, timelimit=60):
         # the decision to start a round and the budget handed to it, against the 1 s the main loop
         # uses; the round also receives `left` as its hard room bound, and the beam's salvage path
         # returns a finished partial rather than overrunning.
+        # THE GATE SCALES WITH THE ROUND AND THE LEFTOVER DOES NOT, SO ON A LONG BUDGET IT NEVER
+        # OPENS.  Measured on stage-2 prob_1 at 240 s: reserve 40, wbudget 199, the workers take
+        # their 199 s, the polish comes back in about a second, and 39 s are left.  _rb is 199, so
+        # _need is 49.8 and the round needs 57.8 s -- the loop breaks and algorithm() returns at
+        # 200 s of 240.  Sixteen per cent of the budget, idle, on every long run.
+        #
+        # A fill round cannot make the answer worse: `best` spans the rounds and a round only ever
+        # replaces it by beating it.  The only way this loop can hurt is by running past the wall
+        # clock, and that is what the 8 s of headroom and `left` as the round's hard room bound are
+        # for -- neither of which the 0.25*_rb term contributes to.  It is a quality heuristic ("a
+        # quarter-length round is not worth starting"), and it is spending real search to enforce a
+        # preference about rounds that cost nothing to be wrong about.
+        #
+        # Capped at 20 s so short budgets are untouched -- at 60 s _rb is ~47 and 0.25*_rb is 11.8,
+        # below the cap, so only long budgets move.  OGC_FILLMIN=1 enables it; it is off by default
+        # only until the queue reads it, because a mid-campaign default change would make every
+        # cell taken before it incomparable with every cell taken after.
         _need = max(8.0, 0.25 * _rb)
+        if os.environ.get("OGC_FILLMIN") == "1":
+            _need = min(_need, 20.0)
         if left < _need + 8.0:
             break
         _rb2 = max(4.0, min(_rb, left - 8.0))
