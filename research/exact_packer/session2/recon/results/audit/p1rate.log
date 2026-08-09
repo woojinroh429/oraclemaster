@@ -12,3 +12,5 @@ WSTAT round=0 n=4 542500 739970 544247 623321  spread=36.40%
 P1  [r2.dir]       240s  obj=542500      Z1=22.0     Z2=7542   Z3=622.0     feas=y   ran 201s  py3.12
 # [r3.base]
 # [r1.dir2]
+WSTAT round=0 n=4 472330 692156 457938 689851  spread=51.15%
+P1  [r1.dir2]      240s  obj=457938      Z1=15.0     Z2=7311   Z3=560.0     feas=y   ran 202s  py3.12
