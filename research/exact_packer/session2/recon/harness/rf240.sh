@@ -67,4 +67,4 @@ done
 echo "RF240DONE" >> $L
 
 # then the throughput knobs, then the OGC_SHARE replicate study.
-exec bash harness/speed.sh
+exec bash harness/dk.sh

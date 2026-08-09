@@ -1810,6 +1810,30 @@ def _axis_env(cfg):
     # warning below was right.  Unset env is back to the previously shipped behaviour -- order and
     # w3mul take the axis value, reserve is min(0.20*limit, 40) -- and the knobs stay live so the
     # search can be redone at 60-120 s, the budget the hidden set actually gives.
+    # OGC_DK: THE REPEAT-DRAW RANDOMISER, WHICH EVERY AXIS SHIPS SWITCHED OFF.
+    #
+    # _beam_once already has the machinery: on the SECOND and later visit to an axis it can replace
+    # the fixed dispatch order with a uniform pick from the top-k of what remains, so a repeat visit
+    # produces a different construction instead of re-deriving the first one.  It is gated on
+    # cfg["dk"] > 1 and all six axes carry dk=0, so it has never run.
+    #
+    # Why that matters now.  A worker takes 14-55 beam draws in a 240 s run and cycles six
+    # deterministic configs, so the number of DISTINCT constructions it can reach is six -- and the
+    # WSTAT lines show what that looks like: w0 returned exactly 612,635 in three consecutive runs,
+    # spending the whole budget without ever moving off its first answer.  The score is a minimum
+    # over draws and the draws are being repeated rather than sampled.
+    #
+    # This is not OGC_AXJIT, which jittered the axis PARAMETERS per draw and measured +6.5%.  That
+    # perturbs the ranking function; this perturbs the dispatch ORDER, which the file calls the
+    # largest lever on the problem (32-210% construction spread across orders, against about 2% for
+    # everything else combined).  Randomising inside the top-k of an axis's own priority stays
+    # within that axis's idea and still lands somewhere new.
+    try:
+        _dk = int(os.environ.get("OGC_DK", "0") or 0)
+        if _dk > 1:
+            out["dk"] = _dk
+    except Exception:
+        pass
     _o = os.environ.get("OGC_ORDER")
     if _o:
         out["order"] = _o
