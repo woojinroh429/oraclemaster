@@ -64,10 +64,19 @@ run(){ # tag prob limit env
     ci "$tag"
 }
 
-# THE PRIORITY INSTANCES FIRST, and rf50 because that is the value the 7th actually shipped.
-for rep in 1 2 3; do
+# THE CONTROL THAT SEPARATES THE TWO EXPLANATIONS.
+#
+# Raising the reserve does two things at once: it makes a second round run, AND it raises total
+# wall clock from 200 s to 231 s.  rf02 sets the reserve to its floor, so wbudget is 234 and the
+# leftover afterwards is about 5 s -- ONE round, and the same 231-235 s of use.  If rf02 matches
+# rf50 the gain is time, not structure, and the fix is the fill gate alone.  If rf50 beats rf02 the
+# gain is the second round, and asymmetric two-round scheduling is the thing to build.
+#
+# rf50 is 119 + 111 and rf35 is 155 + 76, so those two also price the split ratio.
+for rep in 1 2; do
   for p in 1 3; do
     run "r$rep.p$p.base"  $p 240 ""
+    run "r$rep.p$p.rf02"  $p 240 "OGC_RESFRAC=0.02"
     run "r$rep.p$p.rf50"  $p 240 "OGC_RESFRAC=0.50"
     run "r$rep.p$p.rf35"  $p 240 "OGC_RESFRAC=0.35"
     run "r$rep.p$p.both"  $p 240 "OGC_RESFRAC=0.50 OGC_PARFILL=1"
