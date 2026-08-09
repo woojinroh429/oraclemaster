@@ -3732,9 +3732,30 @@ def algorithm(prob_info, timelimit=60):
                 except Exception:
                     pass
                 left = timelimit - (time.time() - t0) - 1.0
+            # THE TAIL POLISH IS HANDED EVERY REMAINING SECOND AND DOES NOT NEED THEM.
+            #
+            # `left` here is the whole reserve, so z3_reassign takes it all and the fill loop below
+            # only ever sees what it declines to use.  On prob_1 it returns in about a second and
+            # 39 s of a 40 s reserve go idle; on prob_3 it consumes the entire reserve and the fill
+            # gate then finds nothing left -- which is why prob_3's RESFRAC=0.50 cell shows no FILL
+            # line at all and simply lost 80 s off round 0.
+            #
+            # AND THE SECONDS IT TAKES ARE NOT BUYING MUCH.  On prob_3 a 39 s polish and a 5 s
+            # polish return 4,274,798 and 4,277,106, a 0.05% difference, while the round-0 budget
+            # those two arms differ in is worth 2.5%.  ax1z1 says the same on prob_1 from the other
+            # side: reserve 84 s and reserve 120 s returned 422,629 to the digit, four cells, so the
+            # pass had converged inside the smaller one.
+            #
+            # These seconds are already not round 0's -- wbudget is timelimit minus reserve -- so
+            # capping the pass does not shorten the construction.  It only decides whether the tail
+            # is spent on a converged repair or on another worker round.
+            #
+            # OGC_POLCAP is that cap in seconds; unset keeps the old behaviour exactly.
             try:
                 if left > 3.0:
-                    imp = _z3_improve(prob_info, best[1], left)
+                    _pc = os.environ.get("OGC_POLCAP")
+                    _pl = min(left, max(3.0, float(_pc))) if _pc else left
+                    imp = _z3_improve(prob_info, best[1], _pl)
                     if imp is not None:
                         o, _ = _total(prob_info, imp)
                         if o < best[0]:
