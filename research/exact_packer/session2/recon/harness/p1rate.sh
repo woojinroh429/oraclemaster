@@ -61,10 +61,13 @@ run(){ # tag prob limit env
 # w2 supplies the minimum in every run recorded and w1 is the worst worker in three of four -- so
 # DIRSET=1, which rewrites the odd pair, can only decorate what the minimum discards.  dir2 puts
 # the direction on the pair that actually decides the instance.
-for rep in 1 2 3 4 5 6; do
+for rep in 1 2 3; do
   run "r$rep.base" 1 240 ""
   run "r$rep.dir"  1 240 "OGC_DIRSET=1"
   run "r$rep.dir2" 1 240 "OGC_DIRSET=2"
 done
 echo "P1RATEDONE" >> $L
-echo idle > harness/CURRENT
+
+# straight into the axis study: prob_1 is the priority and the WSTAT lines put the axis rotation
+# ahead of the direction split as the thing that separates its workers.
+exec bash harness/axp1.sh
