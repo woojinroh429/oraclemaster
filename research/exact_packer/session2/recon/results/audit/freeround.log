@@ -2,3 +2,7 @@
 WSTAT round=0 n=4 2799419 3402546 2908536 3838972  spread=37.13%
 P16 [r1.p16.base]   240s  obj=2727346     Z1=110.0    Z2=1072   Z3=5030.0    feas=y   ran 240s  py3.12
 # [r1.p16.free]
+WSTAT round=0 n=4 2804630 3551372 3015612 3440823  spread=26.63%
+PARFILL round=1 parity=even even=2804630 odd=3440823 wids=[16, 18, 20, 22]
+FILL round=1 budget=24 moved=0 best=2740666
+P16 [r1.p16.free]   240s  obj=2734389     Z1=110.0    Z2=1003   Z3=5059.0    feas=y   ran 237s  py3.12
