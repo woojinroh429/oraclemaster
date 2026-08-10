@@ -1,3 +1,4 @@
 # [r1.p1.off]
 WSTAT round=0 n=4 518660 855092 594521 743665  spread=64.87%
 P1  [r1.p1.off]    120s  obj=518660      Z1=20.0     Z2=4840   Z3=618.0     feas=y   ran 82s  py3.12
+# [r1.p1.cross]
