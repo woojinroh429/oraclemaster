@@ -347,3 +347,34 @@ PARFILL round=1 parity=even even=437484 odd=698256 wids=[16, 18, 20, 22]
   opstat  TOTAL       7      71.6   98.3%                        
 FILL round=1 budget=73 moved=0 best=437484
 P1  [r1.p1.nout25]   240s  obj=437484      Z1=15.0     Z2=4293   Z3=541.0     feas=y   ran 233s  py3.12
+# [r1.p1.colstat]
+COLSTAT ncol=560 geom_slots=560 ratio=1.00 blocks=24 entries_per_block avg=1.00 max=1
+COLSTAT ncol=1016 geom_slots=1016 ratio=1.00 blocks=24 entries_per_block avg=1.00 max=1
+COLSTAT ncol=3244 geom_slots=3244 ratio=1.00 blocks=24 entries_per_block avg=1.00 max=1
+COLSTAT ncol=10772 geom_slots=10772 ratio=1.00 blocks=24 entries_per_block avg=1.00 max=1
+COLSTAT ncol=50038 geom_slots=11781 ratio=4.25 blocks=52 entries_per_block avg=4.83 max=10
+COLSTAT ncol=42469 geom_slots=11781 ratio=3.60 blocks=52 entries_per_block avg=4.00 max=7
+COLSTAT ncol=33779 geom_slots=11781 ratio=2.87 blocks=52 entries_per_block avg=3.12 max=5
+COLSTAT ncol=550 geom_slots=550 ratio=1.00 blocks=24 entries_per_block avg=1.00 max=1
+COLSTAT ncol=998 geom_slots=998 ratio=1.00 blocks=24 entries_per_block avg=1.00 max=1
+COLSTAT ncol=3144 geom_slots=3144 ratio=1.00 blocks=24 entries_per_block avg=1.00 max=1
+COLSTAT ncol=10478 geom_slots=10478 ratio=1.00 blocks=24 entries_per_block avg=1.00 max=1
+COLSTAT ncol=464 geom_slots=464 ratio=1.00 blocks=24 entries_per_block avg=1.00 max=1
+COLSTAT ncol=1370 geom_slots=1370 ratio=1.00 blocks=24 entries_per_block avg=1.00 max=1
+COLSTAT ncol=3842 geom_slots=3842 ratio=1.00 blocks=24 entries_per_block avg=1.00 max=1
+COLSTAT ncol=11913 geom_slots=5554 ratio=2.14 blocks=45 entries_per_block avg=2.31 max=4
+COLSTAT ncol=47960 geom_slots=11587 ratio=4.14 blocks=50 entries_per_block avg=4.62 max=10
+COLSTAT ncol=66539 geom_slots=17037 ratio=3.91 blocks=55 entries_per_block avg=4.02 max=7
+COLSTAT ncol=49883 geom_slots=17037 ratio=2.93 blocks=55 entries_per_block avg=3.02 max=5
+COLSTAT ncol=17587 geom_slots=8250 ratio=2.13 blocks=53 entries_per_block avg=2.23 max=4
+COLSTAT ncol=552 geom_slots=552 ratio=1.00 blocks=24 entries_per_block avg=1.00 max=1
+COLSTAT ncol=1008 geom_slots=1008 ratio=1.00 blocks=24 entries_per_block avg=1.00 max=1
+COLSTAT ncol=3168 geom_slots=3168 ratio=1.00 blocks=24 entries_per_block avg=1.00 max=1
+COLSTAT ncol=10466 geom_slots=10466 ratio=1.00 blocks=24 entries_per_block avg=1.00 max=1
+COLSTAT ncol=40575 geom_slots=11587 ratio=3.50 blocks=50 entries_per_block avg=3.82 max=7
+COLSTAT ncol=49740 geom_slots=11709 ratio=4.25 blocks=53 entries_per_block avg=4.81 max=10
+COLSTAT ncol=42014 geom_slots=11709 ratio=3.59 blocks=53 entries_per_block avg=3.98 max=7
+COLSTAT ncol=32244 geom_slots=11587 ratio=2.78 blocks=50 entries_per_block avg=2.98 max=5
+COLSTAT ncol=33197 geom_slots=11709 ratio=2.84 blocks=53 entries_per_block avg=3.08 max=5
+COLSTAT ncol=12546 geom_slots=5916 ratio=2.12 blocks=49 entries_per_block avg=2.29 max=4
+COLSTAT ncol=11556 geom_slots=5509 ratio=2.10 blocks=45 entries_per_block avg=2.24 max=4

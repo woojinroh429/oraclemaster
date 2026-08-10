@@ -56,6 +56,12 @@ for rep in 1 2; do
     run "r$rep.p$p.th4"    $p 240 "$B OGC_BRKTHREADS=4"
     run "r$rep.p$p.nout50" $p 240 "$B OGC_TIERNOUT=0.5"
     run "r$rep.p$p.nout25" $p 240 "$B OGC_TIERNOUT=0.25"
+    # THE TWO WINNERS COMPOSED.  nout50 quarters the edges (the graph is quadratic in columns) and
+    # th2 halves what is left to build, so together the build is about an eighth.  They are not
+    # alternatives -- they act on different factors of the same product -- and the grading server
+    # is four cores, the same shape this was measured on, so th2's 8-threads-on-4-cores is a
+    # measured configuration rather than an extrapolation.  th4's 16-on-4 is the one that failed.
+    run "r$rep.p$p.both"   $p 240 "$B OGC_TIERNOUT=0.5 OGC_BRKTHREADS=2"
     # COLSTAT decides whether a geometry-level conflict graph is worth building.  Columns are
     # (block, orient, x, y) x (entry window) and every column in a group has IDENTICAL geometry,
     # so crane_conflict_rel factors exactly:
