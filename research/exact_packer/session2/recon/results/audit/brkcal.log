@@ -940,3 +940,5 @@ PARFILL round=1 parity=even even=499210 odd=689187 wids=[16, 18, 20, 22]
   opstat  TOTAL      10      69.1   98.2%                        
 FILL round=1 budget=71 moved=0 best=499210
 P1  [r3.p1.brk]    240s  obj=499210      Z1=19.0     Z2=7579   Z3=583.0     feas=y   ran 235s  py3.12
+== BRKCAL prob_1 done ==
+# [r1.p24.off]

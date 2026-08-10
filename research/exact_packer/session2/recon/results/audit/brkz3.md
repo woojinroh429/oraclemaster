@@ -92,3 +92,47 @@ figure is over 305 runs of many different builds; the current build (rf35 + POLC
 basin more often than the historical average, so the true null for THESE replicates is higher than
 4.9% and the p-value is optimistic.  n = 11 on the brk side is small.  The 0-of-118 gain column
 remains the stronger evidence because it is not a comparison of draws at all.
+
+## r3 REVERSES prob_1, AND EXPLAINS WHY THE GAIN COLUMN IS NOT THE SCORE
+
+Three paired replicates, same build, calibration guard live:
+
+    r1   off 492,458   brk 422,629   -14.18%
+    r2   off 437,484   brk 422,629    -3.40%
+    r3   off 422,629   brk 499,210   +18.06%
+                                     -------
+                              mean    +0.16%
+
+prob_1 is NEUTRAL.  The -6.52% recorded before the fix and the -14.18% recorded after it were both
+draws, and the spread (16-18%) swamps any effect, which is exactly the effect-over-spread test I
+adopted after the prob_20 flip-flopping and then failed to apply to prob_1's first two cells.
+
+THE MECHANISM, WHICH IS THE PART WORTH KEEPING.  In r3 brk paid on seven of eight worker-rounds:
+
+    32,560   34,808   52,446   11,062   5,037   5,037   6,200      total 147,150
+
+and the run still finished 18% WORSE than its control.  The beam's try count over round 0 went
+12/8/11/8 = 39 in the control to 5/4/8/6 = 23 with brk on, a 41% cut.
+
+So brk improves the incumbent it is handed, and the score is not the incumbent -- it is the minimum
+over four workers, and what reaches prob_1's good basin is the beam RESTARTING, not any incumbent
+being polished.  brk climbs the hill it is standing on while taking away the restarts that find a
+different hill.
+
+WHAT THIS DOES TO THE 0-OF-118 / 52-OF-120 TABLE.  Only half of it survives.
+
+    "brk finds nothing on prob_16/24/20"     STANDS.  0 of 118 worker-rounds, 718 seconds, no
+                                             gain.  There it is pure cost, and gating it off can
+                                             lose nothing.
+    "brk helps prob_1's score"               DOES NOT FOLLOW.  52 of 120 paying worker-rounds and
+                                             a neutral paired result are consistent, because a
+                                             per-worker gain is not a per-run gain.
+
+The only paired gain left standing anywhere is prob_3: -2.55% and -0.17%, both brk draws below both
+control draws, control spread 0.12%.
+
+CONSEQUENCE FOR SHIPPING.  Unconditional brk is not justified by anything measured.  It is neutral
+where it was supposed to win and costs 2% where it provably finds nothing.  The gate is not an
+optimisation on top of an adopted operator any more -- it is the only configuration the evidence
+supports: keep brk where a paired gain exists (prob_3) and where it is at worst neutral (prob_1),
+remove it where 118 worker-rounds say there is nothing to find.
