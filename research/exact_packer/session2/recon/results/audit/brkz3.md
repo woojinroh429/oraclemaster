@@ -50,3 +50,44 @@ whether the cost can be removed instead: brk's 34-36 s is dominated by cranepack
 conflict build, that build is parallel in the engine and has never run that way, and
 OGC_BRKTHREADS now raises OpenMP around CP.pack only.  If the build drops to ten seconds the
 crossover moves down and the gate may not be needed at all.
+
+
+## CORRECTION AFTER A SECOND prob_16 REPLICATE: THE MONOTONE READING WAS ONE CELL DEEP
+
+    r1.p16   off 2,969,521   brk 2,895,137   -2.51%
+    r2.p16   off 3,007,524   brk 3,209,981   +6.73%
+    mean     off 2,988,523   brk 3,052,559   +2.14%
+
+The sign flips.  prob_16's controls span 2,519,071-3,007,524 across this session --
+19% -- and the -2.51% above was a single pair inside that.  Reporting it as "brk gains on
+prob_16 too, the first item tonight that is a gain or harmless everywhere" was generalising from
+one cell, which is the sixth time this session that error has been made and the second time on
+this instance.
+
+The corrected table:
+
+    instance   Z3 share   brk delta   replicates
+    prob_3        89.4%      +0.34%   3
+    prob_1        86.3%      -6.52%   3
+    prob_16       48.7%      +2.14%   2
+    prob_24       23.2%      +1.84%   1
+    prob_20       15.1%      +3.97%   1
+
+Z3 share still orders the extremes -- prob_1 is the only clear gain and prob_20 the largest loss --
+but 48.7% no longer sits on a line between them, so "monotone in Z3 share" is not supported.  What
+the five points do support is narrower and still useful:
+
+    brk gains substantially on prob_1, is flat on prob_3, and costs 2-4% on prob_16, prob_24 and
+    prob_20.
+
+That is a trade, like the eleven branches before it.  What makes it different is direction: the
+instance it wins on is the priority instance, and the losses are inside the 2-4% the priority
+explicitly tolerates.
+
+## WHICH MAKES THE ACCELERATION THE DECIDING WORK, NOT A REFINEMENT
+
+Every loss is the same 34-36 s taken off a beam worth 8.1M objective units per second.  If the
+conflict build drops to under ten seconds -- the factorisation in conflictfactor.md is worth up to
+r^2 on enumeration, and the parallel build is already in the engine and has never run -- the
+losses shrink toward zero while prob_1's gain does not, because that gain is the repack itself and
+not the time it costs.  A trade becomes a strict improvement.

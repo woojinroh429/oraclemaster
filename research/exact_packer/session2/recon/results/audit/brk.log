@@ -1294,3 +1294,4 @@ PARFILL round=1 parity=even even=3243039 odd=3474842 wids=[16, 18, 20, 22]
   opstat  TOTAL       6      66.8   98.2%                        
 FILL round=1 budget=61 moved=0 best=3209981
 P16 [r2.p16.brk]   240s  obj=3209981     Z1=147.0    Z2=1010   Z3=4988.0    feas=y   ran 240s  py3.12
+# [r2.p20.off]
