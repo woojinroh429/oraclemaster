@@ -1,3 +1,5 @@
 P1   p1.ax0.w3000   work=3000     axis=0 rep=0  obj=1174681      feas=y    22.5s  digest=38cfdfb2850e4afa
 P1   p1.ax0.w3000   work=3000     axis=0 rep=1  obj=1174681      feas=y    21.9s  digest=38cfdfb2850e4afa
 P1   p1.ax0.w3000   work=3000     axis=0 rep=2  obj=1174681      feas=y    21.8s  digest=38cfdfb2850e4afa
+== BPROD determinism cell done ==
+P1   p1.ax1.w3000   work=3000     axis=1 rep=0  obj=1323041      feas=y    22.5s  digest=b36da00aa5d8f8a5
