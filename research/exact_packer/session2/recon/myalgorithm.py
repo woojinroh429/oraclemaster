@@ -828,6 +828,52 @@ def _safe_sequential(prob_info):
 _WORKER_SEEDS = [12345, 67890, 24681, 13579,
                  11111, 22222, 33333, 44444]
 
+def _obj_shares(prob_info, sol):
+    """(w1*Z1, w2*Z2, w3*Z3) for a solution -- arithmetic only, no feasibility check.
+
+    _total does the geometry as well and costs milliseconds.  This is O(n) over the operations and
+    exists only to answer "which term is this solution's objective actually made of", so that an
+    operator aimed at one term can be skipped where that term is a minority.  Returns None if the
+    solution cannot be read; every caller treats None as "no opinion" and proceeds.
+    """
+    try:
+        B = prob_info["blocks"]
+        n = len(B)
+        w = prob_info["weights"]
+        w1 = float(w.get("w1", 0)); w2 = float(w.get("w2", 0)); w3 = float(w.get("w3", 0))
+        bays = prob_info["bays"]
+        m = len(bays)
+        ent = {}; ext = {}; bay = {}
+        for tstr, row in (sol or {}).get("operations", {}).items():
+            t = int(tstr)
+            for op in row:
+                b = op["block_id"]
+                if op["type"] == "ENTRY":
+                    ent[b] = t; bay[b] = op["bay_id"]
+                else:
+                    ext[b] = t
+        if len(ent) != n or len(ext) != n:
+            return None
+        z1 = 0.0; z3 = 0.0
+        load = [0.0] * m
+        for b in range(n):
+            dd = B[b]["due_date"]
+            if ext[b] > dd:
+                z1 += ext[b] - dd
+            pr = B[b]["bay_preferences"]
+            z3 += max(pr) - pr[bay[b]]
+            load[bay[b]] += float(B[b].get("workload", 0.0))
+        area = [bays[j]["width"] * bays[j]["height"] for j in range(m)]
+        avg = sum(area) / m if m else 1.0
+        sc = [(avg / area[j] if area[j] > 0 else 1.0) * load[j] for j in range(m)]
+        # floor, exactly as _objective does -- the max pairwise difference over the unit-weighted
+        # loads is the same quantity as max-min, since the map j -> unit_j * load_j is a scalar.
+        z2 = math.floor(max(sc) - min(sc)) if sc else 0.0
+        return (w1 * z1, w2 * z2, w3 * z3)
+    except Exception:
+        return None
+
+
 def _z3_improve(prob_info, sol, budget):
     """Z3 (bay-preference) reassignment post-pass: move blocks to more-preferred bays where
     feasible without hurting the objective (C++ Engine.z3_reassign).  Diagnostic on the
@@ -3394,10 +3440,60 @@ def _worker(args):
     if os.environ.get("OGC_BRK", "1") == "1":
         try:
             import bayrepack as _brk
-            ops.append(("brk", lambda t: _brk.repack(prob_info, _brk_seed(), t, _total,
-                                                     _build_operations, _ogc_fast_engine,
-                                                     hard=budget - (time.time() - t0)),
-                        True, True, float(os.environ.get("OGC_BRKFLOOR", "8.0"))))
+
+            # GATED ON WHAT brk IS FOR -- OGC_BRKZ3, default 0 = no gate, shipped behaviour.
+            #
+            # brk repacks a bay to collect PREFERENCE, so its value should track Z3's share of the
+            # objective rather than its own price, and the measurements line up with the share:
+            #
+            #     prob_3   Z3 88.0%   -1.36% over two replicates, both brk draws below both
+            #                         controls, opstat gains 69,766 / 39,641 / 14,111 / 12,565
+            #     prob_1   Z3 86.3%   -6.52% over three replicates, Z3 785 -> 445
+            #     prob_16  Z3 48.7%   +2.14%
+            #     prob_24  Z3 23.2%   +1.84%
+            #     prob_20  Z3 15.2%   opstat gain 0 on ALL SIXTEEN worker-rounds while spending
+            #                         34-52 worker-seconds.  The objective moved, but not because
+            #                         of brk -- it moved because the beam got fewer seconds.
+            #
+            # Where preference is a minority of the objective there is little to collect and the
+            # repack still takes seconds off the time axis, so Z1 pays for a Z3 that never arrives.
+            # Making the operator cheaper cannot fix that; only not calling it can.
+            #
+            # The share is read off the incumbent the operator is ABOUT TO BE GIVEN, so it is known
+            # before the call and is not circular -- unlike the four predictors that failed
+            # (_demand_ratio_phys at r = -0.607, hz1_est identically 0, _safe_sequential's share
+            # 0.0% everywhere, a 15 s probe round with overlapping spreads), each of which guessed
+            # at what might correlate.  This one is the share of the term the operator exists to
+            # reduce, so the mechanism IS the predictor.
+            #
+            # The threshold is FITTED and says so: five labelled instances put the crossover
+            # somewhere in 48.7-86.3, and any value in that gap fits them equally.  It is not
+            # derived, and two instances above the gap is a thin basis for one.
+            #
+            # Cost is O(n) over the incumbent's operations with no geometry check -- a few hundred
+            # microseconds against an operator with an 8 s floor.
+            def _brk_gated(t):
+                try:
+                    _thr = float(os.environ.get("OGC_BRKZ3", "0"))
+                except Exception:
+                    _thr = 0.0
+                if (_thr > 0.0 or os.environ.get("BRK_DEBUG") == "1") and pool:
+                    _sh = _obj_shares(prob_info, pool[0][1])
+                    if _sh is not None:
+                        _tot = _sh[0] + _sh[1] + _sh[2]
+                        if _tot > 0.0:
+                            _z3s = _sh[2] / _tot
+                            if os.environ.get("BRK_DEBUG") == "1":
+                                print("    brk gate: incumbent Z3 share %.1f%% (thr %.0f%%)"
+                                      % (100.0 * _z3s, 100.0 * _thr), flush=True)
+                            if _thr > 0.0 and _z3s < _thr:
+                                return None
+                return _brk.repack(prob_info, _brk_seed(), t, _total,
+                                   _build_operations, _ogc_fast_engine,
+                                   hard=budget - (time.time() - t0))
+
+            ops.append(("brk", _brk_gated, True, True,
+                        float(os.environ.get("OGC_BRKFLOOR", "8.0"))))
         except Exception:
             pass
     # OGC_OPS: comma-separated roster filter, for ablation.  "beam,grow" runs the search
