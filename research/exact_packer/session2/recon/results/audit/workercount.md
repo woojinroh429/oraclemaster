@@ -208,3 +208,30 @@ STILL NOT ESTABLISHED.  Two stage-2 instances on one four-core box.  The gate bo
 budget where the cells agree, not a located crossover -- nothing between 240 and 480 was run.  The
 hidden P1-P6 were never measured at all; the mechanism (a fifth runnable process on four cores)
 is instance-independent, but that is an argument, not a measurement.
+
+## THE 37 PAIRS WERE MEASURED ON INSTANCES THAT STAND IN FOR NOTHING
+
+HIDDEN_SET.md carries the real ladder, and its analogue table is keyed to data/train.  The shapes
+confirm it exactly; every queue above used data/stage2, where the same file names mean other
+instances:
+
+    hidden shape          data/train             data/stage2 (what was actually measured)
+    P1  60 s  3b 100blk   prob_2  (100, 3)       prob_1  = 150 blk, 3 bays  -> P4's shape
+    P2 120 s  2b 150blk   prob_8  (150, 2)       prob_16 = 300 blk, 5 bays  -> nothing
+    P3 240 s  3b 200blk   prob_9  (200, 3)
+    P4 480 s  3b 150blk   prob_26 (150, 3)       the hidden set stops at 4 bays and 250 blocks,
+    P5 600 s  4b 200blk   prob_10/11/12          so a 5-bay 300-block instance matches no hidden
+    P6 900 s  3b 250blk   prob_37/38/39          problem at all
+
+So of the two instances behind every number in this file, one carries P4's shape and the other
+carries none.  The budgets were chosen correctly; the shapes were never checked.
+
+TWO THINGS SURVIVE THAT.  First, the gate boundary is right by luck: 240 s is P3's limit and 480 s
+is P4's, so the untested 240-480 interval contains no scored instance.  Second, stage-2 prob_1 IS
+P4's shape, and at P4's budget of 480 s it measured mean -2.36% with a WIDER span -- which is the
+side of the gate that turns the change OFF.  The one accidental shape match agrees with the gate.
+
+WHAT DOES NOT SURVIVE is the claim that the gate-ON budgets were validated.  Bay count and block
+count are what a worker's search depth interacts with; an effect measured at the right budget on
+the wrong shape transfers by assumption only.  harness/nwreal.sh re-runs the ladder properly --
+prob_2 at 60 s, prob_8 at 120 s, prob_9 at 240 s, prob_26 at 480 s, all from data/train.
