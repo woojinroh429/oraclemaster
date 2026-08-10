@@ -56,3 +56,4 @@ P16 [r3.p16.cross]   120s  obj=3730911     Z1=186.0    Z2=991    Z3=4992.0    fe
 # [r4.p16.off]
 WSTAT round=0 n=4 3607508 3051577 4048309 4208085  spread=37.90%
 P16 [r4.p16.off]   120s  obj=3051577     Z1=146.0    Z2=1903   Z3=4397.0    feas=y   ran 89s  py3.12
+# [r4.p16.cross]
