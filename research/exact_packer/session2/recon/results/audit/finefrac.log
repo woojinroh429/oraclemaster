@@ -1,1 +1,3 @@
 # [r1.p40.f60]
+WSTAT round=0 n=4 11430417 10497452 10390454 9735843  spread=17.41%
+PARFILL round=1 parity=odd even=10390454 odd=9735843 wids=[17, 19, 21, 23]
