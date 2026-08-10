@@ -591,7 +591,28 @@ DRAW wid=3 gen=1 axis=4 ask=31.0 took=9.2 obj=944919
 DRAW wid=0 gen=1 axis=1 ask=31.0 took=16.3 obj=532420
 DRAW wid=2 gen=1 axis=1 ask=31.0 took=16.4 obj=621487
 == P1DRAWS axis done ==
-# [r1.p1.R1]
 DRAW wid=1 gen=1 axis=2 ask=31.0 took=7.6 obj=883473
 DRAW wid=0 gen=1 axis=1 ask=31.0 took=16.4 obj=576367
 DRAW wid=2 gen=1 axis=1 ask=31.0 took=16.5 obj=608689
+DRAW wid=1 gen=3 axis=4 ask=31.0 took=4.2 obj=994796
+DRAW wid=1 gen=4 axis=5 ask=31.0 took=4.2 obj=902991
+DRAW wid=1 gen=5 axis=0 ask=31.0 took=4.2 obj=1019182
+DRAW wid=1 gen=7 axis=2 ask=31.0 took=4.0 obj=949888
+DRAW wid=1 gen=8 axis=3 ask=31.0 took=6.9 obj=892836
+DRAW wid=0 gen=3 axis=3 ask=31.0 took=16.9 obj=541099
+DRAW wid=2 gen=3 axis=3 ask=29.1 took=15.5 obj=637958
+DRAW wid=2 gen=4 axis=4 ask=13.6 took=7.1 obj=712806
+DRAW wid=0 gen=4 axis=4 ask=14.2 took=8.4 obj=762830
+DRAW wid=2 gen=5 axis=5 ask=6.5 took=4.7 obj=922245
+DRAW wid=0 gen=5 axis=5 ask=5.8 took=4.5 obj=1018817
+WSTAT round=0 n=3 469427 677923 524295  spread=44.41%
+PARFILL round=1 parity=even even=469427 odd=677923 wids=[12, 14, 16]
+DRAW wid=12 gen=1 axis=1 ask=14.8 took=7.9 obj=806522
+DRAW wid=16 gen=1 axis=1 ask=14.8 took=8.0 obj=804756
+DRAW wid=14 gen=1 axis=1 ask=14.8 took=8.0 obj=870466
+== P1DRAWS axis done ==
+# [r1.p1.R1]
+DRAW wid=1 gen=1 axis=2 ask=31.0 took=8.2 obj=895370
+DRAW wid=3 gen=1 axis=4 ask=31.0 took=9.0 obj=976692
+DRAW wid=0 gen=1 axis=1 ask=31.0 took=16.2 obj=576367
+DRAW wid=2 gen=1 axis=1 ask=31.0 took=16.3 obj=541099

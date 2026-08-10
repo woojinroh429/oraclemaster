@@ -84,9 +84,16 @@ echo "== P1DRAWS axis done ==" >> $L
 # over 53 samples) and the saturation reading (155 s and 228 s identical over 248) both point at
 # R=1, so this is now confirmation rather than discovery.  R=2 is the cell that could still move --
 # its rounds are about 120 s, which is above the 73 s the fill round proves is too short.
+#
+# WORKERS=4 IS PINNED BELOW.  The shipped default now gates to three workers at timelimit <= 240,
+# so an unpinned 240 s run measures three draws per round.  Everything this sweep gets compared
+# against was produced with four: the 24-draw distribution in p1lottery.md, the 248-sample
+# saturation reading in shortdraws.md, and the four submitted entries themselves.  Mixing the two
+# makes the draw-count question unanswerable.  The worker count is a separate and still
+# unvalidated change and does not belong inside the experiment that would judge it.
 for rep in 1 2; do
   for R in 1 2 3 4; do
-    run "r$rep.p1.R$R" 1 240 "OGC_ROUNDS=$R"
+    run "r$rep.p1.R$R" 1 240 "WORKERS=4 OGC_ROUNDS=$R"
   done
 done
 echo "== P1DRAWS rounds done ==" >> $L
@@ -94,7 +101,7 @@ echo "== P1DRAWS rounds done ==" >> $L
 # The veto last: prob_16 is supposed to need one long round.
 for rep in 1 2; do
   for R in 1 4; do
-    run "r$rep.p16.R$R" 16 240 "OGC_ROUNDS=$R"
+    run "r$rep.p16.R$R" 16 240 "WORKERS=4 OGC_ROUNDS=$R"
   done
 done
 echo "P1DRAWSDONE" >> $L
