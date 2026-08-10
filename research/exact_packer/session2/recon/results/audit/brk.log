@@ -389,3 +389,63 @@ PARFILL round=1 parity=even even=437484 odd=710613 wids=[16, 18, 20, 22]
 FILL round=1 budget=74 moved=0 best=437484
 P1  [r2.p1.brk]    240s  obj=437484      Z1=15.0     Z2=4293   Z3=541.0     feas=y   ran 233s  py3.12
 # [r2.p3.off]
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        4      79.6   51.7%   1219023747 15314670.4
+  opstat  grow        1      24.6   16.0%            0        0.0
+  opstat  bal         2       0.1    0.0%            0        0.0
+  opstat  pref        2      19.6   12.7%       182479     9316.3
+  opstat  bay         1      29.4   19.1%            0        0.0
+  opstat  TOTAL      10     153.2   99.5%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        4      80.6   52.3%   1218896027 15129909.4
+  opstat  grow        1      22.7   14.7%            0        0.0
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        1      15.6   10.1%       379802    24380.3
+  opstat  bay         1      33.9   22.0%        39166     1157.0
+  opstat  TOTAL       8     152.7   99.1%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        5      69.1   44.8%   1218881336 17649591.4
+  opstat  grow        1      27.9   18.1%       530697    18990.4
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        1      15.6   10.1%       126325     8106.3
+  opstat  bay         1      40.8   26.4%            0        0.0
+  opstat  TOTAL       9     153.4   99.4%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        5      71.9   45.9%   1218965821 16957645.9
+  opstat  grow        1      28.1   17.9%       374937    13351.2
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        1      15.9   10.1%       184417    11632.0
+  opstat  bay         2      39.7   25.4%            0        0.0
+  opstat  TOTAL      10     155.6   99.4%                        
+WSTAT round=0 n=4 4355694 4579057 4368877 4687826  spread=7.63%
+PARFILL round=1 parity=even even=4355694 odd=4579057 wids=[16, 18, 20, 22]
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        2      26.6   39.7%   1218735722 45800235.4
+  opstat  grow        1      12.8   19.1%            0        0.0
+  opstat  bal         2       0.0    0.0%            0        0.0
+  opstat  pref        2      10.8   16.2%       117813    10867.5
+  opstat  bay         1      15.7   23.5%       113203     7188.0
+  opstat  TOTAL       8      66.0   98.5%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        3      38.5   53.3%   1218317541 31607489.4
+  opstat  grow        1      12.8   17.7%       445500    34868.4
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        1       6.9    9.5%       239082    34882.4
+  opstat  bay         1      13.2   18.2%            0        0.0
+  opstat  TOTAL       7      71.4   98.7%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        3      37.6   51.9%   1218368632 32368041.5
+  opstat  grow        1      13.8   19.1%            0        0.0
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        1       6.8    9.4%       217459    31959.6
+  opstat  bay         1      13.7   18.8%            0        0.0
+  opstat  TOTAL       7      72.0   99.2%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        3      37.7   50.4%   1218496013 32339361.6
+  opstat  grow        1      14.1   18.9%            0        0.0
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        1       6.8    9.1%       229046    33529.8
+  opstat  bay         1      15.2   20.3%            0        0.0
+  opstat  TOTAL       7      73.9   98.9%                        
+FILL round=1 budget=68 moved=0 best=4355694
+P3  [r2.p3.off]    240s  obj=4355694     Z1=112.0    Z2=5000   Z3=7406.0    feas=y   ran 239s  py3.12
