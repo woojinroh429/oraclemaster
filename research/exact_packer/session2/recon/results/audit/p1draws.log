@@ -1,0 +1,5 @@
+# [r1.p1.ax0]
+DRAW wid=1 gen=1 axis=0 ask=31.0 took=11.4 obj=911650
+DRAW wid=3 gen=1 axis=0 ask=31.0 took=12.2 obj=911650
+DRAW wid=2 gen=1 axis=0 ask=31.0 took=17.1 obj=731481
+DRAW wid=0 gen=1 axis=0 ask=31.0 took=18.2 obj=779586
