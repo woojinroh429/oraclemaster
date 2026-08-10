@@ -7,3 +7,4 @@ P1   p1.ax2.w3000   work=3000     axis=2 rep=0  obj=684687       feas=y    15.2s
 P1   p1.ax3.w3000   work=3000     axis=3 rep=0  obj=737578       feas=y    18.3s  digest=273ae9b80a90ad5b
 P1   p1.ax4.w3000   work=3000     axis=4 rep=0  obj=1403609      feas=y    21.8s  digest=6f722c82fabd41ec
 P1   p1.ax5.w3000   work=3000     axis=5 rep=0  obj=1350271      feas=y    19.6s  digest=4e77d20cd764e03b
+P1   p1.ax0.w6000   work=6000     axis=0 rep=0  obj=1243617      feas=y    46.6s  digest=35c3c5e943f9a781
