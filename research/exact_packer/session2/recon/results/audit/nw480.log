@@ -51,3 +51,5 @@ FILL round=1 budget=149 moved=0 best=2776607
 P16 [b480.r2.p16.w3]   480s  obj=2776607     Z1=123.0    Z2=1216   Z3=4532.0    feas=y   ran 480s  py3.12
 NW480DONE
 # [b480.r3.p16.w4]
+WSTAT round=0 n=4 2451552 3453627 3202618 3526905  spread=43.86%
+PARFILL round=1 parity=even even=2451552 odd=3453627 wids=[16, 18, 20, 22]
