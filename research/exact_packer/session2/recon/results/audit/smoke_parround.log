@@ -4,3 +4,4 @@ WSTAT round=1 n=4 834684 853486 671556 867918  spread=29.24%
 WSTAT round=2 n=4 777438 856012 833527 731844  spread=16.97%
 P1  [smoke]        120s  obj=671556      Z1=33.0     Z2=6315   Z3=721.0     feas=y   ran 81s  py3.12
 # [OGC_ROUNDS=3 OGC_PARROUND=0]
+WSTAT round=0 n=4 689522 671556 776194 834684  spread=24.29%
