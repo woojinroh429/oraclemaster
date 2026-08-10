@@ -4061,6 +4061,11 @@ def algorithm(prob_info, timelimit=60):
             _p = 0 if _par[0] <= _par[1] else 1
             _keep = nw if _prm == "4" else nw - 1
             _wl_r = [2 * (_r * nw + i) + (_p if i < _keep else 1 - _p) for i in range(nw)]
+            if os.environ.get("OGC_WSTAT"):
+                import sys as _sy
+                _sy.stderr.write("PARROUND round=%d parity=%s even=%.0f odd=%.0f wids=%s\n"
+                                 % (_r, "even" if _p == 0 else "odd", _par[0], _par[1], _wl_r))
+                _sy.stderr.flush()
         try:
             if nw > 1:
                 out = _pool_round(prob_info, _rb, _r, nw, cwd, _shdir,
