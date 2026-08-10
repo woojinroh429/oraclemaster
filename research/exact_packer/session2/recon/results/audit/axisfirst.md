@@ -11,42 +11,39 @@
 (32-210% between configs against 0.0-12.6% repeating one).  Both extremes -- best ax5 and worst
 ax0 -- are the two axes that NEVER open a run under the shipped wiring.
 
-## Construction level: 251 DRAW lines, and this is the part that matters
+## Construction level: 251 DRAW lines
 
-    axis    n      best construction   median construction
-    0     152          533,320              946,574
-    3      20          541,099              892,710
-    1      21          576,367              907,224
-    4      22          549,408              944,919
-    2      16          781,046              903,770
-    5      20          876,079            1,033,770   <- worst constructions
-
-NOT ONE OF 251 CONSTRUCTIONS REACHED 450,000.  The best ever was 533,320.  Runs reach 437,959,
-and brkhalf reached 413,954.
+    NOT ONE OF 251 CONSTRUCTIONS REACHED 450,000.  The best ever was 533,320.  Runs reach 437,959,
+    and brkhalf reached 413,954.
 
 So the beam never produces the answer on prob_1; it produces a starting point, and the repair
-operators close the last 20%.  And ax5, whose constructions are the WORST of the six by a wide
-margin -- median 1,033,770 against ax0's 946,574 -- gives the BEST final answer.  Construction
-quality does not predict run quality here; it is inversely related across these six points.
+operators close the last 20%.  That claim is about the pooled minimum and does not depend on how
+the draws are grouped, so it stands.
 
-## WHAT THIS INVALIDATES, INCLUDING MOST OF TONIGHT'S REASONING
+## A CLAIM I MADE HERE AND HAVE TO WITHDRAW
 
-I modelled a WSTAT draw as "a min over ~12 constructions" and concluded the lever was buying more
-of them -- more rounds, more workers on the winning config, PARROUND.  That model is wrong.  The
-constructions are not draws from the answer distribution; they are seeds, and 251 of them never
-once landed where the run lands.
+I wrote that ax5 has the WORST constructions (median 1,033,770) and the BEST final answer, and
+called construction quality inversely related to run quality.  That was an artifact of pooling:
+the per-axis table mixed config-A and config-B workers and mixed the pinned cells with the
+rotation cell, and config B's constructions are much worse on this instance.  Read per cell, over
+config-A workers only:
 
-It also explains, in one mechanism, three separate dead ends measured tonight:
+    cell        draws   best seed    med seed      final    seed -> final
+    r1.ax0        34     687,209     936,201     630,785        8.2%
+    r1.ax1        43     576,367     941,001     469,427       18.6%
+    r1.ax2        34     587,906     886,482     515,465       12.3%
+    r1.ax3        33     541,099     899,368     517,814        4.3%
+    r1.ax4        34     533,320     962,988     468,853       12.1%
+    r1.ax5        38     539,626     968,575     437,959       18.8%
+    r1.rot        35     541,099     925,493     453,039       16.3%
+    r2.ax0        38     602,487   1,004,051     469,650       22.0%
 
-    round 0 saturates at 155 s (248 samples)     the construction finishes in ~8 s; the rest of
-                                                 the round is operator time, and the operators
-                                                 saturate
-    the 73 s fill round moves 4% (53 samples)    a short round buys another seed, not another
-                                                 answer
-    more rounds lose, parity read inverts        same reason, plus a shorter round reads worse
+ax5's best seed is 539,626, mid-field, not worst.  There is no inversion.  What the table does
+show is that the seed-to-final improvement ranges 4.3% to 22.0%, i.e. the operators' contribution
+varies by a factor of five between cells.
 
-## WHAT IS ACTUALLY OPEN
+## AND THE AXIS RANKING ITSELF IS NOT YET SAFE
 
-Which axis produces the most IMPROVABLE seed, not the best seed.  ax5 is the candidate and it has
-one replicate.  The measurement to make is per-axis (construction -> final) improvement, which the
-DRAW lines plus the run outcome already support.
+ax0 has two replicates: 630,785 and 469,650.  That single axis spans 25%, which covers almost the
+whole 44% gap I reported between the best and worst axes at one replicate each.  The r1 ranking
+cannot be trusted until r2 is complete, and I should not have led with the 44%.
