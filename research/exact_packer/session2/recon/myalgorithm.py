@@ -3767,7 +3767,14 @@ def algorithm(prob_info, timelimit=60):
     #
     # So the knob stays available and the default stays where it was measured.
     _rfrac = None
-    _rfs = os.environ.get("OGC_RESFRAC")
+    # SHIPPED DEFAULT AS OF THE 11TH ENTRY.  The reserve is not polish budget, it is second-round
+    # budget: raising it lowers wbudget, which lowers _rb, which drops the fill gate 0.25*_rb below
+    # the leftover, so a SECOND WORKER ROUND runs.  Measured tonight against the uncapped tail
+    # polish -- prob_1 four replicates mean -1.04%, worst case -6.38%, run-to-run range 19.4% ->
+    # 8.0%; prob_3 -0.03%; prob_20 +2.23%; prob_16 +10.69%.  That is the 7th submission's profile,
+    # which is still the best P1 (2,685,759) and best P3 (5,569,691) this project has scored,
+    # against 3,185,928 and 5,886,815 in the 10th, and it is shipped as a deliberate trade.
+    _rfs = os.environ.get("OGC_RESFRAC", "0.35")
     if _rfs:
         try:
             _rfrac = min(0.80, max(0.02, float(_rfs)))
@@ -3913,7 +3920,7 @@ def algorithm(prob_info, timelimit=60):
     _FILL = os.environ.get("OGC_FILL", "1") != "0"
     # OGC_PARFILL=1 points the fill round at the configuration that answered.  Off until measured;
     # the reasoning is at the point of use, below.
-    _PARFILL = os.environ.get("OGC_PARFILL", "0") != "0"
+    _PARFILL = os.environ.get("OGC_PARFILL", "1") != "0"
     _fr = _R                                   # next round index: continues, never repeats
     while True:
         left = timelimit - (time.time() - t0) - 1.0
@@ -4025,7 +4032,7 @@ def algorithm(prob_info, timelimit=60):
                 pass
             try:
                 if left > 3.0:
-                    _pc = os.environ.get("OGC_POLCAP")
+                    _pc = os.environ.get("OGC_POLCAP", "5")
                     _pl = min(left, max(3.0, float(_pc))) if _pc else left
                     imp = _z3_improve(prob_info, best[1], _pl)
                     if imp is not None:
