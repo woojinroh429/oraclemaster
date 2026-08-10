@@ -33,3 +33,5 @@ P8  [P2.r2.p8.w3]   120s  obj=11252       Z1=0.0      Z2=2413   Z3=8.0       fea
 WSTAT round=0 n=4 11252 11252 11252 11252  spread=0.00%
 P8  [P2.r3.p8.w4]   120s  obj=11252       Z1=0.0      Z2=2413   Z3=8.0       feas=y   ran 76s  py3.12
 # [P2.r3.p8.w3]
+WSTAT round=0 n=3 11252 11252 11252  spread=0.00%
+P8  [P2.r3.p8.w3]   120s  obj=11252       Z1=0.0      Z2=2413   Z3=8.0       feas=y   ran 76s  py3.12
