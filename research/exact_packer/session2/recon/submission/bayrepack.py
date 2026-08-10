@@ -782,9 +782,30 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
                             _r, _c = _b2 / (_n2 * _n2), 0.0
                         _CALIB[1] = (max(0.0, _c), _r)
                         _PAIRRATE[0] = _r
-                    elif _pts:
+                    elif _pts and _pts[-1][0] >= 4000.0:
+                        # ONE POINT IS ONLY A RATE IF THE PAIR LOOP DOMINATED IT.
+                        #
+                        # The loop above breaks the moment a build exceeds 0.25 s, so a slow FIRST
+                        # pack ends the calibration with a single measurement -- and the note above
+                        # already records that at these sizes the fixed cost is 77% of the build.
+                        # Charging all of it to the quadratic term at 474 columns fits
+                        # 458 ms / 474^2 = 2.04e-06 s/col^2 against a real 6.5e-09: 313x high.  The
+                        # tier predictor then declines every rung and brk does nothing at all --
+                        # observed, `brk calib: 474:458.1ms -> fixed 0.000s + 2.04e-06` followed by
+                        # opstat showing the operator taking 0.8 s and 0.0 s on two workers where
+                        # a calibrated run had it doing real work.
+                        #
+                        # So a single point may set the rate only when it is big enough that the
+                        # constant cannot be most of it.  4000 columns puts the pair loop at
+                        # roughly 0.1 s against a fixed cost measured in tens of milliseconds.
+                        # Below that the SEEDED rate stands: it is 6.4e-08, an order of magnitude
+                        # high rather than three, and erring high is the safe direction because it
+                        # declines tiers rather than overrunning.
                         _CALIB[1] = (0.0, _pts[-1][1] / (_pts[-1][0] ** 2))
                         _PAIRRATE[0] = _CALIB[1][1]
+                    elif _pts and os.environ.get("BRK_DEBUG") == "1":
+                        print("    brk calib: %d:%.1fms is too small to fit a rate -- keeping %.3g"
+                              % (int(_pts[-1][0]), 1000.0 * _pts[-1][1], _PAIRRATE[0]), flush=True)
                     if os.environ.get("BRK_DEBUG") == "1" and _CALIB[1]:
                         print("    brk calib: %s -> fixed %.3fs + %.3g s/col^2"
                               % (" ".join("%d:%.1fms" % (int(n), 1000.0 * b) for n, b in _pts),
