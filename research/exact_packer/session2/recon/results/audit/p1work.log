@@ -19,3 +19,4 @@ P1   p1.ax5.w6000 work=6000      B=48   K=6 axis=5  obj=1464281      feas=y    4
 P1   p1.ax0.w12000 work=12000     B=96   K=4 axis=0  obj=1121887      feas=y    89.3s  digest=8b13a7bee0b2e644
 P1   p1.ax1.w12000 work=12000     B=96   K=4 axis=1  obj=1323041      feas=y    91.9s  digest=89db34b8dbfdfe48
 P1   p1.ax2.w12000 work=12000     B=67   K=5 axis=2  obj=522683       feas=y    51.1s  digest=b2dae1698fa82ddf
+P1   p1.ax3.w12000 work=12000     B=67   K=5 axis=3  obj=678761       feas=y    59.6s  digest=45250c36ba686827
