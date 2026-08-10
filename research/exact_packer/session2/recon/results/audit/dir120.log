@@ -20,3 +20,5 @@ P16 [r3.p16.dir]   120s  obj=3713904     Z1=183.0    Z2=1405   Z3=5079.0    feas
 WSTAT round=0 n=4 4041142 3578925 4047871 4208085  spread=17.58%
 P16 [r4.p16.off]   120s  obj=3558783     Z1=176.0    Z2=2225   Z3=4822.0    feas=y   ran 87s  py3.12
 # [r4.p16.dir]
+WSTAT round=0 n=4 4071859 4153506 3703625 3841040  spread=12.15%
+P16 [r4.p16.dir]   120s  obj=3695875     Z1=181.0    Z2=1784   Z3=5109.0    feas=y   ran 89s  py3.12
