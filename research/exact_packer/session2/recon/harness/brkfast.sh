@@ -13,7 +13,12 @@
 #
 # TWO LEVERS, NEITHER NEEDING A CODE CHANGE.
 #
-#   THREADS.  cranepack.cpp already carries a parallel build -- per-thread edge buffers and memos
+#   THREADS, SCOPED TO THE PACKER.  OGC_BRKTHREADS raises OpenMP through ctypes immediately
+#   before CP.pack and restores 1 in a finally, so the parallel conflict build runs and no other
+#   operator ever sees a second thread.  That is strictly narrower than unpinning the global cap,
+#   which would multi-thread the BEAM as well -- the thing the cap exists to prevent.
+#
+#   cranepack.cpp already carries a parallel build -- per-thread edge buffers and memos
 #   merged afterwards, with CRANEPACK_SERIAL=1 kept specifically so the two paths can be shown to
 #   produce the same edge set.  It picks min(omp_get_max_threads(), 8).  myalgorithm.py sets
 #   OMP_NUM_THREADS=1 at module load, for a good reason -- four workers times N threads
@@ -47,8 +52,8 @@ B="OGC_BRK=1"
 for rep in 1 2; do
   for p in 1 3; do
     run "r$rep.p$p.brk"    $p 240 "$B"
-    run "r$rep.p$p.omp2"   $p 240 "$B OMP_NUM_THREADS=2 OGC_TPCTL=0"
-    run "r$rep.p$p.omp4"   $p 240 "$B OMP_NUM_THREADS=4 OGC_TPCTL=0"
+    run "r$rep.p$p.th2"    $p 240 "$B OGC_BRKTHREADS=2"
+    run "r$rep.p$p.th4"    $p 240 "$B OGC_BRKTHREADS=4"
     run "r$rep.p$p.nout50" $p 240 "$B OGC_TIERNOUT=0.5"
     run "r$rep.p$p.nout25" $p 240 "$B OGC_TIERNOUT=0.25"
   done

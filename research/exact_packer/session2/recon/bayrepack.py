@@ -52,6 +52,59 @@ _CP = None
 _CP_TRIED = False
 
 
+# THE CONFLICT BUILD IS PARALLEL IN THE ENGINE AND HAS NEVER RUN THAT WAY (OGC_BRKTHREADS).
+#
+# cranepack's cost is its pairwise conflict graph: an O(ncol^2) loop calibrated at 6.4e-8 s per
+# squared column, so ncol 11,580 costs 8.3 s and 24,318 costs 39.1 s.  OPSTAT prices the whole
+# operator at 34.7 s on prob_1 and 36.1 s on prob_3, which is 22-23% of a worker.
+#
+# cranepack.so is built with OpenMP -- it carries GOMP_parallel -- and sizes that loop from
+# omp_get_max_threads(), with per-thread edge buffers and memos merged afterwards and
+# CRANEPACK_SERIAL=1 kept so the two paths can be shown to produce the same edge set.  It has
+# been serial for the whole project because myalgorithm caps OMP_NUM_THREADS at module load and
+# calls threadpool_limits(limits=1) inside every worker, both correctly: four workers times N
+# threads oversubscribes four cores under a 400% throttle.
+#
+# Raising the cap globally would take the BEAM multi-threaded too, which is the thing the cap
+# exists to prevent.  Raising it only around this call does not.  libgomp's omp_set_num_threads
+# is reachable through ctypes -- verified in this container, 4 -> set(1) -> 1 -- so the threads
+# go up immediately before pack() and back to one in a finally, and no other operator ever sees
+# more than one.  No rebuild, so the shipped .so files stay in step with their sources.
+#
+# Default 1, which does not even dlopen: the guard below returns before loading, so the shipped
+# path is what it was.
+_GOMP = [None, False]
+
+
+def _omp_threads(n):
+    """Set OpenMP threads for this process.  Returns False if libgomp is not reachable."""
+    if n <= 1 and not _GOMP[1]:
+        return False                      # never loaded and not asked to raise: nothing to do
+    if not _GOMP[1]:
+        _GOMP[1] = True
+        try:
+            import ctypes
+            _lib = ctypes.CDLL("libgomp.so.1")
+            _lib.omp_set_num_threads.argtypes = [ctypes.c_int]
+            _GOMP[0] = _lib
+        except Exception:
+            _GOMP[0] = None
+    if _GOMP[0] is None:
+        return False
+    try:
+        _GOMP[0].omp_set_num_threads(int(n))
+        return True
+    except Exception:
+        return False
+
+
+def _brk_threads():
+    try:
+        return max(1, min(8, int(os.environ.get("OGC_BRKTHREADS", "1"))))
+    except Exception:
+        return 1
+
+
 def _load():
     global _CP, _CP_TRIED
     if not _CP_TRIED:
@@ -1122,7 +1175,13 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
         # take the next tier down and try again.  The operator then degrades one rung at a time
         # instead of vanishing, and the total spent on refused builds is bounded by the ladder.
         _rest = list(range(_tier + 1, len(_TIERS))) if _tier >= 0 else []
-        while True:
+        # Threads up for the packer only.  The finally is the load-bearing half: a count left
+        # raised on an exception path would hand the BEAM extra threads for the rest of the
+        # worker, which is exactly the oversubscription the module-level cap prevents.
+        _nth = _brk_threads()
+        _raised = _omp_threads(_nth) if _nth > 1 else False
+        try:
+          while True:
             _pt = time.time()
             r = CP.pack(blocks_in, W, H, STEP, _ask,
                         seed=12345 + 7919 * k, warm=warm or None, frozen=froz_in,
@@ -1152,6 +1211,9 @@ def repack(prob_info, sol, budget, total_fn, build_fn, engine_fn=None,
             wts, winw = _price(cand, isres, blocks_in)
             warm = [w for w in (warm or []) if w[0] < len(cand)]
             _NCOL = _ncol_est(STEP, NOUT, NENT)
+        finally:
+            if _raised:
+                _omp_threads(1)
         # the ratio is against what was ASKED, which is what the deflation has to undo
         _el = time.time() - _pt
         # AN ABORTED BUILD IS NOT AN ANSWER.  cranepack now projects its own O(ncol^2) build
