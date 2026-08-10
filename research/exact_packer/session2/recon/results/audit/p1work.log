@@ -32,3 +32,4 @@ P16  p16.ax5.w3000 work=3000      B=48   K=6 axis=5  obj=6610637      feas=y    
 P16  p16.ax0.w6000 work=6000      B=96   K=4 axis=0  obj=6408684      feas=y    42.8s  digest=72acee549a274a62
 P16  p16.ax1.w6000 work=6000      B=96   K=4 axis=1  obj=6214513      feas=y    49.6s  digest=f94e0d1d04fa8358
 P16  p16.ax2.w6000 work=6000      B=67   K=5 axis=2  obj=2477998      feas=y    32.2s  digest=973cef52e3c7c256
+P16  p16.ax3.w6000 work=6000      B=67   K=5 axis=3  obj=4737104      feas=y    43.7s  digest=106482094f322989
