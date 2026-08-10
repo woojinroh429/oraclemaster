@@ -145,3 +145,41 @@ Also recorded because it is the largest single number in the file: on prob_16 ON
 work 6,000 on axis 2 returns 2,477,998, while this project's best ever full run on that instance
 is 2,795,643 and today's 240 s runs return 3.28M-3.66M.  A single draw beats the whole pipeline by
 11.4% there.  Nothing has ever explained that.
+
+## THE AXIS SWEEP FINISHED AND THE ANSWER IS NO
+
+    axis     r1        r2        mean       spread
+    ax0   630,785   469,650   550,218      25.4%
+    ax1   469,427   422,629   446,028      11.1%   best mean
+    ax4   468,853   445,860   457,357       5.2%
+    ax5   437,959   482,013   459,986      10.1%
+    ax3   517,814   437,484   477,649      18.4%
+    ax2   515,465   515,465   515,465       0.0%
+    rot   453,039       -
+
+NO PINNED AXIS BEATS THE ROTATION.  The best mean, ax1 at 446,028, is 1.5% under the rotation's
+single cell, and the pinned axes span 5-25% between their own replicates, so 1.5% is inside the
+noise.  And the lowest value recorded all night -- 413,954 -- came from the ROTATION, in brkhalf's
+`all` r3.  Twelve pinned cells never went below it.
+
+I said after r1 that ax5 looked like the best axis at 437,959.  r2 returned 482,013.  That was a
+draw, and withdrawing it is the third time tonight a one-replicate axis reading has reversed.
+
+## WHAT THE SWEEP DID BUY: AXES DIFFER IN VARIANCE, NOT ONLY IN MEAN
+
+    ax2   0.0%   515,465 twice, to the digit
+    ax4   5.2%
+    ax0  25.4%
+
+On a per-instance score the worst case sets the tier, so low variance has value by itself.  The
+rotation mixes all six, so its variance is contaminated by gamblers like ax0.  "Mix only the
+low-variance axes" is a different proposal from "pin the best axis" and it is not closed -- but it
+would need the variance ranking to hold on more than two replicates, and two replicates is exactly
+what has misled me three times today.
+
+## AND THE METHOD IS THE REAL FINDING
+
+Fourteen 240 s cells -- 56 minutes of four cores -- produced "cannot separate, and negative".
+Nothing below the 5-25% replicate spread is visible this way, and the effects worth having are
+smaller than that.  Every remaining question goes to OGC_WORKCAP, where one (axis, work) pair has
+one answer and a digest to prove it.
