@@ -60,3 +60,7 @@ PARFILL round=1 parity=even even=2755393 odd=3091086 wids=[16, 18, 20, 22]
 FILL round=1 budget=64 moved=0 best=2755393
 P16 [r2.p16.bk67]   240s  obj=2755393     Z1=125.0    Z2=506    Z3=4349.0    feas=y   ran 238s  py3.12
 # [r2.p20.base]
+WSTAT round=0 n=4 11610914 8868533 11343809 9195833  spread=30.92%
+PARFILL round=1 parity=odd even=11343809 odd=8868533 wids=[17, 19, 21, 23]
+FILL round=1 budget=65 moved=1 best=8850352
+P20 [r2.p20.base]   240s  obj=8850352     Z1=1124.0   Z2=1243   Z3=8978.0    feas=y   ran 240s  py3.12
