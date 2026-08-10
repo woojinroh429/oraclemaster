@@ -42,3 +42,33 @@ difference.
 If a 2.6x seed advantage is worth nothing at the finish, that is the single most important fact
 about this algorithm and it deserves to be stated plainly rather than worked around.  bk67 is the
 test: same six orders and weights, one width and one K, portfolio intact.
+
+
+## CORRECTION: THE 0.4% WAS THE WRONG COMPARISON
+
+I compared production's final against a seed production NEVER GENERATES -- axis 2 at work 6,000,
+which costs 32 s where production gives a draw 7-8 s.  Against the seeds production actually makes:
+
+    prob_16, axis 2 at work 3,000 (roughly what a production draw gets)   3,190,472
+    prob_16, production final                                             2,469,078
+                                                                          -----------
+    what the back half actually delivers                                      22.6%
+
+So the operators are worth about 22%, not 0.4%, and the claim that "the back half dominates its
+front half by flattening it" was built on a mis-specified baseline.  Withdrawn in that form.
+
+## WHAT REPLACES IT IS MORE INTERESTING
+
+Three routes that share almost nothing land within 1% of each other on prob_16:
+
+    the full pipeline, 960 core-seconds                       2,469,078
+    ONE beam draw, axis 2, work 6,000, 32 core-seconds        2,477,998
+    the best value ever recorded, from another configuration  2,454,368
+
+Thirty times the compute, a completely different algorithm shape, and a third setting altogether,
+all inside 1%.  That looks like a floor rather than a coincidence -- and if it is one, it explains
+why every arm tonight failed without any of them being bad: they were pushing on something already
+against a wall.
+
+STATED AS A HYPOTHESIS.  Three points, and no exact lower bound for prob_16 is known, so "floor"
+is a shape in the data and not a proof.  The way to test it is a bound, not another arm.
