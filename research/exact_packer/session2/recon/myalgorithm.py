@@ -3999,12 +3999,14 @@ def algorithm(prob_info, timelimit=60):
     # budget friend_ref/README.md records the reference submission actually using -- reversed the
     # thing it was shipped for.  Grouped over all eight cells measured:
     #
-    #     budget      cells   mean better   WORST better   span tighter   avg mean   avg worst
+    #     budget      cells   mean better   worst better   SPAN tighter   avg mean   avg worst
     #     <= 240 s      6         5/6           6/6            5/6         -5.32%     -11.02%
-    #      > 240 s      2         1/2           0/2            0/2         -0.09%      +5.87%
+    #      > 240 s      2         1/2           1/2            0/2         -0.38%      +4.06%
     #
-    # Three metrics flip together at the same boundary, which is why this is a gate and not a
-    # retreat.  prob_16 at 480 s is the cell that decides it, at five pairs:
+    # Above the boundary the mean is a wash (-0.38%) and the SPAN ADVANTAGE DISAPPEARS ENTIRELY --
+    # 0 of 2 cells, against 5 of 6 below it.  Narrowing the band is the whole reason this arm was
+    # adopted, so the gate is cut where that reason stops holding.  prob_16 at 480 s is the cell
+    # that decides it, at five pairs:
     #
     #     w4   2,486,135  2,676,674  2,419,096  2,486,135  2,486,135   span 10.6%
     #     w3   2,239,646  2,776,607  2,907,308  2,592,530  2,239,646   span 29.8%

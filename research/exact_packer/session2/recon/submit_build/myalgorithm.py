@@ -3995,13 +3995,45 @@ def algorithm(prob_info, timelimit=60):
     # than four cores is left exactly as it was -- that path has its own worker routing (see
     # SUBMISSION.md item 7) and was not part of this experiment.
     #
+    # AND IT ONLY HOLDS UP TO 240 s.  The table above stopped there; carrying it to 480 s -- the
+    # budget friend_ref/README.md records the reference submission actually using -- reversed the
+    # thing it was shipped for.  Grouped over all eight cells measured:
+    #
+    #     budget      cells   mean better   worst better   SPAN tighter   avg mean   avg worst
+    #     <= 240 s      6         5/6           6/6            5/6         -5.32%     -11.02%
+    #      > 240 s      2         1/2           1/2            0/2         -0.38%      +4.06%
+    #
+    # Above the boundary the mean is a wash (-0.38%) and the SPAN ADVANTAGE DISAPPEARS ENTIRELY --
+    # 0 of 2 cells, against 5 of 6 below it.  Narrowing the band is the whole reason this arm was
+    # adopted, so the gate is cut where that reason stops holding.  prob_16 at 480 s is the cell
+    # that decides it, at five pairs:
+    #
+    #     w4   2,486,135  2,676,674  2,419,096  2,486,135  2,486,135   span 10.6%
+    #     w3   2,239,646  2,776,607  2,907,308  2,592,530  2,239,646   span 29.8%
+    #
+    # w3 sets the instance record twice out of five and loses the other three, ending +8.6% on the
+    # worst draw with a span three times wider.  Two draws out of five is a lottery ticket and the
+    # submission is one run -- the same reason w2 was rejected at 120 s.  prob_1 at 480 s is mildly
+    # fine (-2.5% mean, -0.5% worst), so the boundary is not clean across instances; the gate is
+    # cut where the EVIDENCE is, and 240 s is the last budget where every cell agrees.
+    #
+    # 240 s IS THE MEASURED EDGE, NOT AN ESTIMATED CROSSOVER.  Nothing between 240 and 480 was run,
+    # so the true boundary is somewhere in there.  Putting the gate at the last budget that was
+    # actually measured means the untested interval keeps the behaviour it already had.
+    #
+    # WHY THIS GATE IS NOT THE ONES THAT DIED TONIGHT.  brk needed a feature that would say in
+    # advance which instance benefits, and no feature did; the axis gate needed the same.
+    # `timelimit` is an argument to this function.  There is nothing to infer and nothing to
+    # mispredict.
+    #
     # WORKERS=n overrides, and WORKERS=4 restores the previously shipped behaviour exactly.
     try:
         _cpu = os.cpu_count() or 4
+        _full = max(1, min(8, _cpu))
         nw = int(os.environ.get("WORKERS", "0")) or (
-            max(1, min(8, _cpu - 1)) if _cpu >= 4 else max(1, min(8, _cpu)))
+            max(1, _full - 1) if (_cpu >= 4 and timelimit <= 240) else _full)
     except Exception:
-        nw = 3
+        nw = 4
     cwd = os.path.dirname(os.path.abspath(__file__))
     # RESERVE FOR THE FINAL POLISH, and it was too big.  _z3_improve returns immediately when it
     # has nothing to do -- measured on the final-round practice set, four different rosters came

@@ -171,3 +171,40 @@ but the cell is being filled to five pairs, because 480 s is where the points ar
 This is the fifth time tonight a two-draw read was overturned by the third draw.  The pattern is
 not that the arms are bad, it is that two draws never settled anything at any point in this
 session, and every claim written at n=2 has had to be withdrawn.
+
+## FINAL: GATED AT timelimit <= 240 s, AND THE GATE IS ABOUT THE SPAN
+
+37 pairs, eight cells, two instances, four budgets, one four-core box:
+
+    cell             n      mean     worst   w4 span   w3 span
+    prob_1    60s    3    -0.85%    -2.23%     20.0%     12.4%
+    prob_1   120s    5   -15.50%   -18.68%     13.0%     14.9%
+    prob_1   240s    5    -4.25%   -16.80%     33.5%      9.5%
+    prob_1   480s    5    -2.36%    -0.49%     13.1%     16.2%
+    prob_16   60s    3    -6.98%   -12.20%     13.9%      0.0%
+    prob_16  120s    4    -5.31%   -10.08%     11.2%      0.0%
+    prob_16  240s    3    +0.96%    -6.10%     18.9%      6.4%
+    prob_16  480s    5    +1.61%    +8.62%     10.6%     29.8%
+
+    <= 240 s   6 cells   mean 5/6   worst 6/6   SPAN 5/6   avg mean -5.32%  avg worst -11.02%
+     > 240 s   2 cells   mean 1/2   worst 1/2   SPAN 0/2   avg mean -0.38%  avg worst  +4.06%
+
+Above the boundary the mean is a wash and the span advantage is gone completely.  Narrowing the
+band is the entire reason this arm was adopted, so the gate is cut where that reason stops.  The
+earlier draft of this note put the case on the worst draw instead; the final prob_1 480 s pairs
+moved that column from 0/2 to 1/2 and the span column did not move at all.  The span is the claim.
+
+WHY THE LONG BUDGETS BEHAVE DIFFERENTLY, from the worker traces: round-0 worker-to-worker spread
+is 53.4% at 480 s (three workers) and 59.6% at 300 s (four workers).  When the workers land that
+far apart, which ones you have decides the answer, so dropping one draw costs real objective.  At
+60-240 s they finish closer together and the extra core per worker dominates.
+
+    myalgorithm.py   nw = cpu - 1 when cpu >= 4 AND timelimit <= 240; otherwise unchanged.
+                     WORKERS=n overrides; WORKERS=4 restores the previous behaviour byte for byte.
+    submit_recon.zip rebuilt and verified FROM THE ZIP'S OWN CONTENTS:
+                       60 s -> WSTAT n=3, feas=y      300 s -> WSTAT n=4
+
+STILL NOT ESTABLISHED.  Two stage-2 instances on one four-core box.  The gate boundary is the last
+budget where the cells agree, not a located crossover -- nothing between 240 and 480 was run.  The
+hidden P1-P6 were never measured at all; the mechanism (a fifth runnable process on four cores)
+is instance-independent, but that is an argument, not a measurement.
