@@ -1,3 +1,4 @@
 P1   p1.ax0.w1500 work=1500      B=96   K=4 axis=0  obj=1569183      feas=y    11.5s  digest=3c884ca8a7aef834
 P1   p1.ax1.w1500 work=1500      B=96   K=4 axis=1  obj=1323041      feas=y    11.6s  digest=89db34b8dbfdfe48
 P1   p1.ax2.w1500 work=1500      B=67   K=5 axis=2  obj=686238       feas=y     8.2s  digest=117df0a25a57b280
+P1   p1.ax3.w1500 work=1500      B=67   K=5 axis=3  obj=823207       feas=y     9.5s  digest=7214a96f1854f5b9
