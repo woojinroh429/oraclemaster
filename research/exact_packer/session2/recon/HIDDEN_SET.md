@@ -1,3 +1,10 @@
+> **THIS IS THE PRELIMINARY ROUND.  That round is over.**
+>
+> The hidden set below (P1-P6, 60-900 s) and its analogue table are keyed to `data/train`, the
+> PRELIMINARY training set -- 21 of its 40 instances have Z1 = 0.  The finals training set is
+> `data/stage2`, where all 40 have Z1 > 0 (see report/techreport_ko.md, table 2).  Judging a
+> change on the instances below measures a competition that has already finished.
+
 # The hidden set, and what it means for what to measure
 
 From the preliminary final report.  Six problems, not forty.
