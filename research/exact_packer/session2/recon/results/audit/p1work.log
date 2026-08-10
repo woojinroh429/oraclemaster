@@ -24,3 +24,4 @@ P1   p1.ax4.w12000 work=12000     B=96   K=3 axis=4  obj=1252977      feas=y    
 P1   p1.ax5.w12000 work=12000     B=48   K=6 axis=5  obj=1464281      feas=y    48.0s  digest=4ec118b21ad7d5d0
 == P1WORK prob_1 done ==
 P16  p16.ax0.w3000 work=3000      B=96   K=4 axis=0  obj=6671345      feas=y    22.3s  digest=c6e4496f9a52c7c2
+P16  p16.ax1.w3000 work=3000      B=96   K=4 axis=1  obj=6720274      feas=y    22.7s  digest=459948e87a8c5cb7
