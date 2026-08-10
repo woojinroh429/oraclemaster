@@ -49,3 +49,32 @@ Any arm that perturbs the search resamples away from a control that already land
 so paired comparison on this instance is decided by which arm's control drew well.
 
 Two replicates is not a small sample here.  It is a systematically misleading one.
+
+## TWO CHECKS THAT WEAKEN THE HEADLINE ABOVE
+
+### 1. Beam restarts DO pay, so "the seed does not matter" cannot be general
+
+    prob_1, 116 worker-cells, 520 constructions
+      first construction per worker    116,  1,245 s
+      every later construction         404,  2,799 s   (69% of all beam time)
+      later ones that improved that worker's best   105  (26.0%)
+
+One restart in four improves its worker.  I expected this to come out near zero -- if seed quality
+were irrelevant, extra seeds would be too -- and it did not.  So "give the beam's budget to the
+operators" is not supported, and the flattening story cannot be as total as I stated it.
+
+### 2. bk67 was never shown to improve production seeds at all
+
+The chain I asserted was: deterministic table says 0.7/5 makes better seeds -> bk67 gives every
+axis 0.7/5 -> production seeds improve -> score should move -> it did not -> the bridge is broken.
+
+The third link is unmeasured.  The deterministic table is beam1, i.e. the FINE RUNG ALONE;
+production runs `_beam_once`, two rungs with a reserve.  And OGC_DRAWSTAT was not set on the bk67
+queue, so there is no record of what bk67 did to production's constructions.
+
+So the honest reading of bk67's result is narrower than what I wrote above: bk67 did not move the
+score, and whether that is because seed quality does not reach the score, or because bk67 never
+improved the seed in production, is NOT DETERMINED by this experiment.
+
+That makes harness/beamprod.py -- measuring `_beam_once` itself under WORKCAP -- required rather
+than optional, and it is the next thing to run.
