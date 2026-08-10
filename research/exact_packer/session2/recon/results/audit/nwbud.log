@@ -58,3 +58,5 @@ P16 [b240.r1.p16.w3]   240s  obj=2882808     Z1=129.0    Z2=867    Z3=4641.0    
 # [b240.r2.p1.w4]
 WSTAT round=0 n=4 594534 710613 564221 722186  spread=28.00%
 PARFILL round=1 parity=even even=564221 odd=710613 wids=[16, 18, 20, 22]
+FILL round=1 budget=72 moved=0 best=564221
+P1  [b240.r2.p1.w4]   240s  obj=564221      Z1=11.0     Z2=3628   Z3=800.0     feas=y   ran 234s  py3.12
