@@ -549,3 +549,38 @@ DRAW wid=1 gen=1 axis=2 ask=31.0 took=6.8 obj=895370
 DRAW wid=3 gen=1 axis=4 ask=31.0 took=7.4 obj=971929
 DRAW wid=0 gen=1 axis=1 ask=31.0 took=16.0 obj=576367
 DRAW wid=2 gen=1 axis=1 ask=31.0 took=16.1 obj=621487
+DRAW wid=3 gen=3 axis=0 ask=31.0 took=6.6 obj=1029647
+DRAW wid=1 gen=3 axis=4 ask=31.0 took=5.9 obj=859623
+DRAW wid=3 gen=4 axis=1 ask=31.0 took=6.4 obj=1028811
+DRAW wid=1 gen=4 axis=5 ask=31.0 took=6.7 obj=1162570
+DRAW wid=0 gen=3 axis=3 ask=31.0 took=16.5 obj=541099
+DRAW wid=3 gen=5 axis=2 ask=29.8 took=6.2 obj=971232
+DRAW wid=1 gen=5 axis=0 ask=25.7 took=6.3 obj=988080
+DRAW wid=3 gen=6 axis=3 ask=23.6 took=7.5 obj=960373
+DRAW wid=0 gen=4 axis=4 ask=24.5 took=13.4 obj=561494
+DRAW wid=3 gen=7 axis=4 ask=16.1 took=7.3 obj=893187
+DRAW wid=2 gen=3 axis=3 ask=17.4 took=9.1 obj=757253
+DRAW wid=1 gen=7 axis=2 ask=12.9 took=7.3 obj=1010428
+DRAW wid=0 gen=5 axis=5 ask=11.1 took=6.5 obj=887500
+DRAW wid=3 gen=8 axis=5 ask=8.7 took=5.6 obj=1137479
+DRAW wid=2 gen=4 axis=4 ask=8.4 took=6.1 obj=1114193
+DRAW wid=1 gen=8 axis=3 ask=5.6 took=4.3 obj=1079967
+DRAW wid=0 gen=6 axis=0 ask=4.6 took=4.2 obj=930280
+WSTAT round=0 n=4 487067 710613 499210 788492  spread=61.89%
+PARFILL round=1 parity=even even=487067 odd=710613 wids=[16, 18, 20, 22]
+DRAW wid=18 gen=1 axis=1 ask=14.7 took=8.8 obj=859986
+DRAW wid=16 gen=1 axis=1 ask=14.7 took=8.9 obj=960620
+DRAW wid=20 gen=1 axis=1 ask=14.7 took=8.9 obj=992160
+DRAW wid=22 gen=1 axis=1 ask=14.7 took=8.9 obj=960620
+DRAW wid=18 gen=3 axis=3 ask=14.7 took=5.8 obj=1018712
+DRAW wid=22 gen=3 axis=3 ask=14.7 took=6.3 obj=884456
+DRAW wid=16 gen=3 axis=3 ask=14.2 took=5.5 obj=801436
+DRAW wid=20 gen=3 axis=3 ask=13.2 took=5.3 obj=966672
+DRAW wid=18 gen=4 axis=4 ask=11.3 took=5.2 obj=962988
+DRAW wid=22 gen=4 axis=4 ask=9.6 took=4.5 obj=864293
+DRAW wid=16 gen=4 axis=4 ask=8.7 took=4.6 obj=985476
+DRAW wid=20 gen=4 axis=4 ask=7.9 took=5.7 obj=1004051
+DRAW wid=18 gen=5 axis=5 ask=6.1 took=5.5 obj=973718
+DRAW wid=16 gen=5 axis=5 ask=4.1 took=6.7 obj=891238
+FILL round=1 budget=74 moved=0 best=469427
+P1  [r2.p1.rot]    240s  obj=469427      Z1=8.0      Z2=2497   Z3=681.0     feas=y   ran 238s  py3.12
