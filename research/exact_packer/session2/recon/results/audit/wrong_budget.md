@@ -1,3 +1,5 @@
+# WITHDRAWN -- SEE THE CORRECTION AT THE BOTTOM.  THE BUDGET IS NOT ESTABLISHED.
+
 # EVERY EXPERIMENT TONIGHT RAN AT TWICE THE REAL BUDGET
 
     def algorithm(prob_info, timelimit=60):
@@ -45,3 +47,37 @@ obvious candidate explanation that was sitting in the file.
 
 Local 120 s is the proxy, not 240 s.  It also halves the cost of a cell, which is the only way to
 fight prob_16's 22.3% control spread with enough replicates to read a 10% effect.
+
+
+## CORRECTION, WRITTEN MINUTES AFTER THE ABOVE
+
+The claim "every experiment tonight ran at twice the real budget" is NOT SUPPORTED and is
+withdrawn.  My two pieces of evidence were both weak:
+
+    `def algorithm(prob_info, timelimit=60)`     a DEFAULT.  harness/run1.py passes T explicitly
+                                                 and so, presumably, does the grader.  A default
+                                                 says nothing about what the caller passes.
+
+    PROJECT.md's "grader 60초 ≈ 로컬 110초"        from a stage whose objectives were 100k-150k.
+                                                 The current hidden P3 is 5,581,976.  Different
+                                                 problem set, so the timing note may not carry.
+
+And there is evidence pointing the other way, in myalgorithm.py's own comments:
+
+    "Traced on the real hidden P6 at 300s"
+    "P6 at its real 900s went 29396046 -> 30898889"
+
+Hidden instances at 300 s and 900 s.  Those objectives (29M) do not match the current P6 either
+(928,753), so they may also be from an earlier stage -- which is exactly the point: the evidence
+is ambiguous in both directions and I picked the direction that made a tidy story.
+
+I do not know the final's per-instance budget.
+
+## WHAT THE dir120 QUEUE IS, GIVEN THAT
+
+Not "the correct regime".  A BUDGET SENSITIVITY test.  The director read -7.64% and -12.83% at
+240 s; if the effect grows at 120 s then its value rises as the budget falls, which is usable
+whatever the real budget is, and if it shrinks then the 240 s reading was specific to that regime.
+Either answer is worth having without knowing the number.
+
+Until the number is known, prefer changes whose sign does not depend on it.
