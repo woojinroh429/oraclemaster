@@ -51,3 +51,27 @@ worker abandons its basin and restarts.  The measured deficits are 21-41%, and t
 0.5, so on the instances above the mechanism NEVER FIRES.  That is what the sharerate queue tests:
 gap 0.5 against gap 0.3, six replicates on prob_1, then a no-harm pass on the instances the odd
 pair owns.
+
+## CORRECTION: PAIRING BY WORKER MEASURES THE MEDIAN, AND THE SCORE IS THE MINIMUM
+
+harness/pairw.py was added tonight to get four observations per cell instead of one, by pairing an
+arm against its control worker by worker.  That is four times the data and it does cancel
+between-run variance -- but the statistic it produces is a count of per-worker wins, which tracks
+the MEDIAN worker.  The objective is a minimum over workers.
+
+An arm that lifts the median while lowering the minimum scores well on that count and badly on the
+scoreboard.  The file already knew this and says so at the polish-reserve note:
+
+    "the median worker improved and the minimum got worse, so the arm goes the wrong way" -- the
+    argument used, correctly, to reject OGC_BEAMCAP
+
+which is exactly the arm pairw ranked second (cap20 +29% over 24 pairs, cap12 +17%).  The screen
+was reading the rejection reason as a recommendation.
+
+So the pairw numbers -- lst +25% over 80 pairs, cap20 +29%, cap12 +17%, share +33% -- are not
+adoption evidence and are biased in a known direction for this objective.  Nothing was adopted on
+them: both packaged builds rest on direct minimum comparisons over replicates.
+
+What pairw is still good for: arms that cannot change the between-worker spread, i.e. ranking
+knobs applied identically to every worker.  It is wrong for anything that changes pool
+composition, worker configuration, or draw width.
