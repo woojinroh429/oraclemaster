@@ -147,3 +147,27 @@ hidden set runs P1-P6 at up to ~500 s and none of them were measured -- 240 s is
 budget any of this covers.  The mechanism (a fifth runnable process on four cores) does not
 depend on the instance, which is the reason for shipping it, but that is an argument and not a
 measurement.
+
+## THE 480 s CHECK BREAKS THE CLAIM THE SHIP WAS BUILT ON, IN ONE CELL
+
+nw480.sh was queued to close the gap the ship note names: the hidden set runs its expensive
+instances at ~500 s and nothing here went past 240 s.  Three pairs on prob_1:
+
+    480 s        r1        r2        r3       mean    span    worst
+    w4      442,451   405,381   426,604    424,812    9.1%  442,451
+    w3      392,626   402,890   456,249    417,255   16.2%  456,249
+             -11.26%    -0.61%    +6.95%     -1.78%          +3.12%
+
+r1 was a new best for the instance at any budget (392,626) and was reported as w4 stalling where
+w3 kept descending.  r2 held.  r3 undid the part that mattered: w3's WORST draw is now 3.1% above
+w4's worst, and its span is the wider of the two.
+
+THE SHIP NOTE SAYS "the worst draw improves in all six cells" AND THAT IS NO LONGER UNIVERSAL.
+Eight cells now exist and seven of them still improve, by 2.2% to 18.7%, against one that
+degrades by 3.1%.  The mean at 480 s is still -1.78%.  The change is not being reverted on a
+three-pair cell -- reverting would rest on exactly the evidence quality that produced the error --
+but the cell is being filled to five pairs, because 480 s is where the points are.
+
+This is the fifth time tonight a two-draw read was overturned by the third draw.  The pattern is
+not that the arms are bad, it is that two draws never settled anything at any point in this
+session, and every claim written at n=2 has had to be withdrawn.
