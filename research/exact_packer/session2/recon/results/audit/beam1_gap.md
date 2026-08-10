@@ -70,3 +70,39 @@ production gives a draw 7-8 s.
 
 A plateau followed by a drop also explains why a coarse ladder misleads: 1,500 -> 3,000 reads
 -0.2% and would have been called saturation by any two-point test.
+
+
+## THE 11.4% CLAIM IS WITHDRAWN -- ITS BASELINE WAS STALE
+
+The file's headline read: one beam draw on prob_16 at work 6,000 axis 2 returns 2,477,998 against
+2,795,643 for "the best full run this project has ever recorded", i.e. 11.4%.
+
+Re-reading every P16 line in results/audit:
+
+    2,454,368   the actual best ever
+    2,469,078   a PRODUCTION 240 s run, reproduced to the digit three times
+                ([r1.p16.dk2], [p16.base], [s.p16.base])
+    2,477,998   the single draw
+
+Production beats the single draw by 0.4%.  The 2,795,643 baseline was out of date when the claim
+was written.
+
+So "a configuration production never runs beats everything production does run" is not a mystery
+to solve; it is not true.  Every inference I built on it tonight goes with it.
+
+## WHAT SURVIVES prob_16
+
+The (B, K) structure replicates, and that is the point of running the instance:
+
+    axis 2   67/5   3,190,472   16.0 s
+    axis 3   67/5   4,684,351   22.0 s
+    axis 0   96/4   6,671,345   22.3 s
+    axis 1   96/4   6,720,274   22.7 s
+
+Axis 2 is 2.1x axis 0/1 here, exactly as on prob_1, and prob_16 is the other objective family
+(Z3 48.7% against prob_1's 86.3%).  Two instances, two families, same ordering by width and
+branching factor.  That is a property of the beam, not of an instance, and OGC_AXSET=bk67 is the
+production test it earns.
+
+And the harness reproduces: work_mode.md recorded axis 2 at work 3,000 as 3,159,373; this run
+reads 3,190,472, within 1%.
