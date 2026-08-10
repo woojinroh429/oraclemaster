@@ -45,3 +45,5 @@ WSTAT round=0 n=2 458512 848456  spread=85.05%
 P1  [r5.p1.w2]     120s  obj=458512      Z1=1.0      Z2=2415   Z3=741.0     feas=y   ran 79s  py3.12
 == NW2 prob_1 done ==
 # [r1.p16.w4]
+WSTAT round=0 n=4 3868784 3199896 4048309 4208085  spread=31.51%
+P16 [r1.p16.w4]    120s  obj=3199896     Z1=145.0    Z2=2287   Z3=5039.0    feas=y   ran 91s  py3.12
