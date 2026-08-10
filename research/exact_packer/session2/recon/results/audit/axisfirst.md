@@ -47,3 +47,31 @@ varies by a factor of five between cells.
 ax0 has two replicates: 630,785 and 469,650.  That single axis spans 25%, which covers almost the
 whole 44% gap I reported between the best and worst axes at one replicate each.  The r1 ranking
 cannot be trusted until r2 is complete, and I should not have led with the 44%.
+
+## THE FIRST ACTIONABLE SIGNAL OF THE NIGHT: IT IS THE SEED TAIL, NOT THE SEED
+
+Over nine pinned-axis cells, correlating each cell's construction statistics against its final
+run objective:
+
+    r(best seed in the cell,   final) = +0.846
+    r(median seed in the cell, final) = -0.328
+
+The final answer tracks the BEST construction the cell produced and not the typical one.  The
+operators improve whatever they are handed by roughly a fixed fraction -- the seed-to-final column
+runs 4.3% to 22.0% -- so the answer comes out of the LEFT TAIL of the seed distribution.  Lifting
+the median is worthless (r = -0.33); deepening the tail carries straight through (r = +0.85).
+
+And the tail's spread is amplified:
+
+    best seeds  532,420 .. 687,209   29%
+    finals      422,629 .. 630,785   49%
+
+## WHY THIS IS DIFFERENT FROM EVERY DEAD END TONIGHT
+
+Round count, short rounds, brk, PARROUND, BRKPAR=half were all either "buy more draws" or "polish
+the incumbent harder".  Both were wrong for the same reason: the draw is a seed, and polishing
+acts on whatever seed it gets.  Deepening the seed tail is the one axis that has not been tried
+and the one the correlation supports.
+
+The axis knob is that lever -- each _AXES entry gives a different seed tail.  The RANKING is not
+yet safe (ax0 alone spans 25% over two replicates), which r2 settles.
