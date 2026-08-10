@@ -59,3 +59,39 @@ harness/p1a3.sh runs it.  The comparison it buys, all in the same units:
 The open question is whether a third config-A worker degrades all three, since they now contend
 where two did.  That is readable inside the arm: slot 3 becomes an A draw, so its distribution
 against slots 0 and 2 answers it without a separate control.
+
+## TEN-RUN CHECKPOINT ON WORKERS=3, AND THE DECISION QUANTITY CORRECTED
+
+A run's answer is NOT the minimum of its round-0 draws.  w3.r8 drew 487,067 / 652,268 / 499,210
+and returned 469,427 -- the fill round and the polish improved on every draw in round 0.  So the
+quantity that decides anything is P(FINAL <= T), and P(round-0 min <= T) is only the mechanism
+behind it.  Both, at T = 450,000:
+
+    WORKERS=4 (A B A B)   194 runs
+      config A draws  388   min 413,954   p25 438,791   median 492,458   p = 0.273
+      predicted 1-(1-p)^2 = 0.47      observed P(round-0 min <= T) = 0.46
+      FINAL             min 413,954   median 455,218   P(final <= T) = 0.48
+
+    WORKERS=3 (A B A)      15 runs
+      config A draws   30   min 428,809   p25 437,484   median 469,427   p = 0.333
+      predicted 1-(1-p)^2 = 0.56      observed P(round-0 min <= T) = 0.67
+      FINAL             min 428,809   median 437,484   P(final <= T) = 0.73
+
+The median final falls 3.9% and the chance of landing under 450,000 goes from about half to about
+three quarters, with the same two config-A slots and each of them 4.7% better at the median.  The
+mechanism and the outcome agree.
+
+TWO THINGS AGAINST READING IT AS SETTLED.  Fifteen runs puts 0.73 at roughly 0.45-0.92, which
+clears 0.48 only just.  And the best value ever seen on this instance is still w4's 413,954
+against w3's 428,809 -- 194 runs against 15, so that is expected, but w3 has not yet reached the
+floor w4 reaches occasionally.
+
+## NEXT: THE SAME FOUR CORES SPENT ON COUNT INSTEAD OF DEPTH
+
+    four workers, stock    2 config-A draws at 1.00 core     p = 0.273   ->  0.47
+    three workers          2 config-A draws at 1.33 cores    p = 0.333   ->  0.56
+    four workers, 3+1      3 config-A draws at 1.00 core     p = ?       ->  0.61 if p holds
+
+WORKERS=3 made two slots better.  3+1 makes it three slots.  Nothing measured so far says which
+is worth more, and the open risk is that three A workers contending where two did degrades all
+three -- readable from slot 3's distribution inside the arm itself.
