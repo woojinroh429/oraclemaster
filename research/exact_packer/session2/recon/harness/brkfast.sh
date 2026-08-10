@@ -47,8 +47,8 @@ B="OGC_BRK=1"
 for rep in 1 2; do
   for p in 1 3; do
     run "r$rep.p$p.brk"    $p 240 "$B"
-    run "r$rep.p$p.omp2"   $p 240 "$B OMP_NUM_THREADS=2"
-    run "r$rep.p$p.omp4"   $p 240 "$B OMP_NUM_THREADS=4"
+    run "r$rep.p$p.omp2"   $p 240 "$B OMP_NUM_THREADS=2 OGC_TPCTL=0"
+    run "r$rep.p$p.omp4"   $p 240 "$B OMP_NUM_THREADS=4 OGC_TPCTL=0"
     run "r$rep.p$p.nout50" $p 240 "$B OGC_TIERNOUT=0.5"
     run "r$rep.p$p.nout25" $p 240 "$B OGC_TIERNOUT=0.25"
   done

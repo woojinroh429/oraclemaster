@@ -2492,11 +2492,26 @@ def _worker(args):
             _o.chdir(cwd)
     except Exception:
         pass
-    try:
-        import threadpoolctl as _tp
-        _keep = _tp.threadpool_limits(limits=1)     # noqa: F841
-    except Exception:
-        pass
+    # threadpoolctl PINS cranepack's OpenMP TOO, WHICH IS WHY ITS PARALLEL BUILD HAS NEVER RUN.
+    #
+    # The module-level env cap sets OMP_NUM_THREADS=1 so four single-threaded workers fill four
+    # cores exactly under the 400% throttle, and this call enforces the same thing at runtime on
+    # every native runtime threadpoolctl can find -- libgomp included.  cranepack.so carries
+    # GOMP_parallel, and cranepack sizes its conflict-graph build from omp_get_max_threads(), so
+    # that build has been serial for the whole project: the file's own note says so, and its
+    # O(ncol^2) pair loop is where brk's 34-36 s goes.
+    #
+    # The cap is right for the beam, which is why this is a gate and not a removal: OGC_TPCTL=0
+    # leaves the runtime limiter off so OMP_NUM_THREADS can actually take effect, and unset keeps
+    # the shipped behaviour exactly.  Whether a multi-threaded brk inside one worker is worth the
+    # contention it creates with the other three is what harness/brkfast.sh measures -- brk fires
+    # about once per worker, so the windows rarely overlap, but 'rarely' is a claim.
+    if os.environ.get("OGC_TPCTL", "1") != "0":
+        try:
+            import threadpoolctl as _tp
+            _keep = _tp.threadpool_limits(limits=1)     # noqa: F841
+        except Exception:
+            pass
     t0 = time.time()
     n = len(prob_info["blocks"])
     best = (float("inf"), None)
