@@ -1,93 +1,50 @@
-# brk's GAIN TRACKS THE Z3 SHARE, WHICH IS THE FIRST NON-CIRCULAR PREDICTOR THIS SESSION FOUND
+# WHAT brk'S OWN ACCOUNTING SAYS, AND WHY prob_20 WAS NEVER EVIDENCE
 
-    instance   Z3 share   brk delta   replicates
-    prob_3        89.4%      +0.34%   3
-    prob_1        86.3%      -6.52%   3 (worst-case -11.2%; spread 16.5% -> 2.0%)
-    prob_16       48.7%      -2.51%   1
-    prob_24       23.2%      +1.84%   1
-    prob_20       15.1%      +3.97%   1
+Measured on the brkcal queue, i.e. WITH the calibration guard in place.
 
-Monotone in Z3 share apart from prob_3, and the crossover sits between 23% and 49%.
+## The objective shares, computed from each run's own Z terms and the instance's own weights
 
-## Why it has to be this way
+    prob_3    Z1  11.0%   Z2 1.0%   Z3 88.0%
+    prob_1    Z1  13.4%   Z2 0.3%   Z3 86.3%
+    prob_16   Z1  51.0%   Z2 0.3%   Z3 48.7%
+    prob_24   Z1  76.5%   Z2 0.3%   Z3 23.2%
+    prob_20   Z1  84.7%   Z2 0.1%   Z3 15.2%
 
-brk lifts a whole bay and repacks it exactly, and what a repack buys is PREFERENCE: blocks that
-could not enter a bay because its descent columns were fragmented get seats.  On an instance
-carrying 15% of its objective in Z3 there is nothing there to collect, and the 34-36 s the
-operator takes comes straight out of the beam, which OGC_OPSTAT prices at 8.1M objective units
-per second against the next operator's 17.5K.
+## The result on each
 
-prob_20 shows it directly: Z3 went UP, 9,293 to 9,694, while the objective rose 3.97%.
+    prob_3    Z3 88.0%   r1 -2.55%  r2 -0.17%   BOTH brk draws below BOTH control draws
+    prob_1    Z3 86.3%   -6.52% over three replicates (measured with the bug live)
+    prob_16   Z3 48.7%   +2.14%
+    prob_24   Z3 23.2%   +1.84%
+    prob_20   Z3 15.2%   see below -- NOT a result
 
-## prob_3 is not an exception, it is the same effect at small amplitude
+## prob_20 IS NOT A DATA POINT, AND I REPORTED IT AS ONE TWICE
 
-Its controls span 4,304,599 - 4,363,763 and its brk cells return 4,356,312 three times, to the
-digit.  brk beats the WORST control and loses to the best -- exactly prob_1's profile, where
-controls span 422,629 - 492,458 and brk returns 428,809 / 437,484 / 437,484.  The operator
-collapses the distribution onto a point near the middle.  Where the distribution is wide and the
-Z3 term is large (prob_1) that point sits well below the mean; where it is narrow (prob_3) it
-sits on top of it.
+Two things kill it.
 
-## Why this predictor is usable where four others were not
+The controls do not repeat.  r1 off = 8,850,352 and r2 off = 8,769,505, which is 0.91% apart,
+and the whole claimed brk effect was 0.91% and 0.45%.  Effect over spread is about 1.  The reason
+8,769,505 appeared as both r1's brk and r2's control is that this instance lands in discrete
+basins, not that the instance is deterministic -- which is what I asserted when I built the queue.
 
-  _demand_ratio_phys   r = -0.607 against the outcome, with outliers in both directions
-  hz1_est on empty     identically 0 on all thirteen instances -- nothing is placed, so the
-                       whole yard is free and the estimate carries no instance information
-  _safe_sequential     Z3 share 0.0% on all forty; the floor solution is 100% Z1 by construction
-  a 15 s probe round   both prob_1 and prob_16 deterministic there, worker spreads overlapping
-                       at 30-67% and 29-41%
+And brk's own opstat says it did nothing.  Sixteen worker-rounds across the two brk cells:
 
-Z3 share is different on three counts.  It is NOT circular -- w3 comes from the instance and the
-Z-vector comes from round 0's incumbent, both known before brk would fire.  It has a mechanism
-rather than a correlation: it is the share of the objective the operator is aimed at.  And it is
-monotone over five instances rather than fitted to them.
+    r1  5.7  13.4  0.8  7.6  1.4  2.0  1.4  1.7   gain 0 on every one   (34.0 s)
+    r2  7.7   8.3 17.7 14.7  1.4  1.3  0.0  0.6   gain 0 on every one   (51.7 s)
 
-## What is still open
+The operator never improved its worker's incumbent once.  Whatever moved the objective, it was
+not brk; it was the beam being handed a different number of seconds.  So prob_20 measures the
+COST of brk (34-52 worker-seconds) and nothing else, and the cost is real.
 
-Five points, and one of them (prob_3) sits off the line.  The crossover is bracketed only as
-"between 23% and 49%".  Before this becomes a gate rather than a description, brkfast has to say
-whether the cost can be removed instead: brk's 34-36 s is dominated by cranepack's O(ncol^2)
-conflict build, that build is parallel in the engine and has never run that way, and
-OGC_BRKTHREADS now raises OpenMP around CP.pack only.  If the build drops to ten seconds the
-crossover moves down and the gate may not be needed at all.
+Contrast prob_3, where the same column is non-zero:
 
+    r1  4.6  8.5 37.0  0.3 | 7.4  0.6 18.6  0.6    gains  0  0  69,766  0 | 0  0  14,111  0
+    r2 37.5 35.2  5.4 38.6                         gains 39,641 12,565  0  0
 
-## CORRECTION AFTER A SECOND prob_16 REPLICATE: THE MONOTONE READING WAS ONE CELL DEEP
+## WHAT THIS DOES TO THE Z3 GATE
 
-    r1.p16   off 2,969,521   brk 2,895,137   -2.51%
-    r2.p16   off 3,007,524   brk 3,209,981   +6.73%
-    mean     off 2,988,523   brk 3,052,559   +2.14%
-
-The sign flips.  prob_16's controls span 2,519,071-3,007,524 across this session --
-19% -- and the -2.51% above was a single pair inside that.  Reporting it as "brk gains on
-prob_16 too, the first item tonight that is a gain or harmless everywhere" was generalising from
-one cell, which is the sixth time this session that error has been made and the second time on
-this instance.
-
-The corrected table:
-
-    instance   Z3 share   brk delta   replicates
-    prob_3        89.4%      +0.34%   3
-    prob_1        86.3%      -6.52%   3
-    prob_16       48.7%      +2.14%   2
-    prob_24       23.2%      +1.84%   1
-    prob_20       15.1%      +3.97%   1
-
-Z3 share still orders the extremes -- prob_1 is the only clear gain and prob_20 the largest loss --
-but 48.7% no longer sits on a line between them, so "monotone in Z3 share" is not supported.  What
-the five points do support is narrower and still useful:
-
-    brk gains substantially on prob_1, is flat on prob_3, and costs 2-4% on prob_16, prob_24 and
-    prob_20.
-
-That is a trade, like the eleven branches before it.  What makes it different is direction: the
-instance it wins on is the priority instance, and the losses are inside the 2-4% the priority
-explicitly tolerates.
-
-## WHICH MAKES THE ACCELERATION THE DECIDING WORK, NOT A REFINEMENT
-
-Every loss is the same 34-36 s taken off a beam worth 8.1M objective units per second.  If the
-conflict build drops to under ten seconds -- the factorisation in conflictfactor.md is worth up to
-r^2 on enumeration, and the parallel build is already in the engine and has never run -- the
-losses shrink toward zero while prob_1's gain does not, because that gain is the repack itself and
-not the time it costs.  A trade becomes a strict improvement.
+The gate drafted in scratchpad/z3gate.py put the crossover in the 48.7-86.3 gap on the strength of
+prob_1 alone above it.  prob_3 at 88.0% is now a second instance above the gap, measured after the
+calibration fix, with a 4/4 ordering against its controls.  Three instances sit below it and all
+three lose.  The threshold is still FITTED -- five labelled points cannot derive one -- but it is
+no longer fitted to a single positive case.
