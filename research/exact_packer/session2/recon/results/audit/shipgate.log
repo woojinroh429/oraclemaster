@@ -1,0 +1,5 @@
+== compiling 5 engine modules ==
+  - ogc_fast
+  - ogc_geom
+  - ogc_state
+  - cranepack
