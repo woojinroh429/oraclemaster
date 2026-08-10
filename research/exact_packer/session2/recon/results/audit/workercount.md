@@ -43,3 +43,36 @@ gain may be axis selection rather than cores per worker -- two explanations with
 
 prob_16 ranks its axes differently and is queued next.  If w2 wins there too it is cores; if it
 loses it is the axis mix, and nothing here generalizes.
+
+## prob_16 SPLITS THE TWO ARMS: w3 IS THE VARIANCE KILLER, w2 IS A GAMBLER
+
+    prob_16, local 120 s, four draws per arm
+
+    w4    3,199,896  3,558,783  3,199,896  3,558,783     span 11.2%   worst 3,558,783
+    w3    3,199,896  3,199,896  3,199,896  3,199,896     span  0.0%   worst 3,199,896
+    w2    3,251,561  2,926,166  3,495,836  2,828,835     span 23.5%   worst 3,495,836
+
+w4 leaks to its bad attractor on half its draws.  w3 landed the good one four times out of four
+and never beat it -- it does not find a better solution here, it removes the bad one.  w2 is
+bimodal: it set the two best values ever recorded for this instance (2,828,835 and 2,926,166,
+against a previous best of 3,199,896 over 24 runs) and also drew the worst of the three arms.
+
+    w3 vs w4 over nine pairs across both instances    7 wins, 2 ties, 0 losses
+
+w2's mean looks better on prob_1 and worse on prob_16, and its span is the widest of the three on
+prob_16.  A per-instance score is set by the run that actually happens, so an arm that sometimes
+sets a record and sometimes loses to the control is the wrong trade.  w3 is the candidate.
+
+## BUT EVERY ONE OF THOSE NINE PAIRS IS AT 120 s, AND THIS FILE RECORDS WHAT THAT IS WORTH
+
+From the reserve-fraction comment in myalgorithm.py, a change measured on this same instance:
+
+    240 s   old 501,758  ->  422,629   -15.8%
+     60 s   old 636,140  ->  774,699   +21.8%
+
+A 15.8% win at the long budget was a 21.8% loss at the short one.  The hidden set gives its early
+instances 60-120 s and its late ones ~500 s, so 120 s alone validates nothing that is scored.
+
+w3's mechanism is depth -- 1.33 cores per worker instead of 1.00 -- and depth only pays if the
+deeper search completes inside the budget.  At 60 s it may not, and then w3 is just a draw thrown
+away.  harness/nwbud.sh runs 60 s first for that reason.  NOT SHIPPING UNTIL IT HOLDS.
