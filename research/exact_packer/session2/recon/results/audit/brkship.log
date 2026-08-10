@@ -1,4 +1,4 @@
-# [r1.p16.off]
+# [KILLED.r1.p16.off]
   opstat  op      tried   seconds %budget         gain     gain/s
   opstat  beam        1      47.6   30.9%   8398857718 176376550.5
   opstat  grow        1      46.4   30.2%            0        0.0
@@ -29,7 +29,7 @@
   opstat  TOTAL       6     167.7   98.3%                        
 WSTAT round=0 n=4 3933480 3389825 4792293 4413229  spread=41.37%
 PARFILL round=1 parity=odd even=3933480 odd=3389825 wids=[17, 19, 21, 23]
-P16 [r1.p16.off] CRASH rc=137
+P16 [KILLED.r1.p16.off] CRASH rc=137
 # [r1.p16.brk]
 # [r1.p16.brk]
   opstat  op      tried   seconds %budget         gain     gain/s
@@ -134,3 +134,32 @@ PARFILL round=1 parity=odd even=3787333 odd=3578925 wids=[17, 19, 21, 23]
   opstat  TOTAL       5      54.0   94.6%                        
 FILL round=1 budget=58 moved=0 best=3199896
 P16 [r1.p16.brk]   240s  obj=3199896     Z1=145.0    Z2=2287   Z3=5039.0    feas=y   ran 237s  py3.12
+# [r1.p16.fast]
+# NOTE: r1.p16.off took SIGKILL from the process sweep that preceded the zip build, not OOM
+# (16GB with 14.5GB free at the time).  Renamed so the tag-skip lets it run again.
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        1      20.6   36.3%   8399815602 407397193.3
+  opstat  grow        1      28.0   49.2%            0        0.0
+  opstat  bal         1       0.2    0.4%            0        0.0
+  opstat  pref        2       7.1   12.5%            0        0.0
+  opstat  bay         0       0.0    0.0%            0        0.0
+  opstat  brk         0       0.0    0.0%            0        0.0
+  opstat  TOTAL       5      55.9   98.3%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        1      19.0   30.6%   8398947498 441571895.3
+  opstat  grow        1      40.9   65.9%       281785     6882.0
+  opstat  bal         0       0.0    0.0%            0        0.0
+  opstat  pref        0       0.0    0.0%            0        0.0
+  opstat  bay         0       0.0    0.0%            0        0.0
+  opstat  brk         0       0.0    0.0%            0        0.0
+  opstat  TOTAL       2      60.0   96.5%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        1      22.0   33.9%   8399226482 382567790.4
+  opstat  grow        1      41.5   64.2%            0        0.0
+  opstat  bal         0       0.0    0.0%            0        0.0
+  opstat  pref        0       0.0    0.0%            0        0.0
+  opstat  bay         0       0.0    0.0%            0        0.0
+  opstat  brk         0       0.0    0.0%            0        0.0
+  opstat  TOTAL       2      63.4   98.1%                        
+FILL round=1 budget=57 moved=0 best=3558783
+P16 [r1.p16.brk]   240s  obj=3558783     Z1=176.0    Z2=2225   Z3=4822.0    feas=y   ran 243s  py3.12
