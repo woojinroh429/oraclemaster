@@ -1,1 +1,6 @@
 # [s2.p1.w4]
+WSTAT round=0 n=4 500196 725612 499210 783412  spread=56.93%
+PARFILL round=1 parity=even even=499210 odd=725612 wids=[16, 18, 20, 22]
+FILL round=1 budget=46 moved=0 best=499210
+P1  [s2.p1.w4]     180s  obj=499210      Z1=19.0     Z2=7579   Z3=583.0     feas=y   ran 175s  py3.12
+# [s2.p1.w3]
