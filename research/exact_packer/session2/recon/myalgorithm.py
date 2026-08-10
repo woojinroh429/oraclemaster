@@ -2981,6 +2981,33 @@ def _worker(args):
                     dict(_c, order="rank") if _i == 1 else _c for _i, _c in enumerate(axes)]
         elif _as == "v3":                     # append instead of replacing, to price the toll
             axes = axes + [dict(_AXES[5], order="sac3")]
+        elif _as == "bk67":
+            # IS THE AXIS RANKING ACTUALLY A WIDTH-AND-K RANKING?  Measurement only.
+            #
+            # prob_1's deterministic table -- one answer per (axis, work), digests to prove it --
+            # sorts almost perfectly by (Bmul, K) and not by the fields the axes were designed to
+            # differ in:
+            #
+            #     B=67 K=5   axis 2    573,634        axis 3    727,038
+            #     B=96 K=4   axis 0  1,243,617        axis 1  1,323,041
+            #     B=96 K=3   axis 4  1,280,565
+            #     B=48 K=6   axis 5  1,464,281
+            #
+            # The two winners are the only two sharing 0.7/5, and the gap to third is 1.7x -- while
+            # those two differ in order (lst vs edd), pos_lam (0.15 vs 0.05), fut_beta (0.0 vs 1.5)
+            # and w3mul (3.0 vs 1.0).  Whatever is winning, it is not those fields.
+            #
+            # This gives EVERY axis Bmul 0.7 and K 5 and changes nothing else, so the six keep
+            # their orders and weights and the portfolio stays a portfolio.  That is the difference
+            # from the 7th submission's global override, which rewrote order and w3mul on all six
+            # and deleted the alternatives; min() cannot lose to a member it still contains, and
+            # here every member is still there.
+            #
+            # If the six converge on the winners' scores, the axis table has been measuring width
+            # and K all along and the fix is two numbers rather than an axis policy.  If they do
+            # not, axes 2 and 3 win for a reason the table does not show, and the width reading is
+            # a coincidence of two points.
+            axes = [dict(_c, Bmul=0.7, K=5) for _c in axes]
         elif _as in ("p1a", "p1b", "p1c"):
             # THE 7TH SUBMISSION, PUT BACK AS AN AXIS INSTEAD OF A PIN.
             #
