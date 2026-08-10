@@ -1,3 +1,5 @@
+# WITHDRAWN -- THE SPREAD COMPARISON WAS n=2 AGAINST n=5.  SEE THE BOTTOM.
+
 # THE 240 s REGIME IS NINE TIMES NOISIER THAN THE 120 s ONE, AND I SPENT THE NIGHT IN IT
 
     prob_16 control draws, same build, same machine
@@ -33,3 +35,27 @@ noise to fight.
 
 Every future A/B here should be run at the shorter budget first, and only re-checked at the longer
 one if the arm is adopted -- not the other way round, which is what I did all night.
+
+
+## CORRECTION: THE COMPARISON WAS UNFAIR AND THE CONCLUSION IS WRONG
+
+The third 120 s control came in at 3,199,896, and the 120 s span went from 2.5% to 11.2%.  Read at
+the SAME sample size:
+
+    n=3   240 s   2,674,298 / 2,902,331 / 2,962,652     span 10.8%
+    n=3   120 s   3,199,896 / 3,472,619 / 3,558,783     span 11.2%
+
+The two regimes have the same spread.  The "22.3% against 2.5%" that this document was built on
+compared five draws against two, and a wider sample finds a wider span by construction.  The
+shorter budget is not quieter and the methodological conclusion above -- run everything at 120 s
+first -- has no support.
+
+WHAT STILL STANDS.  The axis director reads +0.95% and +0.26% at 120 s and -7.64% and -12.83% at
+240 s.  Four pairs, two regimes, signs split, all inside a spread of about 11% either way.  The
+director is not established as helping anywhere; the 240 s pair remain two draws, and so do the
+120 s pair.
+
+THIS IS THE THIRD TIME TONIGHT I HAVE QUOTED A SPREAD FROM TWO SAMPLES -- prob_20 "repeats to the
+digit", prob_16 "2.1% within this build", and now this -- and the third time the next sample
+destroyed it.  Two draws do not measure a spread.  The rule that follows is not about budgets: do
+not report a spread at all until n >= 5, and never compare spreads at different n.
