@@ -9,3 +9,4 @@ P1   p1.ax4.w3000   work=3000     axis=4 rep=0  obj=1403609      feas=y    21.8s
 P1   p1.ax5.w3000   work=3000     axis=5 rep=0  obj=1350271      feas=y    19.6s  digest=4e77d20cd764e03b
 P1   p1.ax0.w6000   work=6000     axis=0 rep=0  obj=1243617      feas=y    46.6s  digest=35c3c5e943f9a781
 P1   p1.ax1.w6000   work=6000     axis=1 rep=0  obj=1323041      feas=y    44.8s  digest=b36da00aa5d8f8a5
+P1   p1.ax2.w6000   work=6000     axis=2 rep=0  obj=573634       feas=y    32.4s  digest=6b07bec3f83129e0
