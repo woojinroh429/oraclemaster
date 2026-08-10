@@ -659,3 +659,30 @@ DRAW wid=3 gen=1 axis=4 ask=15.5 took=7.0 obj=903804
 DRAW wid=2 gen=1 axis=1 ask=15.5 took=7.5 obj=760273
 DRAW wid=1 gen=1 axis=2 ask=15.5 took=7.6 obj=1010428
 DRAW wid=0 gen=1 axis=1 ask=15.5 took=7.6 obj=812164
+DRAW wid=1 gen=3 axis=4 ask=15.5 took=5.2 obj=971929
+DRAW wid=2 gen=3 axis=3 ask=15.5 took=8.9 obj=752060
+DRAW wid=0 gen=3 axis=3 ask=15.4 took=8.1 obj=817232
+DRAW wid=1 gen=4 axis=5 ask=13.3 took=7.1 obj=1128452
+DRAW wid=3 gen=3 axis=0 ask=10.4 took=7.0 obj=989836
+DRAW wid=2 gen=4 axis=4 ask=7.8 took=5.3 obj=1316392
+DRAW wid=0 gen=4 axis=4 ask=7.3 took=5.4 obj=1043703
+DRAW wid=1 gen=5 axis=0 ask=6.2 took=4.5 obj=1251672
+WSTAT round=0 n=4 641965 754716 630528 836872  spread=32.73%
+PARROUND round=1 parity=even even=630528 odd=754716 wids=[8, 10, 12, 15]
+DRAW wid=15 gen=1 axis=4 ask=15.5 took=7.7 obj=874160
+DRAW wid=10 gen=1 axis=1 ask=15.5 took=8.6 obj=959831
+DRAW wid=12 gen=1 axis=1 ask=15.5 took=8.7 obj=957509
+DRAW wid=8 gen=1 axis=1 ask=15.5 took=8.7 obj=992160
+DRAW wid=10 gen=3 axis=3 ask=15.5 took=8.8 obj=779751
+DRAW wid=12 gen=3 axis=3 ask=15.5 took=8.7 obj=741196
+DRAW wid=15 gen=3 axis=0 ask=15.5 took=9.6 obj=1081347
+DRAW wid=8 gen=3 axis=3 ask=13.0 took=6.9 obj=959831
+DRAW wid=15 gen=4 axis=1 ask=6.9 took=4.7 obj=874125
+DRAW wid=12 gen=4 axis=4 ask=7.9 took=6.1 obj=949733
+DRAW wid=8 gen=4 axis=4 ask=6.2 took=5.3 obj=993829
+WSTAT round=1 n=4 590661 639144 519486 705686  spread=35.84%
+PARFILL round=2 parity=even even=519486 odd=639144 wids=[32, 34, 36, 38]
+DRAW wid=38 gen=1 axis=1 ask=14.2 took=8.7 obj=992160
+DRAW wid=32 gen=1 axis=1 ask=14.2 took=8.8 obj=856541
+DRAW wid=34 gen=1 axis=1 ask=14.2 took=8.8 obj=971246
+DRAW wid=36 gen=1 axis=1 ask=14.2 took=8.9 obj=947912
