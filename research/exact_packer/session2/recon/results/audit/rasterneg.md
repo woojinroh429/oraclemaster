@@ -27,10 +27,15 @@ Edge sets identical at all three sizes.  Build 3% SLOWER with the masks.
 
 ## Why, and the arithmetic error that led here
 
-bayrepack hands cranepack `_layers_bbox`, so every layer is a RECTANGLE.  poly_overlap_off on two
-rectangles is four point-in-polygon tests and sixteen segment crossings -- already about a hundred
-nanoseconds.  There was no expensive geometry to replace, and the masks cost more than what they
-were replacing.
+CORRECTED.  The first explanation written here was that bayrepack hands cranepack `_layers_bbox`
+so every layer is a rectangle.  That is wrong: despite the name, `_layers_bbox` returns
+`blk.layers_at_pos()` -- the real layer polygons -- and only the whole-shape bbox alongside them.
+
+The actual reason is that poly_overlap_off EXITS EARLY.  It tries every vertex of A against B
+before any segment crossing, and these blocks fill most of their own bounding box, so a pair that
+survives the `sep()` bbox test usually does overlap and usually says so on the first or second
+vertex.  The expensive branch -- na*nb segment crossings -- is the rare one.  The masks replaced a
+test that was already a few hundred nanoseconds with a cell scan that costs more.
 
 The estimate that sent me here: the memo note reports 23,208,767 hits against 1,090,614 misses, I
 priced a miss at ~2 us, and concluded 4.5% of the visits were 90% of the build.  The real
