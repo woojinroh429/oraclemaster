@@ -1728,7 +1728,34 @@ def _beam_once(prob_info, budget, cfg, share=1.0):
         except Exception as _e:
             _bdbg("mono narrow raised %r" % (_e,))
 
-    for step, frac in ((1, 0.6), (2, 1.0)):
+    # THE FINE RUNG'S SHARE IS WHY THE BEAM USES HALF ITS ALLOWANCE.
+    #
+    # Measured over 520 production draws on prob_1 with OGC_DRAWSTAT: took/ask has median 0.49,
+    # 78% of draws use under 60% of what they were given, and only 1% use 95% or more.  The first
+    # draw of a worker asks 31.0 s and takes 8.9 s.
+    #
+    # This loop is the reason.  Step 1 is handed `left * 0.6` and RETURNS as soon as it produces a
+    # feasible answer, so when the fine rung succeeds -- which on prob_1 is essentially always --
+    # the other 40% is never reachable by anything.  It is not idle time the bandit can
+    # redistribute either: the slice was already charged to the beam.
+    #
+    # THE RESERVE IS NOT POINTLESS, WHICH IS WHY THIS IS A KNOB AND NOT A DELETION.  It exists
+    # because a slice too small for step 1 must still buy a step-2 answer instead of nothing:
+    # instrumented on prob_18 (n=300) inside a 12 s slice, two of three beam calls returned
+    # nothing at all when the fine rung was handed the whole slice.  That failure mode is real and
+    # it is worse than wasting 40%.
+    #
+    # So the question is the NUMBER, not the structure, and 0.6 has never been measured against
+    # anything.  Raising it trades a smaller step-2 reserve for a longer fine rung; the deterministic
+    # table says prob_1's best axis is still improving at work 12,000 (51 s) while production stops
+    # it around 9 s, so a longer fine rung is exactly what that curve asks for.
+    #
+    # OGC_FINEFRAC, default 0.6, is today's behaviour to the digit.
+    try:
+        _ff = min(1.0, max(0.1, float(os.environ.get("OGC_FINEFRAC", "0.6"))))
+    except Exception:
+        _ff = 0.6
+    for step, frac in ((1, _ff), (2, 1.0)):
         left = budget - (time.time() - t0)
         if left < 2.0:
             break
