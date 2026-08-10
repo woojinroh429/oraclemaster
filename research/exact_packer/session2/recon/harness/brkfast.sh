@@ -56,6 +56,18 @@ for rep in 1 2; do
     run "r$rep.p$p.th4"    $p 240 "$B OGC_BRKTHREADS=4"
     run "r$rep.p$p.nout50" $p 240 "$B OGC_TIERNOUT=0.5"
     run "r$rep.p$p.nout25" $p 240 "$B OGC_TIERNOUT=0.25"
+    # COLSTAT decides whether a geometry-level conflict graph is worth building.  Columns are
+    # (block, orient, x, y) x (entry window) and every column in a group has IDENTICAL geometry,
+    # so crane_conflict_rel factors exactly:
+    #
+    #     conflict = timeoverlap AND ( R OR (AoverB AND U) OR (BoverA AND V) )
+    #
+    # with R, U, V functions of the geometry alone and the three time terms cheap integer tests.
+    # A geometry pair with R=U=V=0 can never conflict at ANY entry combination, and the loop
+    # currently visits and rejects all nA x nB of its column pairs one at a time.  Enumerating at
+    # geometry level skips those in O(1), which is a factor of r^2 where r = ncol/geom_slots.
+    # This arm prints r; it changes no decision, only what is known about the rework.
+    run "r$rep.p$p.colstat" $p 240 "$B CRANEPACK_COLSTAT=1"
   done
 done
 echo "BRKFASTDONE" >> $L
