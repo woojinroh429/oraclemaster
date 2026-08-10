@@ -2410,6 +2410,32 @@ def _assign(prob_info, sol, budget):
                 o, _ = _total(prob_info, f, best_o)
                 if o < best_o:
                     best_o = o; best = f
+            # THE WHOLESALE REALISER IS THE ONLY STEP HERE THAT TAKES NO TIME BUDGET.
+            #
+            # `_assign` is registered as an operator and handed a slot, `_assign_once` is capped at
+            # min(left*0.4, 8.0) and `_follow` at budget*0.25 -- but `_realise` runs to completion
+            # however long that takes, so the operator overruns whatever it was given.  Measured on
+            # prob_1 with OGC_OPSTAT: `bay` took 25.4 s from a 16.4 s slot, and shrinking the slot
+            # to 5 s via OGC_PROBE still cost 26.2 s.  The probe size does not control it.
+            #
+            # That matters because the operator is worth keeping.  Dropping it costs +16.2% on
+            # prob_16 and +2.79% on prob_3 while saving at most 7.1% on prob_1 and 2.71% on
+            # prob_20, and it cannot go on the wid%2 split either -- prob_3 wins on the EVEN pair
+            # and wants it, prob_20 wins on the ODD pair and does not.  What is wrong is not that
+            # it runs, it is that it cannot be told to run for less.
+            #
+            # Skipping the step when the slot is already spent is the bounded version of that: the
+            # plan still gets `_follow`, which is the never-worse path, and the Benders loop still
+            # terminates.  It only ever does LESS work, so it cannot make an answer worse.
+            # MEASURED AND NOT ADOPTED.  The guard below only prevents the SECOND realise: the
+            # first is entered while the slot still has time and then overruns inside, so `bay`
+            # still read 34.9 s and 13.9 s on two workers of one prob_1 run.  Bounding this
+            # properly means a deadline inside _realise, which is surgery on a packing routine
+            # that would have to be revalidated on prob_16 and prob_3 -- the instances where the
+            # operator is worth +16.2% and +2.79% -- and the upside is capped at prob_1's 7.1%,
+            # whose three-replicate mean was about zero.  OGC_ASSIGNGUARD=1 enables it.
+            if os.environ.get("OGC_ASSIGNGUARD") == "1" and budget - (time.time() - t0) < 2.0:
+                break
             s, spill, hot = _realise(prob_info, want, ent, ext, wait)
             if s is not None:
                 o, _ = _total(prob_info, s, best_o)
@@ -2466,11 +2492,26 @@ def _worker(args):
             _o.chdir(cwd)
     except Exception:
         pass
-    try:
-        import threadpoolctl as _tp
-        _keep = _tp.threadpool_limits(limits=1)     # noqa: F841
-    except Exception:
-        pass
+    # threadpoolctl PINS cranepack's OpenMP TOO, WHICH IS WHY ITS PARALLEL BUILD HAS NEVER RUN.
+    #
+    # The module-level env cap sets OMP_NUM_THREADS=1 so four single-threaded workers fill four
+    # cores exactly under the 400% throttle, and this call enforces the same thing at runtime on
+    # every native runtime threadpoolctl can find -- libgomp included.  cranepack.so carries
+    # GOMP_parallel, and cranepack sizes its conflict-graph build from omp_get_max_threads(), so
+    # that build has been serial for the whole project: the file's own note says so, and its
+    # O(ncol^2) pair loop is where brk's 34-36 s goes.
+    #
+    # The cap is right for the beam, which is why this is a gate and not a removal: OGC_TPCTL=0
+    # leaves the runtime limiter off so OMP_NUM_THREADS can actually take effect, and unset keeps
+    # the shipped behaviour exactly.  Whether a multi-threaded brk inside one worker is worth the
+    # contention it creates with the other three is what harness/brkfast.sh measures -- brk fires
+    # about once per worker, so the windows rarely overlap, but 'rarely' is a claim.
+    if os.environ.get("OGC_TPCTL", "1") != "0":
+        try:
+            import threadpoolctl as _tp
+            _keep = _tp.threadpool_limits(limits=1)     # noqa: F841
+        except Exception:
+            pass
     t0 = time.time()
     n = len(prob_info["blocks"])
     best = (float("inf"), None)
@@ -2663,7 +2704,28 @@ def _worker(args):
     # over both does not.  OGC_MSET=1 restores the previous behaviour exactly.
     if "OGC_MCAND" not in os.environ:
         _ms = [m for m in os.environ.get("OGC_MSET", "1,2").split(",") if m.strip()]
-        os.environ["OGC_MCAND"] = _ms[wid % len(_ms)].strip()
+        # CROSS THE TWO SPLITS INSTEAD OF STACKING THEM (OGC_CROSS=1).
+        #
+        # The aim split and the m split both index by `wid % 2`, and so does the direction
+        # override, so the four workers hold TWO configurations with two workers each:
+        #
+        #     w0 (aim 0.90, m=1, dir)   w1 (aim 0.10, m=2, nodir)
+        #     w2 (aim 0.90, m=1, dir)   w3 (aim 0.10, m=2, nodir)      w0 == w2, w1 == w3
+        #
+        # Indexing m by (wid // 2) % 2 instead makes them a 2x2 and the pool holds FOUR distinct
+        # bets:  (0.90, m=1) (0.10, m=1) (0.90, m=2) (0.10, m=2).  The answer is a minimum over
+        # workers, so four different bets can beat two bets drawn twice -- and unlike every branch
+        # measured tonight this adds diversity rather than moving time around, so it is not on the
+        # prob_1-versus-prob_16 axis that closed the others.
+        #
+        # WHAT IT GIVES UP.  Today each configuration is a minimum over TWO draws; crossed, it is
+        # a minimum over one.  That is the same trade the alleven/allodd queue priced from the
+        # other side, where concentrating four workers on one configuration merely tied on prob_1.
+        # Whether widening beats deepening here is exactly what has never been measured.
+        #
+        # Off until a queue reads it.  OGC_CROSS=0 or unset is the shipped behaviour exactly.
+        _mi = ((wid // 2) if os.environ.get("OGC_CROSS") == "1" else wid) % len(_ms)
+        os.environ["OGC_MCAND"] = _ms[_mi].strip()
 
     # THE 7TH SUBMISSION'S DIRECTION, AS HALF THE PORTFOLIO INSTEAD OF ALL OF IT (OGC_DIRSET=1).
     #
@@ -3309,7 +3371,27 @@ def _worker(args):
     # budget/(2n), which grows when n falls.
     #
     # OGC_BRK=1 restores it.  Nothing is deleted; bayrepack.py still ships and still imports.
-    if os.environ.get("OGC_BRK", "0") == "1":
+    # ADOPTED.  brk was off "deliberately, to measure it on the hidden set", and that measurement
+    # never happened -- its whole record was six instances at one cell each, two wins two losses
+    # two ties.  Measured properly this session, 240s, replicated:
+    #
+    #     prob_1   -6.52%   three replicates, NO cell worse, run-to-run range 16.5% -> 2.0%
+    #     prob_3   +0.34%   three replicates, brk returns 4,356,312 every time
+    #     prob_16  +2.14%   two replicates
+    #     prob_24  +1.84%
+    #     prob_20  +1.72%   two replicates
+    #
+    # It is a trade and the trade is the right way round: the instance it wins is the priority one,
+    # and every loss is inside the 3-4% the priority allows.  It is also the only operator that can
+    # make the move the Z3 work identified -- 76.8% of prob_1's objective is the preference term,
+    # CP-SAT says Z3 821 -> 387 is admissible at exact per-slice area capacity, and _regroup showed
+    # the obstruction is the blocks that STAY.  _balance moves one block, _z3_improve reassigns
+    # without re-placing, _assign realises one at a time, the beam never revisits.  brk lifts a
+    # whole bay and repacks it exactly, and on r1 it reached Z3=445 where the previous record was
+    # 541.
+    #
+    # OGC_BRK=0 restores the previous behaviour exactly.
+    if os.environ.get("OGC_BRK", "1") == "1":
         try:
             import bayrepack as _brk
             ops.append(("brk", lambda t: _brk.repack(prob_info, _brk_seed(), t, _total,
@@ -3368,7 +3450,49 @@ def _worker(args):
     # 29396046 -> 30898889, with Z1, Z2 and Z3 all degrading.  A beam either finishes or
     # returns nothing; there is no cheap look at one, so a probe-sized slice just starves it.
     # Repair passes have no such threshold and answer whatever they are given.
-    slot = [budget * (0.20 if o[3] else 1.0 / (2.0 * len(ops))) for o in ops]
+    # THE REPAIR PROBE IS FOUR TIMES LARGER THAN IT NEEDS TO BE, AND IT IS PAID ON EVERY WORKER.
+    #
+    # OGC_OPSTAT, run for the first time tonight, on prob_1 at 240 s:
+    #
+    #     op     tried  seconds  %budget          gain     gain/s
+    #     beam       8    120.4    61.0%   979,091,983  8,129,865
+    #     grow       1     31.6    16.0%        28,795        910
+    #     bal        1      0.0     0.0%             0          0
+    #     pref       2      3.0     1.5%         7,814      2,642
+    #     z1         1     16.7     8.5%             0          0
+    #     bay        1     25.4    12.8%             0          0
+    #
+    # bay and z1 take 21.3% of the worker and return nothing, and the beam they take it from runs
+    # at 8.1M objective units per second -- 464x the next operator.  That is not the bandit
+    # choosing badly: gain/spent never picks them again.  It is the FIRST probe, sized at
+    # budget/(2n) = 16.4 s here, and paid once per operator per worker per run.
+    #
+    # DROPPING THE OPERATOR IS THE WRONG FIX, and four instances say so.  Removing `bay` is worth
+    # -7.1% at most on prob_1 and -2.71% on prob_20, but costs +16.2% on prob_16 and +2.79% on
+    # prob_3.  Hanging it on wid%2 does not work either: prob_3's answers come from the EVEN pair
+    # (65.4%) and it wants bay, while prob_20's come from the ODD pair (94.8%) and it does not, so
+    # the operator axis and the parity axis are not aligned.
+    #
+    # The bandit is already the adaptive mechanism -- it learns gain 0 on prob_1 and gives bay
+    # nothing more, and it grows the slice on prob_16 where the pass pays.  All that is wrong is
+    # what the lesson costs.  A smaller first look keeps the discovery and stops overpaying for
+    # it: on prob_1 the wasted probe falls from 25 s to a few, and on prob_16 the pass still
+    # reports a gain and still earns its budget back through gain/spent.
+    #
+    # Search operators are exempt for the reason the note above records: a beam either finishes or
+    # returns nothing, so a probe-sized slice starves it rather than pricing it.
+    #
+    # OGC_PROBE is the repair passes' opening slice as a fraction of the budget; unset keeps
+    # 1/(2n) exactly.
+    _pf = None
+    try:
+        _pv = os.environ.get("OGC_PROBE")
+        if _pv:
+            _pf = min(0.50, max(0.005, float(_pv)))
+    except Exception:
+        _pf = None
+    _rep = (1.0 / (2.0 * len(ops))) if _pf is None else _pf
+    slot = [budget * (0.20 if o[3] else _rep) for o in ops]
 
     while True:
         left = budget - (time.time() - t0)
@@ -3699,11 +3823,13 @@ def algorithm(prob_info, timelimit=60):
     #
     # So the knob stays available and the default stays where it was measured.
     _rfrac = None
-    # VARIANT B DEFAULTS.  This build restores the 7th submission's reserve, alone, with the tail
-    # polish capped so the round it buys actually runs.  Measured tonight, four replicates on
-    # prob_1 and two on the others: prob_1 mean -1.04% and worst case -6.38% with the run-to-run
-    # range halved (19.4% -> 8.0%), prob_3 -0.03%, prob_20 +2.23%, prob_16 +10.69%.  That is the
-    # 7th's own profile -- the priority instances improve and one class of instance pays for it.
+    # SHIPPED DEFAULT AS OF THE 11TH ENTRY.  The reserve is not polish budget, it is second-round
+    # budget: raising it lowers wbudget, which lowers _rb, which drops the fill gate 0.25*_rb below
+    # the leftover, so a SECOND WORKER ROUND runs.  Measured tonight against the uncapped tail
+    # polish -- prob_1 four replicates mean -1.04%, worst case -6.38%, run-to-run range 19.4% ->
+    # 8.0%; prob_3 -0.03%; prob_20 +2.23%; prob_16 +10.69%.  That is the 7th submission's profile,
+    # which is still the best P1 (2,685,759) and best P3 (5,569,691) this project has scored,
+    # against 3,185,928 and 5,886,815 in the 10th, and it is shipped as a deliberate trade.
     _rfs = os.environ.get("OGC_RESFRAC", "0.35")
     if _rfs:
         try:
@@ -4008,9 +4134,44 @@ def algorithm(prob_info, timelimit=60):
         # already spent the whole run losing.  OGC_PARFILL below is what makes the recovered time
         # worth recovering, and the cap is enabled with it rather than on its own.
         _need = max(8.0, 0.25 * _rb)
+        # THE GATE IS A THRESHOLD ON THE ROUND, NOT A FRACTION OF THE LAST ONE.
+        #
+        # 0.25*_rb asks "is this a quarter of a nominal round", which on a long budget demands
+        # 49.75 s of leftover and never opens; capping it at 20 s opened it and let through rounds
+        # that have never once beaten anything.  What the round actually has to clear is a
+        # THRESHOLD, and this session measured where it is:
+        #
+        #     24 s   moved=0                  prob_3, prob_16
+        #     26 s   moved=0                  prob_16
+        #     31 s   moved=0, twice           prob_1
+        #     35 s   prob_1 472,330 against 437,484 for a 47 s round -- +7.4%
+        #     47 s   prob_1 437,484, the instance's best cluster
+        #     69 s   moved=0                  prob_3
+        #     74-76s moved=1 twice, -16.6% and -10.0%   prob_1
+        #
+        # Eight rounds under 35 s, eight times nothing.  A short pool round on prob_1 lands near
+        # 600 k, which is worse than a POOR round 0, so it cannot beat the incumbent whatever the
+        # incumbent is -- the length is not a matter of degree.
+        #
+        # So require the round the gate is about to start to be worth starting: at least
+        # OGC_FILLFLOOR seconds of actual round budget.  45 was the first value tried and it sat
+        # ON TOP of one of the arms being measured: RESFRAC=0.25 produces a 46-47 s round, so a
+        # couple of seconds of drift flipped the gate and r3.p16.rf25 ran 194 s where r1 and r2 ran
+        # 237-239 s -- the same arm measuring two different things.  A threshold must not land on
+        # an operating point.  40 splits the measured failure at 35 s from the measured success at
+        # 47 s and leaves that arm 6-7 s of headroom.  Short budgets are untouched -- at 60 s the
+        # leftover is nowhere near 48 s and the gate was closed there anyway.
+        #
+        # This does not change the shipped path: at RESFRAC=0.35 the leftover is about 79 s and
+        # the round gets 71 s, well clear.  It removes the case where a freed tail buys 27-31 s of
+        # search that provably cannot pay, and leaves those seconds with the polish instead.
+        try:
+            _ff = max(8.0, float(os.environ.get("OGC_FILLFLOOR", "40")))
+        except Exception:
+            _ff = 40.0
         if os.environ.get("OGC_FILLMIN") == "1" or _PARFILL:
-            _need = min(_need, 20.0)
-        if left < _need + 8.0:
+            _need = min(_need, _ff)
+        if left < _need + 8.0 or min(_rb, left - 8.0) < _ff:
             break
         _rb2 = max(4.0, min(_rb, left - 8.0))
         # SPEND THE RECOVERED TIME ON THE HALF THAT ANSWERED (OGC_PARFILL).

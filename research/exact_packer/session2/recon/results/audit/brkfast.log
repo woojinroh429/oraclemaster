@@ -453,3 +453,38 @@ COLSTAT ncol=11709 geom_slots=5641 ratio=2.08 blocks=46 entries_per_block avg=2.
   opstat  TOTAL      12      72.4   98.9%                        
 FILL round=1 budget=74 moved=0 best=482866
 P1  [r1.p1.colstat]   240s  obj=482866      Z1=16.0     Z2=3998   Z3=607.0     feas=y   ran 234s  py3.12
+# [r1.p3.brk]
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        2      66.6   42.8%   1218925666 18301939.5
+  opstat  grow        1      34.0   21.9%            0        0.0
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        1      13.2    8.5%       116445     8847.4
+  opstat  bay         1      37.3   23.9%        94547     2537.9
+  opstat  brk         1       1.5    1.0%            0        0.0
+  opstat  TOTAL       7     152.6   98.0%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        2      74.1   47.2%   1218424235 16433962.0
+  opstat  grow        1      33.2   21.2%       261328     7864.5
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        1      13.0    8.3%       171955    13218.0
+  opstat  bay         1      31.0   19.7%        52273     1688.7
+  opstat  brk         1       1.0    0.6%            0        0.0
+  opstat  TOTAL       7     152.3   97.0%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        2      78.9   47.4%   1218810063 15449966.5
+  opstat  grow        1      36.7   22.0%            0        0.0
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        1      13.0    7.8%       180968    13949.5
+  opstat  bay         1      34.5   20.7%        42737     1238.1
+  opstat  brk         1       0.5    0.3%            0        0.0
+  opstat  TOTAL       7     163.5   98.2%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        2      73.4   43.7%   1219037495 16611135.0
+  opstat  grow        1      36.7   21.8%            0        0.0
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        1      13.2    7.9%       149786    11326.3
+  opstat  bay         1      39.7   23.6%         4264      107.4
+  opstat  brk         1       1.6    0.9%            0        0.0
+  opstat  TOTAL       7     164.6   97.9%                        
+WSTAT round=0 n=4 4757394 4860284 4984261 4702507  spread=5.99%
+PARFILL round=1 parity=odd even=4757394 odd=4702507 wids=[17, 19, 21, 23]

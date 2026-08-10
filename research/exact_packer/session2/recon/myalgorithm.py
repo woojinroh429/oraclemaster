@@ -3371,7 +3371,27 @@ def _worker(args):
     # budget/(2n), which grows when n falls.
     #
     # OGC_BRK=1 restores it.  Nothing is deleted; bayrepack.py still ships and still imports.
-    if os.environ.get("OGC_BRK", "0") == "1":
+    # ADOPTED.  brk was off "deliberately, to measure it on the hidden set", and that measurement
+    # never happened -- its whole record was six instances at one cell each, two wins two losses
+    # two ties.  Measured properly this session, 240s, replicated:
+    #
+    #     prob_1   -6.52%   three replicates, NO cell worse, run-to-run range 16.5% -> 2.0%
+    #     prob_3   +0.34%   three replicates, brk returns 4,356,312 every time
+    #     prob_16  +2.14%   two replicates
+    #     prob_24  +1.84%
+    #     prob_20  +1.72%   two replicates
+    #
+    # It is a trade and the trade is the right way round: the instance it wins is the priority one,
+    # and every loss is inside the 3-4% the priority allows.  It is also the only operator that can
+    # make the move the Z3 work identified -- 76.8% of prob_1's objective is the preference term,
+    # CP-SAT says Z3 821 -> 387 is admissible at exact per-slice area capacity, and _regroup showed
+    # the obstruction is the blocks that STAY.  _balance moves one block, _z3_improve reassigns
+    # without re-placing, _assign realises one at a time, the beam never revisits.  brk lifts a
+    # whole bay and repacks it exactly, and on r1 it reached Z3=445 where the previous record was
+    # 541.
+    #
+    # OGC_BRK=0 restores the previous behaviour exactly.
+    if os.environ.get("OGC_BRK", "1") == "1":
         try:
             import bayrepack as _brk
             ops.append(("brk", lambda t: _brk.repack(prob_info, _brk_seed(), t, _total,

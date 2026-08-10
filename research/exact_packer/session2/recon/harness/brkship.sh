@@ -43,14 +43,14 @@ run(){ local tag="$1"
 }
 for rep in 1 2; do
   for p in 16 20 24; do
-    run "r$rep.p$p.off"    $p 240 ""
+    run "r$rep.p$p.off"    $p 240 "OGC_BRK=0"
     run "r$rep.p$p.brk"    $p 240 "OGC_BRK=1"
     run "r$rep.p$p.fast"   $p 240 "OGC_BRK=1 OGC_TIERNOUT=0.5"
   done
 done
 echo "== BRKSHIP cost instances done ==" >> $L
 for rep in 1 2 3; do
-  run "r$rep.p1.off"   1 240 ""
+  run "r$rep.p1.off"   1 240 "OGC_BRK=0"
   run "r$rep.p1.fast"  1 240 "OGC_BRK=1 OGC_TIERNOUT=0.5"
 done
 echo "BRKSHIPDONE" >> $L
