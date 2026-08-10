@@ -26,3 +26,5 @@ P1  [r3.p1.w3]     120s  obj=500196      Z1=12.0     Z2=5264   Z3=674.0     feas
 WSTAT round=0 n=2 485018 710613  spread=46.51%
 P1  [r3.p1.w2]     120s  obj=485018      Z1=2.0      Z2=2828   Z3=772.0     feas=y   ran 79s  py3.12
 # [r4.p1.w4]
+WSTAT round=0 n=4 584609 844433 737494 836872  spread=44.44%
+P1  [r4.p1.w4]     120s  obj=584609      Z1=20.0     Z2=7223   Z3=716.0     feas=y   ran 93s  py3.12
