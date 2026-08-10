@@ -76,3 +76,19 @@ risk is entirely on the other side -- switching it off where it DOES earn -- and
 governed by the threshold's placement in the 48.7-86.3 gap but by whether the MID-RUN share the
 gate actually reads lands on the same side as the finished run's.  Which is what brkgate measures,
 and until it has, the gate stays off.
+
+## prob_1 SPLIT BY WHETHER brk ACTUALLY RAN (opstat tried > 0, not by tag name)
+
+    brk ON    n= 11   reached 422,629  4 (36.4%)   median 437,484   worst 538,936
+    brk OFF   n=305   reached 422,629 15 ( 4.9%)   median 518,803   worst 822,149
+
+The minimum is 422,629 in BOTH arms.  brk does not find a floor the search cannot reach; it
+reaches the existing floor far more often.  The median moves 518,803 -> 437,484 (-15.7%) and the
+worst case 822,149 -> 538,936, and on a per-instance score the worst case is what sets the tier.
+
+CAVEAT, RECORDED BECAUSE I OVERSTATED IT ONCE.  I priced two consecutive 422,629 hits against a
+4.3% base rate and called it p = 0.002.  r3's CONTROL then returned 422,629 on its own.  The 4.9%
+figure is over 305 runs of many different builds; the current build (rf35 + POLCAP 5) reaches that
+basin more often than the historical average, so the true null for THESE replicates is higher than
+4.9% and the p-value is optimistic.  n = 11 on the brk side is small.  The 0-of-118 gain column
+remains the stronger evidence because it is not a comparison of draws at all.
