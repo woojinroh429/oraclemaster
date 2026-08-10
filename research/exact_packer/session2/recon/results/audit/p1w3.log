@@ -16,3 +16,5 @@ P1  [w3.r3]        240s  obj=464757      Z1=9.0      Z2=3518   Z3=657.0     feas
 # [w3.r4]
 WSTAT round=0 n=3 487067 635533 428809  spread=48.21%
 PARFILL round=1 parity=even even=428809 odd=635533 wids=[12, 14, 16]
+FILL round=1 budget=74 moved=0 best=428809
+P1  [w3.r4]        240s  obj=428809      Z1=22.0     Z2=5045   Z3=445.0     feas=y   ran 237s  py3.12
