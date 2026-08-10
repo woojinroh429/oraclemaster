@@ -7,9 +7,15 @@
 # config A's median of 530,650.  Half of round 0 cannot produce a winning ticket at all.
 #
 # `_aims[wid % len(_aims)]` reads a list of ANY length, so the split is reachable from the
-# environment with no code change:
+# environment with no code change -- BUT THE AIM IS ONLY HALF OF THE CONFIG.  _ms indexes wid % 2
+# over [1,2] independently (line 2779), and the file's own comment spells the pairing out:
 #
-#     OGC_AIMSET=0.90,0.10,0.90,0.90   at WORKERS=4   ->   wid 0,1,2,3 = A B A A
+#     w0 (aim 0.90, m=1)   w1 (aim 0.10, m=2)   w2 (aim 0.90, m=1)   w3 (aim 0.10, m=2)
+#
+# Setting AIMSET alone would make wid 3 (aim 0.90, m=2), a hybrid that has never been measured,
+# not a third config A.  Both lists have to be lengthened together:
+#
+#     OGC_AIMSET=0.90,0.10,0.90,0.90  OGC_MSET=1,2,1,1   ->   wid 0,1,2,3 = A B A A
 #
 # shortdraws.md proposed exactly this and shelved it, because acting on it needed to know the
 # instance family before round 0 and the only predictor was a threshold fitted to thirteen points
@@ -54,7 +60,7 @@ run(){ # tag env
 }
 
 for rep in $(seq 1 10); do
-  run "a3.r$rep" "WORKERS=4 OGC_AIMSET=0.90,0.10,0.90,0.90"
+  run "a3.r$rep" "WORKERS=4 OGC_AIMSET=0.90,0.10,0.90,0.90 OGC_MSET=1,2,1,1"
 done
 echo "P1A3DONE" >> $L
 echo idle > harness/CURRENT
