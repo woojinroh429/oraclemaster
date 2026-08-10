@@ -163,3 +163,5 @@ P16 [r1.p16.brk]   240s  obj=3199896     Z1=145.0    Z2=2287   Z3=5039.0    feas
   opstat  TOTAL       2      63.4   98.1%                        
 FILL round=1 budget=57 moved=0 best=3558783
 P16 [r1.p16.brk]   240s  obj=3558783     Z1=176.0    Z2=2225   Z3=4822.0    feas=y   ran 243s  py3.12
+# [r1.p16.fast]
+P16 [r1.p16.fast] CRASH rc=137
