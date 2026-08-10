@@ -48,3 +48,31 @@ prob_1 alone above it.  prob_3 at 88.0% is now a second instance above the gap, 
 calibration fix, with a 4/4 ordering against its controls.  Three instances sit below it and all
 three lose.  The threshold is still FITTED -- five labelled points cannot derive one -- but it is
 no longer fitted to a single positive case.
+
+## THE DECIDING TABLE: brk's OWN GAIN COLUMN, EVERY CELL EVER LOGGED
+
+Not a comparison of draws.  This is what the operator reported about its own effect on its own
+worker's incumbent, summed over every brk worker-round in results/audit/*.log.
+
+    prob   Z3 share   worker-rounds   paying   pay rate   brk seconds   raw gain
+    3        88.0%              40        8       20%           599.3    202,603
+    1        86.3%              80       44       55%         2,005.2  1,291,476
+    16       48.7%              46        0        0%           391.6          0
+    24       23.2%              24        0        0%            92.2          0
+    20       15.2%              48        0        0%           234.2          0
+
+**118 worker-rounds on the three low-share instances and not one of them returned a gain.**  718
+worker-seconds spent, zero collected.  Against 52 of 120 paying on the two high-share ones.
+
+This is a different kind of evidence from everything quoted for the gate before it.  The five
+end-of-run objectives were draws, and prob_1's controls alone span 437,484 to 492,458, so a
+five-point ordering of draws is close to meaningless.  A 0-of-118 against a 52-of-120 is not a
+draw ordering; it is the operator saying, on every single occasion, that it found nothing.
+
+WHAT IT DOES TO THE DOWNSIDE.  The objection to any fitted threshold is that it might switch the
+operator off where it would have earned.  On these three instances there is nothing to switch off:
+gating them costs the microseconds of _obj_shares and the 718 seconds come back to the beam.  The
+risk is entirely on the other side -- switching it off where it DOES earn -- and that is not
+governed by the threshold's placement in the 48.7-86.3 gap but by whether the MID-RUN share the
+gate actually reads lands on the same side as the finished run's.  Which is what brkgate measures,
+and until it has, the gate stays off.
