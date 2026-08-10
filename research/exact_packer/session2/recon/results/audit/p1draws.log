@@ -372,3 +372,41 @@ DRAW wid=1 gen=1 axis=2 ask=31.0 took=7.8 obj=895370
 DRAW wid=3 gen=1 axis=2 ask=31.0 took=9.5 obj=895370
 DRAW wid=0 gen=1 axis=0 ask=31.0 took=16.1 obj=587906
 DRAW wid=2 gen=1 axis=0 ask=31.0 took=16.1 obj=587906
+DRAW wid=1 gen=3 axis=2 ask=31.0 took=4.0 obj=948042
+DRAW wid=1 gen=4 axis=2 ask=31.0 took=4.2 obj=1022374
+DRAW wid=1 gen=5 axis=2 ask=31.0 took=3.9 obj=948042
+DRAW wid=3 gen=3 axis=2 ask=31.0 took=6.7 obj=926365
+DRAW wid=1 gen=7 axis=2 ask=31.0 took=7.6 obj=912336
+DRAW wid=3 gen=4 axis=2 ask=31.0 took=8.3 obj=1042030
+DRAW wid=1 gen=8 axis=2 ask=31.0 took=8.2 obj=885578
+DRAW wid=2 gen=3 axis=0 ask=31.0 took=16.9 obj=587906
+DRAW wid=0 gen=3 axis=0 ask=31.0 took=16.4 obj=619328
+DRAW wid=3 gen=5 axis=2 ask=27.8 took=8.3 obj=885578
+DRAW wid=1 gen=9 axis=2 ask=21.6 took=8.5 obj=895370
+DRAW wid=3 gen=6 axis=2 ask=19.5 took=8.4 obj=903573
+DRAW wid=2 gen=4 axis=0 ask=24.0 took=12.9 obj=587906
+DRAW wid=0 gen=4 axis=0 ask=21.1 took=10.8 obj=747768
+DRAW wid=1 gen=10 axis=2 ask=13.1 took=7.1 obj=866404
+DRAW wid=2 gen=5 axis=0 ask=11.1 took=6.1 obj=999275
+DRAW wid=0 gen=5 axis=0 ask=10.4 took=5.7 obj=999275
+DRAW wid=3 gen=7 axis=2 ask=11.1 took=6.5 obj=866404
+DRAW wid=1 gen=11 axis=2 ask=6.1 took=5.0 obj=778056
+DRAW wid=3 gen=8 axis=2 ask=4.6 took=4.3 obj=781046
+DRAW wid=2 gen=6 axis=0 ask=4.9 took=4.7 obj=980672
+DRAW wid=0 gen=6 axis=0 ask=4.6 took=4.6 obj=893064
+WSTAT round=0 n=4 515465 693359 515465 710613  spread=37.86%
+PARFILL round=1 parity=even even=515465 odd=693359 wids=[16, 18, 20, 22]
+DRAW wid=16 gen=1 axis=0 ask=14.7 took=8.7 obj=964403
+DRAW wid=22 gen=1 axis=0 ask=14.7 took=8.8 obj=964403
+DRAW wid=20 gen=1 axis=0 ask=14.7 took=8.9 obj=964403
+DRAW wid=18 gen=1 axis=0 ask=14.7 took=8.9 obj=964403
+DRAW wid=18 gen=3 axis=0 ask=14.7 took=5.6 obj=966127
+DRAW wid=22 gen=3 axis=0 ask=14.3 took=5.4 obj=893064
+DRAW wid=16 gen=3 axis=0 ask=13.0 took=5.2 obj=1045327
+DRAW wid=18 gen=4 axis=0 ask=9.6 took=4.1 obj=892896
+DRAW wid=22 gen=4 axis=0 ask=8.7 took=4.2 obj=985476
+DRAW wid=16 gen=4 axis=0 ask=7.8 took=3.8 obj=1171761
+DRAW wid=18 gen=5 axis=0 ask=5.5 took=3.7 obj=1106500
+DRAW wid=16 gen=5 axis=0 ask=4.0 took=3.4 obj=1106500
+FILL round=1 budget=73 moved=0 best=515465
+P1  [r2.p1.ax2]    240s  obj=515465      Z1=17.0     Z2=4242   Z3=649.0     feas=y   ran 234s  py3.12
