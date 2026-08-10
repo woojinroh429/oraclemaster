@@ -52,3 +52,32 @@ this problem -- it MEASURES which configuration won round 0 rather than predicti
 can only act from round 1 onward, and round 1 is the 73 s round that pays 4%.
 
 So the two ideas are complements and only one of them is safe.  Recorded, not adopted.
+
+## AND ROUND 0 IS ALREADY LONGER THAN prob_1 CAN USE
+
+Same logs, another natural experiment: some prob_1 cells ran a fill round and so had a short round
+0, others ran none and had the whole budget in one round.  Comparing the CONFIG-A round-0 draws
+(slots 0 and 2), over 240 s runs only:
+
+    round 0 length      n     min       p25       median    P(<= 450,000)
+    ~228 s (no fill)   204   422,629   439,374   504,490        0.27
+    ~160 s              44   413,954   437,484   486,096        0.27
+    ~150 s              28   422,629   437,484   469,427        0.43
+    ~200 s              16   438,791   455,218   501,850        0.25
+    ~120 s               8   422,629   422,629   454,859        0.50
+
+Between 155 s and 228 s the distribution does not move: P = 0.27 in both large buckets, 248
+samples.  prob_1's beam saturates well before the round ends, so the seconds after saturation buy
+nothing WHERE THEY ARE.
+
+This also corrects fillpower, which put 99 s at 486,096 against 199 s at 438,791 and was read as
+"longer is better".  Those were single cells; on 248 they are the same distribution.
+
+THE TWO SMALL BUCKETS POINT THE OTHER WAY AND I DO NOT TRUST THEM YET.  120 s reads P = 0.50 on
+n = 8 and 150 s reads 0.43 on n = 28, both better than the long rounds.  They come from specific
+experiments that changed other settings too, so the length is confounded.  What they do is make
+the saturation point the question: if a 120 s draw is as good as a 228 s one, then 240 s buys FOUR
+config-A draws instead of two, at full effectiveness -- and that is not the 73 s fill round, which
+is below saturation and pays 4%.
+
+p1draws R=2 gives rounds of about 120 s and is now the cell that matters most in that sweep.
