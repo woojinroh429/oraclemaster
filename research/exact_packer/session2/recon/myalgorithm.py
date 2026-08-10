@@ -4119,17 +4119,21 @@ def algorithm(prob_info, timelimit=60):
         # incumbent is -- the length is not a matter of degree.
         #
         # So require the round the gate is about to start to be worth starting: at least
-        # OGC_FILLFLOOR seconds of actual round budget, default 45, which sits above the 35 s that
-        # measured worse and below the 47 s that measured best.  Short budgets are untouched --
-        # at 60 s the leftover is nowhere near 53 s and the gate was closed there anyway.
+        # OGC_FILLFLOOR seconds of actual round budget.  45 was the first value tried and it sat
+        # ON TOP of one of the arms being measured: RESFRAC=0.25 produces a 46-47 s round, so a
+        # couple of seconds of drift flipped the gate and r3.p16.rf25 ran 194 s where r1 and r2 ran
+        # 237-239 s -- the same arm measuring two different things.  A threshold must not land on
+        # an operating point.  40 splits the measured failure at 35 s from the measured success at
+        # 47 s and leaves that arm 6-7 s of headroom.  Short budgets are untouched -- at 60 s the
+        # leftover is nowhere near 48 s and the gate was closed there anyway.
         #
         # This does not change the shipped path: at RESFRAC=0.35 the leftover is about 79 s and
         # the round gets 71 s, well clear.  It removes the case where a freed tail buys 27-31 s of
         # search that provably cannot pay, and leaves those seconds with the polish instead.
         try:
-            _ff = max(8.0, float(os.environ.get("OGC_FILLFLOOR", "45")))
+            _ff = max(8.0, float(os.environ.get("OGC_FILLFLOOR", "40")))
         except Exception:
-            _ff = 45.0
+            _ff = 40.0
         if os.environ.get("OGC_FILLMIN") == "1" or _PARFILL:
             _need = min(_need, _ff)
         if left < _need + 8.0 or min(_rb, left - 8.0) < _ff:

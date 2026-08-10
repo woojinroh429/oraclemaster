@@ -72,3 +72,4 @@ P16 [GATE45.r3.p16.rf20]   240s  obj=3199896     Z1=145.0    Z2=2287   Z3=5039.0
 # which says the long second round earns its 44s on prob_16 rather than merely costing them.
 WSTAT round=0 n=4 2915011 3495836 3143709 3233601  spread=19.93%
 P16 [r3.p16.rf25]   240s  obj=2864491     Z1=126.0    Z2=2011   Z3=4714.0    feas=y   ran 194s  py3.12
+# [r3.p16.rf35]
