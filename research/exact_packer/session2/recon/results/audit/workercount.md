@@ -76,3 +76,39 @@ instances 60-120 s and its late ones ~500 s, so 120 s alone validates nothing th
 w3's mechanism is depth -- 1.33 cores per worker instead of 1.00 -- and depth only pays if the
 deeper search completes inside the budget.  At 60 s it may not, and then w3 is just a draw thrown
 away.  harness/nwbud.sh runs 60 s first for that reason.  NOT SHIPPING UNTIL IT HOLDS.
+
+## THE BUDGET CHECK PAID FOR ITSELF: THE 120 s WIN DOES NOT SURVIVE TO 240 s
+
+    w3 vs w4, mean per cell
+
+              prob_1              prob_16
+
+     60 s      -0.85%  (3 pairs)   -10.1%  (3 pairs)
+    120 s     -15.5%   (5 pairs)    -5.0%  (4 pairs)
+    240 s      +3.6%   (1 pair)     +5.2%  (1 pair)
+
+Both instances cross to w4 at 240 s, with matching sign.  The mechanism accounts for it: w3's
+gain is depth bought with cores, and at 240 s a four-way split already has time to reach the deep
+solutions, so the extra cores buy nothing and the lost draw is a straight cost.  At 60 s nobody
+gets deep and the arms tie.  The win lives in the middle.
+
+    240 s prob_1 w4    422,629    the value the reserve note records as needing three knobs
+    240 s prob_16 w4 2,740,666    a new best for the instance, 3.1% under w2's 120 s record
+
+Both controls drew well at 240 s, which is the point: given time, w4 gets there by itself.
+
+## SO GLOBAL ADOPTION IS OUT, AND ONLY A BUDGET GATE REMAINS
+
+The hidden set runs its late instances at ~500 s and they carry the score.  A 240 s trend already
+favouring w4 cannot be extrapolated past it, so shipping WORKERS=3 unconditionally would trade a
+measured mid-budget gain for an unmeasured long-budget loss on the instances that matter most.
+
+    timelimit <~ 150 s   ->  3 workers
+    timelimit  >  150 s   ->  4 workers, unchanged
+
+UNLIKE EVERY GATE THAT FAILED TONIGHT, THIS ONE READS AN ARGUMENT.  brk needed to predict which
+instance would benefit and no feature predicted it; the axis gate needed the same.  `timelimit` is
+passed into algorithm() directly -- there is nothing to infer.
+
+WHAT IS STILL MISSING IS THE CROSSOVER.  -15.5% at 120 s and +3.6% at 240 s bracket it, but the
+gate needs a number, and 150 is a guess sitting between two measured points.  180 s is queued.
