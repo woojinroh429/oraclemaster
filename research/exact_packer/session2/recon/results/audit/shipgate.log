@@ -24,3 +24,8 @@ Archive:  submit_recon.zip
 == smoke test (import + one solve) ==
 SMOKE: import OK (no local instance to solve)
 == gate verify (60s -> expect n=3) ==
+WSTAT round=0 n=3 855906 852220 775590  spread=10.36%
+P1  [gate.v60]      60s  obj=775590      Z1=21.0     Z2=1661   Z3=1051.0    feas=y   ran 43s  py3.12
+== gate verify (480s path, 20s probe -> expect n=3; 300s -> expect n=4) ==
+cpu 4
+SHIPGATEDONE
