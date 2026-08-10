@@ -8,3 +8,5 @@ P2  [P1.r1.p2.w3]    60s  obj=3690        Z1=0.0      Z2=144    Z3=15.0      fea
 WSTAT round=0 n=4 3690 3690 3690 3690  spread=0.00%
 P2  [P1.r2.p2.w4]    60s  obj=3690        Z1=0.0      Z2=144    Z3=15.0      feas=y   ran 36s  py3.12
 # [P1.r2.p2.w3]
+WSTAT round=0 n=3 3690 3690 3690  spread=0.00%
+P2  [P1.r2.p2.w3]    60s  obj=3690        Z1=0.0      Z2=144    Z3=15.0      feas=y   ran 36s  py3.12
