@@ -95,3 +95,29 @@ floor w4 reaches occasionally.
 WORKERS=3 made two slots better.  3+1 makes it three slots.  Nothing measured so far says which
 is worth more, and the open risk is that three A workers contending where two did degrades all
 three -- readable from slot 3's distribution inside the arm itself.
+
+## THREE ARMS, SAME UNITS: DELETING A USELESS WORKER BEATS ADDING A USEFUL ONE
+
+prob_1, 240 s, T = 450,000.  k is the number of config-A slots per run.
+
+    arm                  runs   A draws   A median    p       1-(1-p)^k    FINAL median   P(final<=T)
+    w4 stock (A B A B)    194     388     492,458   0.273    0.47 (k=2)     455,218        0.48
+    w3       (A B A)       16      32     469,427   0.344    0.57 (k=2)     437,484        0.75
+    3+1      (A B A A)     10      30     489,878   0.200    0.49 (k=3)     464,757        0.50
+
+3+1 IS AN EXACT WASH.  A third config-A slot drops each slot's p from 0.273 to 0.200, and three
+tickets at 0.200 compound to what two at 0.273 already gave -- 0.49 against 0.47, with observed
+finals of 0.50 against 0.48.  The extra ticket is paid for exactly by the quality of all three.
+
+AND IT IS NOT A WORKER-COUNT EFFECT: stock and 3+1 both run four workers on four cores.  The only
+difference is that slot 3 stopped being config B.  The likeliest reading is that config B (aim
+0.10, m=2) is the cheaper worker and releases its core early, so replacing it puts three heavy
+workers in contention for the whole round.
+
+    delete a useless worker (w3)   two A slots at 1.33 cores   p 0.273 -> 0.344
+    add a useful one    (3+1)      three A slots contending    p 0.273 -> 0.200
+
+The resource that decides prob_1 is cores per config-A worker, and the way to buy it is to remove
+something that was never going to win, not to add something that could.  The shipped gate does the
+first.  w3's final median is 3.9% below stock's and its P(final <= 450,000) is 0.75 against 0.48,
+on sixteen runs against 194.
