@@ -36,6 +36,21 @@
 # with quality and the trade has to be priced, not assumed.  That is readable directly: WSTAT slot
 # 3 becomes an A draw here, so its distribution against slots 0 and 2 answers it inside this queue.
 #
+# THE FIRST ATTEMPT WAS INVALID AND ITS FIVE RUNS ARE KEPT AS a3.* FOR THE RECORD.  Config A is
+# THREE settings tied to wid % 2, not two: OGC_DIRSET=2, the default, also gives even wids
+# OGC_ORDER=lst and OGC_W3MUL=0.5.  Lengthening AIMSET and MSET gave wid 3 the aim and the m but
+# not the direction, producing a combination never measured before, and it is catastrophic:
+#
+#     slot 0  (A, has direction)    median 482,866
+#     slot 2  (A, has direction)    median 489,878
+#     slot 3  (aim + m only)        median 993,027     2.03x worse, and worse than config B
+#
+# That is the largest single effect measured in this session, and it was hiding inside a default.
+# DIRSET only selects even-or-odd, so A B A A cannot be reached by choosing a pair.  Setting the
+# direction GLOBALLY reaches it: every wid gets order=lst and w3mul=0.5, and aim/m then make wid
+# 0, 2, 3 config A while wid 1 becomes a config B that also carries the direction -- irrelevant,
+# since B has not produced a draw under 450,000 in 388 tries.
+#
 # NOTE ON READING THE LOG.  Under 3+1 the useful draws are slots 0, 2 and 3; under stock they are
 # slots 0 and 2.  Any pooled statistic that ignores slot position mixes A and B and means nothing.
 set -u
@@ -60,7 +75,7 @@ run(){ # tag env
 }
 
 for rep in $(seq 1 10); do
-  run "a3.r$rep" "WORKERS=4 OGC_AIMSET=0.90,0.10,0.90,0.90 OGC_MSET=1,2,1,1"
+  run "a3d.r$rep" "WORKERS=4 OGC_AIMSET=0.90,0.10,0.90,0.90 OGC_MSET=1,2,1,1 OGC_ORDER=lst OGC_W3MUL=0.5"
 done
 echo "P1A3DONE" >> $L
 echo idle > harness/CURRENT
