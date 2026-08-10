@@ -75,3 +75,37 @@ and the one the correlation supports.
 
 The axis knob is that lever -- each _AXES entry gives a different seed tail.  The RANKING is not
 yet safe (ax0 alone spans 25% over two replicates), which r2 settles.
+
+## FOUR CORRELATIONS, ONE STORY (nine cells)
+
+    r(best seed,            final) = +0.846
+    r(median seed,          final) = -0.328
+    r(number of seeds,      final) = -0.354    more seeds -> better answer
+    r(seconds per seed,     final) = +0.658    cheaper seeds -> better answer
+
+    cell        seeds  mean s   best seed       final    Bmul
+    r1.ax0        34     8.4     687,209     630,785     1.0
+    r1.ax1        43     7.2     576,367     469,427     1.0
+    r1.ax2        34     8.7     587,906     515,465     0.7
+    r1.ax3        33     8.0     541,099     517,814     0.7
+    r1.ax4        34     7.6     533,320     468,853     1.4
+    r1.ax5        38     6.6     539,626     437,959     0.5
+    r1.rot        35     7.8     541,099     453,039      -
+    r2.ax0        38     7.6     602,487     469,650     1.0
+    r2.ax1        35     7.6     532,420     422,629     1.0
+
+The best r1 cell (ax5, 437,959) has the cheapest seeds at 6.6 s, the second-most of them, and the
+narrowest beam at Bmul 0.5.  The worst (ax0, 630,785) has the most expensive seeds at 8.4 s and
+the fewest.  The chain that fits is: narrower beam -> cheaper construction -> more seeds -> deeper
+left tail -> better final.
+
+## WHAT WOULD MAKE IT MORE THAN A STORY
+
+Bmul is a continuous parameter, not an axis name, so if the chain is real it can be tested
+directly with OGC_BEAMCAP without choosing an axis at all -- which would be a far more general
+lever than picking one of six configs, and would not be fitted to prob_1.
+
+RESERVATIONS, STATED BEFORE THE SWEEP FINISHES.  Nine points.  ax1 is Bmul 1.0 and won twice
+(469,427 and 422,629), so Bmul alone does not explain the ranking.  Seed count and final are both
+downstream of the axis, so the correlation may be covariance rather than cause.  And ax0 spans
+25% by itself, which is most of the range being ranked.
