@@ -507,3 +507,8 @@ DRAW wid=20 gen=9 axis=0 ask=5.6 took=3.6 obj=984300
 DRAW wid=16 gen=6 axis=0 ask=4.6 took=3.4 obj=984300
 FILL round=1 budget=73 moved=0 best=445860
 P1  [r2.p1.ax4]    240s  obj=445860      Z1=15.0     Z2=4685   Z3=553.0     feas=y   ran 234s  py3.12
+# [r2.p1.ax5]
+DRAW wid=1 gen=1 axis=5 ask=31.0 took=8.6 obj=992392
+DRAW wid=3 gen=1 axis=5 ask=31.0 took=8.9 obj=992392
+DRAW wid=0 gen=1 axis=0 ask=31.0 took=15.4 obj=570379
+DRAW wid=2 gen=1 axis=0 ask=31.0 took=15.4 obj=637958
