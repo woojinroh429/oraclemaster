@@ -32,6 +32,13 @@
 # by this lever.  Then the answer for P1 is that it cannot be improved by scheduling at all and
 # the remaining lever is the beam's own left tail.
 #
+# AND IT CARRIES OGC_DRAWSTAT=1, WHICH IS FREE HERE.  Every draw then prints its wid, its axis
+# and its objective, so the same cells that price the round count also answer which _AXES entry
+# produces prob_1's good draws -- and the axis is documented as worth 32-210% against 0.0-12.6%
+# for repeating one config, i.e. more than anything else in the run.  The instrumented _fresh is
+# byte-for-byte the plain one when OGC_AXJIT is unset (_jit returns cfg untouched), so this costs
+# one _total per draw and changes no decision.
+#
 # prob_16 IS THE VETO, AND IT IS RUN FIRST.  It is the instance that needs depth: its best worker
 # reaches 2,671,848 with a 199 s round and only 2,879,376 with 155 s, so cutting the budget into
 # four rounds should hurt it badly.  If it does not, that finding was itself a draw.
@@ -50,7 +57,7 @@ run(){ # tag prob limit env
     local tag="$1"
     grep -vE '^# ' $L 2>/dev/null | grep -q "\[$tag\]" && return
     echo "# [$tag]" >> $L
-    env $4 OGC_WSTAT=1 timeout $(( $3 * 4 )) /usr/bin/python3.12 harness/run1.py myalgorithm $2 $3 \
+    env $4 OGC_WSTAT=1 OGC_DRAWSTAT=1 timeout $(( $3 * 4 )) /usr/bin/python3.12 harness/run1.py myalgorithm $2 $3 \
         "[$tag]" --data data/stage2 >> $L 2>&1 || echo "P$2 [$tag] CRASH rc=$?" >> $L
     ci "$tag"
 }

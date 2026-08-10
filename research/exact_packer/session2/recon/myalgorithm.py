@@ -3041,8 +3041,11 @@ def _worker(args):
             # FOUR OPENING SLOTS, FOUR SIGNALS WITH LOW MUTUAL CORRELATION.
             #
             # Two facts about the shipped list drive this, both from results/audit/axes_structure.md.
-            # First, worker wid opens on _AXES[wid % 6] and nw is 4, so axes 4 and 5 can never open
-            # a run -- and the loop's own trace on the hidden P6 recorded the first beam producing
+            # First, worker wid opens on _AXES[(wid + 1) % 6] and nw is 4, so axes 5 and 0 can
+            # never open a run.  (This comment said "_AXES[wid % 6] ... axes 4 and 5" until it was
+            # traced: `gen = [0]` and _fresh increments BEFORE indexing, so the first draw is
+            # axes[1], not axes[0].  The o4/o5 replacement sets below were designed against the
+            # wrong two axes.)  The loop's own trace on the hidden P6 recorded the first beam producing
             # the best solution of the entire 300 s run in 33 seconds.  The opening axis largely
             # decides the answer, so the list is effectively four entries, not six.  Second, two of
             # those four (0 and 1) share Bmul, K, order and fut_beta and differ by pos_lam 0.10 vs
