@@ -3437,7 +3437,37 @@ def _worker(args):
     # 541.
     #
     # OGC_BRK=0 restores the previous behaviour exactly.
-    if os.environ.get("OGC_BRK", "1") == "1":
+    # brk ON HALF THE WORKERS -- OGC_BRKPAR, "all" (default) keeps the shipped behaviour.
+    #
+    # THIS IS NOT A TUNING KNOB, IT IS WHAT prob_1 r3 SHOWED.  There brk paid on seven of eight
+    # worker-rounds -- 32,560 / 34,808 / 52,446 / 11,062 / 5,037 / 5,037 / 6,200 -- and the run
+    # still finished 18% WORSE than its control, because the beam's try count over round 0 fell
+    # from 12/8/11/8 = 39 to 5/4/8/6 = 23.
+    #
+    # The score is the MINIMUM over the workers, and what reaches prob_1's good basin is the beam
+    # RESTARTING, not any one incumbent being polished.  brk climbs the hill it is standing on
+    # using the seconds that would have found a different hill.  A per-worker gain is therefore
+    # not a per-run gain, and no amount of making brk cheaper or smarter changes that -- it is
+    # a property of what the answer is taken over.
+    #
+    # So put brk on ONE WORKER OF EACH CONFIGURATION and leave the other pure.  The config split
+    # is wid % 2 (aims, m and DIRSET all index it), so wid // 2 selects across it: (wid//2) % 2
+    # keeps one brk worker and one restart worker per config, in every round -- round 1's wids are
+    # 4,5,6,7 and 4//2, 5//2 are both even, so the pairing is stable round to round.
+    #
+    # The min is then protected by construction.  The pure workers keep the restart count the
+    # control had, so the run cannot fall below a control draw the way r3 did, while brk's upside
+    # stays available on the other two.  Nothing here is fitted to an instance and there is no
+    # predictor to be wrong -- unlike OGC_BRKZ3 below, which needs a threshold.
+    def _brk_on_this_worker():
+        _m = os.environ.get("OGC_BRKPAR", "all")
+        if _m == "half":
+            return (wid // 2) % 2 == 0
+        if _m in ("0", "1"):
+            return wid % 2 == int(_m)
+        return True
+
+    if os.environ.get("OGC_BRK", "1") == "1" and _brk_on_this_worker():
         try:
             import bayrepack as _brk
 
