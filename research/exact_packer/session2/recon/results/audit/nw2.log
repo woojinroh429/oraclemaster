@@ -7,3 +7,4 @@ P1  [r1.p1.w3]     120s  obj=537403      Z1=34.0     Z2=7975   Z3=478.0     feas
 # [r1.p1.w2]
 WSTAT round=0 n=2 515188 729996  spread=41.70%
 P1  [r1.p1.w2]     120s  obj=515188      Z1=25.0     Z2=7571   Z3=543.0     feas=y   ran 79s  py3.12
+# [r2.p1.w4]
