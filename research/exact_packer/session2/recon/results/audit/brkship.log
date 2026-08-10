@@ -32,3 +32,71 @@ PARFILL round=1 parity=odd even=3933480 odd=3389825 wids=[17, 19, 21, 23]
 P16 [r1.p16.off] CRASH rc=137
 # [r1.p16.brk]
 # [r1.p16.brk]
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        3      84.7   54.1%   8399895172 99170873.9
+  opstat  grow        1      18.2   11.6%            0        0.0
+  opstat  bal         1       0.1    0.1%            0        0.0
+  opstat  pref        1      13.3    8.5%        36814     2763.7
+  opstat  bay         1      28.8   18.4%            0        0.0
+  opstat  brk         1       9.8    6.3%            0        0.0
+  opstat  TOTAL       8     154.9   99.0%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        3      89.2   56.2%   8400459141 94213181.2
+  opstat  grow        1      17.0   10.7%            0        0.0
+  opstat  bal         1       0.1    0.1%            0        0.0
+  opstat  pref        1      13.1    8.2%        33705     2581.0
+  opstat  bay         1      37.0   23.3%            0        0.0
+  opstat  brk         1       0.7    0.4%            0        0.0
+  opstat  TOTAL       8     157.0   98.9%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        2      49.6   30.8%   8399287689 169447165.5
+  opstat  grow        1      20.0   12.5%            0        0.0
+  opstat  bal         1       0.1    0.0%            0        0.0
+  opstat  pref        1      13.3    8.3%        28392     2138.6
+  opstat  bay         1      32.0   19.9%        12250      382.9
+  opstat  brk         1      42.7   26.6%            0        0.0
+  opstat  TOTAL       7     157.6   98.1%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        3      67.9   41.0%   8399619911 123630450.0
+  opstat  grow        1      15.5    9.3%            0        0.0
+  opstat  bal         1       0.1    0.0%            0        0.0
+  opstat  pref        1      13.4    8.1%        37443     2801.3
+  opstat  bay         1      28.9   17.5%        27186      940.3
+  opstat  brk         1      37.7   22.8%            0        0.0
+  opstat  TOTAL       8     163.5   98.7%                        
+WSTAT round=0 n=4 3760756 3199896 4008202 4364411  spread=36.39%
+PARFILL round=1 parity=odd even=3760756 odd=3199896 wids=[17, 19, 21, 23]
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        1      38.6   24.7%   8400064848 217450627.6
+  opstat  grow        1      28.9   18.5%            0        0.0
+  opstat  bal         1       0.2    0.1%            0        0.0
+  opstat  pref        1      14.5    9.3%        37355     2569.5
+  opstat  bay         1      33.1   21.2%            0        0.0
+  opstat  brk         1      37.8   24.2%        11614      307.4
+  opstat  TOTAL       6     153.1   98.1%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        3      82.1   50.3%   8399890828 102265532.8
+  opstat  grow        1      30.9   18.9%            0        0.0
+  opstat  bal         1       0.2    0.1%            0        0.0
+  opstat  pref        1      13.4    8.2%        14581     1090.2
+  opstat  bay         1      28.3   17.4%            0        0.0
+  opstat  brk         1       6.7    4.1%            0        0.0
+  opstat  TOTAL       8     161.6   99.0%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        2      65.5   39.9%   8399170980 128140530.9
+  opstat  grow        1      30.2   18.4%            0        0.0
+  opstat  bal         1       0.1    0.1%            0        0.0
+  opstat  pref        1      14.1    8.6%          343       24.4
+  opstat  bay         1      42.9   26.1%         5808      135.3
+  opstat  brk         1       9.0    5.5%            0        0.0
+  opstat  TOTAL       7     161.8   98.4%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        2      53.9   32.5%   8399771893 155842727.7
+  opstat  grow        1      29.5   17.8%            0        0.0
+  opstat  bal         1       0.2    0.1%            0        0.0
+  opstat  pref        1      13.6    8.2%        13647     1006.5
+  opstat  bay         1      28.5   17.2%        17539      615.3
+  opstat  brk         1      37.4   22.6%        16348      436.6
+  opstat  TOTAL       7     163.1   98.3%                        
+WSTAT round=0 n=4 3787333 3578925 3873315 4515611  spread=26.17%
+PARFILL round=1 parity=odd even=3787333 odd=3578925 wids=[17, 19, 21, 23]
