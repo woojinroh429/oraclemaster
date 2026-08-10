@@ -43,18 +43,22 @@ WSTAT round=0 n=4 2844130 3474842 3277700 3233601  spread=22.18%
 PARFILL round=1 parity=even even=2844130 odd=3233601 wids=[16, 18, 20, 22]
 FILL round=1 budget=65 moved=0 best=2844130
 P16 [r2.p16.rf35]   240s  obj=2844130     Z1=124.0    Z2=1446   Z3=4746.0    feas=y   ran 238s  py3.12
-# [r2.p1.rf20]
+# [CONTAMINATED.r2.p1.rf20]
 WSTAT round=0 n=4 492458 771740 489783 635770  spread=57.57%
 PARFILL round=1 parity=even even=489783 odd=635770 wids=[16, 18, 20, 22]
 FILL round=1 budget=38 moved=0 best=489783
-P1  [r2.p1.rf20]   240s  obj=489783      Z1=21.0     Z2=4592   Z3=560.0     feas=y   ran 233s  py3.12
-# [r2.p1.rf25]
+P1  [CONTAMINATED.r2.p1.rf20]   240s  obj=489783      Z1=21.0     Z2=4592   Z3=560.0     feas=y   ran 233s  py3.12
+# [CONTAMINATED.r2.p1.rf25]
 WSTAT round=0 n=4 539082 820059 537569 750586  spread=52.55%
 PARFILL round=1 parity=even even=537569 odd=750586 wids=[16, 18, 20, 22]
 FILL round=1 budget=49 moved=0 best=537569
-P1  [r2.p1.rf25]   240s  obj=537569      Z1=26.0     Z2=7409   Z3=570.0     feas=y   ran 235s  py3.12
-# [r2.p1.rf35]
+P1  [CONTAMINATED.r2.p1.rf25]   240s  obj=537569      Z1=26.0     Z2=7409   Z3=570.0     feas=y   ran 235s  py3.12
+# [CONTAMINATED.r2.p1.rf35]
 WSTAT round=0 n=4 712652 753527 594521 830984  spread=39.77%
 PARFILL round=1 parity=even even=594521 odd=753527 wids=[16, 18, 20, 22]
 FILL round=1 budget=70 moved=0 best=594521
-P1  [r2.p1.rf35]   240s  obj=594521      Z1=11.0     Z2=3928   Z3=849.0     feas=y   ran 237s  py3.12
+P1  [CONTAMINATED.r2.p1.rf35]   240s  obj=594521      Z1=11.0     Z2=3928   Z3=849.0     feas=y   ran 237s  py3.12
+# [r3.p16.rf20]
+# NOTE: the three r2.p1 cells above were taken while three 240s gate-verification runs were
+# competing for the same four cores.  Renamed so the queue's tag-skip does not treat them as
+# done, and so they cannot be read as data.  Re-run as r4.p1.*.

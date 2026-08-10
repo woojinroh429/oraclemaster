@@ -4099,9 +4099,40 @@ def algorithm(prob_info, timelimit=60):
         # already spent the whole run losing.  OGC_PARFILL below is what makes the recovered time
         # worth recovering, and the cap is enabled with it rather than on its own.
         _need = max(8.0, 0.25 * _rb)
+        # THE GATE IS A THRESHOLD ON THE ROUND, NOT A FRACTION OF THE LAST ONE.
+        #
+        # 0.25*_rb asks "is this a quarter of a nominal round", which on a long budget demands
+        # 49.75 s of leftover and never opens; capping it at 20 s opened it and let through rounds
+        # that have never once beaten anything.  What the round actually has to clear is a
+        # THRESHOLD, and this session measured where it is:
+        #
+        #     24 s   moved=0                  prob_3, prob_16
+        #     26 s   moved=0                  prob_16
+        #     31 s   moved=0, twice           prob_1
+        #     35 s   prob_1 472,330 against 437,484 for a 47 s round -- +7.4%
+        #     47 s   prob_1 437,484, the instance's best cluster
+        #     69 s   moved=0                  prob_3
+        #     74-76s moved=1 twice, -16.6% and -10.0%   prob_1
+        #
+        # Eight rounds under 35 s, eight times nothing.  A short pool round on prob_1 lands near
+        # 600 k, which is worse than a POOR round 0, so it cannot beat the incumbent whatever the
+        # incumbent is -- the length is not a matter of degree.
+        #
+        # So require the round the gate is about to start to be worth starting: at least
+        # OGC_FILLFLOOR seconds of actual round budget, default 45, which sits above the 35 s that
+        # measured worse and below the 47 s that measured best.  Short budgets are untouched --
+        # at 60 s the leftover is nowhere near 53 s and the gate was closed there anyway.
+        #
+        # This does not change the shipped path: at RESFRAC=0.35 the leftover is about 79 s and
+        # the round gets 71 s, well clear.  It removes the case where a freed tail buys 27-31 s of
+        # search that provably cannot pay, and leaves those seconds with the polish instead.
+        try:
+            _ff = max(8.0, float(os.environ.get("OGC_FILLFLOOR", "45")))
+        except Exception:
+            _ff = 45.0
         if os.environ.get("OGC_FILLMIN") == "1" or _PARFILL:
-            _need = min(_need, 20.0)
-        if left < _need + 8.0:
+            _need = min(_need, _ff)
+        if left < _need + 8.0 or min(_rb, left - 8.0) < _ff:
             break
         _rb2 = max(4.0, min(_rb, left - 8.0))
         # SPEND THE RECOVERED TIME ON THE HALF THAT ANSWERED (OGC_PARFILL).
