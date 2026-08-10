@@ -50,3 +50,4 @@ PARFILL round=1 parity=even even=2829720 odd=3091086 wids=[12, 14, 16]
 FILL round=1 budget=149 moved=0 best=2776607
 P16 [b480.r2.p16.w3]   480s  obj=2776607     Z1=123.0    Z2=1216   Z3=4532.0    feas=y   ran 480s  py3.12
 NW480DONE
+# [b480.r3.p16.w4]
