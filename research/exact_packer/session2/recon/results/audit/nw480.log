@@ -16,3 +16,5 @@ P1  [b480.r2.p1.w4]   480s  obj=405381      Z1=12.0     Z2=4459   Z3=520.0     f
 # [b480.r2.p1.w3]
 WSTAT round=0 n=3 458512 853778 496052  spread=86.21%
 PARFILL round=1 parity=even even=458512 odd=853778 wids=[12, 14, 16]
+FILL round=1 budget=157 moved=1 best=406271
+P1  [b480.r2.p1.w3]   480s  obj=402890      Z1=17.0     Z2=8317   Z3=441.0     feas=y   ran 473s  py3.12
