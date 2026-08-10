@@ -1101,3 +1101,5 @@ PARFILL round=1 parity=even even=472234 odd=718072 wids=[16, 18, 20, 22]
   opstat  TOTAL      14      71.4   98.0%                        
 FILL round=1 budget=74 moved=0 best=472234
 P1  [r3.p1.off]    240s  obj=472234      Z1=16.0     Z2=7054   Z3=574.0     feas=y   ran 234s  py3.12
+== BRK priority done ==
+# [r1.p24.brk]
