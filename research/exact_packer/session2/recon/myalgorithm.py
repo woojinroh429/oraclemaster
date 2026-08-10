@@ -2410,6 +2410,32 @@ def _assign(prob_info, sol, budget):
                 o, _ = _total(prob_info, f, best_o)
                 if o < best_o:
                     best_o = o; best = f
+            # THE WHOLESALE REALISER IS THE ONLY STEP HERE THAT TAKES NO TIME BUDGET.
+            #
+            # `_assign` is registered as an operator and handed a slot, `_assign_once` is capped at
+            # min(left*0.4, 8.0) and `_follow` at budget*0.25 -- but `_realise` runs to completion
+            # however long that takes, so the operator overruns whatever it was given.  Measured on
+            # prob_1 with OGC_OPSTAT: `bay` took 25.4 s from a 16.4 s slot, and shrinking the slot
+            # to 5 s via OGC_PROBE still cost 26.2 s.  The probe size does not control it.
+            #
+            # That matters because the operator is worth keeping.  Dropping it costs +16.2% on
+            # prob_16 and +2.79% on prob_3 while saving at most 7.1% on prob_1 and 2.71% on
+            # prob_20, and it cannot go on the wid%2 split either -- prob_3 wins on the EVEN pair
+            # and wants it, prob_20 wins on the ODD pair and does not.  What is wrong is not that
+            # it runs, it is that it cannot be told to run for less.
+            #
+            # Skipping the step when the slot is already spent is the bounded version of that: the
+            # plan still gets `_follow`, which is the never-worse path, and the Benders loop still
+            # terminates.  It only ever does LESS work, so it cannot make an answer worse.
+            # MEASURED AND NOT ADOPTED.  The guard below only prevents the SECOND realise: the
+            # first is entered while the slot still has time and then overruns inside, so `bay`
+            # still read 34.9 s and 13.9 s on two workers of one prob_1 run.  Bounding this
+            # properly means a deadline inside _realise, which is surgery on a packing routine
+            # that would have to be revalidated on prob_16 and prob_3 -- the instances where the
+            # operator is worth +16.2% and +2.79% -- and the upside is capped at prob_1's 7.1%,
+            # whose three-replicate mean was about zero.  OGC_ASSIGNGUARD=1 enables it.
+            if os.environ.get("OGC_ASSIGNGUARD") == "1" and budget - (time.time() - t0) < 2.0:
+                break
             s, spill, hot = _realise(prob_info, want, ent, ext, wait)
             if s is not None:
                 o, _ = _total(prob_info, s, best_o)
@@ -3368,7 +3394,49 @@ def _worker(args):
     # 29396046 -> 30898889, with Z1, Z2 and Z3 all degrading.  A beam either finishes or
     # returns nothing; there is no cheap look at one, so a probe-sized slice just starves it.
     # Repair passes have no such threshold and answer whatever they are given.
-    slot = [budget * (0.20 if o[3] else 1.0 / (2.0 * len(ops))) for o in ops]
+    # THE REPAIR PROBE IS FOUR TIMES LARGER THAN IT NEEDS TO BE, AND IT IS PAID ON EVERY WORKER.
+    #
+    # OGC_OPSTAT, run for the first time tonight, on prob_1 at 240 s:
+    #
+    #     op     tried  seconds  %budget          gain     gain/s
+    #     beam       8    120.4    61.0%   979,091,983  8,129,865
+    #     grow       1     31.6    16.0%        28,795        910
+    #     bal        1      0.0     0.0%             0          0
+    #     pref       2      3.0     1.5%         7,814      2,642
+    #     z1         1     16.7     8.5%             0          0
+    #     bay        1     25.4    12.8%             0          0
+    #
+    # bay and z1 take 21.3% of the worker and return nothing, and the beam they take it from runs
+    # at 8.1M objective units per second -- 464x the next operator.  That is not the bandit
+    # choosing badly: gain/spent never picks them again.  It is the FIRST probe, sized at
+    # budget/(2n) = 16.4 s here, and paid once per operator per worker per run.
+    #
+    # DROPPING THE OPERATOR IS THE WRONG FIX, and four instances say so.  Removing `bay` is worth
+    # -7.1% at most on prob_1 and -2.71% on prob_20, but costs +16.2% on prob_16 and +2.79% on
+    # prob_3.  Hanging it on wid%2 does not work either: prob_3's answers come from the EVEN pair
+    # (65.4%) and it wants bay, while prob_20's come from the ODD pair (94.8%) and it does not, so
+    # the operator axis and the parity axis are not aligned.
+    #
+    # The bandit is already the adaptive mechanism -- it learns gain 0 on prob_1 and gives bay
+    # nothing more, and it grows the slice on prob_16 where the pass pays.  All that is wrong is
+    # what the lesson costs.  A smaller first look keeps the discovery and stops overpaying for
+    # it: on prob_1 the wasted probe falls from 25 s to a few, and on prob_16 the pass still
+    # reports a gain and still earns its budget back through gain/spent.
+    #
+    # Search operators are exempt for the reason the note above records: a beam either finishes or
+    # returns nothing, so a probe-sized slice starves it rather than pricing it.
+    #
+    # OGC_PROBE is the repair passes' opening slice as a fraction of the budget; unset keeps
+    # 1/(2n) exactly.
+    _pf = None
+    try:
+        _pv = os.environ.get("OGC_PROBE")
+        if _pv:
+            _pf = min(0.50, max(0.005, float(_pv)))
+    except Exception:
+        _pf = None
+    _rep = (1.0 / (2.0 * len(ops))) if _pf is None else _pf
+    slot = [budget * (0.20 if o[3] else _rep) for o in ops]
 
     while True:
         left = budget - (time.time() - t0)
