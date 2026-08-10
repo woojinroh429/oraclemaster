@@ -1,0 +1,32 @@
+# [r1.p16.off]
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        1      47.6   30.9%   8398857718 176376550.5
+  opstat  grow        1      46.4   30.2%            0        0.0
+  opstat  bal         1       0.4    0.2%            0        0.0
+  opstat  pref        2      19.8   12.9%        42731     2153.3
+  opstat  bay         1      36.2   23.5%            0        0.0
+  opstat  TOTAL       6     150.5   97.7%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        1      50.8   32.0%   8400220227 165335258.9
+  opstat  grow        1      40.9   25.8%            0        0.0
+  opstat  bal         1       0.3    0.2%            0        0.0
+  opstat  pref        1      15.6    9.8%        80994     5191.7
+  opstat  bay         1      45.9   29.0%         1696       36.9
+  opstat  TOTAL       5     153.6   96.8%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        2      66.8   39.3%   8399729282 125703907.2
+  opstat  grow        1      48.5   28.5%            0        0.0
+  opstat  bal         1       0.2    0.1%            0        0.0
+  opstat  pref        1      15.8    9.3%        29980     1893.8
+  opstat  bay         1      35.6   21.0%            0        0.0
+  opstat  TOTAL       6     166.9   98.1%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        2      69.3   40.6%   8399226482 121137133.2
+  opstat  grow        1      47.8   28.0%            0        0.0
+  opstat  bal         1       0.2    0.1%            0        0.0
+  opstat  pref        1      16.8    9.8%        53031     3165.5
+  opstat  bay         1      33.7   19.7%            0        0.0
+  opstat  TOTAL       6     167.7   98.3%                        
+WSTAT round=0 n=4 3933480 3389825 4792293 4413229  spread=41.37%
+PARFILL round=1 parity=odd even=3933480 odd=3389825 wids=[17, 19, 21, 23]
+P16 [r1.p16.off] CRASH rc=137
