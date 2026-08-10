@@ -163,3 +163,43 @@ the incumbent it was given rather than where the run happened to land.  Read tha
 
 which is why brkhalf asks a structural question -- does leaving two workers pure protect the
 minimum -- instead of another draw comparison.
+
+## THE RIGHT STATISTIC WAS IN THE LOGS ALL NIGHT: PER-WORKER OBJECTIVES
+
+Every run prints WSTAT with all four workers' round-0 objectives.  Comparing those instead of the
+run minimum gives four times the sample per run and does not depend on which worker got lucky.
+P below is the fraction of (brk worker, off worker) pairs the brk one wins; 0.5 is no effect.
+
+    prob_1    off n=12  min 422,629  med 599,592  max 866,567   spread 105%
+              brk n=12  min 422,629  med 571,400  max 735,244   P = 0.559
+    prob_3    off n= 8  min 4,363,763 med 4,622,402 max 4,980,388  spread 14%
+              brk n= 8  min 4,281,933 med 4,473,967 max 4,717,037  P = 0.719
+    prob_20   off n=12  min 8,769,505 med 9,773,904 max 12,777,493 spread 46%
+              brk n= 8  min 8,769,505 med 9,958,913 max 12,638,642 P = 0.458
+    prob_24   off n= 8  min 2,814,291 med 2,896,470 max 3,185,622  spread 13%
+              brk n= 4  min 2,761,894 med 2,971,946 max 3,166,922  P = 0.484
+
+prob_3 is the only clear win.  prob_20 and prob_24 are slight losses.  prob_1 is 0.559 -- brk does
+lift the typical worker there, by 4.7% at the median -- AND IT DOES NOT MATTER, because the score
+is the MINIMUM and prob_1's workers span 422,629 to 866,567.  Both arms have the same minimum.
+
+## WHICH GIVES THE MECHANISM A SECOND HALF
+
+brk helps a run only when BOTH hold:
+
+    1. it finds something          -- Z3 must be a large share, else the gain column is 0
+                                      (prob_16/24/20: 126 worker-rounds, zero, before and after
+                                      the calibration fix)
+    2. the minimum is set by per-draw QUALITY, not by the NUMBER of draws
+                                      -- prob_1's worker spread is 105%, so min-of-N is dominated
+                                      by the luckiest worker and a 4.7% median lift is invisible;
+                                      prob_3's spread is 14%, so quality is what the min sees
+
+prob_3 satisfies both.  prob_1 satisfies only the first, and brk actively harms it by spending the
+restarts that produce the draws -- 39 beam tries to 23 in r3.  prob_16/24/20 satisfy neither.
+
+STATED AS AN OVERFIT RISK, BECAUSE IT IS ONE.  That is two conditions fitted to five instances,
+and I will not put either into the code as a predictor.  What it is good for is explaining why
+BRKPAR=half should work without any predictor at all: leaving two workers pure keeps the draw
+count that condition 2 is about, while brk supplies the quality on the other two.  The wiring
+satisfies both conditions structurally instead of testing for them.
