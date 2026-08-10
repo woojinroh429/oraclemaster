@@ -62,25 +62,39 @@ run(){ # tag prob limit env
     ci "$tag"
 }
 
-# The veto first: two replicates on the instance that is supposed to need one long round.
+# AXIS FIRST.  A WSTAT draw is a min over ~12 constructions (opstat's beam try counts on prob_1
+# read 12/8/11/8) and `axes[gen[0] % 6]` rotates the axis on each, so each axis gets about two.
+# P(worker draw <= 450,000) = 0.16 then implies a single construction clears it about 1.5% of the
+# time.  If ONE axis holds most of that mass, pinning converts two chances into twelve, and the
+# file's own measurement says the axis is worth 32-210% against 0.0-12.6% for repeating one config
+# -- an order of magnitude more than anything else touched tonight.
+#
+# OGC_AXIS pins EVERY worker to one _AXES entry, so these six cells also say what config A and
+# config B are each worth on a single axis.  Two replicates because prob_1's spread is 105% and one
+# cell has produced a wrong call three times tonight.
 for rep in 1 2; do
-  for R in 1 4; do
-    run "r$rep.p16.R$R" 16 240 "OGC_ROUNDS=$R"
+  for A in 0 1 2 3 4 5; do
+    run "r$rep.p1.ax$A" 1 240 "OGC_AXIS=$A"
   done
+  run "r$rep.p1.rot" 1 240 ""
 done
-echo "== P1DRAWS veto done ==" >> $L
+echo "== P1DRAWS axis done ==" >> $L
 
-for rep in 1 2 3 4; do
+# Then the round sweep, at two replicates rather than four: the fill-round evidence (4% move rate
+# over 53 samples) and the saturation reading (155 s and 228 s identical over 248) both point at
+# R=1, so this is now confirmation rather than discovery.  R=2 is the cell that could still move --
+# its rounds are about 120 s, which is above the 73 s the fill round proves is too short.
+for rep in 1 2; do
   for R in 1 2 3 4; do
     run "r$rep.p1.R$R" 1 240 "OGC_ROUNDS=$R"
   done
 done
-echo "== P1DRAWS prob_1 done ==" >> $L
+echo "== P1DRAWS rounds done ==" >> $L
 
+# The veto last: prob_16 is supposed to need one long round.
 for rep in 1 2; do
-  for R in 1 3; do
-    run "r$rep.p3.R$R" 3 240 "OGC_ROUNDS=$R"
-    run "r$rep.p20.R$R" 20 240 "OGC_ROUNDS=$R"
+  for R in 1 4; do
+    run "r$rep.p16.R$R" 16 240 "OGC_ROUNDS=$R"
   done
 done
 echo "P1DRAWSDONE" >> $L
