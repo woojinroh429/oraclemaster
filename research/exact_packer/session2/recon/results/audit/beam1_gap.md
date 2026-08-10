@@ -41,7 +41,7 @@ production does run, by 11.4%, on one instance.  If that survives the prob_16 se
 table, the question stops being "which axis" and becomes "why is the fine rung alone, at a work
 level production never gives it, better than the whole pipeline".
 
-## A SECOND THING THE TABLE HAS ALREADY SHOWN: WORK IS NOT MONOTONE
+## A SECOND THING: WORK IS NOT MONOTONE ON THE BAD AXES -- AND IS STILL PAYING ON THE BEST ONE
 
     prob_1 axis 0    w1500  1,569,183    w3000  1,174,681    w6000  1,243,617
 
@@ -49,3 +49,24 @@ More work made it WORSE from 3,000 to 6,000.  The file predicts exactly this -- 
 produces a WIDER beam, not a longer one, and "a wider beam ranks more states by the same myopic
 proxy ... so more width can systematically prefer states that look better early and finish worse".
 So "buy more work per draw" is not even monotone, let alone a lever.
+
+
+## CORRECTION, ONE CELL AFTER I WROTE THE SECTION ABOVE
+
+I concluded from axis 0 that "buy more work per draw is not even monotone, let alone a lever".
+The next cell refuted it:
+
+    axis 0    w1500  1,569,183   w3000  1,174,681   w6000  1,243,617     non-monotone
+    axis 1    w1500  1,323,041   w3000  1,323,041   w6000  1,323,041     flat, one digest throughout
+    axis 2    w1500    686,238   w3000    684,687   w6000    573,634     -16.2% at 6,000
+
+Axis 2 was not saturated.  It has a PLATEAU between 1,500 and 3,000 and then falls 16.2% at 6,000,
+and 573,634 is better than the best axis-2 seed production has ever produced (587,906).
+
+So the shape is per-axis and reading it off one axis was wrong twice in a row -- first "axis 1 is
+flat therefore the lever is dead", then "axis 0 is non-monotone therefore the lever is dead".  The
+honest statement is that the best axis is still improving at 6,000 work, which is about 32 s, and
+production gives a draw 7-8 s.
+
+A plateau followed by a drop also explains why a coarse ladder misleads: 1,500 -> 3,000 reads
+-0.2% and would have been called saturation by any two-point test.
