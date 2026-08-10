@@ -109,3 +109,39 @@ RESERVATIONS, STATED BEFORE THE SWEEP FINISHES.  Nine points.  ax1 is Bmul 1.0 a
 (469,427 and 422,629), so Bmul alone does not explain the ranking.  Seed count and final are both
 downstream of the axis, so the correlation may be covariance rather than cause.  And ax0 spans
 25% by itself, which is most of the range being ranked.
+
+## THE SEED-COUNT HALF OF THE STORY WAS ALREADY REFUTED, IN work_mode.md
+
+Two of the four correlations above cannot be causal, and the file says why:
+
+    "Splitting a budget into more than six draws.  With no clock in the search, one (axis, work)
+     pair has exactly one answer.  `_worker` draws `axes[gen % 6]`, so a worker can produce at
+     most six distinct results per work level; the seventh draw re-derives one it already holds.
+     In production they differ only because the clock perturbs them.  Structural, not empirical."
+
+    "OGC_BCAP (raise the beam width ceiling) ... Once work is the budget the adaptive controller
+     makes a width ceiling inert: narrowing the beam leaves work unspent and `Bcur` grows back.
+     Work is the currency, width is only how it is spent."
+
+So a cell's 34 constructions are not 34 seeds.  They are at most six distinct answers plus clock
+perturbation, which is exactly why r(median seed, final) is -0.33 while r(best seed, final) is
++0.85 -- the "best" is the best of about six real configurations and the rest are re-derivations.
+
+r(seed count, final) = -0.354 and r(seconds per seed, final) = +0.658 are therefore covariance
+with the axis, not a lever.  My "narrower beam -> cheaper seeds -> more seeds -> deeper tail"
+chain is refuted on both of its middle links.
+
+## WHAT IS NOT REFUTED, AND THE TOOL THAT SETTLES IT
+
+WORK PER DRAW.  prob_16's productive axis returns 3,159,373 at work 3,000 and 2,477,998 at 6,000
+-- 21.6% for doubling one draw.  No such table exists for prob_1.
+
+And OGC_WORKCAP makes the measurement exact: three runs of prob_16 at work 4,000 returned
+obj=6,684,986 with digest 00e0c6a4b5d1da5e every time, against a 19.6% band in production.  The
+axis question I have been spending 240 s cells on, fighting a 25% spread, is answerable with no
+noise at all by harness/beam1.py.
+
+Also recorded because it is the largest single number in the file: on prob_16 ONE beam draw at
+work 6,000 on axis 2 returns 2,477,998, while this project's best ever full run on that instance
+is 2,795,643 and today's 240 s runs return 3.28M-3.66M.  A single draw beats the whole pipeline by
+11.4% there.  Nothing has ever explained that.
