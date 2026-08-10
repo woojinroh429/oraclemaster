@@ -37,3 +37,7 @@ WSTAT round=0 n=3 11252 11252 11252  spread=0.00%
 P8  [P2.r3.p8.w3]   120s  obj=11252       Z1=0.0      Z2=2413   Z3=8.0       feas=y   ran 76s  py3.12
 == NWREAL P2 (prob_8 120s) done ==
 # [P3.r1.p9.w4]
+WSTAT round=0 n=4 50485 50885 50885 50970  spread=0.96%
+PARFILL round=1 parity=even even=50485 odd=50885 wids=[16, 18, 20, 22]
+FILL round=1 budget=67 moved=0 best=50485
+P9  [P3.r1.p9.w4]   240s  obj=50485       Z1=0.0      Z2=2147   Z3=265.0     feas=y   ran 236s  py3.12
