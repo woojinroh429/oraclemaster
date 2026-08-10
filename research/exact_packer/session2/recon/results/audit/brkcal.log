@@ -1201,3 +1201,4 @@ PARFILL round=1 parity=even even=2765278 odd=2880103 wids=[16, 18, 20, 22]
   opstat  TOTAL       9      74.0   98.2%                        
 FILL round=1 budget=69 moved=0 best=2686142
 P24 [r2.p24.brk]   240s  obj=2686142     Z1=499.0    Z2=2225   Z3=1679.0    feas=y   ran 238s  py3.12
+BRKCALDONE

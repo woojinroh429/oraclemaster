@@ -203,3 +203,37 @@ and I will not put either into the code as a predictor.  What it is good for is 
 BRKPAR=half should work without any predictor at all: leaving two workers pure keeps the draw
 count that condition 2 is about, while brk supplies the quality on the other two.  The wiring
 satisfies both conditions structurally instead of testing for them.
+
+## brkcal, COMPLETE
+
+    instance  rep   off          brk          paired   opstat gain (paying/rounds)
+    prob_20   r1    8,850,352    8,769,505    -0.91%   0/8
+              r2    8,769,505    8,730,149    -0.45%   0/8
+    prob_3    r1    4,368,877    4,257,472    -2.55%   2/8   69,766 + 14,111
+              r2    4,363,763    4,356,312    -0.17%   2/4   39,641 + 12,565
+    prob_1    r1      492,458      422,629   -14.18%   7/8
+              r2      437,484      422,629    -3.40%   5/8
+              r3      422,629      499,210   +18.06%   7/8
+    prob_24   r1    2,745,804    2,635,539    -4.02%   0/8
+              r2    2,683,866    2,686,142    +0.08%   0/8
+
+    paired means:  prob_20 -0.68%   prob_3 -1.36%   prob_1 +0.16%   prob_24 -1.97%
+
+READ BY THE PAIRED MEANS ALONE, brk LOOKS GOOD ON THREE OF FOUR INSTANCES.  That reading is wrong,
+and the queue contains its own refutation: on prob_20 and prob_24 the operator reports zero gain
+on every one of 32 worker-rounds, so a -0.68% and a -1.97% mean were produced by an operator that
+demonstrably did nothing.  Those are draws.  The per-worker statistic agrees -- P = 0.458 and
+0.484, i.e. very slightly the wrong way.
+
+What survives brkcal:
+
+    prob_3    brk works.  Gains on 4 of 12 worker-rounds, P = 0.719 per worker, and both draws
+              below both controls against a 0.12% control spread.
+    prob_1    brk lifts the median worker 4.7% and does not change the minimum, which is the
+              score.  Neutral at best; r3 says it can cost 18% when it eats the restarts.
+    prob_16   nothing to find (0 of 46), and it was excluded from this queue because its controls
+    prob_24   span 2,519,071-3,030,292 and every arm of the previous queue reversed sign.
+    prob_20   nothing to find (0 of 24, 0 of 48).
+
+CONSEQUENCE.  One instance of five is a win.  Unconditional brk -- what zip D ships -- is not
+supported, and I recommended it on a -6.52% that this queue shows was a draw.
