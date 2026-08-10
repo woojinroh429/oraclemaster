@@ -33,3 +33,20 @@ caveat".
 
 And this build's prob_16 controls have already read 2,674,298, 2,902,331 and 2,962,652 tonight --
 a 10.8% span -- so -5.7% is inside the control spread and is not yet a result.
+
+## A FOURTH ONE CAUGHT BEFORE IT WAS REPORTED
+
+Every axis carries `dk=0`, so `_beam_once`'s order-redraw -- the one mechanism in the file aimed at
+the attractor structure -- never fires.  Searching for whether it had ever been switched on turned
+up `r1.p16.dk2 = 2,469,078`, which is prob_16's best production value ever recorded.
+
+That is exactly the shape of the three errors above.  This time the control was checked first, and
+it is in the same queue, in dk.log:
+
+    dk2 vs off   P1 r1 +0.00%   P1 r2 +7.71%   P16 r1 -2.26%     mean +1.82%
+    dk3 vs off   P1 r1 +3.82%   P1 r2 +3.82%   P16 r1 +4.95%     mean +4.20%
+
+`r1.p16.off` in that same queue was 2,526,153, so dk2's celebrated 2,469,078 is a 2.26% gain, not
+a breakthrough.  Both arms lose on average and the mechanism is correctly left off.
+
+The rule held: find the control from the same queue before writing anything down.
