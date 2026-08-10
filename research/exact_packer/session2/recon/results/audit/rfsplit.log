@@ -58,9 +58,15 @@ WSTAT round=0 n=4 712652 753527 594521 830984  spread=39.77%
 PARFILL round=1 parity=even even=594521 odd=753527 wids=[16, 18, 20, 22]
 FILL round=1 budget=70 moved=0 best=594521
 P1  [CONTAMINATED.r2.p1.rf35]   240s  obj=594521      Z1=11.0     Z2=3928   Z3=849.0     feas=y   ran 237s  py3.12
-# [r3.p16.rf20]
+# [GATE45.r3.p16.rf20]
 # NOTE: the three r2.p1 cells above were taken while three 240s gate-verification runs were
 # competing for the same four cores.  Renamed so the queue's tag-skip does not treat them as
 # done, and so they cannot be read as data.  Re-run as r4.p1.*.
 WSTAT round=0 n=4 3557431 3199896 3291921 3574290  spread=11.70%
-P16 [r3.p16.rf20]   240s  obj=3199896     Z1=145.0    Z2=2287   Z3=5039.0    feas=y   ran 205s  py3.12
+P16 [GATE45.r3.p16.rf20]   240s  obj=3199896     Z1=145.0    Z2=2287   Z3=5039.0    feas=y   ran 205s  py3.12
+# [r3.p16.rf25]
+# NOTE: OGC_FILLFLOOR was raised to 45s mid-queue, which changes what the rf20 arm IS -- its 35s
+# second round is now refused, so r3's cell ran 205s against 237s for r1 and r2 and measured a
+# single 191s round instead of 191+35.  Renamed so it is not pooled with them.  It is still worth
+# reading on its own: 3,199,896 for one 191s round against 2,828,835 and 2,844,130 for 155+71,
+# which says the long second round earns its 44s on prob_16 rather than merely costing them.
