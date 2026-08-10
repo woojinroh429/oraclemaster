@@ -235,3 +235,37 @@ WHAT DOES NOT SURVIVE is the claim that the gate-ON budgets were validated.  Bay
 count are what a worker's search depth interacts with; an effect measured at the right budget on
 the wrong shape transfers by assumption only.  harness/nwreal.sh re-runs the ladder properly --
 prob_2 at 60 s, prob_8 at 120 s, prob_9 at 240 s, prob_26 at 480 s, all from data/train.
+
+## ON THE INSTANCES THAT ARE ACTUALLY SCORED, THE SHIPPED GATE DOES NOTHING
+
+Re-run on data/train at each hidden problem's own budget:
+
+    P1   60 s  train/prob_2   100 blk 3 bays   6/6 identical   3,690     spent 60% of budget
+    P2  120 s  train/prob_8   150 blk 2 bays   6/6 identical  11,252     spent 64%
+    P3  240 s  train/prob_9   200 blk 3 bays   2/2 identical  50,485     spent 98%
+
+Byte-identical: same objective, same Z1, Z2, Z3 under three workers and under four.  P3 is the
+one that settles it -- it is starved, 236 s of 240, and starvation is the only condition under
+which extra cores per worker can buy anything.  It bought nothing.
+
+The gate fires only at timelimit <= 240, so P4, P5 and P6 are byte-identical to the previous
+submission by construction.  THE SHIPPED CHANGE CANNOT MOVE ANY SCORED PROBLEM.  It is harmless
+and it is worthless, and both halves of that need saying: nothing has to be reverted, and nothing
+was gained.
+
+## AND THE SPREAD THIS WHOLE NIGHT WAS SPENT ON MAY NOT EXIST WHERE IT COUNTS
+
+Every hidden analogue measured so far has a run-to-run spread of exactly zero.  The 11-33% spread
+that defeated thirteen arms tonight was measured on stage-2 prob_1 and prob_16 -- one of which
+carries P4's shape, the other nothing at all, being 5 bays and 300 blocks against a hidden
+maximum of 4 and 250.
+
+If P5 and P6 behave like P1-P3, the variance being chased is a property of two unrepresentative
+instances, and no variance-reduction arm could ever have paid on the hidden set.  That would
+explain the entire night's yield in one sentence.  If they DO vary, it is the first honest
+sighting of the reported problem, at the budgets carrying three orders of magnitude more score
+than P1-P3 combined.  harness/nwfin.sh measures exactly that: prob_10 at 600 s, prob_37 at 900 s,
+w4 only, three draws each -- w4 being what will actually run there.
+
+P4 was cancelled: 96 minutes to characterise a cell where the gate is off and no decision hangs
+on the answer.
