@@ -8,3 +8,4 @@ WSTAT round=0 n=3 498445 661691 524295  spread=32.75%
 PARFILL round=1 parity=even even=498445 odd=661691 wids=[12, 14, 16]
 FILL round=1 budget=53 moved=0 best=498445
 P1  [s2.p1.w3]     180s  obj=498445      Z1=13.0     Z2=7258   Z3=650.0     feas=y   ran 174s  py3.12
+# [s2.p2.w4]
