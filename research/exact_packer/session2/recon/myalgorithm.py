@@ -4019,10 +4019,49 @@ def algorithm(prob_info, timelimit=60):
             if _left_r < max(4.0, 0.25 * _rb):
                 break                                    # not enough left to be worth a round
             _rb = max(4.0, min(_rb, _left_r))
+        # AFTER ROUND 0, STOP PAYING FOR THE CONFIGURATION THAT CANNOT WIN.
+        #
+        # `out[i]` is the worker whose wid was rnd*nw + i, so i carries the parity and the pool is
+        # 2 + 2 over the two configurations.  Counted over every WSTAT line in results/audit, the
+        # argmin's wid is not close to uniform:
+        #
+        #     prob    wins by wid 0,1,2,3      even-parity share
+        #     1       155,  11,  95,   6            94%
+        #     20        4,  69,   4,  95             5%
+        #     36        0,   2,   0,  16             0%
+        #     16       52, 121,  13,  29            30%
+        #     6        45,  40,  24,  28            50%
+        #
+        # On prob_1 the odd workers win 17 times in 267.  The answer is a MINIMUM over the draws,
+        # so half of every round after the first is being spent on tickets that do not win -- and
+        # prob_1's score is set by the draw count, not by draw quality (24 pooled draws: p25
+        # 489,878, median 571,400, so P(<= 450,000) = 0.25 per draw and the count is the lever).
+        #
+        # `_par` already holds the best objective each configuration reached and is already
+        # computed for `best` and for WSTAT.  The fill loop below has used it since PARFILL; the
+        # main round loop never has.
+        #
+        # ONE WORKER STAYS ON THE LOSING SIDE.  Round 0 ranks the configurations on ONE draw each
+        # from a distribution whose spread on prob_1 is 105%, so it can rank them wrong, and
+        # committing all four would make that unrecoverable.  Keeping one is the cheapest insurance
+        # that still triples the winner's share, 2 -> 3.  OGC_PARROUND=4 commits everything, 0
+        # restores the old wiring.
+        #
+        # wid = 2*(r*nw + i) + p keeps the parity while staying unique: round 0 used 0..nw-1, other
+        # main rounds draw k from [r*nw, (r+1)*nw), and the fill loop starts at k = _R*nw, so no
+        # two rounds can collide.  wid feeds random.Random(1234 + wid) and the axis rotation
+        # _AXES[(wid + i) % len(_AXES)] directly -- not through any modulus that would alias these
+        # back onto round 0's seeds.
+        _wl_r = None
+        _prm = os.environ.get("OGC_PARROUND", "3")
+        if _r > 0 and nw > 1 and _prm != "0" and min(_par) < float("inf"):
+            _p = 0 if _par[0] <= _par[1] else 1
+            _keep = nw if _prm == "4" else nw - 1
+            _wl_r = [2 * (_r * nw + i) + (_p if i < _keep else 1 - _p) for i in range(nw)]
         try:
             if nw > 1:
                 out = _pool_round(prob_info, _rb, _r, nw, cwd, _shdir,
-                                  timelimit - (time.time() - t0) - 1.0)
+                                  timelimit - (time.time() - t0) - 1.0, _wl_r)
             else:
                 out = [_worker((prob_info, _rb, _r * nw, cwd, 1.0, _shdir))]
         except Exception:
