@@ -33,8 +33,26 @@
 # used, and nothing below it has been tried at all.  If neither alone does much, the pair is
 # interacting and has to stay a pair.
 #
-# READ THE SLOTS, NOT THE RUN.  With DIRSET=0 every worker is on the same order/w3mul, so slots 0
-# and 2 (aim 0.90, m=1) are the population to compare; slots 1 and 3 are config B and stay inert.
+#
+# THE FIRST DESIGN WAS CONFOUNDED AND ITS ONE RUN IS KEPT AS d.both.r1.  Setting the direction
+# globally gives it to the config-B workers too, and B is exactly the worker whose cost the 3+1
+# result says matters: replacing the cheap early-finishing worker with a heavy one is what dropped
+# p from 0.273 to 0.200 there.  The control cell proved it -- config-A slots came back at 589,116
+# and 542,037 against stock's 492,458 median, on settings that were supposed to be identical.
+# Contention differed between cells, so the cells differed by more than the thing under test.
+#
+# UNIFORM WORKERS FIX IT.  Single-element AIMSET and MSET make every wid (aim 0.90, m=1), so all
+# four workers are the same configuration in every cell, contention is identical across cells, and
+# the only thing that varies is the order/w3mul pair under test.  It also doubles the sample: four
+# config-A draws per run instead of two.
+#
+# READ ALL FOUR SLOTS.  Every wid is now (aim 0.90, m=1) on the same order/w3mul, so all four
+# draws belong to one population and there is no config B to exclude.
+#
+# NOTE THAT `both` IS NO LONGER A REPLICA OF THE SHIPPED RUN, and is not meant to be.  The shipped
+# run has two config-A workers and two cheap config-B ones; this has four heavy ones.  What the
+# four cells give is the CONTRAST between order and w3mul under identical contention -- the
+# absolute level will sit above the shipped draws because every worker here is heavy.
 set -u
 cd /home/user/oraclemaster/research/exact_packer/session2/recon || exit 1
 echo p1dir > harness/CURRENT
@@ -56,11 +74,12 @@ run(){ # tag env
     ci "$tag"
 }
 
+U="WORKERS=4 OGC_DIRSET=0 OGC_AIMSET=0.90 OGC_MSET=1"
 for rep in 1 2 3; do
-  run "d.both.r$rep"  "WORKERS=4 OGC_DIRSET=0 OGC_ORDER=lst OGC_W3MUL=0.5"
-  run "d.order.r$rep" "WORKERS=4 OGC_DIRSET=0 OGC_ORDER=lst"
-  run "d.w3m.r$rep"   "WORKERS=4 OGC_DIRSET=0 OGC_W3MUL=0.5"
-  run "d.none.r$rep"  "WORKERS=4 OGC_DIRSET=0"
+  run "u.both.r$rep"  "$U OGC_ORDER=lst OGC_W3MUL=0.5"
+  run "u.order.r$rep" "$U OGC_ORDER=lst"
+  run "u.w3m.r$rep"   "$U OGC_W3MUL=0.5"
+  run "u.none.r$rep"  "$U"
 done
 echo "P1DIRDONE" >> $L
 echo idle > harness/CURRENT
