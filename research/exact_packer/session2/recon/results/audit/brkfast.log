@@ -1,4 +1,4 @@
-# [r1.p1.brk]
+# [CONTAM.r1.p1.brk]
   opstat  op      tried   seconds %budget         gain     gain/s
   opstat  beam        5      59.6   38.9%    978863889 16437019.2
   opstat  grow        1      21.7   14.2%       173514     8000.9
@@ -66,4 +66,9 @@ PARFILL round=1 parity=even even=538936 odd=596780 wids=[16, 18, 20, 22]
   opstat  brk         1      16.6   23.1%        20625     1239.9
   opstat  TOTAL      12      70.7   98.1%                        
 FILL round=1 budget=73 moved=0 best=538936
-P1  [r1.p1.brk]    240s  obj=538936      Z1=19.0     Z2=7021   Z3=652.0     feas=y   ran 234s  py3.12
+P1  [CONTAM.r1.p1.brk]    240s  obj=538936      Z1=19.0     Z2=7021   Z3=652.0     feas=y   ran 234s  py3.12
+# [r1.p1.th2]
+# NOTE: r1.p1.brk was taken in the seconds where the resume hook's brk.sh queue and this one
+# overlapped on the same four cores.  538,936 is outside brk's whole observed range on this
+# instance (428,809 / 437,484 / 437,484), so it is renamed rather than read.  The arms after
+# it ran alone; the baseline is re-taken at the end.
