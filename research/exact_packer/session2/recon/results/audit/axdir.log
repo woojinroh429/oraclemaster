@@ -1,0 +1,5 @@
+# [r1.p16.off]
+WSTAT round=0 n=4 3072065 3495836 3011457 4554750  spread=51.25%
+PARFILL round=1 parity=even even=3011457 odd=3495836 wids=[16, 18, 20, 22]
+FILL round=1 budget=61 moved=0 best=2971117
+P16 [r1.p16.off]   240s  obj=2971117     Z1=125.0    Z2=1164   Z3=5204.0    feas=y   ran 240s  py3.12
