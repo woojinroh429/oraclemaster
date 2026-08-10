@@ -4,3 +4,4 @@ P1  [r1.p1.off]    120s  obj=518660      Z1=20.0     Z2=4840   Z3=618.0     feas
 # [r1.p1.cross]
 WSTAT round=0 n=4 584609 811242 667717 836872  spread=43.15%
 P1  [r1.p1.cross]   120s  obj=584609      Z1=20.0     Z2=7223   Z3=716.0     feas=y   ran 80s  py3.12
+# [r2.p1.off]
