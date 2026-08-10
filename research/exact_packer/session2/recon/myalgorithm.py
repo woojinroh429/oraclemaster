@@ -3962,10 +3962,46 @@ def algorithm(prob_info, timelimit=60):
     minimum of the FULL objective, polish, return."""
     t0 = time.time()
     n = len(prob_info["blocks"])
+    # LEAVE THE PARENT A CORE.  With one worker per core the parent is a fifth runnable process on
+    # four cores -- it collects results and runs the whole final polish -- so every worker gets
+    # less than the core it was budgeted.  Three workers on four cores gives each a full core and
+    # change, and the search each one gets to do is deeper for it.
+    #
+    # MEASURED, 23 PAIRS, stage-2 prob_1 and prob_16 at three budgets on the four-core box:
+    #
+    #     cell            w4 mean     w3 mean    mean  |  w4 worst   w3 worst   worst  | span w4->w3
+    #     prob_1   60 s    736,689     730,442  -0.85% |   806,160    788,145   -2.2%  | 20.0 -> 12.4
+    #     prob_1  120 s    601,844     508,546 -15.50% |   660,870    537,403  -18.7%  | 13.0 -> 14.9
+    #     prob_1  240 s    460,000     440,445  -4.25% |   564,221    469,427  -16.8%  | 33.5 ->  9.5
+    #     prob_16  60 s  3,632,782   3,379,142  -6.98% | 3,848,784  3,379,142  -12.2%  | 13.9 ->  0.0
+    #     prob_16 120 s  3,379,340   3,199,896  -5.31% | 3,558,783  3,199,896  -10.1%  | 11.2 ->  0.0
+    #     prob_16 240 s  2,816,305   2,843,269  +0.96% | 3,100,804  2,911,676   -6.10% | 18.9 ->  6.4
+    #
+    # THE WORST DRAW IMPROVES IN ALL SIX CELLS, mean -11.0%, and it improves in the one cell where
+    # the MEAN goes the other way.  That is the shape that matters here: the score is per instance
+    # and the run that happens is the run that counts, so the tail is the thing being paid for.
+    #
+    # WHAT IS GIVEN UP, stated plainly.  Three workers is a minimum over three draws instead of
+    # four, so w3 cannot reach w4's lucky tail: prob_16 at 240 s drew 2,607,446 on w4 and w3
+    # answered 2,735,322.  It loses small (+1.5%, +3.6%, +4.9%) and wins big (-16.8%, -6.1%).
+    #
+    # WHY NOT TWO WORKERS, which looked better still on prob_1 (-21.0% mean at 120 s): on prob_16
+    # w2 was the widest arm of the three (span 23.5%), setting both the best value ever recorded
+    # for the instance and a draw worse than the control.  Trading a narrower band for a lottery
+    # is the wrong direction when the complaint being answered is run-to-run spread.
+    #
+    # SCOPE.  Every number above is from a four-core box, which is what the grader has.  The -1
+    # generalises the mechanism, not the measurement: 8 cores -> 7 workers is UNMEASURED.  Fewer
+    # than four cores is left exactly as it was -- that path has its own worker routing (see
+    # SUBMISSION.md item 7) and was not part of this experiment.
+    #
+    # WORKERS=n overrides, and WORKERS=4 restores the previously shipped behaviour exactly.
     try:
-        nw = int(os.environ.get("WORKERS", "0")) or max(1, min(8, (os.cpu_count() or 4)))
+        _cpu = os.cpu_count() or 4
+        nw = int(os.environ.get("WORKERS", "0")) or (
+            max(1, min(8, _cpu - 1)) if _cpu >= 4 else max(1, min(8, _cpu)))
     except Exception:
-        nw = 4
+        nw = 3
     cwd = os.path.dirname(os.path.abspath(__file__))
     # RESERVE FOR THE FINAL POLISH, and it was too big.  _z3_improve returns immediately when it
     # has nothing to do -- measured on the final-round practice set, four different rosters came

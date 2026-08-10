@@ -112,3 +112,38 @@ passed into algorithm() directly -- there is nothing to infer.
 
 WHAT IS STILL MISSING IS THE CROSSOVER.  -15.5% at 120 s and +3.6% at 240 s bracket it, but the
 gate needs a number, and 150 is a guess sitting between two measured points.  180 s is queued.
+
+## SETTLED, AND SHIPPED: THREE WORKERS ON FOUR CORES
+
+The 240 s "reversal" written above was one lucky control draw.  Filling the cell to five pairs
+removed it, and the same thing had already happened at 60 s.  Twice tonight a single pair was
+read as a result and twice the next pair overturned it -- the same error the twelve failed arms
+were built on.  Final table, 23 pairs:
+
+    cell            w4 mean     w3 mean    mean  |  w4 worst   w3 worst   worst  | span w4->w3
+    prob_1   60 s    736,689     730,442  -0.85% |   806,160    788,145   -2.2%  | 20.0 -> 12.4
+    prob_1  120 s    601,844     508,546 -15.50% |   660,870    537,403  -18.7%  | 13.0 -> 14.9
+    prob_1  240 s    460,000     440,445  -4.25% |   564,221    469,427  -16.8%  | 33.5 ->  9.5
+    prob_16  60 s  3,632,782   3,379,142  -6.98% | 3,848,784  3,379,142  -12.2%  | 13.9 ->  0.0
+    prob_16 120 s  3,379,340   3,199,896  -5.31% | 3,558,783  3,199,896  -10.1%  | 11.2 ->  0.0
+    prob_16 240 s  2,816,305   2,843,269  +0.96% | 3,100,804  2,911,676   -6.1%  | 18.9 ->  6.4
+
+    mean better  5/6 cells, -5.32% overall
+    WORST better 6/6 cells, -11.02% overall   <- no exception, including the cell the mean loses
+    span tighter 5/6 cells
+
+No budget gate is needed: nothing has to be predicted, because there is no cell where w4 is
+ahead on the quantity that sets the tier.  That is what separates this from brk and from the
+axis gate, both of which died needing a feature that would say in advance which instance
+benefits.
+
+    myalgorithm.py   nw = cpu - 1 when cpu >= 4, unchanged below that.  WORKERS=4 restores the
+                     previous behaviour byte for byte.
+    submit_build/submit_recon.zip   rebuilt, 8 files, verified from the zip contents: the
+                     unpacked package runs n=3 and returns feas=y.
+
+WHAT THIS DOES NOT ESTABLISH.  Two stage-2 instances, three budgets, one four-core box.  The
+hidden set runs P1-P6 at up to ~500 s and none of them were measured -- 240 s is the longest
+budget any of this covers.  The mechanism (a fifth runnable process on four cores) does not
+depend on the instance, which is the reason for shipping it, but that is an argument and not a
+measurement.
