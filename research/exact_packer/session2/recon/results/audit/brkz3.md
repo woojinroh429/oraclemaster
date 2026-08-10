@@ -136,3 +136,30 @@ where it was supposed to win and costs 2% where it provably finds nothing.  The 
 optimisation on top of an adopted operator any more -- it is the only configuration the evidence
 supports: keep brk where a paired gain exists (prob_3) and where it is at worst neutral (prob_1),
 remove it where 118 worker-rounds say there is nothing to find.
+
+## THE NOISE FLOOR, MEASURED BY ACCIDENT ON prob_24
+
+    r1   off 2,745,804   brk 2,635,539   -4.02%
+    opstat brk gain, all eight worker-rounds:  0  0  0  0  0  0  0  0   (46.6 s spent)
+
+An apparent 4% gain with a gain column of exactly zero.  Z3 did move, 1425 -> 1130, but the beam
+moved it -- brk collected nothing and said so eight times out of eight.
+
+TWO THINGS FOLLOW.
+
+prob_24's 0-of-24 was NOT a calibration artifact.  It is 0-of-8 again with the guard live, so
+"brk finds nothing where Z3 is a minority of the objective" now holds on post-fix data.
+
+And this is the noise floor for every paired single replicate quoted tonight.  A 4% end-of-run
+difference is available with zero causal contribution, which puts -2.55% (prob_3 r1), -0.91% and
+-0.45% (prob_20), and a good part of -14.18% (prob_1 r1) underneath it.  The method of comparing
+one run against one run does not work on these instances, whatever the arm.
+
+The only column that is not a draw is opstat's gain, because it records what the operator did to
+the incumbent it was given rather than where the run happened to land.  Read that way:
+
+    prob_16 / 24 / 20    126 worker-rounds, gain 0, before AND after the fix
+    prob_1 / 3           gains are real, but r3 showed a per-worker gain is not a per-run gain
+
+which is why brkhalf asks a structural question -- does leaving two workers pure protect the
+minimum -- instead of another draw comparison.
