@@ -1,1 +1,3 @@
 # [r1.p1.off]
+WSTAT round=0 n=4 422629 741633 499210 759388  spread=79.68%
+PARFILL round=1 parity=even even=422629 odd=741633 wids=[16, 18, 20, 22]
