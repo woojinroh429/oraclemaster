@@ -2689,7 +2689,28 @@ def _worker(args):
     # over both does not.  OGC_MSET=1 restores the previous behaviour exactly.
     if "OGC_MCAND" not in os.environ:
         _ms = [m for m in os.environ.get("OGC_MSET", "1,2").split(",") if m.strip()]
-        os.environ["OGC_MCAND"] = _ms[wid % len(_ms)].strip()
+        # CROSS THE TWO SPLITS INSTEAD OF STACKING THEM (OGC_CROSS=1).
+        #
+        # The aim split and the m split both index by `wid % 2`, and so does the direction
+        # override, so the four workers hold TWO configurations with two workers each:
+        #
+        #     w0 (aim 0.90, m=1, dir)   w1 (aim 0.10, m=2, nodir)
+        #     w2 (aim 0.90, m=1, dir)   w3 (aim 0.10, m=2, nodir)      w0 == w2, w1 == w3
+        #
+        # Indexing m by (wid // 2) % 2 instead makes them a 2x2 and the pool holds FOUR distinct
+        # bets:  (0.90, m=1) (0.10, m=1) (0.90, m=2) (0.10, m=2).  The answer is a minimum over
+        # workers, so four different bets can beat two bets drawn twice -- and unlike every branch
+        # measured tonight this adds diversity rather than moving time around, so it is not on the
+        # prob_1-versus-prob_16 axis that closed the others.
+        #
+        # WHAT IT GIVES UP.  Today each configuration is a minimum over TWO draws; crossed, it is
+        # a minimum over one.  That is the same trade the alleven/allodd queue priced from the
+        # other side, where concentrating four workers on one configuration merely tied on prob_1.
+        # Whether widening beats deepening here is exactly what has never been measured.
+        #
+        # Off until a queue reads it.  OGC_CROSS=0 or unset is the shipped behaviour exactly.
+        _mi = ((wid // 2) if os.environ.get("OGC_CROSS") == "1" else wid) % len(_ms)
+        os.environ["OGC_MCAND"] = _ms[_mi].strip()
 
     # THE 7TH SUBMISSION'S DIRECTION, AS HALF THE PORTFOLIO INSTEAD OF ALL OF IT (OGC_DIRSET=1).
     #
