@@ -4536,7 +4536,51 @@ def algorithm(prob_info, timelimit=60):
             # feature separating it from the five winners failed -- peak_util puts it at 1.13,
             # between P1's 1.02 and P3's 1.18, and polish return puts it beside P16, also a winner.
             # So this ships as a majority bet on the band, not as a setting that is right everywhere.
-            for _k, _v in (("OGC_ORDER", "lst"), ("OGC_W3MUL", "0.5"), ("OGC_RESFRAC", "0.05")):
+            # AND ROUNDS=2, WHICH ONLY BECAME AFFORDABLE BECAUSE OF THE RESERVE ABOVE.
+            #
+            # OGC_ROUNDS splits wbudget into _R rounds and redraws all four workers each round with
+            # fresh seeds and axis rotations.  It has always defaulted to 1 and nothing set it --
+            # the comment further up this file claiming it is "already shipped" is wrong.  The
+            # measurement that retired it is invalid by the module's own note at the round loop: at
+            # a 60 s limit with the old reserve, wbudget was ~47, _rb ~23 and reserve ~12, so "the
+            # second round was unaffordable ... R=2 was never two rounds there either."  At
+            # RESFRAC 0.05 the arithmetic is wbudget ~56 and _rb ~28, and it fires for the first
+            # time.
+            #
+            # WHY MORE DRAWS IS THE RIGHT LEVER HERE.  The returned answer is a MINIMUM over the
+            # workers, and WSTAT shows them landing far apart inside a single round -- P16's round 0
+            # spans 2,796,522 to 5,028,855, and the winner is 37% below the median worker.  A
+            # minimum is a tail statistic, so its distribution is moved by the NUMBER of draws, not
+            # by the quality of the average.
+            #
+            # MEASURED THREE DRAWS DEEP ON ALL SIX FIRING INSTANCES (results/audit/rounds05.log):
+            #
+            #                R=1 med     R=2 med      by ratio    paired per draw
+            #     P1          631,046     556,718      -11.8%     -13.1 -11.8  -4.8
+            #     P16       3,468,540   3,258,960      - 6.0%     - 6.2 - 3.9  -6.0
+            #     P27         907,800     729,804      -19.6%     -14.7 -15.5 -22.0
+            #     P33       1,192,334   1,220,871      + 2.4%     - 0.7 + 7.5 +26.7
+            #     P3        4,745,895   4,887,024      + 3.0%     + 3.0 + 2.3  +3.0
+            #     P7          943,405   1,020,092      + 8.1%     +16.8 + 2.9 +12.3
+            #
+            #     ratio-mean -3.99%   geo-mean -4.48%   abs-sum -215,551 (-1.81%)
+            #
+            # Three win and three lose, but P1, P16 and P27 are 3/3 while P33's deltas are
+            # -0.7/+7.5/+26.7, which is not an effect.  The one real cost is P7, positive in all
+            # three replicates -- it wants depth, and at R=3 it loses 16.2%, which is what sinks R=3
+            # (ratio-median +0.89%).
+            #
+            # THE EVIDENCE IS THINNER THAN THE RESERVE'S AND THAT IS RECORDED DELIBERATELY.  The
+            # same configuration -- P1, RESFRAC 0.05, R=1 -- returned three-draw medians of 537,403
+            # in rfship and 631,046 in rounds05, a 17.4% gap between two medians of three draws
+            # each on the same machine hours apart.  R=2's ~4% effect sits inside that, so the
+            # band-wide claim is NOT established the way the reserve's -6.65% to -8.62% is.  What
+            # survives pooling is P1: all six R=1 draws at 0.05 give a median of 607,828 against
+            # R=2's 556,718, -8.4%, and R=2 leads in every replicate.  That is the instance the
+            # hidden set is played for, and it is the ground this ships on.  Reverting is one
+            # entry in this tuple.
+            for _k, _v in (("OGC_ORDER", "lst"), ("OGC_W3MUL", "0.5"), ("OGC_RESFRAC", "0.05"),
+                           ("OGC_ROUNDS", "2")):
                 if _k not in os.environ:
                     os.environ[_k] = _v
                     _DIRGATE_INJECTED.append(_k)
