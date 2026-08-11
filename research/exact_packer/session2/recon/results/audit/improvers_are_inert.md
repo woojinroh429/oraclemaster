@@ -50,3 +50,38 @@ Z3 = 441 have both been achieved, in different runs, and they are uncorrelated: 
 The next piece of work is a multi-block move: relocate a tardy block together with whatever is
 blocking its earlier window.  ruin_tardy is the existing scaffold for it -- the ruin and the
 acceptance test are already right, and it is the recreate that never aims at tardiness.
+
+## FIRST FIX ATTEMPT FAILED: THE BAY CHOICE WAS NOT THE PROBLEM
+
+ruin_tardy picks its target bay by preference cost alone -- `v = w3*(mxp[g]-prefv(g,j))` -- which
+ignores whether that bay can be cleared at all.  Since winning the round means g gets its release
+and that gain is the same in every bay, the choice is a pure cost question and the clearing bill
+was missing from it.  OGC_RTBAY=1 (added, default off) adds an occupancy term over g's window,
+normalised by bay area and scaled by w1*pt.
+
+    stage2/prob_1, beam solution obj 633,146  Z1=20  Z3=815
+
+    RTBAY=0   changed=False   rounds=149  kept=0  nocand=0  unplaceable=0  worse=103
+    RTBAY=1   changed=False   rounds=128  kept=0  nocand=0  unplaceable=0  worse=171
+
+No change, and a higher share of rounds came back worse.  The bay choice is not what is stopping
+this.
+
+## WHAT THE COUNTERS NARROW IT TO
+
+unplaceable=0 with kept=0 means the recreate always succeeds and is always worse, and g is
+re-seated FIRST (`ord.insert(ord.begin(), g)`), so g gets first refusal on the cleared seat.  Two
+possibilities remain and the current counters cannot separate them:
+
+    (a) g still does not fit at its release after K=2..6 blocks are cleared -- something outside
+        the ruin set is holding the space, and K is too small
+    (b) g does get in, but the 2-6 displaced blocks become tardy themselves; at w1=6667 per unit
+        one newly late block erases g's whole gain
+
+SEPARATING THEM NEEDS PER-ROUND INSTRUMENTATION: count, per round, the change in g's own tardiness
+and the change in the displaced blocks' tardiness.  If (a), g's tardiness is unchanged in the
+rejected rounds and the fix is a larger or smarter ruin set.  If (b), g's tardiness drops and the
+others' rises, and the fix is in how the displaced blocks are re-seated -- or in accepting the
+round and letting a later round clean up, which the current single-round acceptance forbids.
+
+That instrumentation is the next step, not another guess at the policy.

@@ -3146,9 +3146,35 @@ beam_work_ = work;
             // never opened while the displaced blocks paid to sit back down.  Clearing a seat
             // means clearing the bay g is trying to sit in.  Pick the bay that costs g least
             // if it can have its release, preferring one it also wants.
+            //
+            // AND THE COST OF CLEARING IT WAS NOT IN THE SCORE (OGC_RTBAY=1, absent = unchanged).
+            //
+            // Winning this round means g gets its release, and that gain is the SAME whichever bay
+            // it lands in.  So the bay choice is a pure cost question -- preference given up, PLUS
+            // the bill for re-seating whatever has to move.  The line above prices only the first
+            // half, so it reliably picks g's favourite bay, which is usually the one g is already
+            // sitting in or the most congested one.  Then either the seat cannot be cleared, or g
+            // sits back down where it was and only the displaced blocks pay.  That is what the
+            // counters say: 151 rounds, 0 kept, 0 unplaceable, 95 strictly worse.
+            //
+            // The clearing bill is proportional to how much of g's window is already occupied in
+            // that bay, so add it: overlap area over the window, normalised by the bay's own area
+            // so bays of different sizes compare, scaled by w1*pt because that is the tardiness
+            // the round is trying to buy.
             int tb=-1; double tbv=1e18;
+            const char* _rb = std::getenv("OGC_RTBAY");
+            const bool RTBAY = (_rb && _rb[0]=='1');
             for(int j=0;j<n_bays;j++){
                 double v=w3*(mxp[g]-prefv(g,j));
+                if(RTBAY){
+                    double occ=0.0, ba=bw[j]*bh[j];
+                    for(const Placed& te: timeline[j]){
+                        int ov=std::min(te.ex,wex)-std::max(te.en,wen);
+                        if(ov>0 && te.bid!=g) occ += (double)ov * ((te.bx1-te.bx0)*(te.by1-te.by0));
+                    }
+                    double span=(double)std::max(1,wex-wen);
+                    v += w1 * (double)shapes[g].pt * (occ/(span*(ba>0.0?ba:1.0)));
+                }
                 if(v<tbv){ tbv=v; tb=j; } }
             if(tb<0) continue;
             // ruin set: g, plus the blocks sitting in tb across that window, most-overlapping
