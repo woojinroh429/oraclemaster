@@ -6,3 +6,4 @@ P4  [n.p4.prev.r2]    60s  obj=2681096     Z1=297.0    Z2=3515   Z3=3140.0    fe
 P2  [n.p2.prev.r2]    60s  obj=59860379    Z1=4409.0   Z2=2658   Z3=7097.0    feas=y   ran 50s  py3.12
 # [n.p9.prev.r2]
 P9  [n.p9.prev.r2]    60s  obj=5755343     Z1=275.0    Z2=8259   Z3=6509.0    feas=y   ran 43s  py3.12
+# [n.p34.prev.r2]
