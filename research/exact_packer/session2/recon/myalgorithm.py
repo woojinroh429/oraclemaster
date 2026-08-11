@@ -491,6 +491,27 @@ def _contact_beam(prob_info, deadline_s, B=24, K=4, pos_lam=0.1, prefw=0.0, orde
             except Exception:
                 w3mul = 1.0
         w3_route = w3 * float(w3mul)
+        # THE PLACEMENT STEP IS BLIND TO BAY PREFERENCE ON EVERY AXIS (OGC_PREFW, absent = unchanged).
+        #
+        # _AXES carries prefw=0.0 in all six entries, and ogc_fast.cpp's lb_best says what that
+        # means: "Z3-aware bay offset: when prefw>0, bias placement toward the block's preferred
+        # bays ... prefw==0 -> pure leftbottom".  So the cell-choice step maximises contact and
+        # ignores preference completely.
+        #
+        # That is a different quantity from w3mul, which scales w3 in the ROUTING rank -- which bay
+        # a block is sent to.  prefw acts in the PLACEMENT search, which cell it takes once there.
+        # The beam builds geometry and assignment together with the assignment half switched off at
+        # exactly the point where the geometry is decided.
+        #
+        # It matters because Z3 carries 70-87% of stage2/prob_1's objective, CP-SAT proves Z3 = 387
+        # admissible against our 785-900, and every pass that repairs assignment after placement is
+        # inert -- z3_reassign, ruin_tardy and _assign all return their input, because geometry is
+        # fixed by then.  prefw is the only place preference can enter while geometry is still open.
+        if prefw == 0.0:
+            try:
+                prefw = float(os.environ.get("OGC_PREFW", "0.0"))
+            except Exception:
+                prefw = 0.0
         AR, _bc, _sc = _footprint_areas(prob_info); areas_l = [float(AR[b]) for b in range(n)]
         wl = [float(BL[b].get("workload", AR[b])) for b in range(n)]
         _meanp = (sum(pt) / n) if n else 1.0
