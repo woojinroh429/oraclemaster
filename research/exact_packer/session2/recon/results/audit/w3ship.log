@@ -1,1 +1,3 @@
 # [s.stock.r1]
+WSTAT round=0 n=4 473725 662575 499210 766439  spread=61.79%
+P1  [s.stock.r1]   120s  obj=473725      Z1=13.0     Z2=7218   Z3=609.0     feas=y   ran 79s  py3.12
