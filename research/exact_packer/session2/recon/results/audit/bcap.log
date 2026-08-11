@@ -10,3 +10,7 @@ FILL round=1 budget=67 moved=0 best=3050986
 P16 [c.p16.b137.r1]   240s  obj=3050986     Z1=134.0    Z2=1538   Z3=5039.0    feas=y   ran 238s  py3.12
 # [c.p16.stock.r2]
 # [c.p16.bm2.r1]
+WSTAT round=0 n=4 2995191 3495836 3167378 4582171  spread=52.98%
+PARFILL round=1 parity=even even=2995191 odd=3495836 wids=[16, 18, 20, 22]
+FILL round=1 budget=66 moved=0 best=2995191
+P16 [c.p16.bm2.r1]   240s  obj=2995191     Z1=132.0    Z2=2745   Z3=4908.0    feas=y   ran 239s  py3.12
