@@ -98,3 +98,4 @@ P2  [tl.p2.120]    120s  obj=64795184    Z1=4784.0   Z2=1653   Z3=6690.0    feas
 P1  [tl.p1.300]    300s  obj=428809      Z1=22.0     Z2=5045   Z3=445.0     feas=y   ran 292s  py3.12
 # [tl.p2.300]
 P2  [tl.p2.300]    300s  obj=60464388    Z1=4454.0   Z2=739    Z3=7175.0    feas=y   ran 299s  py3.12
+BUGCHECKDONE
