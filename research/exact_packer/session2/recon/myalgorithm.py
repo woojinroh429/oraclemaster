@@ -1779,6 +1779,25 @@ def _draw_order(prob_info, cfg, k):
             ordv = [(_rd[b] + _rr[b], due[b]) for b in range(n)]
     else:
         ordv = [(due[b], AR[b] * 1e-9) for b in range(n)]
+    # OGC_CPORD's planned start times, same override as _contact_beam applies to its own order.
+    #
+    # This branch is currently unreachable in production -- _draw_order is only called when an
+    # axis carries dk > 1 and every entry in _AXES has dk = 0 -- and is kept only so the two order
+    # sources cannot disagree if that changes.
+    #
+    # THE NULL THAT SENT ME LOOKING HERE HAD A DIFFERENT CAUSE, recorded so it is not re-chased.
+    # At 120 s on four workers, order-on and order-off returned BYTE-IDENTICAL answers at both
+    # tolls: 667,853 / Z1 44 / Z2 6835 / Z3 590 twice, and 1,663,375 / Z1 202 / Z2 6947 / Z3 493
+    # twice.  That is not the wiring.  A probe confirmed _cp_start reaching _contact_beam on every
+    # call, and instrumenting the beam's own return shows the order DOES change it -- at 25 s on
+    # one worker the three beam calls returned 1,969,929 / 2,093,372 / 1,433,808 with the order off
+    # and 1,524,477 / 2,093,372 / 1,904,537 with it on, for finals of 954,887 and 1,005,210.  So
+    # the beam moves and the 120 s answer does not: the run is being absorbed into the same
+    # attractor from both starts, which is the behaviour results/audit/attractors_explain_it.md
+    # already recorded when four settings across two parameter layers all returned 745,782.
+    _cps = prob_info.get("_cp_start")
+    if _cps:
+        ordv = [(_cps[b], due[b], b) for b in range(n)]
     pool = sorted(range(n), key=lambda b: ordv[b])
     out = []
     while pool:

@@ -13,3 +13,4 @@ P1  [co.t300.no.r1]   120s  obj=1663375     Z1=202.0    Z2=6947   Z3=493.0     f
 # [co.t300.ord.r1]
 WSTAT round=0 n=4 1698852 1601575 1784053 1893896  spread=18.25%
 P1  [co.t300.ord.r1]   120s  obj=1663375     Z1=202.0    Z2=6947   Z3=493.0     feas=y   ran 77s  py3.12
+# [co.off.r2]
