@@ -70,3 +70,41 @@ P7  [B.p7.r3]       60s  obj=776519      Z1=39.0     Z2=326    Z3=1695.0    feas
 P33 [A.p33.r3]      60s  obj=964466      Z1=78.0     Z2=360    Z3=2206.0    feas=y   ran 33s  py3.12
 # [B.p33.r3]
 P33 [B.p33.r3]      60s  obj=933974      Z1=76.0     Z2=898    Z3=2096.0    feas=y   ran 59s  py3.12
+
+VERDICT -- final
+================
+RESFRAC 0.05 SHIPS.  First measurement on the engine that actually ships -- the recon extensions
+were rebuilt from source and all five now md5-match the submission zip's.
+
+        A mean     B mean   by mean | A med     B med   by med | A spread | paired
+  P1     566,837    571,668   +0.9% |  510,450  571,668 +12.0% |   34.2%  | +12.5 +12.0 -16.2
+  P3   4,636,794  4,477,641   -3.4% |4,583,170 4,468,072 -2.5% |    3.5%  |  -2.5  -2.5  -5.2
+  P27    859,349    692,860  -19.4% |  859,349  692,860 -19.4% |    0.0%  | -19.4 -19.4 -19.4
+  P16  3,150,117  2,996,946   -4.9% |3,252,294 3,022,891 -7.1% |   10.4%  |  -7.1  +2.6  -9.4
+  P7     877,884    757,867  -13.7% |  860,744  749,573 -12.9% |    6.0%  | -17.8 -13.2  -9.8
+  P33    977,769    933,974   -4.5% |  964,466  933,974 -3.2% |    7.6%  |  -1.5  -8.5  -3.2
+
+  18 paired cells, B wins 15.  ratio-mean -7.10%, geo-mean -7.58%, mean-sum -637,795 (-5.76%).
+
+P1 DOES NOT LOSE, AND THE MEDIAN SAYS OTHERWISE ONLY BECAUSE OF VARIANCE.  By median B is 12.0%
+behind; by MEAN it is 0.9% ahead, which is a tie.  A's three draws span 508,193 / 510,450 / 681,869
+-- 34.2% -- while B returns 571,668 three times with identical components.  The submission is one
+run, so A is a gamble with B's expectation and B is that expectation delivered flat.  Preferring a
+34% spread because its median landed well is not a reason.
+
+WHAT THE ENGINE CORRECTION COST THE EARLIER CLAIM.  On the stale engine wdef measured 18/18 and
+-17.36%; here it is 15/18 and -7.10%.  The shipped engine had already closed roughly half the
+headroom the reserve change was collecting -- on P1 at RESFRAC 0.50 it returns ~510k where the
+stale engine returned ~700k.  The direction survived; the magnitude did not, and the 18/18 framing
+was withdrawn before anything was submitted.
+
+WHY THE STALE ENGINE WENT UNNOTICED FOR A WHOLE SESSION.  harness/run1.py refuses to run when the
+extensions are missing or ABI-wrong -- it was written after a silent pure-Python fallback cost an
+A/B study -- but it cannot detect extensions that import fine and are simply older than the .cpp
+beside them.  Every experiment was internally fair, both arms sharing the stale build, so nothing
+in the results looked wrong until two artifacts were compared directly.
+
+STILL UNMEASURED: the OGC_CPUCAP change.  This container reports cpu_count() == 4, so the cap is a
+no-op here and cannot be observed.  It rests on the organisers' notice that the 400% allowance is
+enforced by throttling with every core visible, which makes os.cpu_count() return the host's count
+and this module request seven workers against four cores.
