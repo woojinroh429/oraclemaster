@@ -48,3 +48,5 @@ P1  [w.p1.m4.r2]    60s  obj=762580      Z1=31.0     Z2=4301   Z3=905.0     feas
 P1  [w.p1.m8.r2]    60s  obj=732157      Z1=22.0     Z2=5561   Z3=948.0     feas=y   ran 58s  py3.12
 # [w.p16.m1.r2]
 P16 [w.p16.m1.r2]    60s  obj=3104694     Z1=144.0    Z2=1414   Z3=4722.0    feas=y   ran 59s  py3.12
+# [w.p16.m2.r2]
+P16 [w.p16.m2.r2]    60s  obj=3416077     Z1=163.0    Z2=1516   Z3=4953.0    feas=y   ran 57s  py3.12
