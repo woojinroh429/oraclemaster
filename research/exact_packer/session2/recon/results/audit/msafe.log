@@ -86,3 +86,37 @@ P40 [s.p40.m.r2]    60s  obj=9601253     Z1=2037.0   Z2=366    Z3=3514.0    feas
 P6  [s.p6.c.r2]     60s  obj=5404925     Z1=338.0    Z2=4593   Z3=6582.0    feas=y   ran 44s  py3.12
 # [s.p6.m.r2]
 P6  [s.p6.m.r2]     60s  obj=5461390     Z1=347.0    Z2=3697   Z3=6138.0    feas=y   ran 45s  py3.12
+MSAFEDONE
+
+VERDICT -- msafe
+================
+NO FLOORS.  TEN OF ELEVEN WIN.  THE RULE SHIPS.
+
+        pu       control        MSET=8       delta    per draw
+  P25   6.26    79,418,025    72,332,298    - 8.9%    -9.3  -8.5
+  P39   3.79    60,679,484    53,784,854    -11.4%   -11.9 -10.8
+  P5    3.15     8,600,789     7,844,839    - 8.8%    -9.2  -8.4
+  P37   3.06    17,954,781    16,763,862    - 6.6%    -7.5  -5.7
+  P18   2.83    12,022,520    10,906,182    - 9.3%    -6.0 -12.4
+  P28   2.38    15,465,342    14,804,414    - 4.3%    -6.6  -1.9
+  P26   2.22    31,030,259    25,189,450    -18.8%   -19.6 -18.0
+  P32   2.16       704,574       682,056    - 3.2%    -1.1  -5.3
+  P14   2.16       698,913       690,645    - 1.2%    +0.4  -2.8
+  P40   2.12    10,183,873     9,704,075    - 4.7%    -3.7  -5.7
+  P6    2.05     5,404,925     5,508,843    + 1.9%    +2.8  +1.0
+  median-sum 242,163,488 -> 218,211,521   -9.89%
+
+THE PRE-REGISTERED KILL CONDITION DID NOT TRIGGER.  Any instance dropping to _safe_sequential
+ended the rule regardless of the band; none did, and Z3 is non-zero in every MSET=8 cell.
+
+WITH mfinal's FIVE, THE FULL FIRING SET IS 16 INSTANCES, 14 WINS AND 2 LOSSES:
+    P36 -20.9%  P26 -18.8%  P39 -11.4%  P2 -10.3%  P18 -9.3%  P25 -8.9%  P5 -8.8%
+    P37 - 6.6%  P40 - 4.7%  P28 -4.3%   P32 -3.2%  P23 -2.0%  P11 -1.9%  P14 -1.2%
+    P13 + 2.0%  P6  + 1.9%
+Both losses are inside 2%, and the only loser in this sweep is P6 at peak_util 2.05 -- immediately
+above the cut, which is where a boundary should fail if it fails at all.
+
+WHAT SHIPS.  peak_util >= 2.0 AND timelimit >= 60 -> OGC_MSET=8 on every worker.  Below either
+condition nothing is touched and the build is byte-identical to OGC2026_capfix.zip.  The budget
+floor is load-bearing: prob_36 with MSET=8 returns 4,023,023,953 at 20 s and 30 s against
+100,393,761 and 97,465,037 at the default, and only starts winning at 45 s.
