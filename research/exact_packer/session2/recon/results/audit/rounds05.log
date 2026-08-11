@@ -146,3 +146,9 @@ P1  [R3.p1.r2]      60s  obj=671556      Z1=33.0     Z2=6315   Z3=721.0     feas
 DIRGATE fired: peak_util=1.271 in [1.00,1.30], timelimit 60 <= 60
 WSTAT round=0 n=4 952110 962025 943405 1302838  spread=38.10%
 P7  [R1.p7.r2]      60s  obj=943405      Z1=48.0     Z2=1453   Z3=1955.0    feas=y   ran 59s  py3.12
+# [R2.p7.r2]
+DIRGATE fired: peak_util=1.271 in [1.00,1.30], timelimit 60 <= 60
+WSTAT round=0 n=4 1397966 1136012 1335211 1312587  spread=23.06%
+PARROUND round=1 parity=odd even=1335211 odd=1136012 wids=[9, 11, 13, 14]
+WSTAT round=1 n=4 1278704 1227328 1273521 971133  spread=31.67%
+P7  [R2.p7.r2]      60s  obj=971133      Z1=51.0     Z2=1350   Z3=1878.0    feas=y   ran 59s  py3.12
