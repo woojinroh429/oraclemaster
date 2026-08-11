@@ -334,6 +334,53 @@ def _build_operations(assignments):
     return {"operations": ops}
 
 _SHAPE_FEAT_CACHE = {}
+_REGRET_CACHE = {}
+
+
+def _pref_regret(prob):
+    """Per-block PREFERENCE REGRET: what the block loses if it does not get its top bay.
+
+    Z3 is sum over blocks of (best preference - preference of the bay it got), so the marginal
+    cost of taking a block's first choice away from it is (best - second best), not (best - worst).
+    That number is the block's claim on its top bay, and nothing in the dispatch orders reads it.
+
+    WHY IT IS THE MISSING FEATURE, measured on stage2/prob_1.  Give every block its first choice
+    and take the peak simultaneous bounding-box area:
+
+        bay0  cap 1911  peak 1078   56%     833 spare
+        bay1  cap  736  peak 1083  147%     347 over
+        bay2  cap  629  peak 1265  201%     636 over
+
+    so roughly 983 area units MUST leave the two small bays at the peak and Z3 > 0 is forced.  The
+    only freedom left is which blocks leave.  The cross-bay rank already prices that correctly --
+    drank = w1*tardy + w3*pen - mu*contact with mu = 1e-3*min(w1,w3) = 0.6, so 600*pen dwarfs the
+    contact term -- but it prices it ONE BLOCK AT A TIME.  When a block arrives and its first
+    choice is full its only options are its own alternatives; it can never propose that a cheaper
+    block yet to be dispatched should be the one displaced instead.
+
+    So the sequence decides, and on a real 45s incumbent the sequence decides badly: 22 blocks are
+    displaced for Z3 = 1009, and the worst payers cost 98, 96, 90 and 84 preference units each,
+    while blocks with regret 6, 7, 10 and 16 and MORE area than them keep their first choice.
+    Dispatching by regret hands the scarce bays to the blocks that actually want them.
+
+    Returned as (regret, regret_per_area): the second is the greedy-spill ratio -- a block that is
+    cheap to displace per unit of room it frees is the one that should be displaced.
+    """
+    k = id(prob)
+    if k in _REGRET_CACHE:
+        return _REGRET_CACHE[k]
+    AR, _bc, _sc = _footprint_areas(prob)
+    reg = []
+    for b, blk in enumerate(prob["blocks"]):
+        p = blk.get("bay_preferences") or [0.0]
+        if len(p) < 2:
+            reg.append(0.0)
+            continue
+        s = sorted(p, reverse=True)
+        reg.append(float(s[0] - s[1]))
+    per = [reg[b] / max(1.0, float(AR[b])) for b in range(len(reg))]
+    _REGRET_CACHE[k] = (reg, per)
+    return reg, per
 
 
 def _shape_feats(prob):
@@ -567,6 +614,40 @@ def _contact_beam(prob_info, deadline_s, B=24, K=4, pos_lam=0.1, prefw=0.0, orde
             _o = sorted(range(n), key=lambda i: -_g[i]); _rg = [0.0] * n
             for _p, _i in enumerate(_o): _rg[_i] = _p / max(1, n - 1)
             ordv = [(_rd[b] + _rg[b], due[b]) for b in range(n)]
+        elif order in ("regret", "regretx", "regarea", "lstreg"):
+            # THE ORDERS ABOVE ALL RANK ON TIME AND SIZE.  NONE OF THEM READS BAY PREFERENCE.
+            #
+            # See _pref_regret for the measurement: on stage2/prob_1 the two small bays are over
+            # subscribed at the peak (147% and 201% of their area against a first-choice
+            # assignment), so about 983 area units have to be displaced no matter what, and the
+            # entire remaining question is WHICH blocks pay.  The cross-bay rank weights that
+            # correctly per block but decides it sequentially, so whoever arrives at a full bay
+            # pays regardless of how much the block behind it would have paid.
+            #
+            #   regret   rank(due) + rank(-regret)      the blend, mirroring aspect/boxfill
+            #   lstreg   rank(due-pt) + rank(-regret)   same blend on the shipped lst key
+            #   regretx  regret first, due to break     pure claim order
+            #   regarea  regret/area first, due to break   greedy-spill order: a block that is
+            #            cheap to displace PER UNIT OF ROOM IT FREES should be the one displaced,
+            #            so it sorts last and the expensive-per-area blocks claim their bay first
+            #
+            # WHAT WOULD MAKE THEM FAIL, named first.  Regret is silent about time: promoting a
+            # high-regret block that is released late cannot help it (it still cannot enter before
+            # its release) and only delays a block that could have used the slot, which returns as
+            # tardiness at w1 = 6667 a unit.  regret and lstreg keep the scheduling half for
+            # exactly that reason; regretx and regarea drop it and are the risky pair.
+            _RG, _RGA = _pref_regret(prob_info)
+            if order == "regretx":
+                ordv = [(-_RG[b], due[b]) for b in range(n)]
+            elif order == "regarea":
+                ordv = [(-_RGA[b], due[b]) for b in range(n)]
+            else:
+                _key = (lambda i: due[i] - pt[i]) if order == "lstreg" else (lambda i: due[i])
+                _o = sorted(range(n), key=_key); _rd = [0.0] * n
+                for _p, _i in enumerate(_o): _rd[_i] = _p / max(1, n - 1)
+                _o = sorted(range(n), key=lambda i: -_RG[i]); _rr = [0.0] * n
+                for _p, _i in enumerate(_o): _rr[_i] = _p / max(1, n - 1)
+                ordv = [(_rd[b] + _rr[b], due[b]) for b in range(n)]
         elif order == "cohort":
             ordv = [(rel[b] + 0.5 * pt[b], due[b], -AR[b]) for b in range(n)]
         elif order == "lst":
@@ -1672,6 +1753,23 @@ def _draw_order(prob_info, cfg, k):
         ordv = [(1 if (AR[b] >= 2.0 * ma and rel[b] > r0) else 0, due[b], -AR[b]) for b in range(n)]
     elif o == "lst":
         ordv = [(due[b] - pt[b], AR[b] * 1e-9) for b in range(n)]
+    elif o in ("regret", "regretx", "regarea", "lstreg"):
+        # Kept in step with _contact_beam's own table.  Without this the regret orders would fall
+        # through to edd here, so the beam would dispatch by regret while the draw sampler that is
+        # supposed to be sampling the SAME priority sampled a different one -- the arm would then
+        # be measuring the disagreement rather than the order.
+        _RG, _RGA = _pref_regret(prob_info)
+        if o == "regretx":
+            ordv = [(-_RG[b], due[b]) for b in range(n)]
+        elif o == "regarea":
+            ordv = [(-_RGA[b], due[b]) for b in range(n)]
+        else:
+            _key = (lambda i: due[i] - pt[i]) if o == "lstreg" else (lambda i: due[i])
+            _o = sorted(range(n), key=_key); _rd = [0.0] * n
+            for _p, _i in enumerate(_o): _rd[_i] = _p / max(1, n - 1)
+            _o = sorted(range(n), key=lambda i: -_RG[i]); _rr = [0.0] * n
+            for _p, _i in enumerate(_o): _rr[_i] = _p / max(1, n - 1)
+            ordv = [(_rd[b] + _rr[b], due[b]) for b in range(n)]
     else:
         ordv = [(due[b], AR[b] * 1e-9) for b in range(n)]
     pool = sorted(range(n), key=lambda b: ordv[b])

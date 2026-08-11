@@ -43,3 +43,4 @@ P1  [pw.8.0.r3]    120s  obj=679906      Z1=22.0     Z2=7144   Z3=853.0     feas
 # [pw.32.0.r3]
 WSTAT round=0 n=4 683809 644169 637097 745782  spread=17.06%
 P1  [pw.32.0.r3]   120s  obj=637097      Z1=26.0     Z2=2585   Z3=760.0     feas=y   ran 79s  py3.12
+PREFWDONE
