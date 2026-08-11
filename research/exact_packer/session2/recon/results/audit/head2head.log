@@ -10,3 +10,5 @@ P1  [new.p1.r1]     60s  obj=571668      Z1=18.0     Z2=5954   Z3=723.0     feas
 DIRGATE fired: peak_util=1.182 in [1.00,1.30], timelimit 60 <= 60
 WSTAT round=0 n=3 4609668 4775004 4818020  spread=4.52%
 P3  [old.p3.r1]     60s  obj=4583170     Z1=186.0    Z2=7592   Z3=7336.0    feas=y   ran 35s  py3.12
+# [new.p3.r1]
+DIRGATE fired: peak_util=1.182 in [1.00,1.30], timelimit 60 <= 60
