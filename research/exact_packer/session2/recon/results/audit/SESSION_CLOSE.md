@@ -49,6 +49,35 @@ The pattern behind all of them is that a run objective on this instance is a min
 draws and therefore ONE sample.  Reading the WSTAT draws instead gives four per run, and even that
 inverted between eight and twelve draws per cell on w3mul.
 
+
+## THE ORDER SWEEP, FOR THE RECORD -- CLOSED THE SAME WAY
+
+Eight dispatch policies, uniform config-A workers, w3mul pinned at 1.0, twelve round-0 draws each:
+
+    order       draws       min       p25    median   run min  run mean
+    boxfill        12   639,329   696,398   752,188   600,092   668,317
+    defer_big      12   647,639   669,670   742,545   647,639   654,983
+    edd            12   651,177   721,130   781,710   651,177   690,806
+    lst            12   654,739   679,647   741,770   654,739   677,317   <- ships
+    rank           12   656,623   715,087   736,711   656,623   693,279
+    sac3           12   680,221   730,986   760,255   680,221   721,177
+    aspect         12   707,314   723,517   749,332   707,314   726,898
+    big_first      12   708,838   730,836   767,080   708,838   718,411
+
+Best is boxfill on min, defer_big on p25 and run mean, rank on median.  The statistics disagree,
+so the pre-registered rule closes it -- the same ending as w3mul.
+
+TWO THINGS DO SURVIVE.  defer_big beats the shipped lst on all three of min, p25 and run mean, but
+by 1.1%, 1.5% and 3.3% against an instance spread of 13-46% -- below the bar set before the sweep
+began.  And the losing end is consistent: big_first, aspect and sac3 take the worst of min, p25 and
+run mean between them, so pushing large blocks or geometry to the front is bad here.  That is a
+usable exclusion, not a gain.
+
+The mid-sweep readings were wrong four separate times: "two non-overlapping groups" (boxfill's
+third draw covered both), "area-first is bad" (aspect uses no area and lost anyway), "order is ten
+times quieter than w3mul" (boxfill span 15.3%), and "rank is stably bad" (its third draw came top).
+Six of the eight arms ended up spanning the whole range once a third draw arrived.
+
 ## WHAT SHIPPED
 
 `nw = cpu - 1` when `cpu >= 4` and `timelimit <= 240`; `WORKERS=4` restores the previous behaviour
