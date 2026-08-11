@@ -4,3 +4,4 @@ P1  [g.p1.60.off.r1]    60s  obj=701392      Z1=28.0     Z2=6572   Z3=825.0     
 P1  [g.p1.60.on.r1]    60s  obj=556718      Z1=20.0     Z2=6326   Z3=674.0     feas=y   ran 30s  py3.12
 # [g.p1.120.off.r1]
 P1  [g.p1.120.off.r1]   120s  obj=489878      Z1=20.0     Z2=6646   Z3=561.0     feas=y   ran 79s  py3.12
+# [g.p1.120.on.r1]
