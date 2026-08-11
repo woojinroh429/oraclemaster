@@ -246,3 +246,7 @@ WSTAT round=0 n=3 1351729 1238836 1096678  spread=23.26%
 P33 [B.p33.r3]      60s  obj=1096678     Z1=93.0     Z2=383    Z3=2366.0    feas=y   ran 59s  py3.12
 # [C.p33.r3]
 DIRGATE fired: peak_util=1.236 in [1.00,1.30], timelimit 60 <= 60
+WSTAT round=0 n=3 1410307 1202515 1314554  spread=17.28%
+PARROUND round=1 parity=odd even=1314554 odd=1202515 wids=[7, 9, 10]
+WSTAT round=1 n=3 1220871 1283886 1208912  spread=6.20%
+P33 [C.p33.r3]      60s  obj=1202515     Z1=124.0    Z2=823    Z3=1842.0    feas=y   ran 58s  py3.12
