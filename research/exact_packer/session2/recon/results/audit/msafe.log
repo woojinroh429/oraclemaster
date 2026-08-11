@@ -32,3 +32,5 @@ P32 [s.p32.c.r1]    60s  obj=704574      Z1=973.0    Z2=762    Z3=4217.0    feas
 P32 [s.p32.m.r1]    60s  obj=697060      Z1=956.0    Z2=908    Z3=4500.0    feas=y   ran 45s  py3.12
 # [s.p14.c.r1]
 P14 [s.p14.c.r1]    60s  obj=697089      Z1=1697.0   Z2=1875   Z3=4819.0    feas=y   ran 48s  py3.12
+# [s.p14.m.r1]
+P14 [s.p14.m.r1]    60s  obj=699936      Z1=1654.0   Z2=2409   Z3=5435.0    feas=y   ran 45s  py3.12
