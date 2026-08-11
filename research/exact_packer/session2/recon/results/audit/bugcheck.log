@@ -8,3 +8,5 @@ P3  [all.p3]        20s  obj=4697406     Z1=145.0    Z2=7037   Z3=7814.0    feas
 P4  [all.p4]        20s  obj=2851605     Z1=333.0    Z2=3279   Z3=3237.0    feas=y   ran 17s  py3.12
 # [all.p5]
 P5  [all.p5]        20s  obj=7837933     Z1=2043.0   Z2=1046   Z3=2548.0    feas=y   ran 19s  py3.12
+# [all.p6]
+P6  [all.p6]        20s  obj=5842370     Z1=375.0    Z2=3313   Z3=6210.0    feas=y   ran 17s  py3.12
