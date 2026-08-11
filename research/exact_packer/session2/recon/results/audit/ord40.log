@@ -11,3 +11,10 @@ P1  [o.p1.defer]   180s  obj=453039      Z1=24.0     Z2=7877   Z3=449.0     feas
 # [o.p2.stock]
 WSTAT round=0 n=4 75644912 60185452 73989665 59399702  spread=27.35%
 PARFILL round=1 parity=odd even=73989665 odd=59399702 wids=[17, 19, 21, 23]
+FILL round=1 budget=44 moved=1 best=57192895
+P2  [o.p2.stock]   180s  obj=57192895    Z1=4209.0   Z2=2437   Z3=7097.0    feas=y   ran 177s  py3.12
+# [o.p2.defer]
+WSTAT round=0 n=4 63270333 60294160 68208697 61684741  spread=13.13%
+PARFILL round=1 parity=odd even=63270333 odd=60294160 wids=[17, 19, 21, 23]
+FILL round=1 budget=41 moved=1 best=59183242
+P2  [o.p2.defer]   180s  obj=59173256    Z1=4356.0   Z2=752    Z3=7278.0    feas=y   ran 177s  py3.12
