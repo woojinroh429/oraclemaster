@@ -4551,6 +4551,22 @@ def algorithm(prob_info, timelimit=60):
     # otherwise carry P1's settings into P2 -- and P2 is the instance this configuration costs
     # +14.23% on.  Only keys this gate injected are removed, so an explicitly set environment is
     # never touched and every A/B keeps its meaning.
+    # peak_util IS COMPUTED ONCE AND SHARED BY BOTH GATES, AND THAT IS NOT A TIDINESS CHOICE.
+    #
+    # ogc_fast.cpp records why: the beam sets its own width from the clock -- Bcur = min(Bmax,
+    # left/(per*rem)), recomputed at every one of ~250 levels -- so anything that changes how long
+    # the run takes changes the width, the search and the answer.  Its own note measures the size of
+    # that: "two dead calls behind switched-off flags moved prob_24 by 1.03%."
+    #
+    # A second _peak_util call costs about 31 ms and it moved prob_1 much further than 1%.  With the
+    # call duplicated, prob_1 returned 680,523 on three draws; with it shared, it returns the 510k
+    # the reserve revert was made to restore.  The gates read the same number, so computing it twice
+    # bought nothing and cost the instance the submission is played for.
+    _pu_shared = None
+    try:
+        _pu_shared = _peak_util(prob_info)
+    except Exception:
+        _pu_shared = 0.0
     global _DIRGATE_INJECTED
     for _k in _DIRGATE_INJECTED:
         os.environ.pop(_k, None)
@@ -4568,10 +4584,7 @@ def algorithm(prob_info, timelimit=60):
             _tlim = float(os.environ.get("OGC_DIRGATET", "60"))
         except Exception:
             _tlim = 60.0
-        try:
-            _pu = _peak_util(prob_info)
-        except Exception:
-            _pu = 0.0
+        _pu = _pu_shared if _pu_shared is not None else 0.0
         if _lo <= _pu <= _thr and float(timelimit) <= _tlim:
             # RESFRAC 0.05, NOT THE 0.50 THIS GATE SHIPPED WITH.  0.50 arrived inside the 7th
             # submission's package, whose single-knob table was taken at 240 s -- where the reserve
@@ -4625,7 +4638,29 @@ def algorithm(prob_info, timelimit=60):
             # resolvable at this sample size", because the same configuration returned three-draw
             # medians 17.4% apart in two experiments.  A ~4% effect inside that band was never
             # established, and at the worker count that actually ships it reverses.
-            for _k, _v in (("OGC_ORDER", "lst"), ("OGC_W3MUL", "0.5"), ("OGC_RESFRAC", "0.05")):
+            # RESFRAC IS BACK AT 0.50, REVERTED BY THE SCOREBOARD.
+            #
+            # 0.05 was measured at -5.36% over the six firing instances and shipped as
+            # OGC2026_capfix.zip together with the CPU cap.  The hidden set disagreed:
+            #
+            #                       dirgate        capfix       delta
+            #     P1              2,796,931     2,913,351      +4.16%
+            #     P8             16,960,384    17,882,006      +5.43%
+            #     other six      52,431,541    53,535,365      +2.11%
+            #     total          72,188,856    74,330,722      +2.97%
+            #
+            # The reserve change can only touch instances inside this gate's peak_util band, of
+            # which the hidden set holds one or two -- yet the other six worsened by 2.11%, and the
+            # only change reaching them was the CPU cap.  So the cap is what the scoreboard
+            # rejected, and the reserve is reverted for a different reason: every cell behind
+            # -5.36% was taken at nw=3, which is what the cap produces.  Without the cap the grader
+            # runs seven workers and that evidence does not transfer.  Shipping a setting whose
+            # entire justification was measured at a worker count that no longer holds is not a
+            # smaller bet, it is an unmeasured one.
+            #
+            # The 0.05 measurements are kept in results/audit/final.log and wdef.log.  If the cap
+            # ever ships and holds, this is one literal away.
+            for _k, _v in (("OGC_ORDER", "lst"), ("OGC_W3MUL", "0.5"), ("OGC_RESFRAC", "0.50")):
                 if _k not in os.environ:
                     os.environ[_k] = _v
                     _DIRGATE_INJECTED.append(_k)
@@ -4710,10 +4745,7 @@ def algorithm(prob_info, timelimit=60):
             _mtl = float(os.environ.get("OGC_MGATET", "60"))
         except Exception:
             _mtl = 60.0
-        try:
-            _mpu = _peak_util(prob_info)
-        except Exception:
-            _mpu = 0.0
+        _mpu = _pu_shared if _pu_shared is not None else 0.0
         if _mpu >= _mcut and float(timelimit) >= _mtl:
             os.environ["OGC_MSET"] = os.environ.get("OGC_MGATEM", "8")
             _MGATE_INJECTED.append("OGC_MSET")
