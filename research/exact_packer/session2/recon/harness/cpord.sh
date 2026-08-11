@@ -1,39 +1,44 @@
 #!/bin/bash
-# GIVE THE BEAM THE PLAN'S SCHEDULE, NOT JUST ITS BAYS.
+# ONE QUESTION LEFT: WHY DOES A 248,467 PLAN REALISE AS 657,000?
 #
-# The cpanch grid's first replicate ended on the cell that matters:
+# The de-rating axis is dead and took two readings with it.  planq.sh solved the plan alone, no
+# beam, same 20 s budget the grid gave it:
 #
-#     ca.off.r1          515,188   Z1  25   Z3  543
-#     ca.c1.00.t100.r1   (crash; measured separately at 90 s: Z1 41, Z3 641)
-#     ca.c1.00.t300.r1 1,614,813   Z1 192   Z3  524
-#     ca.c0.85.t100.r1   899,486   Z1  32   Z3 1118
-#     ca.c0.85.t300.r1 1,580,588   Z1 137   Z3 1085
-#     ca.c0.70.t100.r1   703,795   Z1  58   Z3  493
-#     ca.c0.70.t300.r1 1,849,481   Z1 254   Z3  212     <-- Z3 = 212
+#     cap    Z1(plan)  Z3(plan)  moved-off-top   w1Z1+w3Z3
+#     1.00       1       403       16              248,467
+#     0.90     278         0        0            1,853,426
+#     0.85      74       995       23            1,090,358
+#     0.80     446         0        0            2,973,482
+#     0.70     631         0        0            4,206,877
 #
-# 212 against a project record of 441 and a plan that promised 217, so the BEAM CAN REALISE THE
-# ASSIGNMENT.  600*212 = 127,200, which means Z1 near zero would put this instance at roughly
-# 214,000 -- the target.  Everything that is wrong is now in Z1.
+# Below 1.00 CP-SAT cannot leave the trivial solution inside the budget -- Z3 = 0 with nothing
+# moved is "everyone takes their first choice and waits".  OGC_CPCAP was measuring solver
+# difficulty, not packing realism.
 #
-# And the toll cannot buy it back.  From t100 to t300 at the same de-rating, Z3 falls 281 (worth
-# 168,600) and Z1 rises 196 (worth 1,306,732): an exchange rate of about eight tardiness units per
-# preference unit.  So the toll axis is closed and the question is why obeying the plan's BAYS
-# costs 254 units of tardiness when the plan itself schedules the same bays at Z1 = 0-1.
+# So ca.c0.85's realised Z3 = 1118 was the PLAN's 995, not the beam deviating; and ca.c0.70.t300's
+# Z3 = 212 had no CP-SAT content at all -- with a trivial plan the rewrite is just "+300 on your
+# own top bay", i.e. a flat toll on the COUNT of displaced blocks.  The earlier reading that the
+# beam had realised a good assignment there is withdrawn.
 #
-# THE PLAN'S TIMES ARE THROWN AWAY.  It reaches Z1 = 1 by making 37 blocks WAIT up to 9 units past
-# their release; the beam never sees that, dispatches in its axis's own order, and has to discover
-# the same seating by luck.  OGC_CPORD hands the schedule over in the only form the beam can use
-# without being pinned: dispatch in planned-start order, every entry time still the beam's own
-# choice.
+# That accidental arm is worth one number, so it is kept here as a reference: at the same toll the
+# trivial top-choice target beat the real plan on Z3 (493 against 641), because the CP-SAT plan
+# displaces sixteen blocks up front and the beam then adds its own forced displacements on top.
+# And the toll axis by itself is monotonically bad on the total: 515,188 -> 703,795 -> 1,849,481
+# at tolls 0, 100, 300.
 #
-# Dispatch order is the largest single effect measured in this session (2.03x between orders on
-# one worker), which is exactly why it was held back from the first grid and is priced on its own
-# here.
+# WHAT IS ACTUALLY BEING ASKED HERE.  At cap 1.00 the plan is Z1 = 1, Z3 = 403 and the beam
+# realises Z1 = 41, Z3 = 641.  The plan reaches Z1 = 1 by making 37 blocks WAIT up to nine units
+# past their release; the beam never sees those times, dispatches in its axis's own order, and has
+# to rediscover the same seating by luck.  OGC_CPORD hands the schedule over in the only form that
+# does not pin anything: dispatch in planned-start order, every entry time still the beam's choice.
+#
+# Dispatch order is the largest single effect measured this session (2.03x between orders on one
+# worker), which is why it is priced on its own, paired against the identical cell with the order
+# off so nothing else moves.
 #
 # WHAT WOULD MAKE IT FAIL, named first.  Planned-start order is close to release order, and
-# release-then-due dispatch is the arm that was measured at +34% when _bayplan accidentally shipped
-# it.  If planned-start is just release order with noise, this reproduces that loss.  The control
-# arms are therefore the SAME toll and de-rating with CPORD off, so the order is the only variable.
+# release-then-due dispatch is the arm _bayplan accidentally shipped when it measured +34%.  If
+# planned-start is release order with noise, this reproduces that loss and the direction is closed.
 set -u
 cd /home/user/oraclemaster/research/exact_packer/session2/recon || exit 1
 while [ "$(cat harness/CURRENT 2>/dev/null)" != "idle" ]; do sleep 20; done
@@ -56,15 +61,13 @@ run(){ # tag env
     ci "$tag"
 }
 
-BASE="WORKERS=4 OGC_CPANCH=20"
+B="WORKERS=4 OGC_CPANCH=20 OGC_CPCAP=1.00"
 for rep in 1 2 3; do
-  run "co.off.r$rep"          "WORKERS=4"
-  # the Z3 = 212 cell, with and without the plan's order
-  run "co.c70.t300.no.r$rep"  "$BASE OGC_CPCAP=0.70 OGC_CPANCHW=300"
-  run "co.c70.t300.ord.r$rep" "$BASE OGC_CPCAP=0.70 OGC_CPANCHW=300 OGC_CPORD=1"
-  # and the cheap-toll cell, where Z1 was only 58 to begin with
-  run "co.c70.t100.no.r$rep"  "$BASE OGC_CPCAP=0.70 OGC_CPANCHW=100"
-  run "co.c70.t100.ord.r$rep" "$BASE OGC_CPCAP=0.70 OGC_CPANCHW=100 OGC_CPORD=1"
+  run "co.off.r$rep"       "WORKERS=4"
+  run "co.t100.no.r$rep"   "$B OGC_CPANCHW=100"
+  run "co.t100.ord.r$rep"  "$B OGC_CPANCHW=100 OGC_CPORD=1"
+  run "co.t300.no.r$rep"   "$B OGC_CPANCHW=300"
+  run "co.t300.ord.r$rep"  "$B OGC_CPANCHW=300 OGC_CPORD=1"
 done
 echo "CPORDDONE" >> $L
 echo idle > harness/CURRENT
