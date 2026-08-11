@@ -2,3 +2,5 @@
 P1  [D.p1.r1]       60s  obj=663059      Z1=23.0     Z2=8306   Z3=808.0     feas=y   ran 30s  py3.12
 # [D.p3.r1]
 P3  [D.p3.r1]       60s  obj=4745843     Z1=190.0    Z2=6845   Z3=7626.0    feas=y   ran 35s  py3.12
+# [D.p27.r1]
+P27 [D.p27.r1]      60s  obj=785787      Z1=83.0     Z2=1085   Z3=941.0     feas=y   ran 33s  py3.12
