@@ -137,3 +137,31 @@ DIRGATE fired: peak_util=1.132 in [1.00,1.30], timelimit 60 <= 60
   opstat  TOTAL      10      27.7   97.4%                        
 WSTAT round=0 n=3 859349 906556 920571  spread=7.12%
 P27 [pool.p27.50]    60s  obj=859349      Z1=77.0     Z2=1278   Z3=1114.0    feas=y   ran 35s  py3.12
+# [pool.p27.05]
+DIRGATE fired: peak_util=1.132 in [1.00,1.30], timelimit 60 <= 60
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        5      26.1   47.2%    910066776 34910450.8
+  opstat  grow        1       9.9   17.8%            0        0.0
+  opstat  bal         2       0.1    0.2%            0        0.0
+  opstat  pref        2       7.1   12.9%       137837    19401.1
+  opstat  bay         1      10.4   18.9%            0        0.0
+  opstat  brk         1       1.4    2.5%            0        0.0
+  opstat  TOTAL      12      55.0   99.5%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        5      25.3   45.7%    910101663 36030793.2
+  opstat  grow        1      10.0   18.0%            0        0.0
+  opstat  bal         1       0.0    0.1%            0        0.0
+  opstat  pref        2       6.7   12.1%       275866    41188.9
+  opstat  bay         1      11.2   20.3%            0        0.0
+  opstat  brk         1       1.6    2.9%            0        0.0
+  opstat  TOTAL      11      54.8   99.1%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        6      34.7   60.9%    909900553 26240247.2
+  opstat  grow        1       5.2    9.1%       217910    41990.4
+  opstat  bal         1       0.0    0.1%            0        0.0
+  opstat  pref        1       4.8    8.3%       163691    34431.1
+  opstat  bay         1       9.7   17.0%         4730      488.8
+  opstat  brk         1       2.1    3.7%            0        0.0
+  opstat  TOTAL      11      56.5   99.1%                        
+WSTAT round=0 n=3 692860 783505 865776  spread=24.96%
+P27 [pool.p27.05]    60s  obj=692860      Z1=34.0     Z2=633    Z3=1079.0    feas=y   ran 57s  py3.12
