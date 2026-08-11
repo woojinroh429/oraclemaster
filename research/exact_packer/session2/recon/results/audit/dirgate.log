@@ -50,3 +50,4 @@ P22 [g.p22.60.on]    60s  obj=6366        Z1=0.0      Z2=546    Z3=194.0     fea
 P27 [g.p27.60.off]    60s  obj=874510      Z1=98.0     Z2=983    Z3=1015.0    feas=y   ran 44s  py3.12
 # [g.p27.60.on]
 P27 [g.p27.60.on]    60s  obj=740180      Z1=83.0     Z2=1118   Z3=855.0     feas=y   ran 37s  py3.12
+# [g.p33.60.off]
