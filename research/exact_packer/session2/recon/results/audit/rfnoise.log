@@ -3,3 +3,4 @@ P21 [n.p21.prev.r2]    60s  obj=1087112     Z1=16.0     Z2=8092   Z3=2144.0    f
 # [n.p4.prev.r2]
 P4  [n.p4.prev.r2]    60s  obj=2681096     Z1=297.0    Z2=3515   Z3=3140.0    feas=y   ran 47s  py3.12
 # [n.p2.prev.r2]
+P2  [n.p2.prev.r2]    60s  obj=59860379    Z1=4409.0   Z2=2658   Z3=7097.0    feas=y   ran 50s  py3.12
