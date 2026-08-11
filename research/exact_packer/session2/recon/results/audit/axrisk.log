@@ -1,1 +1,5 @@
 # [x.p4.stock.r1]
+WSTAT round=0 n=4 2855445 3048249 2683696 3144699  spread=17.18%
+PARFILL round=1 parity=even even=2683696 odd=3048249 wids=[16, 18, 20, 22]
+FILL round=1 budget=59 moved=0 best=2675413
+P4  [x.p4.stock.r1]   240s  obj=2675413     Z1=380.0    Z2=1843   Z3=2626.0    feas=y   ran 237s  py3.12
