@@ -40,3 +40,5 @@ P1  [pp.2.5.r2]    120s  obj=536551      Z1=25.0     Z2=6692   Z3=583.0     feas
 # (1.6 at -6.8% after r1) failed to repeat.  Three of five cells reproduce to the
 # digit, so the reproducing cells are the readable ones -- and every one of those is
 # WORSE than the control.  prefpow is closed on this instance.
+WSTAT round=0 n=4 515188 660593 499210 766439  spread=53.53%
+P1  [pp.1.0.r3]    120s  obj=499210      Z1=19.0     Z2=7579   Z3=583.0     feas=y   ran 79s  py3.12
