@@ -270,3 +270,5 @@ WSTAT round=2 n=4 1685403 1160242 1316323 1122344  spread=50.17%
 P7  [R3.p7.r3]      60s  obj=991113      Z1=55.0     Z2=1364   Z3=1655.0    feas=y   ran 59s  py3.12
 # [R1.p33.r3]
 DIRGATE fired: peak_util=1.236 in [1.00,1.30], timelimit 60 <= 60
+WSTAT round=0 n=4 1300039 1238660 949478 1238836  spread=36.92%
+P33 [R1.p33.r3]     60s  obj=949478      Z1=72.0     Z2=606    Z3=2320.0    feas=y   ran 59s  py3.12
