@@ -86,3 +86,5 @@ WSTAT round=0 n=4 4971497 4800803 5053709 5157286  spread=7.43%
 PARROUND round=1 parity=odd even=4971497 odd=4800803 wids=[9, 11, 13, 14]
 WSTAT round=1 n=4 5187824 5265149 5150474 5006447  spread=5.17%
 PARROUND round=2 parity=odd even=4971497 odd=4800803 wids=[17, 19, 21, 22]
+WSTAT round=2 n=4 5260828 5150474 5270849 5402225  spread=4.89%
+P3  [R3.p3.r1]      60s  obj=4779884     Z1=172.0    Z2=5583   Z3=7819.0    feas=y   ran 59s  py3.12
