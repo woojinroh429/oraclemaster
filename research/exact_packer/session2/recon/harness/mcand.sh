@@ -1,78 +1,59 @@
 #!/bin/bash
-# A MEASURED 14.5% WIN THAT WAS NEVER TURNED ON.
+# THE PERMUTATION IS THE LARGEST LEVER ON THIS PROBLEM AND IT HAS ONE THIRD OF THE PORTFOLIO.
 #
-# OGC_MCAND is how many candidate blocks each beam state expands.  With m=1 every state at level k
-# holds the same block SET and differs only in placements; with m>1 each state expands the m
-# earliest unplaced blocks in the dispatch order, so states diverge in WHICH blocks they have
-# placed.  The file calls the permutation the largest lever on this problem -- construction spread
-# across orders is 32-210%, against about 2% for the combined range of budget policy, axis sets, the
-# w3mul grid and brk removal -- and m>1 is the only thing in the engine that searches it.
+# ogc_fast.cpp, at the level loop:
+#   "The permutation is the largest lever measured on this problem -- cdecomp put the construction
+#    spread across orders at 32-210%, against about 2% for the combined range of budget policy,
+#    axis sets, the w3mul grid and brk removal."
 #
-# Its own recorded measurement, 240 s:
+# OGC_MCAND is what opens that dimension: each state expands the M earliest UNPLACED blocks instead
+# of only order[level], so states diverge in which blocks they have placed rather than only in where
+# they put the same ones.  M=1 is the old behaviour exactly.  The shipped default is OGC_MSET="1,2"
+# indexed by wid%2, so at nw=3 two workers run M=1 and one runs M=2.
 #
-#     m=2   prob_24 -14.50%   prob_4 -3.74%     won both
-#     m=3   prob_24 + 2.40%   prob_4 +10.89%    lost both
+# EVERYTHING MEASURED TODAY LIVED INSIDE THAT 2%.  RESFRAC, ROUNDS, w3mul, brk, the probe cap and
+# the gain fix moved the band by single digits at best.  This knob is the one the file's own
+# measurements call an order of magnitude larger.
 #
-# and the default is 1.  The note beside it reads "raising the ceiling is the direct test of whether
-# m=3 lost to the branching or to the slot shortage" -- so the m=3 question was left open and m=2,
-# which won, was never adopted either.  Two instances is thin, and nothing since has re-read it.
+# AND IT IS NOW MEASURABLE WITHOUT NOISE.  OGC_WORKCAP replaces the clock with states-expanded in
+# the width controller and the stop test, so a build/instance/cap triple returns the same answer
+# every time -- verified here: three identical runs of prob_1 all returned 568,924 to the digit,
+# against the 17-35% run-to-run spread every wall-clock experiment today had to fight.
 #
-# It is also the one lever tonight's refutations do NOT touch.  Everything measured in this session
-# moved budget BETWEEN operators and none of it moved the answer: bay is a fifth of every worker for
-# nothing and removing it changes nothing, the idle tail returns the identical solution, more rounds
-# is monotonically worse, the roster cannot be cut.  At 240 s prob_1 returned 470,530 from nine
-# different configurations.  What none of that changes is WHICH construction the beam performs, and
-# m is exactly that knob: it does not redistribute budget, it widens the neighbourhood the beam
-# searches.
+# WORKCAP=5000 binds (prob_1: 492,458, 65 s); 20000 and 80000 do not (568,924, 85 s).
 #
-# m=3 is included because its loss was attributed to running out of survivor slots rather than to
-# the branching, and OGC_BCAP raises the ceiling -- so if m=3 recovers at a higher cap, the reading
-# was about the cap and not about m.
+# PHASE 1, HERE: quality per unit of work.  work += nbeam*M per level, so a larger M costs
+# proportionally more work and reaches fewer levels before the cap -- which is exactly the trade
+# being measured.  One draw per cell is enough because the cell is deterministic.
+#
+# PHASE 2, SEPARATE: throughput at wall clock.  The file prescribes the two-part evaluation --
+# equal-work A/B, then how much work each arm completes in the real budget, then quality at
+# work = throughput x budget.  Phase 1 alone cannot decide a shipping value.
+#
+# WORKERS=1 so M is unambiguous and the pool's deadline cannot truncate anything.
 set -u
 cd /home/user/oraclemaster/research/exact_packer/session2/recon || exit 1
+while [ "$(cat harness/CURRENT 2>/dev/null)" != "idle" ]; do sleep 15; done
 echo mcand > harness/CURRENT
-( cd "$(git rev-parse --show-toplevel)" \
-  && git add research/exact_packer/session2/recon/harness/CURRENT \
-  && git commit -q -m "queue: CURRENT=mcand" \
-  && git push -q origin claude/repair-plan-model-1ig6it ) >/dev/null 2>&1
 L=results/audit/mcand.log
 mkdir -p results/audit; touch $L
 ci(){ ( cd "$(git rev-parse --show-toplevel)" \
         && git add research/exact_packer/session2/recon/results/audit/mcand.log \
                   research/exact_packer/session2/recon/harness/CURRENT \
+                  research/exact_packer/session2/recon/harness/mcand.sh \
         && git commit -q -m "in-flight: mcand $1" \
         && git push -q origin claude/repair-plan-model-1ig6it ) >/dev/null 2>&1; }
-
-run(){ # tag prob limit env
-    local tag="$1"
+run(){ local tag="$1" p="$2" m="$3"
     grep -vE '^# ' $L 2>/dev/null | grep -q "\[$tag\]" && return
     echo "# [$tag]" >> $L
-    env $4 timeout $(( $3 * 4 )) /usr/bin/python3.12 harness/run1.py myalgorithm $2 $3 \
-        "[$tag]" --data data/stage2 >> $L 2>&1 || echo "P$2 [$tag] CRASH rc=$?" >> $L
-    ci "$tag"
-}
-
-# prob_24 and prob_4 first: they are the two the 14.50% and 3.74% were measured on, so a failure to
-# reproduce there says the reading was wrong before any generalisation is attempted.  Then the five
-# this session has replicate spreads for.
-for p in 24 4 1 20 16 6 36; do
-  run "m240.p$p.m1" $p 240 "OGC_MCAND=1"
-  run "m240.p$p.m2" $p 240 "OGC_MCAND=2"
-done
-echo "== MCAND base done ==" >> $L
-
-# m=3 with the survivor ceiling raised, on the instances where m=2 pays, to settle whether m=3 lost
-# to branching or to slots.
-for p in 24 4 20; do
-  run "m240.p$p.m3"     $p 240 "OGC_MCAND=3"
-  run "m240.p$p.m3cap"  $p 240 "OGC_MCAND=3 OGC_BCAP=192"
-done
-echo "== MCAND m3 done ==" >> $L
-
-# replicate the pair on the instances that carry spread, because a single cell decides nothing here
-for p in 24 4 1 20 16 6 36; do
-  run "m240.p$p.m1.r2" $p 240 "OGC_MCAND=1"
-  run "m240.p$p.m2.r2" $p 240 "OGC_MCAND=2"
+    env OGC_WORKCAP=5000 WORKERS=1 OGC_MCAND=$m timeout 300 /usr/bin/python3.12 \
+        harness/run1.py myalgorithm $p 60 "[$tag]" --data data/stage2 >> $L 2>&1 \
+        || echo "P$p [$tag] CRASH rc=$?" >> $L
+    ci "$tag"; }
+for p in 1 3 16 13; do
+  for m in 1 2 3 4 6 8; do
+    run "m.p$p.m$m" $p $m
+  done
 done
 echo "MCANDDONE" >> $L
 echo idle > harness/CURRENT
