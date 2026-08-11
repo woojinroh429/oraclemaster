@@ -66,3 +66,4 @@ P4  [g.p4.60.on]    60s  obj=2681096     Z1=297.0    Z2=3515   Z3=3140.0    feas
 P20 [g.p20.60.off]    60s  obj=9105899     Z1=1155.0   Z2=1708   Z3=9279.0    feas=y   ran 48s  py3.12
 # [g.p20.60.on]
 P20 [g.p20.60.on]    60s  obj=9226385     Z1=1163.0   Z2=1908   Z3=9716.0    feas=y   ran 47s  py3.12
+DIRGATEDONE
