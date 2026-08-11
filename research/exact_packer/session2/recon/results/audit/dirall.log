@@ -14,3 +14,5 @@ P1  [da.stock.r2]   120s  obj=499210      Z1=19.0     Z2=7579   Z3=583.0     fea
 WSTAT round=0 n=4 473725 636883 596959 688041  spread=45.24%
 P1  [da.all.r2]    120s  obj=473725      Z1=13.0     Z2=7218   Z3=609.0     feas=y   ran 79s  py3.12
 # [da.none.r2]
+WSTAT round=0 n=4 503500 729517 544247 743665  spread=47.70%
+P1  [da.none.r2]   120s  obj=503500      Z1=19.0     Z2=7609   Z3=590.0     feas=y   ran 79s  py3.12
