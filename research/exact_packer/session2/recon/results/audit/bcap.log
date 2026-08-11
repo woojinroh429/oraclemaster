@@ -29,3 +29,4 @@ WSTAT round=0 n=4 3201748 3469962 3078567 4279590  spread=39.01%
 PARFILL round=1 parity=even even=3078567 odd=3469962 wids=[16, 18, 20, 22]
 FILL round=1 budget=63 moved=0 best=3069049
 P16 [c.p16.stock.r3]   240s  obj=3069049     Z1=137.0    Z2=1976   Z3=4946.0    feas=y   ran 240s  py3.12
+# [c.p16.bm2.r3]
