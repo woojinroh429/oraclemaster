@@ -9,3 +9,4 @@ P34 [p34.prev.r2]    60s  obj=249163      Z1=4.0      Z2=3451   Z3=1401.0    fea
 # [p34.new.r3]
 P34 [p34.new.r3]    60s  obj=250125      Z1=4.0      Z2=3403   Z3=1411.0    feas=y   ran 43s  py3.12
 # [p34.prev.r3]
+P34 [p34.prev.r3]    60s  obj=250125      Z1=4.0      Z2=3403   Z3=1411.0    feas=y   ran 43s  py3.12
