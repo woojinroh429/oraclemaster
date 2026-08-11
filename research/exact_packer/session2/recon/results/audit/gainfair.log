@@ -3,3 +3,4 @@ P1  [J.p1.r1]       60s  obj=571668      Z1=18.0     Z2=5954   Z3=723.0     feas
 # [K.p1.r1]
 P1  [K.p1.r1]       60s  obj=543874      Z1=19.0     Z2=6867   Z3=661.0     feas=y   ran 57s  py3.12
 # [J.p7.r1]
+P7  [J.p7.r1]       60s  obj=747511      Z1=38.0     Z2=1451   Z3=1538.0    feas=y   ran 59s  py3.12
