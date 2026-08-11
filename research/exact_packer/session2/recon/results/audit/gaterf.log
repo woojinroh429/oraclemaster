@@ -1,3 +1,4 @@
 # [rf.p1.50.r1]
 P1  [rf.p1.50.r1]    60s  obj=556718      Z1=20.0     Z2=6326   Z3=674.0     feas=y   ran 30s  py3.12
 # [rf.p1.30.r1]
+P1  [rf.p1.30.r1]    60s  obj=631046      Z1=32.0     Z2=6034   Z3=666.0     feas=y   ran 42s  py3.12
