@@ -15,3 +15,5 @@ P1 [ca.c1.00.t100.r1] CRASH rc=1
 WSTAT round=0 n=4 1733013 1873741 1754204 2009992  spread=15.98%
 P1  [ca.c1.00.t300.r1]   120s  obj=1614813     Z1=192.0    Z2=6783   Z3=524.0     feas=y   ran 82s  py3.12
 # [ca.c0.85.t100.r1]
+WSTAT round=0 n=4 792965 482486 863143 994415  spread=106.10%
+P1  [ca.c0.85.t100.r1]   120s  obj=899486      Z1=32.0     Z2=5114   Z3=1118.0    feas=y   ran 77s  py3.12
