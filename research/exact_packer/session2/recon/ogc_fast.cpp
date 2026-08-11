@@ -3252,6 +3252,8 @@ beam_work_ = work;
         auto elapsed=[&](){ return std::chrono::duration<double>(std::chrono::steady_clock::now()-t0).count(); };
         // objective handled here = w1*Z1 + w3*Z3 (Z2 unchanged; pipeline gate guards it).
         const bool Z2ON = (w2 > 0.0 && (int)wls.size() == nb && n_bays > 1);
+        const char* _zw = std::getenv("OGC_Z3WIDE");
+        const bool Z3WIDE = (_zw && _zw[0]=='1');
         std::vector<double> zu(n_bays, 1.0), zload(n_bays, 0.0);
         if(Z2ON){
             double avg=0.0; for(int j=0;j<n_bays;j++) avg += bw[j]*bh[j];
@@ -3306,18 +3308,39 @@ beam_work_ = work;
             for(int b: ord){
                 if(elapsed()>time_budget_s) break;
                 auto& r=recs[b]; int cur_bay=r[1]; double cur_pen=mxp[b]-prefv(b,cur_bay);
-                if(cur_pen<=0) continue;
                 int en=r[5],ex=r[6]; double dd=shapes[b].due, cur_tardy=(ex>dd)?(ex-dd):0.0;
+                // WIDEN THE MOVE GENERATOR FOR TARDY BLOCKS (OGC_Z3WIDE=1, absent = unchanged).
+                //
+                // The acceptance test below already prices the full trade -- w1*(nt-cur_tardy) +
+                // w3*(npen-cur_pen) + dz2 -- but three filters stop the moves that would use it
+                // from ever being generated:
+                //
+                //   cur_pen<=0                    a block already in its favourite bay is skipped
+                //                                 entirely, even when it is late
+                //   prefv(b,tb)<=prefv(b,cur_bay) only MORE-preferred target bays are considered,
+                //                                 so giving up a little preference to remove a lot
+                //                                 of tardiness is never proposed
+                //   the else branch               earlier entry windows are scanned only when the
+                //                                 CURRENT window does not fit in the target bay
+                //
+                // Measured cost of that on stage2/prob_1: _z3_improve returns its input unchanged,
+                // and ruin_tardy's counters read 151 rounds, 0 kept, 95 worse -- so neither pass
+                // moves the 22% of the objective that is w1*Z1 (6,667 per unit, Z1 = 20 there).
+                if(cur_pen<=0 && !(Z3WIDE && cur_tardy>0.0)) continue;
                 remove(b);
                 double bestd=-1e-9; int btb=-1,bo=0,bix=0,biy=0,be=0,bex=0;
+                const bool wide_b = (Z3WIDE && cur_tardy>0.0);
                 for(int tb=0;tb<n_bays;tb++){
-                    if(prefv(b,tb)<=prefv(b,cur_bay)) continue;
+                    if(!wide_b && prefv(b,tb)<=prefv(b,cur_bay)) continue;
+                    if(wide_b && tb==cur_bay) continue;
                     double npen=mxp[b]-prefv(b,tb); int oo,oix,oiy;
                     double dz2 = Z2ON ? w2*(z2_at(b,cur_bay,tb) - z2_at(b,cur_bay,cur_bay)) : 0.0;
-                    if(find_pos_in_bay(b,tb,en,ex,oo,oix,oiy)){
+                    bool fits_now = find_pos_in_bay(b,tb,en,ex,oo,oix,oiy);
+                    if(fits_now){
                         double d=w3*(npen-cur_pen)+dz2;
                         if(d<bestd){ bestd=d; btb=tb;bo=oo;bix=oix;biy=oiy;be=en;bex=ex; }
-                    } else {
+                    }
+                    if(!fits_now || wide_b){
                         // entry-shift: earliest feasible later entry in tb (exit times)
                         std::vector<int> es; es.push_back((int)shapes[b].rt);
                         for(const Placed& te: timeline[tb]) if(te.ex>en) es.push_back(te.ex);
