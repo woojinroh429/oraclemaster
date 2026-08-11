@@ -10,3 +10,5 @@ P16 [D.p16.r1]      60s  obj=3199896     Z1=145.0    Z2=2287   Z3=5039.0    feas
 P7  [D.p7.r1]       60s  obj=906265      Z1=48.0     Z2=2083   Z3=1678.0    feas=y   ran 34s  py3.12
 # [D.p33.r1]
 P33 [D.p33.r1]      60s  obj=1179775     Z1=103.0    Z2=786    Z3=2430.0    feas=y   ran 33s  py3.12
+# [D.p1.r2]
+P1  [D.p1.r2]       60s  obj=605585      Z1=8.0      Z2=4083   Z3=900.0     feas=y   ran 31s  py3.12
