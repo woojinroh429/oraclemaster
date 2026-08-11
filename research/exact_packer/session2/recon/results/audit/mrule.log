@@ -46,3 +46,4 @@ P39 [r.p39.m1.r2]    60s  obj=62286046    Z1=4534.0   Z2=1112   Z3=4580.0    fea
 P39 [r.p39.m4.r2]    60s  obj=57875382    Z1=4210.0   Z2=1326   Z3=4352.0    feas=y   ran 43s  py3.12
 # [r.p39.m8.r2]
 P39 [r.p39.m8.r2]    60s  obj=59577435    Z1=4367.0   Z2=1712   Z3=3372.0    feas=y   ran 42s  py3.12
+MRULEDONE
