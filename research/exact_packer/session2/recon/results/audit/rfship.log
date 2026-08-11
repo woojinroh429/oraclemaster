@@ -1,0 +1,3 @@
+## PART A -- non-firing instances must be identical between HEAD and the edit
+# [a.p21.prev]
+P21 [a.p21.prev]    60s  obj=1014768     Z1=18.0     Z2=8187   Z3=1896.0    feas=y   ran 42s  py3.12
