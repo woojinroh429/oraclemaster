@@ -375,6 +375,7 @@ _PEAKUTIL_CACHE = {}
 # out.  A grader solving several instances in one process must not carry one instance's settings
 # into the next; only keys this gate set are ever removed.
 _DIRGATE_INJECTED = []
+_MGATE_INJECTED = []
 
 
 def _peak_util(prob_info):
@@ -4632,6 +4633,94 @@ def algorithm(prob_info, timelimit=60):
                 try:
                     print("DIRGATE fired: peak_util=%.3f in [%.2f,%.2f], timelimit %g <= %g"
                           % (_pu, _lo, _thr, float(timelimit), _tlim), flush=True)
+                except Exception:
+                    pass
+    # MGATE: OPEN THE PERMUTATION DIMENSION WHERE THE YARD IS SATURATED.
+    #
+    # ogc_fast.cpp, at the beam's level loop: "The permutation is the largest lever measured on this
+    # problem -- cdecomp put the construction spread across orders at 32-210%, against about 2% for
+    # the combined range of budget policy, axis sets, the w3mul grid and brk removal."
+    #
+    # OGC_MCAND is what opens it.  Each beam state expands the M earliest UNPLACED blocks instead of
+    # only order[level], so states differ in WHICH blocks they hold rather than only in where they
+    # put the same ones.  M=1 -- what most workers run today -- searches placements of a FIXED
+    # sequence and never reconsiders the sequence at all.  The canonical dedup a few lines below it
+    # in that file calls itself "MEASURED INERT" for exactly this reason: at M=1 every state at
+    # level k has placed the same block set, so there is nothing for it to collapse.
+    #
+    # THE SIGN DEPENDS ON SATURATION, WHICH IS WHAT peak_util MEASURES.  Where the yard is crowded,
+    # WHICH block goes next decides the layout and no amount of depth recovers a bad choice; where
+    # it is not, depth is everything and branching only costs draws.  Measured at the shipped worker
+    # count with OGC_MSET pinned, three draws each, against MSET=1 (results/audit/mship.log):
+    #
+    #     P36  pu 4.66  -18.4%     P16  pu 1.23  +17.4%
+    #     P13  pu 4.09  -11.1%     P3   pu 1.18  + 3.3%
+    #     P2   pu 3.29  -22.5%     P1   pu 1.02  +18.4%
+    #
+    # Nine draws one way, nine the other, no sign flip anywhere.  The band between is empty: the
+    # lowest measured winner is P11 at 2.14 (-8.6%, -9.5%) and the highest measured loser is P16 at
+    # 1.23, so the cut goes at 2.0 with roughly half a unit of margin on each side.  Every gate
+    # rejected earlier today was fitted to a gap of 0.035 or to a single instance; this one is not.
+    #
+    # AGAINST THE ACTUAL SHIPPED DEFAULT the gain is smaller, and that is the number that matters.
+    # OGC_MSET defaults to "1,2" indexed by wid%2, so one worker in three already runs M=2 and part
+    # of this is already collected.  Three draws each, control = the build as submitted
+    # (results/audit/mfinal.log):
+    #
+    #     P36  -20.9%    P2  -10.3%    P23  -2.0%    P11  -1.9%    P13  +2.0%
+    #     band median-sum -10.22%, 12 of 15 draws favourable
+    #
+    # P13 reverses because the default's single M=2 worker was already collecting its gain.  Four of
+    # five still win and the band is worth twice what the reserve change was.
+    #
+    # IT FIRES ONLY ABOVE THE CUT AND TOUCHES NOTHING BELOW IT, so instances like P1, P3 and P16 run
+    # byte-identical to the submitted build -- there is no path by which this costs them anything.
+    # Verified: P1 returned 571,668 on all three control draws with the rule installed.
+    #
+    # ENV IS RESTORED BETWEEN CALLS, for the reason the direction gate above records: a grader
+    # solving several instances in one process would otherwise carry a crowded instance's M into an
+    # uncrowded one, which is the +17% direction.
+    global _MGATE_INJECTED
+    for _k in _MGATE_INJECTED:
+        os.environ.pop(_k, None)
+    _MGATE_INJECTED = []
+    if os.environ.get("OGC_MGATE") != "0" and "OGC_MSET" not in os.environ \
+            and "OGC_MCAND" not in os.environ:
+        try:
+            _mcut = float(os.environ.get("OGC_MGATEU", "2.0"))
+        except Exception:
+            _mcut = 2.0
+        # AND A FLOOR ON THE BUDGET, BECAUSE M=8 MOVES THE CLIFF.  Each beam draw expands M times
+        # the states, so a draw costs multiples of what it did and an instance that finished
+        # comfortably at M=1 may not finish at all.  When no worker completes, the run returns
+        # _safe_sequential and the answer is roughly forty times worse -- silently, with feas=y.
+        #
+        # Measured on prob_36 (peak_util 4.66), default against MSET=8:
+        #
+        #     20 s   100,393,761  ->  4,023,023,953   FLOOR
+        #     30 s    97,465,037  ->  4,023,023,953   FLOOR
+        #     45 s    86,052,164  ->     76,324,079   -11.3%
+        #     60 s    97,247,964  ->     76,886,831   -20.9%
+        #
+        # Every cell that produced this rule was taken at 60 s.  Below about 45 s the change is not
+        # a smaller gain, it is a catastrophe, and nothing in the run reports it.  So the gate fires
+        # only in the budget it was measured in; below that the build is byte-identical to the one
+        # it replaces.  OGC_MGATET moves the floor if a shorter budget is ever measured.
+        try:
+            _mtl = float(os.environ.get("OGC_MGATET", "60"))
+        except Exception:
+            _mtl = 60.0
+        try:
+            _mpu = _peak_util(prob_info)
+        except Exception:
+            _mpu = 0.0
+        if _mpu >= _mcut and float(timelimit) >= _mtl:
+            os.environ["OGC_MSET"] = os.environ.get("OGC_MGATEM", "8")
+            _MGATE_INJECTED.append("OGC_MSET")
+            if os.environ.get("OGC_WSTAT"):
+                try:
+                    print("MGATE fired: peak_util=%.3f >= %.2f, MSET=%s"
+                          % (_mpu, _mcut, os.environ["OGC_MSET"]), flush=True)
                 except Exception:
                     pass
     # OGC_PREFPOW: BEND THE PREFERENCE PENALTY, PER BLOCK, INSTEAD OF TOLLING EVERY BLOCK ALIKE.

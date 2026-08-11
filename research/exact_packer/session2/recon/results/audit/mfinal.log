@@ -76,3 +76,4 @@ P16 [c.p16.r3]      60s  obj=2909206     Z1=130.0    Z2=2472   Z3=4674.0    feas
 P3  [c.p3.r3]       60s  obj=4472107     Z1=170.0    Z2=6730   Z3=7239.0    feas=y   ran 57s  py3.12
 # [c.p1.r3]
 P1  [c.p1.r3]       60s  obj=571668      Z1=18.0     Z2=5954   Z3=723.0     feas=y   ran 58s  py3.12
+MFINALDONE
