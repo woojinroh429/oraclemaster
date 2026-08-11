@@ -20,3 +20,5 @@ P1  [pa.p1.off.r2]    60s  obj=556718      Z1=20.0     Z2=6326   Z3=674.0     fe
 P1  [pa.p1.g16.r2]    60s  obj=671556      Z1=33.0     Z2=6315   Z3=721.0     feas=y   ran 34s  py3.12
 # [pa.p1.g25.r2]
 P1  [pa.p1.g25.r2]    60s  obj=631368      Z1=48.0     Z2=8184   Z3=478.0     feas=y   ran 31s  py3.12
+# [pa.p1.g07.r2]
+P1  [pa.p1.g07.r2]    60s  obj=556718      Z1=20.0     Z2=6326   Z3=674.0     feas=y   ran 30s  py3.12
