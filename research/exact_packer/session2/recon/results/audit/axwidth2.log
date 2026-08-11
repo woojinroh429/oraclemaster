@@ -1,1 +1,3 @@
 # [w.ax2b96.r1]
+WSTAT round=0 n=4 2725778 3199896 3264529 3192646  spread=19.77%
+PARFILL round=1 parity=even even=2725778 odd=3192646 wids=[16, 18, 20, 22]
