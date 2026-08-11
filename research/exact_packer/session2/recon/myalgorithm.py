@@ -335,6 +335,41 @@ def _build_operations(assignments):
 
 _SHAPE_FEAT_CACHE = {}
 _REGRET_CACHE = {}
+def _bend_prefs(prob_info, gamma):
+    """Re-express every preference penalty as R*(pen/R)^gamma, R the median across blocks of each
+    block's largest penalty.  Returns a NEW prob_info; the caller's is never touched, so the
+    grader always scores the real preferences.
+
+    Scale is held deliberately: a block at the typical regret keeps the penalty it had and only
+    the SPREAD moves.  Without the R normalisation gamma > 1 would inflate every penalty at once,
+    which is the w3mul sweep, and that closed unresolvable.
+
+    gamma = 1.0 or a degenerate instance returns the input unchanged.
+    """
+    try:
+        if gamma == 1.0 or gamma <= 0.0:
+            return prob_info
+        mxpen = [max(b["bay_preferences"]) - min(b["bay_preferences"]) for b in prob_info["blocks"]]
+        srt = sorted(x for x in mxpen if x > 0)
+        if not srt:
+            return prob_info
+        R = float(srt[len(srt) // 2])
+        if R <= 0.0:
+            return prob_info
+        blocks = []
+        for b in prob_info["blocks"]:
+            c = dict(b)
+            p = b["bay_preferences"]; mx = max(p)
+            pen = [R * (((mx - v) / R) ** gamma) for v in p]
+            hi = max(pen)
+            c["bay_preferences"] = [hi - x for x in pen]
+            blocks.append(c)
+        out = dict(prob_info); out["blocks"] = blocks
+        return out
+    except Exception:
+        return prob_info
+
+
 _PEAKUTIL_CACHE = {}
 # Keys OGC_DIRGATE injected into os.environ on the last call, so the next call can take them back
 # out.  A grader solving several instances in one process must not carry one instance's settings
@@ -3323,6 +3358,41 @@ def _worker(args):
         os.environ.setdefault("OGC_ORDER", "lst")
         os.environ.setdefault("OGC_W3MUL", "0.5")
 
+    # OGC_PREFPOWSET: A FOURTH DIVERSITY AXIS, WHICH IS THE ONLY KIND THAT CAN STILL HELP.
+    # Absent = off and byte-identical.
+    #
+    # The run's answer is a minimum over the workers' draws, so lowering it needs a better draw.
+    # Three routes to that are now closed by measurement: OGC_SHARE restarts a lagging worker and
+    # it returns to the same attractor (share13.log -- gap 0.5 never fires, 0.3's -1.4% did not
+    # reproduce, 0.15 costs 20% on P1 while helping P3); OGC_ROUNDS is already shipped; and
+    # OGC_CROSS was built to raise dispersion and LOWERED it 34% for +12.7%
+    # (cross_lowers_dispersion.md).
+    #
+    # That record also says why, and what is left.  aim, m and the direction all index wid % 2, so
+    # the pool holds two configurations at maximum distance -- three factors flipped together.
+    # Crossing them fills in intermediate points and shrinks the pool's diameter.  Its closing line:
+    # "raising dispersion needs configurations FURTHER APART, not more of them ... widening it
+    # requires a NEW factor, not a re-indexing of the ones there."
+    #
+    # OGC_PREFPOW is such a factor.  It bends the preference penalty per block -- protecting the
+    # blocks with the most to lose and making the cheap ones nearly free to displace -- and it is
+    # independent of aim, m and dispatch direction.  Swept as a global setting it produced no gain
+    # (prefpow.log, closed at two replicates), but a knob that is useless as a SETTING can still be
+    # useful as an AXIS: the pool only needs its members to be far apart, not each one to be good.
+    #
+    # WHAT WOULD MAKE IT FAIL, named first.  If the correlation r(dispersion, min) = -0.771 is not
+    # causal, spreading the pool costs whatever the moved workers gave up and buys nothing.  And
+    # half the pool now searches a bent objective, so if the bend is actively bad on an instance
+    # those two workers are wasted rather than merely different.
+    _pps = os.environ.get("OGC_PREFPOWSET")
+    if _pps:
+        try:
+            _g = [float(x) for x in _pps.split(",") if x.strip()]
+            if _g:
+                prob_info = _bend_prefs(prob_info, _g[wid % len(_g)])
+        except Exception:
+            pass
+
     # THE ENGINE SOURCE IS REVERTED TOO, so this block is gone rather than left switched off.
     # ogc_fast.cpp carries its own sha into every .so and harness/mkzip.sh refuses to package a set
     # that disagrees with the source; the four shipped binaries were built before tonight, so the
@@ -4479,25 +4549,7 @@ def algorithm(prob_info, timelimit=60):
     except Exception:
         _pp = 1.0
     if _pp != 1.0 and _pp > 0.0:
-        try:
-            _mxpen = []
-            for _b in prob_info["blocks"]:
-                _p = _b["bay_preferences"]
-                _mxpen.append(max(_p) - min(_p))
-            _srt = sorted(x for x in _mxpen if x > 0)
-            _R = float(_srt[len(_srt) // 2]) if _srt else 0.0
-            if _R > 0.0:
-                _blocks = []
-                for _b in prob_info["blocks"]:
-                    _c = dict(_b)
-                    _p = _b["bay_preferences"]; _mx = max(_p)
-                    _pen = [_R * (((_mx - _v) / _R) ** _pp) for _v in _p]
-                    _hi = max(_pen)
-                    _c["bay_preferences"] = [_hi - _x for _x in _pen]
-                    _blocks.append(_c)
-                prob_info = dict(prob_info); prob_info["blocks"] = _blocks
-        except Exception:
-            pass
+        prob_info = _bend_prefs(prob_info, _pp)
     # OGC_CPANCH: SOLVE THE ASSIGNMENT FIRST AND MAKE THE BEAM SEARCH UNDER IT.  Absent = off and
     # byte-identical to the previous behaviour.
     #
