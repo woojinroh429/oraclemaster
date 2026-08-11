@@ -2276,6 +2276,111 @@ def _assign_once(prob_info, ent, ext, bay, capf, tl):
     return [next(k for k in range(m) if slv.Value(x[b][k]) == 1) for b in range(n)]
 
 
+def _cpsat_bay_plan(prob_info, tl):
+    """DECIDE THE BAY ASSIGNMENT AND THE SCHEDULE TOGETHER, UNDER AN AREA RELAXATION.
+
+    Every bay is a cumulative resource of capacity width*height; every block is an interval of
+    length processing_time starting no earlier than its release, demanding its minimum-orientation
+    bounding-box area from whichever bay it is assigned.  Minimise the objective's own w1*Z1 +
+    w3*Z3.  Z2 is left out on purpose: on stage2/prob_1 its ENTIRE range is worth 30,773, which is
+    1.28 displaced blocks, so carrying it only slows the solve.
+
+    WHY THIS IS NOT THE OPERATOR THAT WAS ALREADY REFUTED.  _bayplan (see its docstring) solved a
+    single AGGREGATE row per bay -- sum of area*processing over the whole horizon against
+    area*horizon -- with no time dimension, no tardiness, and no schedule.  It could not see that
+    two bays are over-subscribed only at the peak, so it moved blocks that did not need moving.
+    And it handed its answer to the beam with stay_w = 0.0, which zeroes every anchor weight, so
+    the only thing that experiment changed was the dispatch order.  Its +34% is a measurement of
+    release-then-due dispatch.
+
+    WHAT THE TIME DIMENSION BUYS, measured on stage2/prob_1.  First-choice peak simultaneous area:
+
+        bay0  cap 1911  peak 1078   56%
+        bay1  cap  736  peak 1083  147%
+        bay2  cap  629  peak 1265  201%
+
+    so the crunch is a window (t ~ 20-48), not the horizon.  Solved as above the model returns
+    Z1 = 0-1 with Z3 = 217-484 depending on budget, against a real incumbent's Z1 = 19, Z3 = 1009:
+
+        5 s   Z1=2 Z3=483   303,134        20 s   Z1=0 Z3=425   255,000
+       10 s   Z1=1 Z3=484   297,067        40 s   Z1=1 Z3=217   136,867
+
+    all single-worker, against 732,073.
+
+    IT IS A RELAXATION AND IS TREATED AS ONE.  Bounding-box area over-counts a polygon, so the
+    capacity rows are conservative, but area feasibility is still nowhere near 2D feasibility --
+    results/audit/z3floor.md measured 1 of 15 wanted moves realisable when they were retrofitted
+    into a built packing.  This does not retrofit: the plan is only ever used to REWRITE the bay
+    preferences the beam searches under, so the beam builds geometry from empty bays and remains
+    free to put a block anywhere it must.  Returns None on any failure; the caller then runs
+    exactly as before.
+    """
+    if not HAVE_ORTOOLS:
+        return None
+    try:
+        from ortools.sat.python import cp_model
+        BL = prob_info["blocks"]; bays = prob_info["bays"]
+        n = len(BL); m = len(bays)
+        if m < 2 or n < 2:
+            return None
+        w = prob_info["weights"]
+        w1 = int(round(float(w.get("w1", 0)))); w3 = int(round(float(w.get("w3", 0))))
+        if w1 <= 0 and w3 <= 0:
+            return None
+        area = []
+        for b in range(n):
+            best = None
+            for oi in range(len(BL[b]["shape"])):
+                q = _orient_bbox(BL[b], oi); a = (q[2] - q[0]) * (q[3] - q[1])
+                if best is None or a < best:
+                    best = a
+            area.append(max(1, int(round(best))))
+        # PACKING EFFICIENCY.  The rows are bounding-box area against bay area, which says a bay is
+        # full when the boxes fill it -- and no packer fills a rectangle with irregular polygons.
+        # Solving at face value returns a plan the beam can only realise by waiting: at a toll of
+        # w3*100 the beam obeyed 145 of 150 blocks and paid Z1 = 41 to do it, against the plan's
+        # own claim of Z1 = 0-1.  De-rating the capacity buys the slack back in the model, where it
+        # is cheap, instead of in tardiness, where it costs 6,667 a unit.
+        try:
+            _cf = float(os.environ.get("OGC_CPCAP", "1.0"))
+        except Exception:
+            _cf = 1.0
+        cap = [max(1, int(bays[j]["width"] * bays[j]["height"] * _cf)) for j in range(m)]
+        rel = [int(BL[b]["release_time"]) for b in range(n)]
+        pt = [int(BL[b]["processing_time"]) for b in range(n)]
+        due = [int(BL[b]["due_date"]) for b in range(n)]
+        pr = [BL[b]["bay_preferences"] for b in range(n)]
+        mxp = [max(p) for p in pr]
+        # Horizon: the latest due plus enough slack to let the model WAIT rather than spill.  The
+        # relaxation's own answer uses waits of up to 9 on prob_1, so a tight horizon would forbid
+        # the very move that makes it work.
+        HZ = max(due) + max(pt) + 40
+        md = cp_model.CpModel()
+        S = [md.NewIntVar(rel[b], HZ, "") for b in range(n)]
+        E = [md.NewIntVar(0, HZ + max(pt), "") for b in range(n)]
+        T = [md.NewIntVar(0, HZ, "") for b in range(n)]
+        for b in range(n):
+            md.Add(E[b] == S[b] + pt[b])
+            md.AddMaxEquality(T[b], [E[b] - due[b], 0])
+        x = [[md.NewBoolVar("") for j in range(m)] for b in range(n)]
+        for b in range(n):
+            md.AddExactlyOne(x[b])
+        for j in range(m):
+            iv = [md.NewOptionalIntervalVar(S[b], pt[b], E[b], x[b][j], "") for b in range(n)]
+            md.AddCumulative(iv, [area[b] for b in range(n)], cap[j])
+        md.Minimize(w1 * sum(T)
+                    + w3 * sum(x[b][j] * int(mxp[b] - pr[b][j]) for b in range(n) for j in range(m)))
+        sv = cp_model.CpSolver()
+        sv.parameters.max_time_in_seconds = max(1.0, float(tl))
+        sv.parameters.num_search_workers = 1
+        st = sv.Solve(md)
+        if st not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
+            return None
+        return [next(j for j in range(m) if sv.Value(x[b][j])) for b in range(n)]
+    except Exception:
+        return None
+
+
 def _realise(prob_info, want, ent, ext, wait=0):
     """Pack a wanted assignment.  A block that will not fit its wanted bay may WAIT for it
     (paying tardiness) before it is allowed to spill to another bay.
@@ -4114,6 +4219,66 @@ def algorithm(prob_info, timelimit=60):
     minimum of the FULL objective, polish, return."""
     t0 = time.time()
     n = len(prob_info["blocks"])
+    # OGC_CPANCH: SOLVE THE ASSIGNMENT FIRST AND MAKE THE BEAM SEARCH UNDER IT.  Absent = off and
+    # byte-identical to the previous behaviour.
+    #
+    # The beam already prices bay preference correctly -- mu = 1e-3*min(w1,w3) = 0.6 against
+    # 600*pen in the cross-bay rank, so contact is noise beside preference -- but it prices it ONE
+    # BLOCK AT A TIME.  A block that reaches a full bay can only compare its own alternatives; it
+    # can never propose that a cheaper block still to be dispatched should be displaced instead.
+    # On stage2/prob_1 that costs the whole gap: 22 blocks displaced for Z3 = 1009 whose worst
+    # payers give up 98, 96, 90 and 84 preference units each, while blocks with regret 6, 7, 10 and
+    # 16 and MORE area keep their first choice.
+    #
+    # WHY THE PREFERENCES AND NOT THE ANCHOR.  contact_beam takes an anchor, and it cannot bind:
+    # the anchor weight enters only drank, drank sorts a candidate list holding one entry per bay,
+    # and topk = K >= n_bays on every instance here, so the sort is a no-op on the retained set.
+    # Making it bind was built, measured and reverted (ogc_fast.cpp, "MEASURED AND REVERTED").
+    # Bay preference is read by drank AND by the beam's state rank AND by the rollout, so rewriting
+    # it is the one place a joint assignment reaches every stage of the search at once.
+    #
+    # THE INSTANCE IS NEVER MUTATED.  prob_info is rebound to a copy whose block dicts are new;
+    # the caller's dict, which the grader scores against, keeps its real preferences.  That also
+    # means the search optimises a SURROGATE Z3 while the score is the true one, which is the
+    # deliberate trade: the plan is believed about WHERE, and the beam still owns times, positions,
+    # orientations and the right to put a block wherever it must.
+    #
+    # OGC_CPANCHW is a BONUS ON TOP OF THE REAL PREFERENCES, not a replacement for them.  The first
+    # version overwrote them -- planned bay _aw, every other bay 0 -- and the measurement said why
+    # that is wrong.  At _aw = 60 the beam obeyed the plan for 138 of 150 blocks, and the twelve it
+    # could not obey carried 609 of the resulting Z3 = 964 where the plan had them at 48: with all
+    # the alternatives flattened to zero, a block forced out of its planned bay had nothing left to
+    # tell it WHICH bay to take, so it took the worst one as readily as the best.
+    #
+    # pref'[j] = pref[j] + (_aw if j is planned else 0) fixes that.  For _aw above the largest
+    # preference value the planned bay is always the maximum, so the penalty for deviating is
+    # _aw + (pref[planned] - pref[j]) -- a fixed toll for leaving the plan PLUS the true regret,
+    # which keeps the real ordering among the alternatives intact.
+    #
+    # Sizing it: deviating costs w3*_aw, waiting costs w1 per unit, and the relaxation's own answer
+    # waits up to 9.  _aw = 100 makes a deviation worth 60,000, i.e. nine units of tardiness, which
+    # is where the plan stops being cheaper to abandon than to wait for.
+    try:
+        _cpa = float(os.environ.get("OGC_CPANCH", "0") or 0)
+    except Exception:
+        _cpa = 0.0
+    if _cpa > 0.0:
+        _plan = _cpsat_bay_plan(prob_info, min(_cpa, max(1.0, float(timelimit) * 0.25)))
+        if _plan is not None:
+            try:
+                _aw = float(os.environ.get("OGC_CPANCHW", "100"))
+            except Exception:
+                _aw = 100.0
+            _m = len(prob_info["bays"])
+            _blocks = []
+            for _i, _b in enumerate(prob_info["blocks"]):
+                _c = dict(_b)
+                _p = list(_b["bay_preferences"])
+                _aw_i = max(_aw, max(_p) - min(_p) + 1.0)   # planned bay must be the maximum
+                _c["bay_preferences"] = [_p[_j] + (_aw_i if _j == _plan[_i] else 0.0)
+                                         for _j in range(_m)]
+                _blocks.append(_c)
+            prob_info = dict(prob_info); prob_info["blocks"] = _blocks
     # LEAVE THE PARENT A CORE.  With one worker per core the parent is a fifth runnable process on
     # four cores -- it collects results and runs the whole final polish -- so every worker gets
     # less than the core it was budgeted.  Three workers on four cores gives each a full core and
