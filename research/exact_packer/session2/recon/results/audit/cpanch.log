@@ -1,1 +1,3 @@
 # [ca.off.r1]
+WSTAT round=0 n=4 515188 697971 537403 681240  spread=35.48%
+P1  [ca.off.r1]    120s  obj=515188      Z1=25.0     Z2=7571   Z3=543.0     feas=y   ran 78s  py3.12
