@@ -4065,6 +4065,36 @@ def _worker(args):
         _BEAMCAP = float(os.environ.get("OGC_BEAMCAP", "0"))
     except Exception:
         _BEAMCAP = 0.0
+    # OGC_PROBE=<seconds>: CAP THE COMPULSORY FIRST TRY.  Absent or 0 = off and byte-identical.
+    #
+    # `slot` opens every search operator at 20% of the budget and `unt` runs each untried operator
+    # before selection by rate begins, so the opening probes are a fixed FRACTION of the clock and
+    # scale with it.  OGC_OPSTAT measured what that costs on stage-2 prob_1, single worker:
+    #
+    #     RESFRAC 0.50, 27.8 s total     grow 5.1 + bay 5.0 + brk  1.5 = 11.6 s = 41.7%, gain 0
+    #     RESFRAC 0.05, 54.7 s total     grow 9.8 + bay 9.3 + brk 13.3 = 32.4 s = 59.2%, gain 0
+    #
+    # All three are tried=1 -- that is the compulsory probe and nothing more -- and all three
+    # return zero.  Doubling the budget moved the waste from 41.7% to 59.2% and pushed beam, the
+    # operator that actually pays, from 42.2% of the clock down to 29.4%.  That is why prob_1 gets
+    # WORSE when the reserve hands it more time.
+    #
+    # AND IT IS WHY brkoff CHANGED NOTHING.  Removing brk outright left grow and bay still opening
+    # at 20% each, so the freed seconds moved from one zero-payer to another; three medians came
+    # back identical to the digit.  The waste is not one operator, it is the probe SIZE.
+    #
+    # A rate estimate needs a sample, not a full-size run, and the file already accepts this shape:
+    # OGC_BEAMCAP caps a beam draw for the same reason, and its note says plainly that
+    # "grow/bay/pref were not measured this way".  This is that measurement.
+    #
+    # Only the FIRST try is capped.  An operator that was genuinely starved still grows -- the
+    # sizing rule multiplies slot by 1.3 whenever a search operator comes back empty -- so a beam
+    # that needs ten seconds still reaches them, two tries later and having paid two seconds to
+    # find out rather than eleven.
+    try:
+        _PROBE = float(os.environ.get("OGC_PROBE", "0"))
+    except Exception:
+        _PROBE = 0.0
     gain = [0.0] * len(ops); spent = [1e-6] * len(ops); tried = [0] * len(ops)
     # incumbent value at which a repair pass last came back empty.  Those passes are
     # deterministic, so asking again without a changed incumbent gets the same nothing --
@@ -4227,6 +4257,9 @@ def _worker(args):
         # 12.6% of the answer comes from the operators this cap does not touch.
         if _BEAMCAP > 0.0 and ops[k][0] == "beam":
             _ask = max(1.0, min(_ask, _BEAMCAP))
+        # The compulsory first try is a sample, not a run.  See OGC_PROBE above.
+        if _PROBE > 0.0 and tried[k] == 0:
+            _ask = max(1.0, min(_ask, _PROBE))
         st = time.time()
         try:
             s = ops[k][1](_ask)
