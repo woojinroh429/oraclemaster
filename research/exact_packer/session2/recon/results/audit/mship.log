@@ -86,3 +86,47 @@ P3  [b.p3.s8.r3]    60s  obj=4565519     Z1=170.0    Z2=8577   Z3=7390.0    feas
 P16 [b.p16.s1.r3]    60s  obj=2956462     Z1=136.0    Z2=1058   Z3=4560.0    feas=y   ran 59s  py3.12
 # [b.p16.s8.r3]
 P16 [b.p16.s8.r3]    60s  obj=3470993     Z1=172.0    Z2=2489   Z3=4681.0    feas=y   ran 57s  py3.12
+MSHIPDONE
+
+VERDICT -- mship
+================
+THE SHAPE RULE HOLDS AT THE SHIPPED WORKER COUNT, 9 DRAWS TO 0.
+
+ARM A -- the untested band, WORKERS=1, M=8 against M=1:
+    P23  pu 2.79   -7.5%  -6.8%
+    P11  pu 2.14   -8.6%  -9.5%
+Four for four.  The boundary is now bracketed between 1.23 (loses 5.7%) and 2.14 (wins 8.6%).
+
+ARM B -- nw=3, OGC_MSET pinned so every worker takes the same M:
+            pu     MSET=1        MSET=8        delta     per draw
+    P36   4.66    97,247,964    79,368,748    -18.4%    -18.4 -17.8 -18.4
+    P13   4.09    81,782,204    72,734,312    -11.1%    -12.8 -10.2  -9.1
+    P2    3.29    74,602,257    57,836,096    -22.5%    -21.2 -22.5 -22.5
+    P16   1.23     2,956,462     3,470,993    +17.4%     +8.6 +18.8 +17.4
+    P3    1.18     4,468,072     4,616,676    + 3.3%     +5.2  +3.3  +2.1
+    P1    1.02       571,668       676,903    +18.4%     +4.6 +26.2 +30.5
+
+    pu >= 2.0   -17.23%        pu < 2.0   +9.61%
+
+NINE DRAWS ONE WAY AND NINE THE OTHER, WITH NO SIGN FLIP ANYWHERE.  Against the 17-35% run-to-run
+spread every wall-clock experiment fought today, this is a different order of evidence.
+
+WHAT THE RULE IS.  peak_util >= 2.0 -> OGC_MCAND=8 on every worker; below it, touch nothing.
+Leaving the low side alone matters: P1, P3 and P16 then run byte-identical to what is submitted, so
+the change has no path to cost anything on the instances it does not fire on.
+
+WHY IT WORKS, in the file's own words.  ogc_fast.cpp at the level loop: "The permutation is the
+largest lever measured on this problem -- cdecomp put the construction spread across orders at
+32-210%, against about 2% for the combined range of budget policy, axis sets, the w3mul grid and
+brk removal."  OGC_MCAND is what opens that dimension -- each state expands the M earliest UNPLACED
+blocks rather than only order[level], so states differ in WHICH blocks they hold, not just where.
+The dedup right below it calls itself inert precisely because the shipped M=1 makes every state at
+level k hold the same block set.  With M>1 it starts doing work.
+
+Where the yard is saturated, which block goes next decides the layout and depth cannot recover it.
+Where it is not, depth is everything and branching only costs draws.  That is the whole shape
+dependence, and peak_util is exactly a saturation measure.
+
+STILL OUTSTANDING BEFORE SHIPPING.  The control above is MSET=1, and the SHIPPED default is
+MSET="1,2" indexed by wid%2 -- one worker in three already runs M=2, so part of this is already
+collected.  The real shipping A/B is default against rule, and that is what runs next.
