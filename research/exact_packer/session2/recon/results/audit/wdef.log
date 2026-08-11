@@ -250,3 +250,48 @@ WSTAT round=0 n=3 1410307 1202515 1314554  spread=17.28%
 PARROUND round=1 parity=odd even=1314554 odd=1202515 wids=[7, 9, 10]
 WSTAT round=1 n=3 1220871 1283886 1208912  spread=6.20%
 P33 [C.p33.r3]      60s  obj=1202515     Z1=124.0    Z2=823    Z3=1842.0    feas=y   ran 58s  py3.12
+WDEFDONE
+
+VERDICT -- wdef
+===============
+THE RESERVE CHANGE WINS 18 CELLS OF 18 AT THE SHIPPED WORKER COUNT.  MORE ROUNDS LOSES 18 OF 18.
+
+        A med      B med     B vs A   |   C med      C vs B   | B paired per draw
+  P1     708,344    518,803   -26.8%  |    548,691    +5.8%  | -24.6 -38.2 -31.3
+  P3   4,845,728  4,560,883   - 5.9%  |  4,845,728    +6.2%  | - 4.4 - 6.6 - 5.9
+  P7   1,138,368    753,938   -33.8%  |    954,389   +26.6%  | -17.1 -34.6 -31.3
+  P16  3,379,142  3,199,896   - 5.3%  |  3,391,521    +6.0%  | - 5.3 - 5.5 - 5.3
+  P27    988,514    767,640   -22.3%  |    873,453   +13.8%  | -22.3 -17.0 -22.6
+  P33  1,331,287  1,096,678   -17.6%  |  1,229,369   +12.1%  | -18.3 -12.0 -10.2
+
+  B vs A  18/18 win   ratio-mean -17.36%  geo-mean -18.12%  median-sum -1,493,545 (-12.05%)
+  C vs B   0/18 win   ratio-mean +12.14%  geo-mean +11.76%  median-sum   +945,313 ( +8.67%)
+
+A is the configuration in the submitted OGC2026_dirgate.zip; B is that plus RESFRAC 0.05; C is B
+plus ROUNDS=2.  No WORKERS in the environment, so nw = cpu_count-1 = 3, which is what ships.
+
+WHY THIS EXPERIMENT EXISTS.  A gate smoke run printed `WSTAT round=0 n=3` while every harness today
+passed WORKERS=4 -- 18 occurrences across five scripts.  Everything measured before this was
+measured at a worker count the grader does not use.
+
+THE RESERVE IS WORTH FAR MORE THAN THE WORKERS=4 TABLE SAID.  rfship put it at ratio-mean -6.65%
+with P27 losing 11.7%; here it is -17.36% and NOTHING loses.  P7 reverses outright, from +8.1% to
+-33.8%.  P1 and P7 set session records at 437,697 and 749,573.  The two effects compound: three
+workers each get a full core, and the reserve gives back the thirty seconds that were being thrown
+away, so the deeper search also runs to the end.
+
+AND ROUNDS REVERSES COMPLETELY, WHICH IS THE CLEANEST RESULT OF THE DAY.  rounds05 had it at
+ratio-mean -3.99% with P1, P16 and P27 all 3/3.  At three workers it wins nothing.  The mechanism
+is visible in the numbers: R=2 is eight draws at WORKERS=4 and six at three, and its cost GROWS as
+B makes each worker better -- P7's C-vs-B goes +1.2%, +37.1%, +11.7% across replicates.  Splitting
+a budget the workers are spending well costs more than splitting a wasted one.
+
+rounds05's verdict called this in advance -- "the band-wide margin is not resolvable at this sample
+size" -- because the same configuration returned three-draw medians 17.4% apart in two experiments.
+A four per cent effect inside that band was never established, and it did not survive.
+
+WHAT IS STILL UNMEASURED.  The organisers' notice says the 400% allowance is enforced by
+THROTTLING with all cores visible, so os.cpu_count() on the grader returns the host's count and the
+shipped build has been asking for SEVEN workers there.  The cap added alongside this change makes
+the grader match this box, but its effect cannot be observed here -- cpu_count() is already 4 and
+the cap is a no-op.  That change is reasoned from the notice and the code path, not measured.

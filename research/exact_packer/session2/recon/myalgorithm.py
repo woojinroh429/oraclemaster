@@ -4536,51 +4536,27 @@ def algorithm(prob_info, timelimit=60):
             # feature separating it from the five winners failed -- peak_util puts it at 1.13,
             # between P1's 1.02 and P3's 1.18, and polish return puts it beside P16, also a winner.
             # So this ships as a majority bet on the band, not as a setting that is right everywhere.
-            # AND ROUNDS=2, WHICH ONLY BECAME AFFORDABLE BECAUSE OF THE RESERVE ABOVE.
+            # OGC_ROUNDS IS DELIBERATELY ABSENT FROM THIS TUPLE.  It was added here and then
+            # removed, and the reason is worth keeping because it is the same reason the reserve
+            # figures above are conservative.
             #
-            # OGC_ROUNDS splits wbudget into _R rounds and redraws all four workers each round with
-            # fresh seeds and axis rotations.  It has always defaulted to 1 and nothing set it --
-            # the comment further up this file claiming it is "already shipped" is wrong.  The
-            # measurement that retired it is invalid by the module's own note at the round loop: at
-            # a 60 s limit with the old reserve, wbudget was ~47, _rb ~23 and reserve ~12, so "the
-            # second round was unaffordable ... R=2 was never two rounds there either."  At
-            # RESFRAC 0.05 the arithmetic is wbudget ~56 and _rb ~28, and it fires for the first
-            # time.
+            # rounds05 measured R=2 three draws deep on all six firing instances and it looked like
+            # a win: ratio-mean -3.99%, geometric mean -4.48%, with P1, P16 and P27 all 3/3.  Every
+            # cell in that experiment passed WORKERS=4.  The shipped path takes cpu_count-1 for
+            # timelimit <= 240, which is THREE workers on the finals allowance, and ROUNDS is a
+            # draw-count lever -- R=2 is eight draws at WORKERS=4 and six at the shipped three.
             #
-            # WHY MORE DRAWS IS THE RIGHT LEVER HERE.  The returned answer is a MINIMUM over the
-            # workers, and WSTAT shows them landing far apart inside a single round -- P16's round 0
-            # spans 2,796,522 to 5,028,855, and the winner is 37% below the median worker.  A
-            # minimum is a tail statistic, so its distribution is moved by the NUMBER of draws, not
-            # by the quality of the average.
+            # Re-measured at the shipped worker count (results/audit/wdef.log), R=2 loses 18 cells
+            # out of 18, ratio-mean +12.14%, median-sum +945,313 (+8.67%).  Not one instance
+            # prefers it.  The losses also GROW as the reserve change makes each worker better --
+            # P7 goes from +1.2% to +37.1% between replicates -- which is the mechanism: splitting
+            # a budget the workers are now spending well costs more than splitting a wasted one.
             #
-            # MEASURED THREE DRAWS DEEP ON ALL SIX FIRING INSTANCES (results/audit/rounds05.log):
-            #
-            #                R=1 med     R=2 med      by ratio    paired per draw
-            #     P1          631,046     556,718      -11.8%     -13.1 -11.8  -4.8
-            #     P16       3,468,540   3,258,960      - 6.0%     - 6.2 - 3.9  -6.0
-            #     P27         907,800     729,804      -19.6%     -14.7 -15.5 -22.0
-            #     P33       1,192,334   1,220,871      + 2.4%     - 0.7 + 7.5 +26.7
-            #     P3        4,745,895   4,887,024      + 3.0%     + 3.0 + 2.3  +3.0
-            #     P7          943,405   1,020,092      + 8.1%     +16.8 + 2.9 +12.3
-            #
-            #     ratio-mean -3.99%   geo-mean -4.48%   abs-sum -215,551 (-1.81%)
-            #
-            # Three win and three lose, but P1, P16 and P27 are 3/3 while P33's deltas are
-            # -0.7/+7.5/+26.7, which is not an effect.  The one real cost is P7, positive in all
-            # three replicates -- it wants depth, and at R=3 it loses 16.2%, which is what sinks R=3
-            # (ratio-median +0.89%).
-            #
-            # THE EVIDENCE IS THINNER THAN THE RESERVE'S AND THAT IS RECORDED DELIBERATELY.  The
-            # same configuration -- P1, RESFRAC 0.05, R=1 -- returned three-draw medians of 537,403
-            # in rfship and 631,046 in rounds05, a 17.4% gap between two medians of three draws
-            # each on the same machine hours apart.  R=2's ~4% effect sits inside that, so the
-            # band-wide claim is NOT established the way the reserve's -6.65% to -8.62% is.  What
-            # survives pooling is P1: all six R=1 draws at 0.05 give a median of 607,828 against
-            # R=2's 556,718, -8.4%, and R=2 leads in every replicate.  That is the instance the
-            # hidden set is played for, and it is the ground this ships on.  Reverting is one
-            # entry in this tuple.
-            for _k, _v in (("OGC_ORDER", "lst"), ("OGC_W3MUL", "0.5"), ("OGC_RESFRAC", "0.05"),
-                           ("OGC_ROUNDS", "2")):
+            # rounds05's own verdict predicted this in writing: "the band-wide margin is not
+            # resolvable at this sample size", because the same configuration returned three-draw
+            # medians 17.4% apart in two experiments.  A ~4% effect inside that band was never
+            # established, and at the worker count that actually ships it reverses.
+            for _k, _v in (("OGC_ORDER", "lst"), ("OGC_W3MUL", "0.5"), ("OGC_RESFRAC", "0.05")):
                 if _k not in os.environ:
                     os.environ[_k] = _v
                     _DIRGATE_INJECTED.append(_k)
@@ -4761,8 +4737,34 @@ def algorithm(prob_info, timelimit=60):
     # mispredict.
     #
     # WORKERS=n overrides, and WORKERS=4 restores the previously shipped behaviour exactly.
+    # AND os.cpu_count() IS THE WRONG NUMBER ON THE GRADER.  The finals allowance is 400% CPU
+    # enforced with firejail and cpulimit, and the organisers' notice states the implementation
+    # explicitly: THROTTLING -- every core stays visible and only total usage is capped, with
+    # nothing killed, just slowed.  os.cpu_count() reports what is visible, so on a host with more
+    # than four cores it returns the host's count, _full becomes 8, and this line asks for SEVEN
+    # workers against a four-core allowance.  Each one then gets about 0.57 of a core.
+    #
+    # THAT INVERTS THE MEASUREMENT THE WORKER COUNT WAS CHOSEN BY.  The 23 pairs above were run on a
+    # genuine four-core box, and the reason three beat four is stated there: the parent is not free,
+    # so three workers "gives each a full core and change, and the search each one gets to do is
+    # deeper for it."  Seven workers sharing four cores is the opposite of that, and because
+    # throttling only slows rather than kills, it leaves no trace in any log -- which is why it
+    # survived this long unnoticed.
+    #
+    # THE CAP MAKES THE GRADER MATCH THE BOX EVERYTHING WAS MEASURED ON.  With _cpu pinned to 4,
+    # _full is 4 and nw is 3 -- three workers plus the parent, exactly filling the 400% allowance
+    # and exactly the configuration results/audit/wdef.log used.
+    #
+    # THIS ONE IS REASONED, NOT MEASURED, AND THE DISTINCTION IS DELIBERATE.  This container reports
+    # cpu_count() == 4 with no cgroup quota, so the cap is a NO-OP here and its effect cannot be
+    # observed locally; the pre- and post-change builds are identical on this machine.  The grounds
+    # are the notice, the code path, and how much the worker count is worth: the same reserve change
+    # measures -6.65% at four workers and -17.36% at three.  OGC_CPUCAP=0 disables the cap.
     try:
+        _ccap = int(os.environ.get("OGC_CPUCAP", "4") or 4)
         _cpu = os.cpu_count() or 4
+        if _ccap > 0:
+            _cpu = min(_cpu, _ccap)
         _full = max(1, min(8, _cpu))
         nw = int(os.environ.get("WORKERS", "0")) or (
             max(1, _full - 1) if (_cpu >= 4 and timelimit <= 240) else _full)
