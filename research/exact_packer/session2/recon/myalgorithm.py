@@ -4095,6 +4095,10 @@ def _worker(args):
         _PROBE = float(os.environ.get("OGC_PROBE", "0"))
     except Exception:
         _PROBE = 0.0
+    # OGC_GAINFAIR=1 drops the floor-escape credit; reasoning is at the point of use below.
+    # A one-element list so the flag survives inside the loop without a `nonlocal`.
+    _GAINFAIR = os.environ.get("OGC_GAINFAIR") == "1"
+    _escaped = [False]
     gain = [0.0] * len(ops); spent = [1e-6] * len(ops); tried = [0] * len(ops)
     # incumbent value at which a repair pass last came back empty.  Those passes are
     # deterministic, so asking again without a changed incumbent gets the same nothing --
@@ -4286,7 +4290,32 @@ def _worker(args):
         if o < float("inf") and all(abs(o - q[0]) > 1e-9 for q in pool):
             pool.append((o, s)); pool.sort(key=lambda q: q[0]); del pool[6:]
         if pool and pool[0][0] < before - 1e-9:
-            gain[k] += before - pool[0][0]
+            # OGC_GAINFAIR=1: DO NOT CREDIT THE FLOOR ESCAPE.  Absent = off and byte-identical.
+            #
+            # Selection is `max(gain[i]/spent[i])`, and the pool starts at the _safe_sequential
+            # floor, which is enormous next to any real solution.  Whichever operator first
+            # replaces it books the entire drop.  OPSTAT on stage-2 prob_1:
+            #
+            #     beam  gain 978,969,222        pref  gain 155,451        grow  gain 0
+            #
+            # against a final objective near 500,000.  One call is credited with roughly six
+            # thousand times what every later call earns put together, so after it the rate
+            # ordering cannot change no matter what the operators actually go on to return.
+            # Selection stops meaning "what pays" and starts meaning "what got there first".
+            #
+            # probe.log is the demonstration.  Capping the opening slice at two seconds changes
+            # only WHICH operator wins that race, and the band swings 30-60%: prob_1 -7.0%,
+            # prob_7 +59.3%, prob_16 +37.5%, prob_33 +34.4%, with the profile showing grow on
+            # 90.7% of the budget and beam on 0.0 s.  A two-second change to a probe cannot
+            # legitimately be worth 59% of an instance; the accounting can.
+            #
+            # So skip the credit for the improvement that leaves the floor.  Every later call is
+            # credited exactly as before, and the rates that then govern selection are the
+            # marginal ones -- pref at 36,262/s against grow at 268/s on prob_1 -- which is what
+            # the comment at the head of this loop says the signal is supposed to be.
+            if not (_GAINFAIR and not _escaped[0]):
+                gain[k] += before - pool[0][0]
+            _escaped[0] = True
         if pool and pool[0][0] < best[0]:
             best = pool[0]
 
