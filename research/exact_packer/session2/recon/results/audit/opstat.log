@@ -190,3 +190,35 @@ DIRGATE fired: peak_util=1.132 in [1.00,1.30], timelimit 60 <= 60
 WSTAT round=0 n=1 692860  spread=0.00%
 P27 [w1.p27.05]     60s  obj=692860      Z1=34.0     Z2=633    Z3=1079.0    feas=y   ran 59s  py3.12
 OPSTATDONE
+
+VERDICT -- opstat
+=================
+ONLY beam AND pref EVER PAY.  grow, bay and brk return ~0 in all four profiled cells while taking
+40-60% of the budget.  Single worker, prob_1 and prob_27, the two reserves:
+
+    prob_1  RESFRAC 0.50 (27.8 s)            prob_1  RESFRAC 0.05 (54.7 s)
+      beam  11.9 s  42.2%  pays                beam  16.2 s  29.4%  pays
+      pref   4.3 s  15.2%  155,451             pref   6.1 s  11.1%  107,585
+      grow   5.1 s  18.1%        0             grow   9.8 s  17.7%    2,624
+      bay    5.0 s  17.6%        0             bay    9.3 s  17.0%        0
+      brk    1.5 s   5.4%        0             brk   13.3 s  24.3%        0
+
+    prob_27 RESFRAC 0.50                     prob_27 RESFRAC 0.05
+      beam  12.3 s  43.3%                      beam  25.8 s  46.6%
+      pref   4.9 s  17.2%  101,852             pref   6.9 s  12.5%  275,866
+      brk    1.0 s   3.5%        0             brk    1.1 s   2.0%        0
+
+THIS IS WHY THE SAME CHANGE HELPS P27 AND HURTS P1.  On P27 the extra 27 seconds go to beam, which
+doubles and HOLDS its 46% share, and to pref, whose gain rises 2.7x.  On P1 they go to brk
+(+11.8 s), bay (+4.3 s) and grow (+4.7 s), all returning nothing, and beam's share FALLS from 42.2%
+to 29.4%.
+
+THE SCHEDULER CANNOT FIX THIS BY DESIGN.  Budget follows `gain[i]/spent[i]`, but an operator must
+be tried before it has a rate, and brk's single try costs 13.3 s because its slice is sized from
+what is available.  tried=1, seconds=13.3, gain=0.
+
+BUT RECLAIMING THE TIME BUYS NOTHING -- see brkoff.log.  With OGC_BRK=0 the medians on P1, P3 and
+P27 are IDENTICAL to the digit, and the band moves -0.34%.  The freed seconds return to the same
+search and it lands in the same place.  So the profile diagnoses the waste correctly and the waste
+turns out not to be convertible, which is the same answer fillmoved.log, spend.log and the P1 arm
+of final.log all reached by other routes.

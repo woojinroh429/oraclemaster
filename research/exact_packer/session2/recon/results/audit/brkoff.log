@@ -39,3 +39,35 @@ P1  [G.p1.r1]       60s  obj=676002      Z1=21.0     Z2=6265   Z3=862.0     feas
 # [G.p1.r2]
 P1  [G.p1.r2]       60s  obj=508193      Z1=11.0     Z2=5552   Z3=697.0     feas=y   ran 31s  py3.12
 BRKOFFDONE
+
+VERDICT -- brkoff
+=================
+TURNING OFF THE OPERATOR THAT WASTES A QUARTER OF THE BUDGET CHANGES ALMOST NOTHING.
+
+        A=0.50      B=0.05    F=0.05+BRK=0   F vs B  | F paired vs B
+  P1     510,450     571,668       571,668    +0.0%  |  -8.3  +6.3  +0.0
+  P3   4,583,170   4,468,072     4,468,072    +0.0%  |  +0.1  +0.0  -0.6
+  P27    859,349     692,860       692,860    +0.0%  |  +0.0  +0.0  +0.0
+  P16  3,252,294   3,022,891     2,967,764    -1.8%  |  -1.8  -3.5  +2.6
+  P7     860,744     749,573       750,119    +0.1%  |  +0.0  +0.3  -3.4
+  P33    964,466     933,974       952,955    +2.0%  |  +0.0  +2.0  +2.0
+  median-sum  A 11,030,473   B -5.36%   F -5.68% (vs B -0.34%)
+  F beats B in 5 of 18 cells; ratio-mean -0.24%, geo-mean -0.28%.
+
+THREE MEDIANS ARE IDENTICAL TO THE DIGIT -- P1, P3 and P27 return exactly B's value with brk off.
+On P1 that is 571,668 with the same components, reached whether the search is handed 13.3 extra
+seconds or not.  brk really does burn 24% of prob_1's budget for zero gain (opstat.log), and the
+budget is genuinely recoverable; there is simply nothing to buy with it.
+
+G CONFIRMS IT FROM THE OTHER SIDE.  prob_1 at the OLD reserve with brk off returns 676,002 and
+508,193 -- both values A itself produces with brk ON, because at that reserve brk only takes 1.5 s.
+The operator is irrelevant where it is cheap and useless where it is expensive.
+
+WHAT THIS CLOSES.  Four routes have now been tried for prob_1's 29 unused seconds: a longer single
+round (B, +12% by median), two rounds (D, +30%), three rounds (E, +42%), and freeing brk's slice
+(F, 0.0%).  fillmoved.log had already ruled out the fill round.  The conclusion is not that the
+knob was set wrong but that this pipeline converges on prob_1 well before its clock does.
+
+SHIPPING DECISION UNCHANGED: B.  F's -0.34% rests on 5 wins in 18 cells, which is inside the noise
+this study has measured repeatedly, and brk was ADOPTED on evidence (tasks 8 and 10) -- switching
+it off band-wide on a wash would be trading a measured feature for nothing.
