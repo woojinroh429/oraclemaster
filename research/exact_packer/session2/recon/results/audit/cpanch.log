@@ -1,3 +1,13 @@
 # [ca.off.r1]
 WSTAT round=0 n=4 515188 697971 537403 681240  spread=35.48%
 P1  [ca.off.r1]    120s  obj=515188      Z1=25.0     Z2=7571   Z3=543.0     feas=y   ran 78s  py3.12
+# [ca.c1.00.t100.r1]
+Traceback (most recent call last):
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 57, in <module>
+    t = time.time(); s = mod.algorithm(d, T); el = time.time() - t
+                         ^^^^^^^^^^^^^^^^^^^
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/myalgorithm.py", line 4279, in algorithm
+    _aw_i = max(_aw, max(_p) - min(_p) + 1.0)   # planned bay must be the maximum
+                                                      ^^^^^^^^^
+IndexError: tuple index out of range
+P1 [ca.c1.00.t100.r1] CRASH rc=1
