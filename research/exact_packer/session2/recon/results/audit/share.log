@@ -13,3 +13,6 @@ P1  [sh.g05.r1]    120s  obj=537403      Z1=34.0     Z2=7975   Z3=478.0     feas
 # [sh.g10.r1]
 WSTAT round=0 n=4 510773 660593 537403 677259  spread=32.59%
 P1  [sh.g10.r1]    120s  obj=510773      Z1=26.0     Z2=7677   Z3=524.0     feas=y   ran 78s  py3.12
+# [sh.off.r2]
+WSTAT round=0 n=4 637518 754716 601634 751841  spread=25.44%
+P1  [sh.off.r2]    120s  obj=601634      Z1=14.0     Z2=6632   Z3=814.0     feas=y   ran 79s  py3.12
