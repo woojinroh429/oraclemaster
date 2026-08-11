@@ -85,3 +85,34 @@ The rotation still covers the other five axes, so an instance whose best axis is
 and an instance like prob_16 gets a worker that is no longer starved.  What this cannot do is give
 axis 2 three workers' worth of budget -- so it should land between the -2.5% and the -11.9%, and
 where it lands is the measurement that decides whether it ships.
+
+## SECOND CORRECTION: THE INTERACTION CLAIM WAS ALSO A ONE-DRAW READING
+
+The width-only arm's second draw came in at 2,714,034 against its first at 3,018,252.  Two draws
+per arm now:
+
+    stock                     3,010,278  3,179,204    mean 3,094,741   span  5.6%
+    OGC_BCAP=137 alone        3,018,252  2,714,034    mean 2,866,143   span 11.2%   -7.4%
+    OGC_AXIS=2 + BCAP=137     2,725,778  2,913,538    mean 2,819,658   span  6.9%   -8.9%
+
+Width alone is -7.4%, not the -2.5% its first draw suggested, and pinning the axis on top adds
+1.5 points.  The "the gain is the interaction" paragraph above was written on a single width-only
+cell and does not survive its second.  At two draws per arm against spans of 7-11% these two arms
+are not distinguishable from each other at all -- only from stock.
+
+THAT IS THE SEVENTH CLAIM THIS SESSION MADE AT ONE OR TWO DRAWS AND OVERTURNED BY THE NEXT.  The
+pattern is not incidental: prob_16's draws span 11% within an arm, so any two-cell comparison is
+reading noise, and every time an interesting first cell appeared it got written up before the
+second arrived.
+
+## WHICH MAKES THE SIMPLE DEPLOYMENT THE LIVE ONE AGAIN
+
+    OGC_BCAP=137            portfolio intact, one constant, -7.4% at two draws
+    plus pinning axis 2     portfolio gone, +1.5 points, and axis 2 dominates only prob_16
+
+The risky half is buying almost nothing.  Raising the ceiling alone keeps rotation, needs no
+prediction, and takes most of what is there -- if it holds at five pairs, which is the measurement
+that has to happen before any of this is believed.
+
+OGC_BMULSET (axis 2's own Bmul to 1.0) was built for the case where the axis pin was carrying the
+gain.  It is now the second question, not the first.
