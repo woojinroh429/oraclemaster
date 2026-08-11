@@ -2,3 +2,7 @@
 DIRGATE fired: peak_util=1.016 in [1.00,1.30], timelimit 60 <= 60
 WSTAT round=0 n=3 518660 765211 605585  spread=47.54%
 P1  [old.p1.r1]     60s  obj=518660      Z1=20.0     Z2=4840   Z3=618.0     feas=y   ran 32s  py3.12
+# [new.p1.r1]
+DIRGATE fired: peak_util=1.016 in [1.00,1.30], timelimit 60 <= 60
+WSTAT round=0 n=3 571668 801361 607412  spread=40.18%
+P1  [new.p1.r1]     60s  obj=571668      Z1=18.0     Z2=5954   Z3=723.0     feas=y   ran 58s  py3.12
