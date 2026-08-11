@@ -10,3 +10,6 @@ P1  [sh.g03.r1]    120s  obj=489878      Z1=20.0     Z2=6646   Z3=561.0     feas
 RESTART wid=1 at 44% mine=887097 lead=537569
 WSTAT round=0 n=4 563287 844433 537403 751841  spread=57.13%
 P1  [sh.g05.r1]    120s  obj=537403      Z1=34.0     Z2=7975   Z3=478.0     feas=y   ran 79s  py3.12
+# [sh.g10.r1]
+WSTAT round=0 n=4 510773 660593 537403 677259  spread=32.59%
+P1  [sh.g10.r1]    120s  obj=510773      Z1=26.0     Z2=7677   Z3=524.0     feas=y   ran 78s  py3.12
