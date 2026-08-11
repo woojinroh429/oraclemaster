@@ -36,3 +36,5 @@ P17 [all.p17]       20s  obj=5562411     Z1=999.0    Z2=1068   Z3=7414.0    feas
 P18 [all.p18]       20s  obj=11003775    Z1=2418.0   Z2=2031   Z3=4661.0    feas=y   ran 19s  py3.12
 # [all.p19]
 P19 [all.p19]       20s  obj=19241199    Z1=1237.0   Z2=4939   Z3=9128.0    feas=y   ran 18s  py3.12
+# [all.p20]
+P20 [all.p20]       20s  obj=9627564     Z1=1216.0   Z2=2299   Z3=10014.0   feas=y   ran 17s  py3.12
