@@ -3180,7 +3180,24 @@ beam_work_ = work;
             // ruin set: g, plus the blocks sitting in tb across that window, most-overlapping
             // first.  K stays small -- every displaced block has to be re-seated somewhere no
             // better than where it was, so the bill grows with K while g's gain does not.
+            //
+            // CLEAR UNTIL g FITS, NOT A FIXED FEW (OGC_RTFIT=1, absent = unchanged).
+            //
+            // The justification above is half right.  The bill does grow with K -- but it is only
+            // worth arguing about in rounds where g actually gets in, and g almost never does:
+            // rt_seated counts the rounds where g took its release seat, and on stage2/prob_1 it
+            // read 1 out of 151.  In the other 150 the round tore out one to five blocks, failed
+            // to open a seat, re-seated everyone worse, and was rejected.  Cost paid, gain zero,
+            // 150 times.
+            //
+            // So the stopping rule is wrong, not the size.  Remove the overlapping blocks in
+            // most-overlapping-first order and TEST AFTER EACH ONE, stopping the moment g's
+            // release window is free.  Then K is whatever that instance's geometry demands, the
+            // bill is exactly what the seat costs, and every completed round has its gain in hand
+            // before the acceptance test prices the displaced blocks.
             int K=2+(int)(nextr()%5);
+            const char* _rf = std::getenv("OGC_RTFIT");
+            const bool RTFIT = (_rf && _rf[0]=='1');
             std::vector<std::pair<int,int>> cand;   // (-overlap, block)
             for(int b=0;b<nb;b++){ if(b==g||!has[b]||recs[b][1]!=tb) continue;
                 int e=recs[b][5],x=recs[b][6];
@@ -3189,7 +3206,24 @@ beam_work_ = work;
             if(cand.empty()){ rt_nocand++; continue; }
             std::sort(cand.begin(),cand.end());
             std::vector<int> S; S.push_back(g);
-            for(auto&pr2:cand){ if((int)S.size()>=K) break; S.push_back(pr2.second); }
+            if(RTFIT){
+                // g is still seated here, so take it out first and put it back if this fails.
+                remove(g);
+                int oo3,oix3,oiy3;
+                bool fits=find_pos_in_bay(g,tb,wen,wex,oo3,oix3,oiy3);
+                for(auto&pr2:cand){
+                    if(fits) break;
+                    if((int)S.size()>=1+RTFIT_MAX) break;
+                    remove(pr2.second); S.push_back(pr2.second);
+                    fits=find_pos_in_bay(g,tb,wen,wex,oo3,oix3,oiy3);
+                }
+                // put everything back; the shared path below removes the set again
+                for(size_t i=S.size();i-->1;) { auto&rr=recs[S[i]]; add(rr[1],S[i],rr[2],(double)rr[3],(double)rr[4],rr[5],rr[6]); }
+                { auto&rg=recs[g]; add(rg[1],g,rg[2],(double)rg[3],(double)rg[4],rg[5],rg[6]); }
+                if(!fits){ rt_nofit++; continue; }   // no K would have worked: do not pay for it
+            } else {
+                for(auto&pr2:cand){ if((int)S.size()>=K) break; S.push_back(pr2.second); }
+            }
             if((int)S.size()<2){ rt_nocand++; continue; }
             std::vector<std::array<int,7>> snap; for(int b:S) snap.push_back(recs[b]);
             for(int b:S) remove(b);
@@ -3260,7 +3294,8 @@ beam_work_ = work;
         for(int b=0;b<nb;b++) if(has[b]){ auto&r=bestrecs[b]; for(int k=0;k<7;k++) out.push_back(r[k]); }
         return out;
     }
-    int rt_rounds=0, rt_kept=0, rt_nocand=0, rt_seated=0, rt_unplaceable=0, rt_worse=0;
+    int rt_rounds=0, rt_kept=0, rt_nocand=0, rt_seated=0, rt_unplaceable=0, rt_worse=0, rt_nofit=0;
+    static const int RTFIT_MAX = 40;   // hard cap on how many blocks one round may clear
     double rt_bestrel=1e18, rt_sumrel=0.0;
     int rt_level=0;
 
@@ -3795,6 +3830,7 @@ PYBIND11_MODULE(ogc_fast,m){
         .def_readonly("rt_kept",&Engine::rt_kept)
         .def_readonly("rt_nocand",&Engine::rt_nocand)
         .def_readonly("rt_seated",&Engine::rt_seated)
+        .def_readonly("rt_nofit",&Engine::rt_nofit)
         .def_readonly("rt_unplaceable",&Engine::rt_unplaceable)
         .def_readonly("rt_worse",&Engine::rt_worse)
         .def_readonly("rt_bestrel",&Engine::rt_bestrel)

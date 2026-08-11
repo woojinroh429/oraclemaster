@@ -85,3 +85,47 @@ others' rises, and the fix is in how the displaced blocks are re-seated -- or in
 round and letting a later round clean up, which the current single-round acceptance forbids.
 
 That instrumentation is the next step, not another guess at the policy.
+
+## THE CAUSE, SETTLED: Z1 IS LOCALLY CONSERVED, SO REPAIR CANNOT WIN
+
+A second diagnostic run started from a different beam solution and separated the two hypotheses:
+
+    beam obj 605,585  Z1 = 8   ->  ruin_tardy returns 592,251  Z1 = 6   (it DOES fire)
+
+    RTFIT=0   rounds 145   seated 118   kept 1   worse 117
+    RTFIT=1   rounds 141   seated 259   kept 1   worse 257
+
+seated is the count of rounds where g took its release seat.  The earlier reading of 1 was a
+property of that particular solution, not of the pass: normally g gets in easily.  And OGC_RTFIT=1
+-- clear until g fits rather than clearing a fixed two to six -- more than doubled seatings and
+left kept at 1.
+
+So it is not hypothesis (a).  g gets its seat in 118 of 145 rounds and 117 of those are still
+rejected, which is hypothesis (b): the displaced blocks lose more than g gains.  The arithmetic is
+forced by the weights -- g sheds one or two units of tardiness at 6,667 each, while one to five
+displaced blocks re-seat "somewhere no better" and any of them slipping a unit costs the same
+6,667.  The round is a shuffle that pays more than it collects.
+
+WHICH IS THE COMMENT ALREADY IN ruin_tardy, GENERALISED.  It was shelved because on P6 "102 of 102
+completed rounds were rejected: throughput is fixed and Z1 is conserved under rearrangement", and
+that was read as a property of a saturated yard which prob_1 -- at 59.3% of bay area -- would not
+share.  It does share it.  Global occupancy is not the relevant quantity: what matters is whether
+g's own release window is saturated, and it is.  Moving one block earlier there moves another later
+by the same amount.
+
+## WHAT THIS CHANGES
+
+The improvement passes are not broken and there is no bug to fix.  The neighbourhood of a finished
+solution is genuinely exhausted -- both single-block moves (OGC_Z3WIDE: every bay, 64 windows,
+nothing) and multi-block ruin-and-recreate (three variants, all rejected) confirm it.
+
+So the objective cannot be moved after the fact.  It has to be moved by producing a different
+solution, which means the levers measured earlier in this session -- worker count, round count,
+axis, beam width, config slots, the order/w3mul direction -- are the RIGHT FAMILY and were simply
+each too small on their own.  The 25-40% gap against the target of 278,767 is a construction
+problem, not a repair problem.
+
+Three knobs were added while establishing this, all default off and all byte-identical when unset:
+OGC_Z3WIDE (widen z3_reassign's move generator), OGC_RTBAY (price the clearing cost in the target
+bay choice), OGC_RTFIT (clear until g fits).  None of them helps; they are kept because each one
+closes off a hypothesis that would otherwise be retried.
