@@ -80,3 +80,5 @@ P1  [b.p1.s1.r3]    60s  obj=518803      Z1=22.0     Z2=6443   Z3=588.0     feas
 P1  [b.p1.s8.r3]    60s  obj=676903      Z1=28.0     Z2=7809   Z3=778.0     feas=y   ran 57s  py3.12
 # [b.p3.s1.r3]
 P3  [b.p3.s1.r3]    60s  obj=4472107     Z1=170.0    Z2=6730   Z3=7239.0    feas=y   ran 56s  py3.12
+# [b.p3.s8.r3]
+P3  [b.p3.s8.r3]    60s  obj=4565519     Z1=170.0    Z2=8577   Z3=7390.0    feas=y   ran 58s  py3.12
