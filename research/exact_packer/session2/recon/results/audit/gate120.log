@@ -1,3 +1,4 @@
 # [g120.p3.off.r1]
 P3  [g120.p3.off.r1]   120s  obj=4514632     Z1=151.0    Z2=5481   Z3=7454.0    feas=y   ran 85s  py3.12
 # [g120.p3.on.r1]
+P3  [g120.p3.on.r1]   120s  obj=4577064     Z1=142.0    Z2=6350   Z3=7616.0    feas=y   ran 116s  py3.12
