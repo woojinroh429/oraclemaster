@@ -111,3 +111,29 @@ WSTAT round=0 n=1 571668  spread=0.00%
 P1  [w1.p1.05]      60s  obj=571668      Z1=18.0     Z2=5954   Z3=723.0     feas=y   ran 57s  py3.12
 # [pool.p27.50]
 DIRGATE fired: peak_util=1.132 in [1.00,1.30], timelimit 60 <= 60
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        2      12.0   44.5%    909858178 75799852.1
+  opstat  grow        1       5.2   19.4%       136755    26172.3
+  opstat  bal         1       0.1    0.2%            0        0.0
+  opstat  pref        1       2.4    9.0%       145745    59681.6
+  opstat  bay         1       5.2   19.1%        23155     4490.0
+  opstat  brk         1       1.6    5.9%            0        0.0
+  opstat  TOTAL       7      26.5   98.1%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        4      12.1   43.0%    909998937 74921899.2
+  opstat  grow        1       5.1   18.2%            0        0.0
+  opstat  bal         1       0.1    0.3%          792     8171.9
+  opstat  pref        2       4.6   16.3%       193933    42191.1
+  opstat  bay         1       4.0   14.3%        17378     4296.1
+  opstat  brk         1       1.5    5.4%            0        0.0
+  opstat  TOTAL      10      27.5   97.5%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        4      12.5   43.9%    909858552 72905052.4
+  opstat  grow        1       5.0   17.7%        37787     7522.5
+  opstat  bal         1       0.1    0.3%         1893    19764.8
+  opstat  pref        2       5.0   17.5%       251586    50664.8
+  opstat  bay         1       4.0   13.9%            0        0.0
+  opstat  brk         1       1.2    4.2%            0        0.0
+  opstat  TOTAL      10      27.7   97.4%                        
+WSTAT round=0 n=3 859349 906556 920571  spread=7.12%
+P27 [pool.p27.50]    60s  obj=859349      Z1=77.0     Z2=1278   Z3=1114.0    feas=y   ran 35s  py3.12
