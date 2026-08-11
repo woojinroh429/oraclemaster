@@ -152,3 +152,5 @@ WSTAT round=0 n=3 1397966 1072452 1138368  spread=30.35%
 PARROUND round=1 parity=odd even=1138368 odd=1072452 wids=[7, 9, 10]
 WSTAT round=1 n=3 1152516 1027786 1279390  spread=24.48%
 P7  [C.p7.r2]       60s  obj=1027786     Z1=54.0     Z2=1672   Z3=1974.0    feas=y   ran 59s  py3.12
+# [A.p33.r2]
+DIRGATE fired: peak_util=1.236 in [1.00,1.30], timelimit 60 <= 60
