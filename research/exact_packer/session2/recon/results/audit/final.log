@@ -44,3 +44,5 @@ P7  [A.p7.r2]       60s  obj=860744      Z1=47.0     Z2=1599   Z3=1486.0    feas
 P7  [B.p7.r2]       60s  obj=747511      Z1=38.0     Z2=1451   Z3=1538.0    feas=y   ran 59s  py3.12
 # [A.p33.r2]
 P33 [A.p33.r2]      60s  obj=1020521     Z1=85.0     Z2=114    Z3=2264.0    feas=y   ran 34s  py3.12
+# [B.p33.r2]
+P33 [B.p33.r2]      60s  obj=933974      Z1=76.0     Z2=898    Z3=2096.0    feas=y   ran 59s  py3.12
