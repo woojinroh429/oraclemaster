@@ -20,3 +20,36 @@ P27 [H.p27.r2]      60s  obj=625047      Z1=85.0     Z2=1231   Z3=625.0     feas
 P16 [H.p16.r2]      60s  obj=4155999     Z1=246.0    Z2=3277   Z3=3465.0    feas=y   ran 57s  py3.12
 # [H.p7.r2]
 P7  [H.p7.r2]       60s  obj=1193854     Z1=74.0     Z2=266    Z3=1369.0    feas=y   ran 59s  py3.12
+# [H.p33.r2]
+
+VERDICT -- probe
+================
+CAPPING THE FIRST TRY WINS prob_1 AND LOSES THE BAND.  STOPPED EARLY; THE SIGN WAS NOT IN DOUBT.
+
+        B (0.05)     H (0.05 + PROBE=2)         delta
+  P1      571,668    531,403 / 531,403         - 7.0%   deterministic, both draws
+  P3    4,468,072  4,517,165 / 4,517,165       + 1.1%
+  P27     692,860    766,645 /   625,047       +10.6% / -9.8%
+  P16   3,022,891  4,014,357 / 4,155,999       +32.8% / +37.5%
+  P7      749,573  1,109,926 / 1,193,854       +48.1% / +59.3%
+  P33     933,974  1,254,886                   +34.4%
+
+THE PRE-REGISTERED FAILURE MODE IS EXACTLY WHAT HAPPENED, and the smoke had already shown it: with
+cheap probes the OPSTAT profile came back with grow holding 90.7% of the budget and beam at 0.0 s.
+Selection is `max(gain[i]/spent[i])`, and whichever operator first escapes the floor books the whole
+floor-to-solution jump -- 978,969,222 on prob_1, against a final objective near 500,000 and against
+pref's 155,451.  The winner of that race outranks every other operator by four orders of magnitude
+for the rest of the run.
+
+So a cheaper probe does not redistribute budget toward what pays; it changes WHO WINS THE RACE, and
+the winner then takes everything.  On prob_1 the new winner was better by 7%.  On prob_7 it was
+worse by 59%.
+
+WHAT THIS ESTABLISHES FOR THE NEXT ARM.  A 30-60% swing from a two-second change to the opening
+slice is not a tuning result; it is evidence that operator selection is decided by one accounting
+artefact.  Not crediting the floor escape is what makes gain/spent mean marginal payoff again --
+pref returns 36,262/s and grow 268/s on prob_1, numbers that currently have no influence at all
+because both are invisible beside 978,969,222.
+
+OGC_PROBE stays in the file at default 0 (off, byte-identical).  It is the instrument that found
+this and is one env away if the gain fix changes its sign.
