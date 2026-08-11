@@ -38,3 +38,4 @@ P7  [g120.p7.on.r1]   120s  obj=930323      Z1=55.0     Z2=994    Z3=1267.0    f
 # P7 reverses hardest and has the largest control response; P3 barely moves with
 # budget and is a wash at both.  But P33 and P16 respond 17% and still hold, so
 # "the gate only helps where the control has not converged" does not survive either.
+P3  [g120.p3.off.r2]   120s  obj=4600617     Z1=174.0    Z2=7194   Z3=7449.0    feas=y   ran 83s  py3.12
