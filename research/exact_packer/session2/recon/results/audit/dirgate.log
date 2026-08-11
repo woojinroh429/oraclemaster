@@ -45,3 +45,4 @@ P21 [g.p21.60.on]    60s  obj=1068018     Z1=6.0      Z2=4410   Z3=2448.0    fea
 # [g.p22.60.off]
 P22 [g.p22.60.off]    60s  obj=6147        Z1=1.0      Z2=18     Z3=193.0     feas=y   ran 43s  py3.12
 # [g.p22.60.on]
+P22 [g.p22.60.on]    60s  obj=6366        Z1=0.0      Z2=546    Z3=194.0     feas=y   ran 34s  py3.12
