@@ -27,3 +27,4 @@ P3  [g.p3.60.off]    60s  obj=4730658     Z1=176.0    Z2=7230   Z3=7680.0    fea
 # [g.p3.60.on]
 P3  [g.p3.60.on]    60s  obj=4743068     Z1=189.0    Z2=7610   Z3=7617.0    feas=y   ran 38s  py3.12
 # [g.p7.60.off]
+P7  [g.p7.60.off]    60s  obj=1138204     Z1=65.0     Z2=1937   Z3=1720.0    feas=y   ran 43s  py3.12
