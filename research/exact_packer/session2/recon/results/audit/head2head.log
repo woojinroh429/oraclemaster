@@ -46,3 +46,46 @@ P3  [old.p3.r3]     60s  obj=4609668     Z1=173.0    Z2=7288   Z3=7471.0    feas
 DIRGATE fired: peak_util=1.182 in [1.00,1.30], timelimit 60 <= 60
 WSTAT round=0 n=3 4491140 4797163 4468072  spread=7.37%
 P3  [new.p3.r3]     60s  obj=4468072     Z1=135.0    Z2=7057   Z3=7446.0    feas=y   ran 56s  py3.12
+H2HDONE
+
+VERDICT -- head2head
+====================
+THE NEW BUILD IS NOT AN IMPROVEMENT ON THE BINARIES THAT ACTUALLY SHIP.
+
+      old med      new med     delta   paired per draw     new wins
+  P1     518,660     571,668   +10.2%   +10.2 +12.5 -5.6      1/3
+  P3   4,609,668   4,496,780   - 2.4%   - 1.3 - 4.6 -3.1      3/3
+  six paired cells: ratio-mean +1.37%, geo-mean +1.11%, new 4/6 by count and behind by size
+
+WHY THIS CONTRADICTS EVERYTHING MEASURED TODAY.  harness/run1.py imports from the recon directory,
+whose cpython-312 extensions are dated 2026-08-07.  build_submission.sh compiles the five engines
+from source into the package.  The dirgate zip and today's zip carry BYTE-IDENTICAL .so files
+despite being built days apart, which proves the build is reproducible and therefore that the
+repo's differing .so are a genuinely different source state, not a rebuild artefact.
+
+    ogc_fast   repo a584fd58...  zip c1398aba...
+    ogc_geom   repo ea221ad6...  zip 85d27113...
+    ogc_state  repo 0e874d9e...  zip 01db30d1...
+    cranepack  repo 99fb5314...  zip 6bea522b...
+    st3dtcs    repo 5cc39d58...  zip 9aa807a1...
+
+So rfship, rf4, gaterf, w3rf, rounds05 and wdef all ran a four-day-old engine.  Each experiment was
+internally fair -- both arms imported the same stale .so -- but nothing verified that the effects
+transfer to the engine in the submission, and on P1 they do not.
+
+THE SAME CONFIGURATION, TWO ENGINES:
+    P1, RESFRAC 0.50, nw=3   stale engine (wdef arm A)   688,254 / 708,344 / 754,716
+                             shipped engine (this test)  508,193 / 518,660 / 605,585
+
+The shipped engine is roughly 30% better on P1 at the OLD setting, which is most of what the
+reserve change appeared to buy.  wdef's -17.36% was measuring headroom that the shipped engine had
+already closed.
+
+WHAT IS STILL STANDING.  The CPU cap is untouched by this: it follows from the organisers' notice
+that 400% is enforced by throttling with every core visible, and from os.cpu_count() being the
+wrong number in that setting.  It is not supported by any of the stale-engine measurements and
+never was.
+
+WHAT TO DO.  Rebuild the recon extensions from source so the harness imports the shipped engine,
+then re-run the reserve A/B on the six firing instances.  Until that is done the submitted
+OGC2026_dirgate.zip stands and OGC2026_capfix.zip must not be submitted.
