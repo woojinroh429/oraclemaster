@@ -49,3 +49,4 @@ P1  [ord.boxfill.r2]   120s  obj=752188      Z1=61.0     Z2=7367   Z3=539.0     
 # [ord.lst.r3]
 WSTAT round=0 n=4 809743 702382 835006 799215  spread=18.88%
 P1  [ord.lst.r3]   120s  obj=702382      Z1=22.0     Z2=3036   Z3=911.0     feas=y   ran 80s  py3.12
+# [ord.edd.r3]
