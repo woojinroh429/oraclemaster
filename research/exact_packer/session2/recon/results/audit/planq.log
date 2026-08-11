@@ -1,0 +1,5 @@
+PLAN QUALITY BY CAPACITY DE-RATING -- CP-SAT only, no beam
+  cap    tl     Z1(plan)  Z3(plan)  moved-off-top   w1Z1+w3Z3
+  1.00   20    1         403       16             248467
+  0.90   20    278       0         0              1853426
+  0.85   20    74        995       23             1090358
