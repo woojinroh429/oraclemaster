@@ -10,3 +10,26 @@ P34 [p34.prev.r2]    60s  obj=249163      Z1=4.0      Z2=3451   Z3=1401.0    fea
 P34 [p34.new.r3]    60s  obj=250125      Z1=4.0      Z2=3403   Z3=1411.0    feas=y   ran 43s  py3.12
 # [p34.prev.r3]
 P34 [p34.prev.r3]    60s  obj=250125      Z1=4.0      Z2=3403   Z3=1411.0    feas=y   ran 43s  py3.12
+P34DONE
+
+VERDICT -- p34
+==============
+SETTLED, AND IN THE STRONGEST FORM AVAILABLE: BOTH MODULES PRODUCE BOTH BASINS.
+
+    edited   250,125 (Z1 4) / 205,205 (Z1 0) / 250,125 (Z1 4)
+    HEAD     250,125 (Z1 4) / 225,855 (Z1 0) / 250,125 (Z1 4)
+
+rfnoise left P34 as the one part-A cell noise did not explain: HEAD's three draws were 250,125 /
+249,163 / 249,163, a 0.39% spread, against the edited build's lone 205,205 -- 17.6% below all three
+and with a different structure, Z1 0 against Z1 4.  The untested asymmetry was that HEAD had three
+draws and the edit had one.
+
+Given three draws each, HEAD returns a Z1=0 solution too (225,855) and the edited module returns
+250,125 twice, digit-identical to HEAD's.  P34 is bimodal and rfnoise's three HEAD draws happened to
+land in the same basin; the tightness was coincidence, exactly as P1's three identical 556,718 draws
+and P2's two identical 59,860,379 draws were.  THREE IDENTICAL DRAWS ARE NOT EVIDENCE OF
+DETERMINISM EITHER -- that is now the third time this trap has been sprung today.
+
+The no-harm claim for the 34 non-firing instances stands on the structural fact -- one string
+literal inside `if _lo <= _pu <= _thr and timelimit <= _tlim`, which none of them enter -- and no
+part-A cell now contradicts it.
