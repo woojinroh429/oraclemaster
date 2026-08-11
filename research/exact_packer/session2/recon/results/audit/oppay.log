@@ -373,3 +373,36 @@ P20 [op.p20]        60s  obj=9543933     Z1=1215.0   Z2=666    Z3=9588.0    feas
   opstat  TOTAL       8      36.1   96.8%                        
 P8  [op.p8]         60s  obj=127199      Z1=200.0    Z2=875    Z3=2212.0    feas=y   ran 43s  py3.12
 # [op.p6] peak_util=2.05
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        1       9.5   25.6%   3660721247 383377032.5
+  opstat  grow        2      16.7   44.8%            0        0.0
+  opstat  bal         1       0.1    0.2%          271     2951.9
+  opstat  pref        1       3.3    8.9%        10513     3176.1
+  opstat  bay         1       6.6   17.6%          776      118.2
+  opstat  brk         0       0.0    0.0%            0        0.0
+  opstat  TOTAL       6      36.2   97.2%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        2      18.2   48.2%   3660756232 201096660.5
+  opstat  grow        1       8.5   22.5%            0        0.0
+  opstat  bal         1       0.1    0.3%          271     2312.1
+  opstat  pref        1       3.2    8.4%        12049     3781.0
+  opstat  bay         1       7.1   18.8%            0        0.0
+  opstat  brk         0       0.0    0.0%            0        0.0
+  opstat  TOTAL       6      37.1   98.3%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        2      17.5   46.0%   3660808581 208745345.6
+  opstat  grow        1       8.5   22.2%       134899    15935.7
+  opstat  bal         1       0.1    0.2%          340     4686.0
+  opstat  pref        1       3.2    8.4%         3345     1044.8
+  opstat  bay         1       7.5   19.6%           35        4.7
+  opstat  brk         0       0.0    0.0%            0        0.0
+  opstat  TOTAL       6      36.7   96.3%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        2      16.4   42.6%   3660631461 223797940.1
+  opstat  grow        1       9.5   24.7%       392145    41391.9
+  opstat  bal         1       0.1    0.3%         1129     9825.5
+  opstat  pref        1       3.4    8.8%        38427    11311.8
+  opstat  bay         1       8.2   21.4%            0        0.0
+  opstat  brk         0       0.0    0.0%            0        0.0
+  opstat  TOTAL       6      37.6   97.9%                        
+P6  [op.p6]         60s  obj=5470807     Z1=347.0    Z2=5474   Z3=6142.0    feas=y   ran 45s  py3.12
