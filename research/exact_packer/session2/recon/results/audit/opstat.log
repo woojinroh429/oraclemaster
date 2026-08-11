@@ -57,3 +57,5 @@ DIRGATE fired: peak_util=1.016 in [1.00,1.30], timelimit 60 <= 60
   opstat  TOTAL      12      27.3   98.4%                        
 WSTAT round=0 n=3 676002 765211 785657  spread=16.22%
 P1  [pool.p1.50]    60s  obj=676002      Z1=21.0     Z2=6265   Z3=862.0     feas=y   ran 30s  py3.12
+# [pool.p1.05]
+DIRGATE fired: peak_util=1.016 in [1.00,1.30], timelimit 60 <= 60

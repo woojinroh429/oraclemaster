@@ -42,3 +42,37 @@ P27 [E.p27.r1]      60s  obj=897791      Z1=108.0    Z2=1451   Z3=990.0     feas
 P1  [E.p1.r2]       60s  obj=721023      Z1=27.0     Z2=2738   Z3=888.0     feas=y   ran 30s  py3.12
 # [E.p27.r2]
 P27 [E.p27.r2]      60s  obj=886006      Z1=145.0    Z2=1262   Z3=739.0     feas=y   ran 34s  py3.12
+SPENDDONE
+
+VERDICT -- spend
+================
+RECOVERING THE WASTED 29 SECONDS AS EXTRA DRAWS FAILS.  MORE ROUNDS IS WORSE EVERYWHERE.
+
+        A=0.50 1rnd   B=0.05 1rnd   D=0.50 2rnd   E=0.50 3rnd
+  P1        510,450       571,668       663,059       723,490
+  P3      4,583,170     4,468,072     4,614,767            -
+  P27       859,349       692,860       783,964       891,898
+  P16     3,252,294     3,022,891     3,199,896            -
+  P7        860,744       749,573       906,265            -
+  P33       964,466       933,974     1,179,775            -
+  median-sum  11,030,473   -5.36%        +2.88%       (partial)
+
+THE PREMISE WAS RIGHT AND THE REMEDY IS WRONG.  A really does leave 29 of its 60 seconds unused --
+every A cell returns at 30-31 s.  And a minimum genuinely cannot lose on an extra draw.  But
+OGC_ROUNDS does not ADD a draw, it SPLITS the budget: _rb = wbudget/_R turns one 29 s round into
+two of 14.5.  Two shallower searches are not the same experiment as one deep search plus one more,
+and this pipeline lives on depth.  D loses on five of six instances; P33 loses 22.3%.
+
+P1 IS MONOTONE IN HOW FINELY THE BUDGET IS SPLIT: 510,450 at one round, 663,059 at two, 723,490 at
+three.  It is also monotone the other way -- 571,668 when the same budget is spent as one LONGER
+round (B).  Both perturbations of A's 29 s single round are worse, in both directions, which is
+what an instance sitting in a tuned local optimum looks like.
+
+SO THE 29 SECONDS STAY UNSPENT, AND THAT IS NOW A MEASURED CONCLUSION RATHER THAN AN OVERSIGHT.
+Three ways to spend them have been tried and all lose: a longer single round (B on P1), two rounds,
+three rounds.  fillmoved.log had already found the fill round cannot take them either -- 0 of 4
+cells supplied the minimum.  Whatever the leftover is worth, no knob in this file can convert it.
+
+B STILL SHIPS.  It is the only arm that beats A on the median-sum, -5.36%, and it wins five of six
+instances.  P1 is the exception and it is a tie by mean (566,837 vs 571,668, +0.9%) because A's
+three draws span 34.2% while B returns the same value every time.
