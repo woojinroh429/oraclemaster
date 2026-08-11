@@ -52,20 +52,22 @@ run(){ # tag prob budget env
     ci "$tag"
 }
 
-# 60 s first -- more cells per minute, and the budget the hidden set reportedly gives P1.
+# GAP 0.5 IS DROPPED AFTER ONE CELL, AND THE CELL IS THE REASON.  P1 at 60 s returned
+# 556,718 / Z1 20 / Z2 6326 / Z3 674 with the gap at 0.5 and byte-identically without it, so the
+# restart never triggered.  The trigger needs a worker 50% worse than the leader between 30% and
+# 60% of its budget -- and DIRGATE, which fires here, gives all four workers the same order and
+# the same w3mul, so they are far more alike than the stock portfolio and never open that gap.
+# 0.3 did fire (548,691, -1.4%), so the live range is below 0.5 and the sweep goes down, not up.
+#
+# 120 s is dropped too, for the deadline: the hidden set reportedly gives P1 a short limit, that is
+# where DIRGATE fires at all, and cells that cost twice as much for a budget we may not face are
+# not affordable now.
 for rep in 1 2 3; do
   for p in 1 3; do
-    run "sh.p$p.60.off.r$rep" $p 60 "WORKERS=4"
-    run "sh.p$p.60.g05.r$rep" $p 60 "WORKERS=4 OGC_SHARE=1 OGC_SHAREGAP=0.5"
-    run "sh.p$p.60.g03.r$rep" $p 60 "WORKERS=4 OGC_SHARE=1 OGC_SHAREGAP=0.3"
-  done
-done
-# then 120 s on whatever the shape suggests, same three arms
-for rep in 1 2; do
-  for p in 1 3; do
-    run "sh.p$p.120.off.r$rep" $p 120 "WORKERS=4"
-    run "sh.p$p.120.g05.r$rep" $p 120 "WORKERS=4 OGC_SHARE=1 OGC_SHAREGAP=0.5"
-    run "sh.p$p.120.g03.r$rep" $p 120 "WORKERS=4 OGC_SHARE=1 OGC_SHAREGAP=0.3"
+    run "sh.p$p.60.off.r$rep"  $p 60 "WORKERS=4"
+    run "sh.p$p.60.g03.r$rep"  $p 60 "WORKERS=4 OGC_SHARE=1 OGC_SHAREGAP=0.3"
+    run "sh.p$p.60.g015.r$rep" $p 60 "WORKERS=4 OGC_SHARE=1 OGC_SHAREGAP=0.15"
+    run "sh.p$p.60.g005.r$rep" $p 60 "WORKERS=4 OGC_SHARE=1 OGC_SHAREGAP=0.05"
   done
 done
 echo "SHARE13DONE" >> $L
