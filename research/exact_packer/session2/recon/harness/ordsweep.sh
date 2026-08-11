@@ -19,6 +19,24 @@
 # only ever uses four of them (defer_big, lst, edd, big_first).  cohort and rank have never been
 # run as the whole pool's order on this instance.
 #
+#
+# rank's FAMILY, NOT rank ALONE -- the file says why.  _draw_order's own comment records that
+# rank scores rank(due) + rank(-area), that its geometry term correlates with its scheduling term
+# at rho = +0.23 and with every other order's area term by construction, and that it therefore
+# "produces a sequence close to what the list already makes".  Running rank by itself would mostly
+# re-measure lst and edd.
+#
+# The same comment names what IS different: aspect (long side / short side) and boxfill (polygon
+# area / bounding-box area) measured rho = -0.053 and -0.061 against area over all forty stage-2
+# instances, so they separate blocks that size and deadline never do -- and they keep rank's
+# scheduling half rather than dropping it, which matters because the objective is 89% weighted
+# tardiness.  sac3 is the third variant: rank with the three largest area*processing-time blocks
+# forced to the front.
+#
+# So the arm list is lst / edd / defer_big / big_first / rank / sac3 / aspect / boxfill.  cohort is
+# dropped to keep the queue under an hour; it is a grouping rule rather than a priority and can be
+# added if any of these move.
+#
 # SAME UNIFORM RIG as w3sweep, for the same reason: DIRSET=0 with single-element AIMSET and MSET
 # makes all four workers identical, so contention is constant and order is the only free variable,
 # and every run writes four draws instead of one usable number.
@@ -53,7 +71,7 @@ run(){ # tag env
 }
 
 for rep in 1 2 3; do
-  for O in lst edd defer_big big_first cohort rank; do
+  for O in lst edd defer_big big_first rank sac3 aspect boxfill; do
     run "ord.$O.r$rep" "$U OGC_ORDER=$O"
   done
 done
