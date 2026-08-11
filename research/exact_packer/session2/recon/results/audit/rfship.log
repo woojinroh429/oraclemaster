@@ -16,3 +16,4 @@ P9  [a.p9.prev]     60s  obj=5847680     Z1=262.0    Z2=6263   Z3=6814.0    feas
 # [a.p9.new]
 P9  [a.p9.new]      60s  obj=5755343     Z1=275.0    Z2=8259   Z3=6509.0    feas=y   ran 43s  py3.12
 # [a.p34.prev]
+P34 [a.p34.prev]    60s  obj=250125      Z1=4.0      Z2=3403   Z3=1411.0    feas=y   ran 43s  py3.12
