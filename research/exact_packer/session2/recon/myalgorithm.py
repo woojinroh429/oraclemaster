@@ -4246,6 +4246,60 @@ def algorithm(prob_info, timelimit=60):
     minimum of the FULL objective, polish, return."""
     t0 = time.time()
     n = len(prob_info["blocks"])
+    # OGC_PREFPOW: BEND THE PREFERENCE PENALTY, PER BLOCK, INSTEAD OF TOLLING EVERY BLOCK ALIKE.
+    # Absent or 1.0 = off and byte-identical.
+    #
+    # A UNIFORM TOLL WAS THE WRONG SHAPE AND THE MEASUREMENTS SAY SO.  OGC_CPANCHW adds the same
+    # constant to every block's planned bay, which tells the search "nobody may move" -- so blocks
+    # that should have been displaced sat and waited instead, and Z1 went 25 -> 58 -> 254 as the
+    # toll went 0 -> 100 -> 300 while Z3 fell 543 -> 493 -> 212.  Eight tardiness units bought per
+    # preference unit.  The instance analysis had already said why that is the wrong trade: some
+    # blocks MUST be displaced (the two small bays run at 147% and 201% of area at the peak), and
+    # the only question is which.
+    #
+    # The objective's own penalty is LINEAR in preference regret, and a sequential search that
+    # cannot see future blocks under-protects the expensive ones: on a real incumbent the blocks
+    # displaced cost 98, 96, 90 and 84 each while blocks with regret 6, 7, 10 and 16 -- and more
+    # area -- kept their first choice.  Raising the penalty to a power widens exactly that gap and
+    # nothing else: at gamma = 1.5 a 100-unit regret outranks a 10-unit one by 31:1 instead of
+    # 10:1, so the search protects the blocks worth protecting and gives up the cheap ones, which
+    # is what the greedy-spill argument says the answer looks like.
+    #
+    # SCALE IS HELD FIXED so this does not become a disguised w3mul.  Penalties are re-expressed as
+    # R*(pen/R)^gamma with R the median across blocks of each block's largest penalty, so a block
+    # at the typical scale keeps the penalty it had and only the SPREAD changes.  Without that,
+    # gamma > 1 would inflate every penalty at once and re-run the w3mul sweep, which was measured
+    # and closed unresolvable.
+    #
+    # WHAT WOULD MAKE IT FAIL, named first.  Bending the penalty makes the search optimise
+    # something the scorer does not; a block with regret 10 is now nearly free to displace even
+    # where the true objective would still rather not, so gamma too high should show up as Z3
+    # rising again from the cheap end while the expensive end stays protected.  The sweep reports
+    # Z3 alongside the total for that reason.
+    try:
+        _pp = float(os.environ.get("OGC_PREFPOW", "1.0"))
+    except Exception:
+        _pp = 1.0
+    if _pp != 1.0 and _pp > 0.0:
+        try:
+            _mxpen = []
+            for _b in prob_info["blocks"]:
+                _p = _b["bay_preferences"]
+                _mxpen.append(max(_p) - min(_p))
+            _srt = sorted(x for x in _mxpen if x > 0)
+            _R = float(_srt[len(_srt) // 2]) if _srt else 0.0
+            if _R > 0.0:
+                _blocks = []
+                for _b in prob_info["blocks"]:
+                    _c = dict(_b)
+                    _p = _b["bay_preferences"]; _mx = max(_p)
+                    _pen = [_R * (((_mx - _v) / _R) ** _pp) for _v in _p]
+                    _hi = max(_pen)
+                    _c["bay_preferences"] = [_hi - _x for _x in _pen]
+                    _blocks.append(_c)
+                prob_info = dict(prob_info); prob_info["blocks"] = _blocks
+        except Exception:
+            pass
     # OGC_CPANCH: SOLVE THE ASSIGNMENT FIRST AND MAKE THE BEAM SEARCH UNDER IT.  Absent = off and
     # byte-identical to the previous behaviour.
     #
