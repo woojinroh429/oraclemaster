@@ -94,3 +94,4 @@ P3  [w.p3.m2.r3]    60s  obj=4779498     Z1=192.0    Z2=4000   Z3=7714.0    feas
 P3  [w.p3.m4.r3]    60s  obj=4770190     Z1=234.0    Z2=7038   Z3=7394.0    feas=y   ran 59s  py3.12
 # [w.p3.m8.r3]
 P3  [w.p3.m8.r3]    60s  obj=4692582     Z1=191.0    Z2=7212   Z3=7515.0    feas=y   ran 59s  py3.12
+MWALLDONE
