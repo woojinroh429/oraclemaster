@@ -202,3 +202,4 @@ P34 [op.p34]        60s  obj=250125      Z1=4.0      Z2=3403   Z3=1411.0    feas
   opstat  brk         1       1.1    2.8%            0        0.0
   opstat  TOTAL       9      36.6   98.3%                        
 P27 [op.p27]        60s  obj=924527      Z1=104.0    Z2=1845   Z3=1060.0    feas=y   ran 43s  py3.12
+# [op.p7] peak_util=1.27
