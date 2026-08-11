@@ -51,3 +51,33 @@ Everything measured in this session moves a weight, a count or a width inside th
 pipeline: construct with the beam, then repair.  The gap to 260k is that the exact assignment
 should be part of CONSTRUCTION rather than a late rescue.  That is a different shape of change
 from all sixteen arms tried tonight, and it is the one the numbers point at.
+
+## MEASURED: THE EXACT ASSIGNMENT CANNOT MOVE Z3 AFTER THE FACT EITHER
+
+_assign -- the CP-SAT bay pass -- run directly on a finished 60 s beam solution with budgets far
+beyond what the operator loop ever gives it:
+
+    beam          obj 664,943   Z1 17   Z2 6468   Z3 887
+    _assign 30 s  obj 664,730   Z1 17   Z2 6397   Z3 887     converged in 18 s
+    _assign 90 s  obj 664,730   Z1 17   Z2 6397   Z3 887     identical
+
+Z3 does not move by one unit.  The solver converges in 18 seconds and the only thing it finds is
+71 units of Z2.  Tripling the budget changes nothing.
+
+So exact assignment as a REPAIR is closed, alongside z3_reassign and ruin_tardy.  Every pass that
+operates on a placed solution is blocked by the same thing _regroup named: the obstruction is the
+blocks that STAY, and once geometry is fixed there is no assignment freedom left to solve for.
+
+## WHICH SHARPENS WHAT THE 260k ROUTE MUST BE
+
+CP-SAT's 387 bound is stated at exact per-slice AREA capacity -- it is a bound on the assignment
+problem, before geometry.  A pipeline that fixes the assignment first and then places geometry to
+match it inherits that bound by construction.  Ours does the reverse:
+
+    now      beam constructs geometry and assignment together, then assignment is repaired
+    needed   assignment is solved, then geometry is placed to realise it
+
+The repair slot is where we put a solver that can only pay off in the construction slot.  That is
+one ordering change, and it is the only direction left that every measurement tonight points at:
+three repair passes inert, six scoring-knob families absorbed by the attractor, width a U near its
+peak, and now the exact solver itself finding nothing downstream of the beam.
