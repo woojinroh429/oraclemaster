@@ -32,3 +32,4 @@
   opstat  brk         1      10.9   29.5%         4656      425.6
   opstat  TOTAL      10      36.6   98.7%                        
 P22 [op.p22]        60s  obj=4607        Z1=1.0      Z2=1268   Z3=100.0     feas=y   ran 43s  py3.12
+# [op.p1] peak_util=1.02
