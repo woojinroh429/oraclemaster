@@ -11,3 +11,4 @@ P4  [a.p4.new]      60s  obj=2713254     Z1=297.0    Z2=3444   Z3=3201.0    feas
 P2  [a.p2.prev]     60s  obj=59860379    Z1=4409.0   Z2=2658   Z3=7097.0    feas=y   ran 51s  py3.12
 # [a.p2.new]
 P2  [a.p2.new]      60s  obj=60602795    Z1=4459.0   Z2=787    Z3=7652.0    feas=y   ran 52s  py3.12
+# [a.p9.prev]
