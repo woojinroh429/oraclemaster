@@ -60,3 +60,5 @@ P29 [all.p29]       20s  obj=236579      Z1=278.0    Z2=1607   Z3=3576.0    feas
 P30 [all.p30]       20s  obj=2091227     Z1=130.0    Z2=2427   Z3=2747.0    feas=y   ran 17s  py3.12
 # [all.p31]
 P31 [all.p31]       20s  obj=3579612     Z1=446.0    Z2=3418   Z3=3813.0    feas=y   ran 19s  py3.12
+# [all.p32]
+P32 [all.p32]       20s  obj=710856      Z1=979.0    Z2=988    Z3=4375.0    feas=y   ran 19s  py3.12
