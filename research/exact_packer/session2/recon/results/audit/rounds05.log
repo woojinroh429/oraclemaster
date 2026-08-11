@@ -322,3 +322,48 @@ WSTAT round=1 n=4 853896 963829 987059 830721  spread=18.82%
 PARROUND round=2 parity=odd even=853896 odd=830721 wids=[17, 19, 21, 22]
 WSTAT round=2 n=4 1062630 967919 988208 1023707  spread=9.79%
 P27 [R3.p27.r3]     60s  obj=817357      Z1=111.0    Z2=1857   Z3=815.0     feas=y   ran 59s  py3.12
+ROUNDS05DONE
+
+VERDICT -- rounds05
+===================
+R=2 PASSES ITS PRE-REGISTERED BAR; R=3 IS BEATEN BY IT AND DOES NOT SHIP.
+Bar was: median absolute sum beats R=1 at 0.05, and no more than 5% lost on P1.
+
+        R1 med      R2 med      d%      R3 med      d%   | R2 paired            R3 paired
+  P1     631,046     556,718  -11.8%     636,883   +0.9% | -13.1 -11.8  -4.8   +0.9  +6.4  +8.9
+  P3   4,745,895   4,887,024   +3.0%   4,859,009   +2.4% |  +3.0  +2.3  +3.0   +0.7  +4.1  +1.7
+  P7     943,405   1,020,092   +8.1%   1,096,552  +16.2% | +16.8  +2.9 +12.3  +25.6 +31.4  +5.1
+  P16  3,468,540   3,258,960   -6.0%   3,275,285   -5.6% |  -6.2  -3.9  -6.0   -5.6  -3.4  -5.6
+  P27    907,800     729,804  -19.6%     730,112  -19.6% | -14.7 -15.5 -22.0  -25.4 -15.5 -12.6
+  P33  1,192,334   1,220,871   +2.4%   1,202,515   +0.9% |  -0.7  +7.5 +26.7   -2.2 +10.3 +26.7
+  ------------------------------------------------------------------------------------------
+  R2 median-sum 11,673,469 vs R1 11,889,020   -215,551  (-1.81%)
+  R3 median-sum 11,800,356 vs R1 11,889,020    -88,664  (-0.75%)
+
+THE KNOB WAS NEVER SHIPPED AND ITS RETIREMENT WAS INVALID.  `_R = max(1, int(os.environ.get(
+"OGC_ROUNDS", "1")))` and nothing in the module sets it, though the comment at line 3367 asserts
+otherwise.  The module's own note at the round loop records why the retiring measurement could not
+have fired: at 60 s with the old reserve, wbudget ~47, _rb ~23 and reserve ~12, so "R=2 was never
+two rounds there either."  RESFRAC 0.05 is what made a second round affordable -- reserve 3 s,
+wbudget ~56, _rb ~28.
+
+THE WINS ARE CONSISTENT AND THE LOSSES ARE NOT.  P1, P16 and P27 are 3/3 for R=2.  P33's paired
+deltas are -0.7 / +7.5 / +26.7, which is not an effect.  The one real cost is P7 at +8.1%, positive
+in all three replicates -- it wants depth, and at R=3 it loses 16.2%, which is what sinks R=3.
+
+BUT THE BAND-WIDE MARGIN IS NOT RESOLVABLE AT THIS SAMPLE SIZE, AND THIS IS THE MEASUREMENT THAT
+SAYS SO.  The SAME configuration -- P1, RESFRAC 0.05, R=1 -- gave different three-draw medians in
+two experiments run hours apart on the same machine:
+
+    rfship   537,403 / 518,803 / 631,046   median 537,403
+    rounds05 631,046 / 631,046 / 584,609   median 631,046
+
+A 17.4% gap between two medians of three draws each.  R=2's -1.81% median-sum sits well inside
+that, so "R=2 wins across the band" is NOT established by this table.  Three-draw medians are not
+the reliable instrument this study has been treating them as; they were enough to overturn P27's
+single-draw +30.6%, and they are not enough to resolve two per cent.
+
+P1 SURVIVES THE POOLED TEST, WHICH IS THE CLAIM WORTH MAKING.  Pooling all six R=1 draws at 0.05
+from both experiments gives a median of 607,828 against R=2's 556,718 -- -8.4%, with R=2 ahead in
+every rounds05 replicate.  That is the instance the hidden set is being played for, and it is the
+narrow ground on which R=2 is worth shipping.
