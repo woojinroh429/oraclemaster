@@ -48,3 +48,40 @@ axis pin and on the other two 3M-scale instances.  Both are queued.
 The opposite result is also still live: myalgorithm.py's OGC_BEAMCAP comment measured wider draws
 on this same instance as better on average and worse at the minimum.  This cell contradicts it, and
 one of the two readings is about to lose.
+
+## CORRECTION: IT IS THE INTERACTION, NOT THE WIDTH
+
+The width-only cell landed and it changes the reading above.  prob_16 at 240 s:
+
+    stock                     3,094,741   (two draws, span 5.6%)
+    OGC_AXIS=2 alone          2,932,602    -2.6%
+    OGC_BCAP=137 alone        3,018,252    -2.5%
+    both                      2,725,778   -11.9%
+
+Singly they are worth 2.6% and 2.5%; together they are worth 11.9%, more than twice their sum.
+The heading written a few minutes ago -- "the 22% is the beam width" -- is wrong.  Axis 2's
+scoring only pays when it is given the wider beam: at Bmul 0.7 it runs at B=67 and is starved, and
+a wider beam given to the rotating portfolio mostly widens axes that were not starved.
+
+## WHICH MAKES THE OBVIOUS DEPLOYMENT THE WRONG ONE
+
+    raise OGC_BCAP globally           -2.5%    portfolio intact, safe, small
+    pin axis 2 and raise OGC_BCAP    -11.9%    portfolio gone
+
+Pinning puts every worker on one axis, and axis_work.md measured that axis 2's dominance is unique
+to prob_16: on prob_4 the winner flips from axis 2 to axis 1 at the largest budget, and prob_24
+answers axis 0 or axis 5.  Concentrating on axis 2 everywhere would lose badly on exactly the
+instances where the margin is small -- which is most of them.
+
+## THE FORM THAT KEEPS BOTH
+
+Give axis 2 the width without taking the portfolio away.  `_beam_width(mul)` returns
+`max(8, min(_BCAP, int(mul * _BCAP)))`, so raising axis 2's own Bmul from 0.7 to 1.0 puts that one
+worker at B=96 and leaves every other axis exactly where it is:
+
+    _AXES[2]: Bmul=0.7 -> 1.0     one line, one axis, no gate, no prediction
+
+The rotation still covers the other five axes, so an instance whose best axis is not 2 is unharmed,
+and an instance like prob_16 gets a worker that is no longer starved.  What this cannot do is give
+axis 2 three workers' worth of budget -- so it should land between the -2.5% and the -11.9%, and
+where it lands is the measurement that decides whether it ships.
