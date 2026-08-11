@@ -35,3 +35,39 @@ More seconds become a wider beam rather than a deeper one, and the file's own OG
 measured wider draws as better on average and worse at the minimum -- "and the minimum is what
 gets reported".  Decoupling width from remaining time is a structural change to the search, not a
 knob on its scoring, and it is the only untested direction left that has a measured 22% behind it.
+
+## CORRECTION: THE "UNTESTED STRUCTURAL DIRECTION" WAS ALREADY TESTED
+
+The paragraph above proposed decoupling width from remaining time, on the grounds that
+axis_work.md's 22% came from "B fixed at 96 with the work per draw doubled" and production could
+not express it.  Reading the controller shows that is wrong:
+
+    double left = _wcap>0.0 ? (_wcap-work) : (time_budget_s*AIM-elapsed());
+    int fit = left/(per*rem);
+    Bcur = min(Bmax, fit);
+
+The work cap IS the width control.  prob_16 has 300 blocks, so one full pass at B=96 costs about
+28,800 expansions, and the table's work values are 1500 to 12000 -- every one of them below that.
+So B=96 in that table is the CEILING, never the width used, and the work axis is the width axis:
+
+    work  1500  ->  effective B ~ 5
+    work  3000  ->  effective B ~ 10
+    work  6000  ->  effective B ~ 20     2,477,998, the 22% cell
+    work 12000  ->  effective B ~ 40     2,816,901, worse again
+
+A 240 s production draw on prob_16 is roughly 10,000 work at ~220 expansions/s, so B is already
+around 33 -- past the optimum and into the falling half.  Narrowing draws is therefore the
+implied direction, and that is exactly OGC_BEAMCAP, which the file records at +2.73% -- worse.
+
+So the 22% is not a lever production is failing to reach.  It is a U whose peak production already
+sits near, measured from the other side.  Fourteenth correction of the session.
+
+## WHAT IS ACTUALLY LEFT
+
+    the repair stage      Z1 is locally conserved; three passes, all inert, proved structurally
+    six scoring knobs     the attractor absorbs them; 8x weight changes return identical solutions
+    width / work          a U, and production is already close to its top
+
+Nothing single-parameter remains on this instance.  The target of 300,000 is 27% below the best
+value this project has ever recorded on it (413,954), which is a different algorithm rather than a
+different setting, and saying so is more useful than a fifteenth arm.
