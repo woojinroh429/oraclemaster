@@ -6,3 +6,5 @@ P3  [H.p3.r1]       60s  obj=4517165     Z1=132.0    Z2=8189   Z3=7542.0    feas
 P27 [H.p27.r1]      60s  obj=766645      Z1=102.0    Z2=649    Z3=792.0     feas=y   ran 57s  py3.12
 # [H.p16.r1]
 P16 [H.p16.r1]      60s  obj=4014357     Z1=217.0    Z2=782    Z3=4475.0    feas=y   ran 59s  py3.12
+# [H.p7.r1]
+P7  [H.p7.r1]       60s  obj=1109926     Z1=69.0     Z2=1657   Z3=1189.0    feas=y   ran 59s  py3.12
