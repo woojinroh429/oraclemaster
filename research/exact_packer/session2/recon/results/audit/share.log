@@ -1,3 +1,8 @@
 # [sh.off.r1]
 WSTAT round=0 n=4 500196 828138 499210 681240  spread=65.89%
 P1  [sh.off.r1]    120s  obj=499210      Z1=19.0     Z2=7579   Z3=583.0     feas=y   ran 79s  py3.12
+# [sh.g03.r1]
+RESTART wid=3 at 42% mine=785834 lead=524295
+RESTART wid=1 at 43% mine=782064 lead=524295
+WSTAT round=0 n=4 498445 729517 489878 751841  spread=53.48%
+P1  [sh.g03.r1]    120s  obj=489878      Z1=20.0     Z2=6646   Z3=561.0     feas=y   ran 79s  py3.12
