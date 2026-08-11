@@ -36,3 +36,5 @@ P4  [o.p4.stock]   180s  obj=2598368     Z1=332.0    Z2=1588   Z3=2784.0    feas
 # [o.p4.defer]
 WSTAT round=0 n=4 2926049 2990126 2997802 3102782  spread=6.04%
 PARFILL round=1 parity=even even=2926049 odd=2990126 wids=[16, 18, 20, 22]
+FILL round=1 budget=47 moved=0 best=2918694
+P4  [o.p4.defer]   180s  obj=2918694     Z1=387.0    Z2=2127   Z3=3036.0    feas=y   ran 180s  py3.12
