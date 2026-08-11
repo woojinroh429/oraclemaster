@@ -508,3 +508,29 @@ P2  [op.p2]         60s  obj=59699519    Z1=4393.0   Z2=1525   Z3=7477.0    feas
   opstat  brk         0       0.0    0.0%            0        0.0
   opstat  TOTAL       2      58.8   99.5%                        
 P36 [op.p36]        60s  obj=75721874    Z1=10470.0  Z2=1584   Z3=7396.0    feas=y   ran 60s  py3.12
+# [op.p25] peak_util=6.26
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        1      49.7   99.4%   4186360470 84283588.2
+  opstat  grow        0       0.0    0.0%            0        0.0
+  opstat  bal         0       0.0    0.0%            0        0.0
+  opstat  pref        0       0.0    0.0%            0        0.0
+  opstat  bay         0       0.0    0.0%            0        0.0
+  opstat  brk         0       0.0    0.0%            0        0.0
+  opstat  TOTAL       1      49.7   99.4%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        1      54.3   99.4%   4184520851 77100208.8
+  opstat  grow        0       0.0    0.0%            0        0.0
+  opstat  bal         0       0.0    0.0%            0        0.0
+  opstat  pref        0       0.0    0.0%            0        0.0
+  opstat  bay         0       0.0    0.0%            0        0.0
+  opstat  brk         0       0.0    0.0%            0        0.0
+  opstat  TOTAL       1      54.3   99.4%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        1      58.1   99.4%   4172234889 71763575.0
+  opstat  grow        0       0.0    0.0%            0        0.0
+  opstat  bal         0       0.0    0.0%            0        0.0
+  opstat  pref        0       0.0    0.0%            0        0.0
+  opstat  bay         0       0.0    0.0%            0        0.0
+  opstat  brk         0       0.0    0.0%            0        0.0
+  opstat  TOTAL       1      58.1   99.4%                        
+P25 [op.p25]        60s  obj=69395417    Z1=10155.0  Z2=608    Z3=8448.0    feas=y   ran 60s  py3.12
