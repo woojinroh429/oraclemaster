@@ -1811,6 +1811,39 @@ _AXES = [
     dict(Bmul=0.5, K=6, pos_lam=0.20, order="defer_big", fut_beta=0.0, prefw=0.0, w3mul=1.5, cohort=0.0, dk=0),
 ]
 
+# PER-AXIS Bmul OVERRIDE (OGC_BMULSET=<b0,b1,...>, absent = the table above, exactly).
+#
+# axis_work.md priced a 21.6% gain on prob_16 for axis 2 and flagged its own confound: it measured
+# at a fixed B=96 while `_worker` sizes each draw from the axis's own Bmul, and axis 2 carries 0.7,
+# so production runs it at B=67.  Separated in the shipped path at 240 s on prob_16:
+#
+#     stock                            3,010,278  3,179,204    mean 3,094,741   control span 5.6%
+#     OGC_AXIS=2 alone                            2,932,602    -2.6%
+#     OGC_BCAP=137 alone                          3,018,252    -2.5%
+#     OGC_AXIS=2 with OGC_BCAP=137     2,725,778  2,913,538    mean 2,819,658   -8.9%
+#
+# Singly they are worth about 2.5% each and together nearly 9%, so the gain is the INTERACTION:
+# axis 2's scoring only pays once it stops being starved of width.  But reaching it through
+# OGC_BCAP raises the ceiling for every axis, and reaching it through OGC_AXIS pins the whole pool
+# to one axis -- and axis 2's dominance is unique to prob_16.  On prob_4 the winner flips to axis 1
+# at the largest budget, and prob_24 answers axis 0 or 5, so pinning would lose on most instances.
+#
+# This knob is the third way: give axis 2 the width it needs and leave the other five alone, so the
+# rotation still covers them.  It is one worker in four that stops being starved, not the pool
+# committing to one bet, and there is nothing to predict and no gate.
+#
+# MEASUREMENT ONLY UNTIL IT IS RUN.  The expectation is that it lands between the -2.5% of raising
+# the ceiling for everyone and the -8.9% of pinning as well, because axis 2 gets one worker rather
+# than four; where it lands is what decides whether the table itself should change.
+_bms = os.environ.get("OGC_BMULSET")
+if _bms:
+    try:
+        _bl = [float(x) for x in _bms.split(",") if x.strip()]
+        for _i, _b in enumerate(_bl[:len(_AXES)]):
+            _AXES[_i] = dict(_AXES[_i], Bmul=_b)
+    except Exception:
+        pass
+
 # TRUE axis index for the DRAWSTAT line.  Each worker holds a ROTATED view of _AXES, so position 2
 # in worker 3's list is _AXES[5]; printing the position would make "which axis pays" unreadable
 # across workers.  Identity works because the rotation reuses the same dict objects; when a
