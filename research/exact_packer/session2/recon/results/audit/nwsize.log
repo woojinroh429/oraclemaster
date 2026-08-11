@@ -126,3 +126,57 @@ P3  [n.p3.w2.r2]    30s  obj=4629379     Z1=164.0    Z2=6851   Z3=7570.0    feas
 P3  [n.p3.w3.r2]    30s  obj=4682616     Z1=149.0    Z2=6979   Z3=7762.0    feas=y   ran 27s  py3.12
 # [n.p3.w4.r2]
 P3  [n.p3.w4.r2]    30s  obj=4696347     Z1=177.0    Z2=5964   Z3=7626.0    feas=y   ran 27s  py3.12
+NWSIZEDONE
+
+VERDICT -- nwsize
+=================
+THE SIZE RULE IS DEAD: nw=1's ONLY REAL WIN COMES FROM OVERRUNNING THE TIME LIMIT.
+
+Medians over two draws at a 30 s limit:
+
+          peak_util   nw=1          nw=2          nw=3          nw=4       nw=1 vs best multi
+    P25      6.26     91,014,186    FLOOR         FLOOR         FLOOR         -97.9%
+    P36      4.66     97,909,179    97,503,186    97,295,273    86,220,047    +13.6%
+    P13      4.09     89,607,629    77,326,216    77,687,699    87,874,924    +15.9%
+    P2       3.29     81,523,006    59,689,432    61,176,109    59,996,257    +36.6%
+    P23      2.79     15,774,520    15,932,384    15,932,384    15,994,737     -1.0%
+    P16      1.23      3,174,098     3,252,294     3,252,294     3,352,855     -2.4%
+    P3       1.18      4,766,080     4,658,612     4,719,480     4,747,164     +2.3%
+    P1       1.02        681,869       613,869       647,835       647,835    +11.1%
+
+WALL CLOCK, WHICH IS WHAT SETTLES IT:
+
+    nw=1   max 36 s   TWO cells over the 30 s limit, both P25, at 35 s and 36 s
+    nw=2   max 30 s   none over
+    nw=3   max 30 s   none over
+    nw=4   max 30 s   none over
+
+P25 is the only instance where nw=1 wins, and it is also the only place any cell exceeded its
+budget.  `nw > 1` goes through _pool_round, which bounds the wait at
+`room = timelimit - (time.time() - t0) - 1.0`; `nw == 1` calls `_worker` in process and no such
+deadline exists, so it runs until its internal budget is gone.  The 91,014,186 was bought with 20%
+more time than the instance was allowed.  It is not a comparison, and on a grader it is a
+disqualification risk rather than a score.
+
+WITH THAT REMOVED, WORKER COUNT BARELY MATTERS INSIDE THE LEGAL RANGE.  P23 -1.0%, P16 -2.4%,
+P3 +2.3%; P13 and P36 favour the multi-worker settings.  Nothing here justifies choosing nw from
+the instance.
+
+TWO THINGS SURVIVE.
+
+  1. THE CPU CAP IS CORRECT AND IS NOT ABOUT TIME LIMITS.  cliff.log has P13 at 30 s returning
+     87,874,924 at nw=3 and the FLOOR at nw=7, both inside their budget.  If the grader shows all
+     its cores -- which the organisers' notice implies, since 400% is enforced by throttling with
+     every core visible -- the shipped build asks for seven workers and large instances return the
+     safety net there.  The cap prevents exactly that.
+
+  2. A REAL DEFECT, FOUND HERE AND NOT SHIPPED-AGAINST: the nw==1 path does not respect timelimit.
+     It cannot fire under the cap on a four-core box (nw = 4-1 = 3), but it fires wherever
+     cpu_count() < 4 or WORKERS=1 is set, and there it can overrun by 20%.  Worth fixing on its own
+     merits; not fixed today because it is outside the submitted configuration and the deadline is
+     close.
+
+MY EXPLANATIONS ALONG THE WAY WERE WRONG TWICE, RECORDED SO THE NEXT READER DOES NOT REPEAT THEM.
+First "workers starve each other of CPU" -- but P25 floors at nw=2, which is two processes on four
+cores, and every worker is handed the same `budget` regardless of nw.  Then "P13 prefers nw=4 by
+22.6%" -- that came from one draw in cliff.log and did not reproduce here (87,874,924).
