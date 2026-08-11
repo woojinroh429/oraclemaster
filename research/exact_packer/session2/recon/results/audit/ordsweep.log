@@ -61,3 +61,4 @@ P1  [ord.big_first.r3]   120s  obj=730836      Z1=27.0     Z2=6009   Z3=888.0   
 # [ord.rank.r3]
 WSTAT round=0 n=4 715522 742545 656623 917284  spread=39.70%
 P1  [ord.rank.r3]   120s  obj=656623      Z1=25.0     Z2=6316   Z3=785.0     feas=y   ran 82s  py3.12
+# [ord.sac3.r3]
