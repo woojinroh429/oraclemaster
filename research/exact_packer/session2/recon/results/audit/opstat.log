@@ -189,3 +189,4 @@ DIRGATE fired: peak_util=1.132 in [1.00,1.30], timelimit 60 <= 60
   opstat  TOTAL      11      54.8   99.1%                        
 WSTAT round=0 n=1 692860  spread=0.00%
 P27 [w1.p27.05]     60s  obj=692860      Z1=34.0     Z2=633    Z3=1079.0    feas=y   ran 59s  py3.12
+OPSTATDONE
