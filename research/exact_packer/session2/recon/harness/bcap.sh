@@ -21,6 +21,17 @@
 # at ask=11.2 s.  A higher ceiling is more width, so if that reading is the dominant one the arm
 # should lose at five pairs even though it leads at two.  One of the two is about to be wrong.
 #
+#
+# REVISED AFTER THE THIRD DRAW.  The ceiling-alone arm took a bad draw and the two arms separated
+# again -- at three draws each: ceiling alone -4.4% (span 15.7%), axis 2 pinned plus ceiling -11.5%
+# (span 13.0%), with the two distributions barely overlapping.  The earlier reading that the pin
+# was worth only 1.5 points was itself a two-draw artifact, the eighth such flip this session.
+#
+# So the ceiling alone is NOT the change worth settling: it is weak, and the strong version pins
+# the pool to an axis that dominates only prob_16.  OGC_BMULSET is the shippable form of the strong
+# version -- axis 2 gets Bmul 1.0 (B=96) and the other five axes keep theirs, so one worker in four
+# stops being starved and rotation still covers everything else.  That is what these cells measure.
+#
 # prob_4 IS THE INSTANCE THAT DECIDES WHETHER IT SHIPS.  prob_16 is where axis 2 dominates and
 # where width was measured; prob_4 is a same-scale instance where it does not.  A ceiling raise is
 # global -- every axis on every instance gets it -- so a gain confined to prob_16 is instance
@@ -46,19 +57,20 @@ run(){ # tag prob env
     ci "$tag"
 }
 
+BM="OGC_BMULSET=1.0,1.0,1.0,0.7,1.4,0.5"
 for rep in 1 2 3 4 5; do
   run "c.p16.stock.r$rep" 16 "WORKERS=4"
-  run "c.p16.b137.r$rep"  16 "WORKERS=4 OGC_BCAP=137"
+  run "c.p16.bm2.r$rep"   16 "WORKERS=4 $BM"
 done
 echo "== BCAP prob_16 done ==" >> $L
 for rep in 1 2 3; do
   run "c.p4.stock.r$rep" 4 "WORKERS=4"
-  run "c.p4.b137.r$rep"  4 "WORKERS=4 OGC_BCAP=137"
+  run "c.p4.bm2.r$rep"   4 "WORKERS=4 $BM"
 done
 echo "== BCAP prob_4 done ==" >> $L
 for rep in 1 2 3; do
   run "c.p1.stock.r$rep" 1 "WORKERS=4"
-  run "c.p1.b137.r$rep"  1 "WORKERS=4 OGC_BCAP=137"
+  run "c.p1.bm2.r$rep"   1 "WORKERS=4 $BM"
 done
 echo "BCAPDONE" >> $L
 echo idle > harness/CURRENT
