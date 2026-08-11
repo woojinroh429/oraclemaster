@@ -534,3 +534,4 @@ P36 [op.p36]        60s  obj=75721874    Z1=10470.0  Z2=1584   Z3=7396.0    feas
   opstat  brk         0       0.0    0.0%            0        0.0
   opstat  TOTAL       1      58.1   99.4%                        
 P25 [op.p25]        60s  obj=69395417    Z1=10155.0  Z2=608    Z3=8448.0    feas=y   ran 60s  py3.12
+OPPAYDONE
