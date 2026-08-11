@@ -11,3 +11,4 @@ Traceback (most recent call last):
                                                       ^^^^^^^^^
 IndexError: tuple index out of range
 P1 [ca.c1.00.t100.r1] CRASH rc=1
+# [ca.c1.00.t300.r1]

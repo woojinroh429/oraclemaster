@@ -655,6 +655,13 @@ def _contact_beam(prob_info, deadline_s, B=24, K=4, pos_lam=0.1, prefw=0.0, orde
         else:  # edd
             ordv = [(due[b], AR[b] * 1e-9) for b in range(n)]
         order_ids = sorted(range(n), key=lambda b: ordv[b])
+        # OGC_CPORD put the CP-SAT plan's own start times on prob_info.  Dispatching in that order
+        # gives the beam the plan's SCHEDULE as well as its bays, without pinning a single time:
+        # the beam still chooses every entry time, it just meets the blocks in the order the plan
+        # wanted them seated.  Absent = the axis's own order, unchanged.
+        _cps = prob_info.get("_cp_start")
+        if _cps:
+            order_ids = sorted(range(n), key=lambda b: (_cps[b], due[b], b))
         # GUIDED RECONSTRUCTION: when an incumbent anchor is supplied,
         # dispatch in the incumbent's own order and bias each block toward its incumbent bay with
         # a DECAYING weight (strong for early blocks -> preserve the good base structure; weak for
@@ -2376,7 +2383,8 @@ def _cpsat_bay_plan(prob_info, tl):
         st = sv.Solve(md)
         if st not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
             return None
-        return [next(j for j in range(m) if sv.Value(x[b][j])) for b in range(n)]
+        return ([next(j for j in range(m) if sv.Value(x[b][j])) for b in range(n)],
+                [int(sv.Value(S[b])) for b in range(n)])
     except Exception:
         return None
 
@@ -4263,7 +4271,8 @@ def algorithm(prob_info, timelimit=60):
     except Exception:
         _cpa = 0.0
     if _cpa > 0.0:
-        _plan = _cpsat_bay_plan(prob_info, min(_cpa, max(1.0, float(timelimit) * 0.25)))
+        _pl = _cpsat_bay_plan(prob_info, min(_cpa, max(1.0, float(timelimit) * 0.25)))
+        _plan, _pstart = (_pl if _pl is not None else (None, None))
         if _plan is not None:
             try:
                 _aw = float(os.environ.get("OGC_CPANCHW", "100"))
@@ -4279,6 +4288,15 @@ def algorithm(prob_info, timelimit=60):
                                          for _j in range(_m)]
                 _blocks.append(_c)
             prob_info = dict(prob_info); prob_info["blocks"] = _blocks
+            # OGC_CPORD=1 also hands over the plan's SCHEDULE, as a dispatch order.  The plan's own
+            # answer waits 37 blocks by up to 9 units to reach Z1 = 1; the beam discards those
+            # times, picks its own, and pays Z1 = 41 to obey the same bays.  Dispatching in planned
+            # start order is the cheapest way to give the times back without pinning them -- the
+            # beam still chooses every entry time, it just meets the blocks in the order the plan
+            # wanted them seated.  Off by default: it changes who claims space first, which is the
+            # single largest effect measured this session, so it is priced separately.
+            if os.environ.get("OGC_CPORD") == "1" and _pstart is not None:
+                prob_info["_cp_start"] = list(_pstart)
     # LEAVE THE PARENT A CORE.  With one worker per core the parent is a fifth runnable process on
     # four cores -- it collects results and runs the whole final polish -- so every worker gets
     # less than the core it was budgeted.  Three workers on four cores gives each a full core and
