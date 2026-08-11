@@ -68,3 +68,5 @@ P1  [ord.sac3.r3]   120s  obj=680221      Z1=19.0     Z2=6916   Z3=888.0     fea
 WSTAT round=0 n=4 752188 742545 886692 870132  spread=19.41%
 P1  [ord.aspect.r3]   120s  obj=742545      Z1=30.0     Z2=2245   Z3=893.0     feas=y   ran 80s  py3.12
 # [ord.boxfill.r3]
+WSTAT round=0 n=4 696398 639329 714044 1147545  spread=79.49%
+P1  [ord.boxfill.r3]   120s  obj=600092      Z1=17.0     Z2=5051   Z3=786.0     feas=y   ran 82s  py3.12
