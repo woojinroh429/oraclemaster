@@ -177,3 +177,15 @@ DIRGATE fired: peak_util=1.132 in [1.00,1.30], timelimit 60 <= 60
   opstat  TOTAL      11      27.7   97.9%                        
 WSTAT round=0 n=1 915525  spread=0.00%
 P27 [w1.p27.50]     60s  obj=915525      Z1=64.0     Z2=569    Z3=1310.0    feas=y   ran 34s  py3.12
+# [w1.p27.05]
+DIRGATE fired: peak_util=1.132 in [1.00,1.30], timelimit 60 <= 60
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        5      25.8   46.6%    910101663 35309585.7
+  opstat  grow        1       9.9   18.0%            0        0.0
+  opstat  bal         1       0.0    0.1%            0        0.0
+  opstat  pref        2       6.9   12.5%       275866    39984.2
+  opstat  bay         1      11.0   19.9%            0        0.0
+  opstat  brk         1       1.1    2.0%            0        0.0
+  opstat  TOTAL      11      54.8   99.1%                        
+WSTAT round=0 n=1 692860  spread=0.00%
+P27 [w1.p27.05]     60s  obj=692860      Z1=34.0     Z2=633    Z3=1079.0    feas=y   ran 59s  py3.12
