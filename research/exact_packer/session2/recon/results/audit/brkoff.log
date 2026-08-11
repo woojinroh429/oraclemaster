@@ -4,3 +4,5 @@ P1  [F.p1.r1]       60s  obj=524295      Z1=21.0     Z2=6496   Z3=608.0     feas
 P3  [F.p3.r1]       60s  obj=4472107     Z1=170.0    Z2=6730   Z3=7239.0    feas=y   ran 59s  py3.12
 # [F.p27.r1]
 P27 [F.p27.r1]      60s  obj=692860      Z1=34.0     Z2=633    Z3=1079.0    feas=y   ran 59s  py3.12
+# [F.p16.r1]
+P16 [F.p16.r1]      60s  obj=2967764     Z1=135.0    Z2=1103   Z3=4658.0    feas=y   ran 56s  py3.12
