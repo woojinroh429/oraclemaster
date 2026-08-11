@@ -57,3 +57,4 @@ P1  [m.p1.m1]       60s  obj=492458      Z1=2.0      Z2=2708   Z3=785.0     feas
 # [m.p1.m2]
 P1  [m.p1.m2]       60s  obj=702341      Z1=53.0     Z2=4130   Z3=561.0     feas=y   ran 70s  py3.12
 # [m.p1.m3]
+P1  [m.p1.m3]       60s  obj=768242      Z1=47.0     Z2=2231   Z3=747.0     feas=y   ran 69s  py3.12
