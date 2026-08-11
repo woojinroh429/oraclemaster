@@ -4504,7 +4504,39 @@ def algorithm(prob_info, timelimit=60):
         except Exception:
             _pu = 0.0
         if _lo <= _pu <= _thr and float(timelimit) <= _tlim:
-            for _k, _v in (("OGC_ORDER", "lst"), ("OGC_W3MUL", "0.5"), ("OGC_RESFRAC", "0.50")):
+            # RESFRAC 0.05, NOT THE 0.50 THIS GATE SHIPPED WITH.  0.50 arrived inside the 7th
+            # submission's package, whose single-knob table was taken at 240 s -- where the reserve
+            # is 84 s and the polish spends 77 of them.  At the 60 s this gate fires in, the same
+            # fraction reserves 30 s and the polish returns in about a second on P1 and P3, so half
+            # the budget was being thrown away: the run used 30 s of 60.  Cutting it to 0.05 leaves
+            # 3 s and hands the workers 57 s instead of 29.
+            #
+            # It is also the only reserve at which P1's two draws DIFFER -- 537,403 and 518,803,
+            # against a control that returns the identical 556,718 every time, and against 0.15 and
+            # 0.30 which both return their own frozen 631,046.  The search stops terminating early
+            # and reaches points the attractor set does not contain.
+            #
+            # MEASURED ON EVERY INSTANCE THIS GATE FIRES ON -- the practice set has exactly six,
+            # and results/audit/rf4.log and gaterf.log cover all six:
+            #
+            #     P1   556,718 -> 537,403 / 518,803   -3.5% / -6.8%
+            #     P3 4,837,017 -> 4,721,428             -2.4%
+            #     P16 3,841,237 -> 3,391,521           -11.7%
+            #     P33 1,321,728 -> 1,127,287           -14.7%
+            #     P7  1,059,870 ->   943,405           -11.0%
+            #     P27   729,804 ->   953,406           +30.6%
+            #
+            # Five win, one loses, and the absolute sum over the band is -671,490.
+            #
+            # P27 IS A REAL COST AND IT HAS NO MIDDLE GROUND.  Its reserve was swept at 0.20 / 0.15
+            # / 0.10 / 0.05 and returns +26.6% / +30.0% / +27.7% / +30.6% -- flat, so there is no
+            # fraction that keeps P1 past its cliff and P27 in front of its own (rfmid.log).  The
+            # components say why: with more worker time P27's Z1 and Z2 fall and Z3 roughly doubles,
+            # 649 -> 1230, and its polish is what was buying those bays back.  Seven attempts at a
+            # feature separating it from the five winners failed -- peak_util puts it at 1.13,
+            # between P1's 1.02 and P3's 1.18, and polish return puts it beside P16, also a winner.
+            # So this ships as a majority bet on the band, not as a setting that is right everywhere.
+            for _k, _v in (("OGC_ORDER", "lst"), ("OGC_W3MUL", "0.5"), ("OGC_RESFRAC", "0.05")):
                 if _k not in os.environ:
                     os.environ[_k] = _v
                     _DIRGATE_INJECTED.append(_k)

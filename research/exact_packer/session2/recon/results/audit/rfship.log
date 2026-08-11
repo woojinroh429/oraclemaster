@@ -7,3 +7,5 @@ P21 [a.p21.new]     60s  obj=1087112     Z1=16.0     Z2=8092   Z3=2144.0    feas
 P4  [a.p4.prev]     60s  obj=2813285     Z1=331.0    Z2=2065   Z3=3189.0    feas=y   ran 47s  py3.12
 # [a.p4.new]
 P4  [a.p4.new]      60s  obj=2713254     Z1=297.0    Z2=3444   Z3=3201.0    feas=y   ran 46s  py3.12
+# [a.p2.prev]
+P2  [a.p2.prev]     60s  obj=59860379    Z1=4409.0   Z2=2658   Z3=7097.0    feas=y   ran 51s  py3.12
