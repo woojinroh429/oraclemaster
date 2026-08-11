@@ -4065,7 +4065,13 @@ def _worker(args):
         _BEAMCAP = float(os.environ.get("OGC_BEAMCAP", "0"))
     except Exception:
         _BEAMCAP = 0.0
-    # OGC_PROBE=<seconds>: CAP THE COMPULSORY FIRST TRY.  Absent or 0 = off and byte-identical.
+    # OGC_FIRSTCAP=<seconds>: CAP THE COMPULSORY FIRST TRY.  Absent or 0 = off, byte-identical.
+    #
+    # NOT OGC_PROBE.  That name was already taken by the repair passes' opening slice, a FRACTION
+    # of the budget clamped to [0.005, 0.50] -- so OGC_PROBE=2 silently meant "open every repair
+    # operator at 50% of the clock", six times its 1/(2n) default, on top of whatever this knob
+    # was meant to do.  results/audit/probe.log and the K arm of gainfair.log were run that way
+    # and are void; their losses cannot be attributed to the first-try cap.
     #
     # `slot` opens every search operator at 20% of the budget and `unt` runs each untried operator
     # before selection by rate begins, so the opening probes are a fixed FRACTION of the clock and
@@ -4092,7 +4098,7 @@ def _worker(args):
     # that needs ten seconds still reaches them, two tries later and having paid two seconds to
     # find out rather than eleven.
     try:
-        _PROBE = float(os.environ.get("OGC_PROBE", "0"))
+        _PROBE = float(os.environ.get("OGC_FIRSTCAP", "0"))
     except Exception:
         _PROBE = 0.0
     # OGC_GAINFAIR=1 drops the floor-escape credit; reasoning is at the point of use below.
@@ -4261,7 +4267,7 @@ def _worker(args):
         # 12.6% of the answer comes from the operators this cap does not touch.
         if _BEAMCAP > 0.0 and ops[k][0] == "beam":
             _ask = max(1.0, min(_ask, _BEAMCAP))
-        # The compulsory first try is a sample, not a run.  See OGC_PROBE above.
+        # The compulsory first try is a sample, not a run.  See OGC_FIRSTCAP above.
         if _PROBE > 0.0 and tried[k] == 0:
             _ask = max(1.0, min(_ask, _PROBE))
         st = time.time()

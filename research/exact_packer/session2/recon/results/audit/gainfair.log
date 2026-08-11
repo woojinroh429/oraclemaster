@@ -57,3 +57,16 @@ OGC_PROBE and OGC_GAINFAIR both stay in the file at default off, byte-identical.
 instruments that established the above and each is one env away.
 
 SHIPPING DECISION UNCHANGED: B, delivered as OGC2026_capfix.zip.
+
+CORRECTION -- THE K ARM IS VOID
+===============================
+K was "0.05 + GAINFAIR + OGC_PROBE=2", and OGC_PROBE collided with a pre-existing variable meaning
+the repair passes' opening slice as a fraction of the budget.  K therefore also opened every repair
+operator at 50% of the clock.  Its numbers -- prob_16 -2.2%, prob_7 +17.1%, sum +6.16% -- measure
+that, not the first-try cap, and the claim that the gain fix "defuses" the probe cap is withdrawn.
+
+THE J ARM STANDS.  It sets only OGC_GAINFAIR=1 and touches no colliding name: +3.39% over the band,
+with prob_1 and prob_3 returning B's value to the digit and prob_27 losing 25.0%.  The finding it
+supports is unchanged and is the one that mattered: dropping the floor-escape credit really does
+reallocate the budget (pref 11.1% -> 28.0% of the clock, beam 29.4% -> 11.4%) and the answers do
+not move.

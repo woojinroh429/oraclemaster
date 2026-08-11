@@ -53,3 +53,31 @@ because both are invisible beside 978,969,222.
 
 OGC_PROBE stays in the file at default 0 (off, byte-identical).  It is the instrument that found
 this and is one env away if the gain fix changes its sign.
+
+RETRACTION -- probe.log IS VOID
+===============================
+OGC_PROBE WAS ALREADY TAKEN.  It is the repair passes' opening slice, a FRACTION of the budget
+clamped to [0.005, 0.50], defaulting to 1/(2n):
+
+    _pf = min(0.50, max(0.005, float(_pv)))
+    _rep = (1.0 / (2.0 * len(ops))) if _pf is None else _pf
+    slot = [budget * (0.20 if o[3] else _rep) for o in ops]
+
+The knob added today read the same name.  So every cell in this file ran with OGC_PROBE=2 meaning
+BOTH "cap the first try at 2 s" AND "open every repair operator at 50% of the budget" -- six times
+the 1/12 default.  The 30-60% losses on prob_7, prob_16 and prob_33 cannot be attributed to the
+first-try cap, and the conclusion drawn from them -- that cheap probes change who wins the
+floor-escape race -- has no support from this data.
+
+THE IDEA WAS ALSO NOT NEW.  The pre-existing note at the same site records a previous session
+running OGC_OPSTAT on prob_1 at 240 s, finding bay and z1 taking 21.3% of the worker for nothing,
+and adding exactly this smaller-first-look for repair passes.  It also records why SEARCH operators
+are deliberately exempt: "a beam either finishes or returns nothing, so a probe-sized slice starves
+it rather than pricing it."  That is the design decision today's arm was unknowingly reversing.
+
+The knob is renamed OGC_FIRSTCAP.  Re-running is possible but the prior is now poor: the exemption
+it fights is documented and reasoned, and gainfair.log's J arm -- the clean half, with no
+OGC_PROBE set -- lost 3.39% on its own.
+
+NOT SHIPPED, AND THE SUBMISSION IS UNAFFECTED.  OGC2026_capfix.zip was built at 13:31, before any
+of this was written; its three OGC_PROBE matches are the pre-existing implementation.
