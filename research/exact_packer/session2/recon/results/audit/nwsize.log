@@ -118,3 +118,5 @@ P1  [n.p1.w2.r2]    30s  obj=605585      Z1=8.0      Z2=4083   Z3=900.0     feas
 P1  [n.p1.w3.r2]    30s  obj=647835      Z1=21.0     Z2=6876   Z3=812.0     feas=y   ran 26s  py3.12
 # [n.p1.w4.r2]
 P1  [n.p1.w4.r2]    30s  obj=647835      Z1=21.0     Z2=6876   Z3=812.0     feas=y   ran 27s  py3.12
+# [n.p3.w1.r2]
+P3  [n.p3.w1.r2]    30s  obj=4734179     Z1=185.0    Z2=6798   Z3=7636.0    feas=y   ran 29s  py3.12
