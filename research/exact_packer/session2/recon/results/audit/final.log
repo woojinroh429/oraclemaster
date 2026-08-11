@@ -1,3 +1,4 @@
 # [A.p1.r1]
 P1  [A.p1.r1]       60s  obj=508193      Z1=11.0     Z2=5552   Z3=697.0     feas=y   ran 31s  py3.12
 # [B.p1.r1]
+P1  [B.p1.r1]       60s  obj=571668      Z1=18.0     Z2=5954   Z3=723.0     feas=y   ran 58s  py3.12
