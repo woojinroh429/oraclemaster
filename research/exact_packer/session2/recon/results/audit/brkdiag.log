@@ -74,3 +74,42 @@ P1  [d.p1.tpctl.brkonly.60]    60s  obj=683809      Z1=22.0     Z2=6645   Z3=862
   opstat  brk         2      34.0   44.7%       110941     3264.5
   opstat  TOTAL       7      75.3   98.9%                        
 P1  [d.p1.tpctl.brkonly.120]   120s  obj=533289      Z1=15.0     Z2=4228   Z3=701.0     feas=y   ran 80s  py3.12
+BRKDIAGDONE
+
+VERDICT -- brkdiag
+==================
+brk IS STARVED, FEEDING IT WORKS, AND THE FOOD BUYS NOTHING.
+
+                          brk s   brk gain    final obj
+    stock 60                0.4          0      712,652
+    beam,brk 60             2.0          0      605,585
+    beam,brk 60 floor=25   34.0     62,222      605,585      <- 17x the seconds, same answer
+    beam,brk 120           33.9    110,941      533,289
+    beam,brk 240           68.3     75,072      480,916
+    tpctl=0 60              0.0          0      712,652      <- identical to stock
+
+THE STARVATION IS REAL AND IT IS SELF-INFLICTED.  Selection is max(gain/spent), so an operator that
+returns zero on its first short probe is never chosen again; brk's default floor of 8 s is not
+enough to finish a set-packing search, so it books zero and starves.  Raising OGC_BRKFLOOR to 25
+breaks that loop exactly as intended -- 0.4 s becomes 34 s and the gain goes 0 -> 62,222.
+
+AND THE FINAL ANSWER DOES NOT MOVE.  605,585 with 2 seconds of brk, 605,585 with 34.  The 62,222 is
+credited against the pool incumbent, but the answer returned is the best draw the beam produced, and
+brk's repack improves a solution the search reaches anyway.  Seventeen times the budget, no change
+in the digit.
+
+THE 120 s AND 240 s GAINS ARE THE CLOCK, NOT THE OPERATOR.  Those cells run OGC_OPS=beam,brk with
+four operators switched off, so 533,289 and 480,916 measure what a doubled and quadrupled budget
+buys the beam, not what brk contributes.
+
+OGC_TPCTL=0 IS INERT HERE.  The OpenMP conflict-graph build the file names as "where brk's 34-36 s
+goes" does unlock, but brk was not called at all in that cell and the total is stock's to the digit.
+Whether the parallel build pays has to be asked somewhere brk actually runs.
+
+prob_3 SAYS THIS IS NOT GENERAL.  brk took 0 calls under beam,brk and 4.0 s for zero gain in stock,
+and the restricted roster was 3.3% WORSE than stock (4,903,064 against 4,748,401) -- so on that
+instance the four operators brk displaces are worth more than brk is.
+
+WHAT IT LEAVES.  brk is not the route to prob_1.  Fourteen approaches have now been tried on this
+instance and every one lands back in the same two or three attractors the beam produces; the
+operator layer is not what is holding it.
