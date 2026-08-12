@@ -164,3 +164,4 @@ PARFILL round=1 parity=even even=4794485 odd=4941368 wids=[12, 14, 16]
 FILL round=1 budget=15 moved=0 best=4748401
 P3  [C.p3.r3]       60s  obj=4748401     Z1=189.0    Z2=6316   Z3=7644.0    feas=y   ran 59s  py3.12
 # WALL [C.p3.r3] 59.77
+FFWALLDONE
