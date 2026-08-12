@@ -20,3 +20,30 @@ P1  [z1op]          60s  obj=492458      Z1=2.0      Z2=2708   Z3=785.0     feas
 P1  [bmul_all15]    60s  obj=492458      Z1=2.0      Z2=2708   Z3=785.0     feas=y   ran 33s  py3.12
 # [bcap192_pref]
 P1  [bcap192_pref]    60s  obj=492458      Z1=2.0      Z2=2708   Z3=785.0     feas=y   ran 34s  py3.12
+P1HUNTDONE
+
+VERDICT -- p1hunt
+=================
+ELEVEN ARMS, ONE VALUE.  THE SWEEP MEASURED THE SALVAGE, NOT THE SEARCH.
+
+Every cell -- control, BCAP 64/96/137/192/256, PREFSEARCH, FINEFRAC 0.85/0.40, Z1OP, BMULSET, and
+BCAP192+PREFSEARCH -- returned 492,458 with identical components and a 33-36 s wall time.
+
+THE CAP WAS TOO SMALL AND THAT IS THE WHOLE STORY.  At OGC_WORKCAP=5000 the beam exhausts its work
+allowance early, takes the branch at the head of the level loop, and finishes through
+greedy_contact_from on the best partial state.  That rollout reads none of these knobs, so every
+arm converges on the same completion.  The mode is deterministic and it is measuring the wrong
+thing.
+
+WHAT THIS DOES AND DOES NOT RETRACT.  OGC_WORKCAP is still exact for knobs that change work
+CONSUMPTION: `work += nbeam*CBMCAND`, so OGC_MCAND shifts when the cap binds and moved prob_1 42.6%
+in mcand.log.  Those results stand.  Knobs that leave work accumulation alone -- beam width, the
+operator roster, the two-rung schedule -- cannot be seen at any cap that makes the beam salvage,
+and at a cap large enough to avoid salvaging the beam simply completes and the cap stops binding
+(20,000 and 80,000 both returned 568,924).  The window where this instrument sees a width or roster
+knob may not exist.
+
+SO THE CLAIM MADE EARLIER TODAY -- that OGC_WORKCAP removes the noise that blocked this study -- was
+half right and is corrected here.  It removes it for one knob family.  For the rest the clock is
+still the only instrument, and the only way through is draws: bcapwall.log and opwall.log take
+prob_1 six deep and gate anything that wins on prob_3 and prob_16.
