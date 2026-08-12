@@ -18,3 +18,13 @@ P1  [b120.f8.r1]   120s  obj=584609      Z1=20.0     Z2=7223   Z3=716.0     feas
   opstat  brk         1      18.7   24.9%        28026     1498.5
   opstat  TOTAL       9      74.4   99.2%                        
 P1  [b120.f20.r1]   120s  obj=584609      Z1=20.0     Z2=7223   Z3=716.0     feas=y   ran 78s  py3.12
+# [b120.f35.r1]
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        6      41.2   54.1%    978876007 23780349.8
+  opstat  grow        1      13.5   17.7%       141929    10522.7
+  opstat  bal         2       0.0    0.0%            0        0.0
+  opstat  pref        2       6.8    8.9%         2511      370.8
+  opstat  bay         1      14.2   18.6%            0        0.0
+  opstat  brk         0       0.0    0.0%            0        0.0
+  opstat  TOTAL      12      75.6   99.3%                        
+P1  [b120.f35.r1]   120s  obj=612635      Z1=17.0     Z2=5432   Z3=805.0     feas=y   ran 80s  py3.12
