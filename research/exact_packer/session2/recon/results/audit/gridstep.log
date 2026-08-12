@@ -450,3 +450,15 @@ BEAMSTAT salv=0 capped=0 used=0.88 level=1.00 B=96 K=4 work=1090
 BEAMSTAT salv=0 capped=0 used=0.88 level=1.00 B=67 K=5 work=1126
 BEAMSTAT salv=0 capped=0 used=0.88 level=1.00 B=96 K=3 work=1105
 BEAMSTAT salv=0 capped=0 used=0.89 level=1.00 B=67 K=5 work=1171
+BEAMSTAT salv=1 capped=0 used=0.10 level=0.37 B=96 K=3 work=142
+BEAMSTAT salv=1 capped=0 used=0.10 level=0.38 B=48 K=6 work=158
+BEAMSTAT salv=0 capped=1 used=0.86 level=1.00 B=48 K=6 work=1338
+BEAMSTAT salv=0 capped=0 used=0.88 level=1.00 B=67 K=5 work=1116
+WSTAT round=0 n=3 712652 693791 645448  spread=10.41%
+PARFILL round=1 parity=even even=645448 odd=693791 wids=[12, 14, 16]
+BEAMSTAT salv=0 capped=0 used=0.88 level=1.00 B=67 K=5 work=851
+BEAMSTAT salv=0 capped=0 used=0.88 level=1.00 B=96 K=4 work=838
+BEAMSTAT salv=0 capped=0 used=0.88 level=1.00 B=48 K=6 work=1020
+BEAMSTAT salv=0 capped=0 used=0.89 level=1.00 B=96 K=3 work=846
+BEAMSTAT salv=0 capped=0 used=0.88 level=1.00 B=96 K=4 work=925
+BEAMSTAT salv=1 capped=0 used=0.90 level=0.99 B=67 K=5 work=912
