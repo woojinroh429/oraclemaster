@@ -68,3 +68,9 @@ P1  [d.p1.tpctl.60]    60s  obj=712652      Z1=20.0     Z2=2904   Z3=951.0     f
   opstat  brk         2       1.9    7.7%            0        0.0
   opstat  TOTAL       9      24.7   98.1%                        
 P1  [d.p1.tpctl.brkonly.60]    60s  obj=683809      Z1=22.0     Z2=6645   Z3=862.0     feas=y   ran 31s  py3.12
+# [d.p1.tpctl.brkonly.120]
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        5      41.3   54.3%    978913787 23719629.1
+  opstat  brk         2      34.0   44.7%       110941     3264.5
+  opstat  TOTAL       7      75.3   98.9%                        
+P1  [d.p1.tpctl.brkonly.120]   120s  obj=533289      Z1=15.0     Z2=4228   Z3=701.0     feas=y   ran 80s  py3.12
