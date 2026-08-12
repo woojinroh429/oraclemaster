@@ -14,3 +14,4 @@ P1  [d.p1.stock.60]    60s  obj=712652      Z1=20.0     Z2=2904   Z3=951.0     f
   opstat  brk         2       2.0    7.6%            0        0.0
   opstat  TOTAL       9      24.8   97.2%                        
 P1  [d.p1.brkonly.60]    60s  obj=605585      Z1=8.0      Z2=4083   Z3=900.0     feas=y   ran 31s  py3.12
+# [d.p1.brkonly.120]
