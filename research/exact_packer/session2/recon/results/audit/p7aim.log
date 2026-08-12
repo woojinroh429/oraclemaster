@@ -129,3 +129,32 @@ BEAMSTAT salv=0 capped=0 used=0.88 level=1.00 B=67 K=5 work=405
 FILL round=1 budget=18 moved=1 best=580990
 P1  [B.p1.r1]       60s  obj=580990      Z1=7.0      Z2=6907   Z3=856.0     feas=y   ran 52s  py3.12
 # WALL [B.p1.r1] 52.26
+# [C.p1.r1]
+DIRGATE fired: peak_util=1.016 in [1.00,1.30], timelimit 60 <= 60
+BEAMSTAT salv=1 capped=0 used=0.50 level=0.75 B=67 K=5 work=336
+BEAMSTAT salv=0 capped=0 used=0.96 level=1.00 B=96 K=4 work=551
+BEAMSTAT salv=0 capped=0 used=0.96 level=1.00 B=67 K=5 work=573
+BEAMSTAT salv=1 capped=0 used=0.30 level=0.61 B=67 K=5 work=326
+BEAMSTAT salv=0 capped=0 used=0.96 level=1.00 B=96 K=3 work=902
+BEAMSTAT salv=0 capped=0 used=0.97 level=1.00 B=67 K=5 work=956
+BEAMSTAT salv=1 capped=0 used=0.18 level=0.29 B=96 K=3 work=114
+BEAMSTAT salv=0 capped=0 used=0.96 level=1.00 B=67 K=5 work=488
+BEAMSTAT salv=0 capped=0 used=0.97 level=1.00 B=48 K=6 work=644
+BEAMSTAT salv=1 capped=0 used=0.11 level=0.19 B=48 K=6 work=76
+BEAMSTAT salv=0 capped=0 used=0.95 level=1.00 B=96 K=3 work=468
+WSTAT round=0 n=3 712652 871005 683809  spread=27.38%
+PARFILL round=1 parity=even even=683809 odd=871005 wids=[12, 14, 16]
+BEAMSTAT salv=0 capped=0 used=0.96 level=1.00 B=96 K=4 work=393
+BEAMSTAT salv=0 capped=0 used=0.96 level=1.00 B=67 K=5 work=407
+BEAMSTAT salv=0 capped=0 used=0.96 level=1.00 B=48 K=6 work=467
+BEAMSTAT salv=0 capped=0 used=0.99 level=1.00 B=96 K=3 work=658
+BEAMSTAT salv=0 capped=0 used=0.99 level=1.00 B=96 K=4 work=682
+BEAMSTAT salv=0 capped=0 used=0.99 level=1.00 B=67 K=5 work=723
+BEAMSTAT salv=0 capped=0 used=0.96 level=1.00 B=67 K=5 work=404
+BEAMSTAT salv=0 capped=0 used=0.97 level=1.00 B=48 K=6 work=448
+BEAMSTAT salv=0 capped=0 used=0.95 level=1.00 B=96 K=4 work=392
+BEAMSTAT salv=0 capped=0 used=0.97 level=1.00 B=96 K=3 work=411
+BEAMSTAT salv=0 capped=0 used=0.95 level=1.00 B=96 K=4 work=470
+FILL round=1 budget=18 moved=1 best=656866
+P1  [C.p1.r1]       60s  obj=656866      Z1=19.0     Z2=5331   Z3=857.0     feas=y   ran 52s  py3.12
+# WALL [C.p1.r1] 52.32
