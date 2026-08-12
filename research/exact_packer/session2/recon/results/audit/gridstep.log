@@ -867,3 +867,33 @@ BEAMSTAT salv=0 capped=0 used=0.89 level=1.00 B=67 K=5 work=2571
 FILL round=1 budget=17 moved=1 best=528760
 P1  [D.p1.r3]       60s  obj=528760      Z1=22.0     Z2=4162   Z3=616.0     feas=y   ran 48s  py3.12
 # WALL [D.p1.r3] 48.36
+# [E.p1.r3]
+DIRGATE fired: peak_util=1.016 in [1.00,1.30], timelimit 60 <= 60
+BEAMSTAT salv=1 capped=0 used=0.10 level=0.74 B=67 K=5 work=414
+BEAMSTAT salv=1 capped=0 used=0.10 level=0.32 B=67 K=5 work=152
+BEAMSTAT salv=0 capped=1 used=0.85 level=1.00 B=67 K=5 work=3702
+BEAMSTAT salv=0 capped=1 used=0.88 level=1.00 B=96 K=4 work=3652
+BEAMSTAT salv=0 capped=0 used=0.88 level=1.00 B=96 K=3 work=1100
+BEAMSTAT salv=0 capped=0 used=0.89 level=1.00 B=67 K=5 work=1183
+BEAMSTAT salv=1 capped=0 used=0.10 level=0.69 B=96 K=3 work=402
+BEAMSTAT salv=1 capped=0 used=0.10 level=0.91 B=48 K=6 work=514
+BEAMSTAT salv=0 capped=0 used=0.10 level=1.00 B=96 K=4 work=542
+BEAMSTAT salv=1 capped=0 used=0.10 level=0.35 B=96 K=4 work=146
+BEAMSTAT salv=1 capped=0 used=0.10 level=0.75 B=67 K=5 work=430
+BEAMSTAT salv=0 capped=1 used=0.87 level=1.00 B=48 K=6 work=4135
+BEAMSTAT salv=1 capped=0 used=0.10 level=0.69 B=67 K=5 work=368
+BEAMSTAT salv=0 capped=1 used=0.85 level=1.00 B=67 K=5 work=3774
+WSTAT round=0 n=3 712652 771740 606074  spread=27.33%
+PARFILL round=1 parity=even even=606074 odd=771740 wids=[12, 14, 16]
+BEAMSTAT salv=0 capped=1 used=0.87 level=1.00 B=96 K=4 work=2505
+BEAMSTAT salv=0 capped=1 used=0.88 level=1.00 B=48 K=6 work=2907
+BEAMSTAT salv=0 capped=1 used=0.88 level=1.00 B=67 K=5 work=2662
+BEAMSTAT salv=0 capped=0 used=0.88 level=1.00 B=96 K=4 work=776
+BEAMSTAT salv=0 capped=0 used=0.90 level=1.00 B=67 K=5 work=819
+BEAMSTAT salv=0 capped=0 used=0.90 level=1.00 B=96 K=3 work=756
+BEAMSTAT salv=0 capped=1 used=0.88 level=1.00 B=48 K=6 work=2888
+BEAMSTAT salv=0 capped=1 used=0.89 level=1.00 B=67 K=5 work=2693
+BEAMSTAT salv=0 capped=1 used=0.87 level=1.00 B=96 K=4 work=2632
+FILL round=1 budget=17 moved=1 best=528760
+P1  [E.p1.r3]       60s  obj=528760      Z1=22.0     Z2=4162   Z3=616.0     feas=y   ran 48s  py3.12
+# WALL [E.p1.r3] 48.28
