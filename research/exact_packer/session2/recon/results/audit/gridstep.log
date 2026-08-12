@@ -378,3 +378,34 @@ BEAMSTAT salv=1 capped=0 used=0.10 level=0.12 B=48 K=6 work=84
 FILL round=1 budget=16 moved=1 best=4377816
 P16 [E.p16.r1]      60s  obj=4364816     Z1=253.0    Z2=2939   Z3=3931.0    feas=y   ran 52s  py3.12
 # WALL [E.p16.r1] 52.84
+# [A.p1.r2]
+DIRGATE fired: peak_util=1.016 in [1.00,1.30], timelimit 60 <= 60
+BEAMSTAT salv=1 capped=0 used=0.10 level=0.27 B=67 K=5 work=98
+BEAMSTAT salv=0 capped=0 used=0.87 level=1.00 B=67 K=5 work=802
+BEAMSTAT salv=0 capped=0 used=0.88 level=1.00 B=96 K=4 work=765
+BEAMSTAT salv=1 capped=0 used=0.10 level=0.35 B=67 K=5 work=168
+BEAMSTAT salv=0 capped=0 used=0.88 level=1.00 B=96 K=3 work=1295
+BEAMSTAT salv=0 capped=0 used=0.88 level=1.00 B=67 K=5 work=1446
+BEAMSTAT salv=1 capped=0 used=0.10 level=0.28 B=96 K=3 work=104
+BEAMSTAT salv=1 capped=0 used=0.10 level=0.27 B=48 K=6 work=102
+BEAMSTAT salv=0 capped=0 used=0.87 level=1.00 B=67 K=5 work=801
+BEAMSTAT salv=1 capped=0 used=0.10 level=0.25 B=96 K=4 work=94
+BEAMSTAT salv=1 capped=0 used=0.10 level=0.39 B=96 K=4 work=166
+BEAMSTAT salv=0 capped=0 used=0.88 level=1.00 B=96 K=3 work=830
+WSTAT round=0 n=3 748741 772500 647835  spread=19.24%
+PARFILL round=1 parity=even even=647835 odd=772500 wids=[12, 14, 16]
+BEAMSTAT salv=0 capped=0 used=0.87 level=1.00 B=67 K=5 work=656
+BEAMSTAT salv=0 capped=0 used=0.87 level=1.00 B=96 K=4 work=629
+BEAMSTAT salv=0 capped=0 used=0.88 level=1.00 B=48 K=6 work=756
+BEAMSTAT salv=0 capped=0 used=0.88 level=1.00 B=96 K=3 work=1099
+BEAMSTAT salv=0 capped=0 used=0.89 level=1.00 B=96 K=4 work=1073
+BEAMSTAT salv=0 capped=0 used=0.90 level=1.00 B=67 K=5 work=1167
+BEAMSTAT salv=0 capped=0 used=0.88 level=1.00 B=48 K=6 work=762
+BEAMSTAT salv=0 capped=0 used=0.87 level=1.00 B=67 K=5 work=657
+BEAMSTAT salv=0 capped=0 used=0.87 level=1.00 B=96 K=4 work=610
+BEAMSTAT salv=0 capped=0 used=0.87 level=1.00 B=96 K=4 work=714
+BEAMSTAT salv=0 capped=0 used=0.87 level=1.00 B=96 K=3 work=665
+BEAMSTAT salv=0 capped=0 used=0.86 level=1.00 B=67 K=5 work=723
+FILL round=1 budget=20 moved=0 best=647835
+P1  [A.p1.r2]       60s  obj=647835      Z1=21.0     Z2=6876   Z3=812.0     feas=y   ran 48s  py3.12
+# WALL [A.p1.r2] 48.71
