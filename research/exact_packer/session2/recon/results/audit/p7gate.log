@@ -22,3 +22,5 @@ PARFILL round=1 parity=even even=822470 odd=1133862 wids=[12, 14, 16]
 FILL round=1 budget=16 moved=0 best=821636
 P27 [C.p27.r1]      60s  obj=790645      Z1=50.0     Z2=588    Z3=1163.0    feas=y   ran 52s  py3.12
 # WALL [C.p27.r1] 52.73
+# [A.p33.r1]
+DIRGATE fired: peak_util=1.236 in [1.00,1.30], timelimit 60 <= 60
