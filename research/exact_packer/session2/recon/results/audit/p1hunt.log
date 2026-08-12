@@ -1,1 +1,4 @@
 # [ctl]
+P1  [ctl]           60s  obj=492458      Z1=2.0      Z2=2708   Z3=785.0     feas=y   ran 36s  py3.12
+# [bcap137]
+P1  [bcap137]       60s  obj=492458      Z1=2.0      Z2=2708   Z3=785.0     feas=y   ran 34s  py3.12
