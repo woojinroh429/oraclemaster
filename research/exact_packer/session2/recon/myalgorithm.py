@@ -4842,16 +4842,23 @@ def algorithm(prob_info, timelimit=60):
                 _aw = float(os.environ.get("OGC_CPANCHW", "100"))
             except Exception:
                 _aw = 100.0
-            _m = len(prob_info["bays"])
-            _blocks = []
-            for _i, _b in enumerate(prob_info["blocks"]):
-                _c = dict(_b)
-                _p = list(_b["bay_preferences"])
-                _aw_i = max(_aw, max(_p) - min(_p) + 1.0)   # planned bay must be the maximum
-                _c["bay_preferences"] = [_p[_j] + (_aw_i if _j == _plan[_i] else 0.0)
-                                         for _j in range(_m)]
-                _blocks.append(_c)
-            prob_info = dict(prob_info); prob_info["blocks"] = _blocks
+            # OGC_CPANCHW=0 SKIPS THE PREFERENCE REWRITE, WHICH IS THE ONLY WAY TO PRICE THE PLAN'S
+            # TIMES ON THEIR OWN.  The toll is measured as monotonically bad -- 515,188 at 0,
+            # 703,795 at 100, 1,849,481 at 300, buying Z3 at about eight tardiness units per
+            # preference unit -- and assignment_first.md found it is not even needed for the bays:
+            # 145 of 150 blocks already sit where the plan put them without it.  With the toll on,
+            # any measurement of OGC_CPRT is a measurement of the toll plus the times.
+            if _aw > 0.0:
+                _m = len(prob_info["bays"])
+                _blocks = []
+                for _i, _b in enumerate(prob_info["blocks"]):
+                    _c = dict(_b)
+                    _p = list(_b["bay_preferences"])
+                    _aw_i = max(_aw, max(_p) - min(_p) + 1.0)   # planned bay must be the maximum
+                    _c["bay_preferences"] = [_p[_j] + (_aw_i if _j == _plan[_i] else 0.0)
+                                             for _j in range(_m)]
+                    _blocks.append(_c)
+                prob_info = dict(prob_info); prob_info["blocks"] = _blocks
             # OGC_CPORD=1 also hands over the plan's SCHEDULE, as a dispatch order.  The plan's own
             # answer waits 37 blocks by up to 9 units to reach Z1 = 1; the beam discards those
             # times, picks its own, and pays Z1 = 41 to obey the same bays.  Dispatching in planned
@@ -4861,6 +4868,49 @@ def algorithm(prob_info, timelimit=60):
             # single largest effect measured this session, so it is priced separately.
             if os.environ.get("OGC_CPORD") == "1" and _pstart is not None:
                 prob_info["_cp_start"] = list(_pstart)
+            # OGC_CPRT: RAISE EACH BLOCK'S RELEASE TIME TO ITS PLANNED START.
+            #
+            # assignment_first.md measured where the plan actually leaks, and it is not the bays:
+            # 145 of 150 blocks sit where CP-SAT put them, and the plan's 248,467 still realises as
+            # 667,853.  "The gap is entirely in time.  The plan reaches Z1 = 1 by making 37 blocks
+            # WAIT up to nine units past their release; the beam never sees those times, dispatches
+            # in its axis's own order, and has to rediscover the same seating."
+            #
+            # Two channels have been tried for the schedule and neither carries it.  The preference
+            # toll (OGC_CPANCHW) reaches every stage of the search but only says WHERE, so the beam
+            # adds its own displacements on top of the plan's instead of substituting them -- the
+            # same file's conclusion.  OGC_CPORD hands over planned-start ORDER, which says who goes
+            # first but still lets the beam seat everyone as early as it can.
+            #
+            # A release time is the one field that says WAIT.  Every stage already respects it --
+            # the C++ reads shapes[b].rt, room_at walks entry times forward from it, and the
+            # rollout and repair passes all honour it -- so raising it to the planned start makes
+            # the beam produce the plan's seating through its own machinery, with the geometry
+            # still entirely the beam's business.  Nothing is pinned: a block may still go later
+            # than planned if the packing demands it.
+            #
+            # THE OBJECTIVE IS SCORED ON THE CALLER'S prob_info, WHICH IS NEVER TOUCHED.  Tardiness
+            # is due_date - completion, and due dates are untouched; raising a release time removes
+            # options from the search but cannot flatter the score.  A wrong plan therefore costs
+            # tardiness honestly rather than hiding it.
+            #
+            # OGC_CPRTF scales how much of the wait to hand over: 1.0 is the plan's start exactly,
+            # 0.5 is halfway between the true release and the planned start, for the case where the
+            # plan is directionally right and quantitatively too aggressive.
+            if os.environ.get("OGC_CPRT") == "1" and _pstart is not None:
+                try:
+                    _rf = float(os.environ.get("OGC_CPRTF", "1.0"))
+                except Exception:
+                    _rf = 1.0
+                _rb2 = []
+                for _i, _b in enumerate(prob_info["blocks"]):
+                    _c = dict(_b)
+                    _r0 = float(_b.get("release_time", 0))
+                    _sp = float(_pstart[_i]) if _i < len(_pstart) else _r0
+                    if _sp > _r0:
+                        _c["release_time"] = int(_r0 + (_sp - _r0) * max(0.0, min(1.0, _rf)))
+                    _rb2.append(_c)
+                prob_info = dict(prob_info); prob_info["blocks"] = _rb2
     # LEAVE THE PARENT A CORE.  With one worker per core the parent is a fifth runnable process on
     # four cores -- it collects results and runs the whole final polish -- so every worker gets
     # less than the core it was budgeted.  Three workers on four cores gives each a full core and
