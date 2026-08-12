@@ -126,3 +126,7 @@ P27 [A.p27.r4]      60s  obj=821636      Z1=50.0     Z2=599    Z3=1221.0    feas
 # [C.p27.r4]
 DIRGATE fired: peak_util=1.132 in [1.00,1.30], timelimit 60 <= 60
 WSTAT round=0 n=3 867410 1086369 1111992  spread=28.20%
+PARFILL round=1 parity=even even=867410 odd=1086369 wids=[12, 14, 16]
+FILL round=1 budget=14 moved=0 best=837671
+P27 [C.p27.r4]      60s  obj=806610      Z1=54.0     Z2=355    Z3=1171.0    feas=y   ran 54s  py3.12
+# WALL [C.p27.r4] 54.40
