@@ -184,3 +184,20 @@ P27 [A.p27.r1]      60s  obj=790645      Z1=50.0     Z2=588    Z3=1163.0    feas
 DIRGATE fired: peak_util=1.132 in [1.00,1.30], timelimit 60 <= 60
 BEAMSTAT salv=0 capped=0 used=0.87 level=1.00 B=96 K=4 work=255
 BEAMSTAT salv=0 capped=0 used=0.87 level=1.00 B=67 K=5 work=264
+BEAMSTAT salv=0 capped=0 used=0.87 level=1.00 B=67 K=5 work=447
+BEAMSTAT salv=0 capped=0 used=0.88 level=1.00 B=96 K=3 work=414
+BEAMSTAT salv=1 capped=0 used=0.91 level=0.42 B=67 K=5 work=260
+BEAMSTAT salv=1 capped=0 used=0.55 level=0.37 B=67 K=5 work=254
+BEAMSTAT salv=0 capped=0 used=0.86 level=1.00 B=48 K=6 work=270
+BEAMSTAT salv=0 capped=0 used=0.86 level=1.00 B=67 K=5 work=258
+WSTAT round=0 n=3 822470 1110825 986621  spread=35.06%
+PARFILL round=1 parity=even even=822470 odd=1110825 wids=[12, 14, 16]
+BEAMSTAT salv=1 capped=0 used=0.91 level=0.55 B=96 K=4 work=134
+BEAMSTAT salv=1 capped=0 used=0.90 level=0.56 B=67 K=5 work=134
+BEAMSTAT salv=1 capped=0 used=0.90 level=0.51 B=48 K=6 work=121
+BEAMSTAT salv=1 capped=0 used=0.54 level=0.81 B=67 K=5 work=174
+BEAMSTAT salv=1 capped=0 used=0.54 level=0.78 B=96 K=3 work=162
+BEAMSTAT salv=1 capped=0 used=0.54 level=0.69 B=96 K=4 work=147
+FILL round=1 budget=17 moved=0 best=821636
+P27 [B.p27.r1]      60s  obj=790645      Z1=50.0     Z2=588    Z3=1163.0    feas=y   ran 53s  py3.12
+# WALL [B.p27.r1] 53.22
