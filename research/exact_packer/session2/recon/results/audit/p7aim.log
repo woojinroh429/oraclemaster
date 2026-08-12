@@ -949,3 +949,4 @@ BEAMSTAT salv=0 capped=0 used=0.59 level=1.00 B=48 K=6 work=474
 FILL round=1 budget=17 moved=1 best=966921
 P33 [C.p33.r3]      60s  obj=966921      Z1=79.0     Z2=692    Z3=2170.0    feas=y   ran 52s  py3.12
 # WALL [C.p33.r3] 52.05
+P7AIMDONE
