@@ -87,3 +87,5 @@ DIRGATE fired: peak_util=1.132 in [1.00,1.30], timelimit 60 <= 60
 WSTAT round=0 n=3 805539 1133862 1021068  spread=40.76%
 P27 [A.p27.r3]      60s  obj=805539      Z1=36.0     Z2=473    Z3=1280.0    feas=y   ran 30s  py3.12
 # WALL [A.p27.r3] 30.85
+# [C.p27.r3]
+DIRGATE fired: peak_util=1.132 in [1.00,1.30], timelimit 60 <= 60
