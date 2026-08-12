@@ -5,3 +5,8 @@ P1  [t20.p1.r1]     20s  obj=712040      Z1=29.0     Z2=4299   Z3=843.0     feas
 # WALL [t20.p1.r1] 11.98
 # [t60.p1.r1]
 DIRGATE fired: peak_util=1.016 in [1.00,1.30], timelimit 60 <= 60
+WSTAT round=0 n=3 669732 663005 683809  spread=3.14%
+PARFILL round=1 parity=odd even=669732 odd=663005 wids=[13, 15, 17]
+FILL round=1 budget=18 moved=0 best=663005
+P1  [t60.p1.r1]     60s  obj=663005      Z1=23.0     Z2=8288   Z3=808.0     feas=y   ran 51s  py3.12
+# WALL [t60.p1.r1] 51.14
