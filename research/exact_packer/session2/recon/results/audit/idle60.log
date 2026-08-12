@@ -82,3 +82,6 @@ P1  [C.p1.r3]       60s  obj=605585      Z1=8.0      Z2=4083   Z3=900.0     feas
 # [D.p1.r3]
 P1  [D.p1.r3]       60s  obj=605585      Z1=8.0      Z2=4083   Z3=900.0     feas=y   ran 57s  py3.12
 # WALL [D.p1.r3] 57.11
+# [A.p1.r4]
+P1  [A.p1.r4]       60s  obj=689733      Z1=33.0     Z2=3574   Z3=765.0     feas=y   ran 35s  py3.12
+# WALL [A.p1.r4] 35.30
