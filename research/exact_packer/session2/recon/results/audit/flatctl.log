@@ -13,3 +13,6 @@ P3  [g60off.p3.r1]    60s  obj=4716851     Z1=147.0    Z2=6959   Z3=7839.0    fe
 DIRGATE fired: peak_util=1.182 in [1.00,1.30], timelimit 180 <= 300
 WSTAT round=0 n=3 4611129 4755163 4667711  spread=3.12%
 PARFILL round=1 parity=even even=4611129 odd=4755163 wids=[12, 14, 16]
+FILL round=1 budget=72 moved=0 best=4500136
+P3  [g180on.p3.r1]   180s  obj=4500136     Z1=96.0     Z2=7745   Z3=7741.0    feas=y   ran 173s  py3.12
+# WALL [g180on.p3.r1] 173.66
