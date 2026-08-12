@@ -42,3 +42,4 @@ P1  [d.p1.brkfloor.60]    60s  obj=605585      Z1=8.0      Z2=4083   Z3=900.0   
   opstat  brk         1       4.0   15.7%            0        0.0
   opstat  TOTAL       7      24.8   96.7%                        
 P3  [d.p3.brkonly.60]    60s  obj=4903064     Z1=113.0    Z2=5663   Z3=8418.0    feas=y   ran 31s  py3.12
+# [d.p3.stock.60]
