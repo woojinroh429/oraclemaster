@@ -61,3 +61,4 @@ P3  [d.p3.stock.60]    60s  obj=4748401     Z1=189.0    Z2=6316   Z3=7644.0    f
   opstat  bay         1       5.4   19.2%            0        0.0
   opstat  brk         1       0.6    2.0%            0        0.0
   opstat  TOTAL      10      27.5   98.2%                        
+P1  [d.p1.tpctl.60]    60s  obj=712652      Z1=20.0     Z2=2904   Z3=951.0     feas=y   ran 33s  py3.12
