@@ -33,3 +33,7 @@ P1  [g60on.p1.r1]    60s  obj=656901      Z1=18.0     Z2=7565   Z3=857.0     fea
 WSTAT round=0 n=3 712652 738538 683809  spread=8.00%
 P1  [g60off.p1.r1]    60s  obj=683809      Z1=22.0     Z2=6645   Z3=862.0     feas=y   ran 38s  py3.12
 # WALL [g60off.p1.r1] 38.82
+# [g180on.p1.r1]
+DIRGATE fired: peak_util=1.016 in [1.00,1.30], timelimit 180 <= 300
+WSTAT round=0 n=3 571668 808864 543874  spread=48.72%
+PARFILL round=1 parity=even even=543874 odd=808864 wids=[12, 14, 16]
