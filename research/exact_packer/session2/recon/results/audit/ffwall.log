@@ -157,3 +157,10 @@ DIRGATE fired: peak_util=1.182 in [1.00,1.30], timelimit 60 <= 60
 WSTAT round=0 n=3 4793280 4957060 4846987  spread=3.42%
 P3  [A.p3.r3]       60s  obj=4768648     Z1=178.0    Z2=6451   Z3=7749.0    feas=y   ran 35s  py3.12
 # WALL [A.p3.r3] 35.10
+# [C.p3.r3]
+DIRGATE fired: peak_util=1.182 in [1.00,1.30], timelimit 60 <= 60
+WSTAT round=0 n=3 4794485 4941368 4816685  spread=3.06%
+PARFILL round=1 parity=even even=4794485 odd=4941368 wids=[12, 14, 16]
+FILL round=1 budget=15 moved=0 best=4748401
+P3  [C.p3.r3]       60s  obj=4748401     Z1=189.0    Z2=6316   Z3=7644.0    feas=y   ran 59s  py3.12
+# WALL [C.p3.r3] 59.77
