@@ -1912,6 +1912,10 @@ struct Engine {
         beam_level_frac_ = 0.0;
         const int Bmax=std::max(1,B), Bstart=ADAPTB?std::max(1,std::min(B,8)):B;
         int Bcur=Bstart; double work=0.0;   // work = sum over levels of (states expanded)
+        // Marker for the MARGINAL cost estimate below: the clock and the work count as of the last
+        // time the width controller ran.  Both zero means "no previous level", which is exactly
+        // when the average is the only estimate available.
+        double _pm_el=0.0, _pm_work=0.0;
         for(int level=0; level<nord; level++){
             const double _wcap=WORKCAP();
             if(_wcap>0.0 ? (work>_wcap) : (elapsed()>time_budget_s*AIM)){
@@ -1952,8 +1956,51 @@ struct Engine {
                 return {1e18,{}};
             }
             if(ADAPTB && level>0 && work>0.0){
-                // work mode: the unit is a state expansion, not a second, and `per` is 1.
-                double per = _wcap>0.0 ? 1.0 : elapsed()/work;
+                // THE COST ESTIMATE IS POISONED BY FIXED SET-UP, AND IT COSTS THE WHOLE WIDTH.
+                //
+                // `per` is meant to be the price of ONE state expansion, and it was measured as
+                // elapsed()/work -- the average since the call began.  At level 1 the beam holds a
+                // single state, so work is 1 (or CBMCAND), and elapsed() is everything the call has
+                // done so far: shape set-up, the first grid build, the first scan.  The average is
+                // therefore the FIXED cost, not the marginal one, and it is wrong by whatever the
+                // set-up costs relative to one expansion.
+                //
+                // The controller then computes fit = left/(per*rem) with an inflated per, collapses
+                // the width to 1 or 2, and cannot recover: a narrow beam accumulates work slowly,
+                // so the average stays dominated by that same fixed term for the rest of the run.
+                //
+                // MEASURED CONSEQUENCE on stage-2 prob_1 at the shipped settings: work=402 over 150
+                // levels is an average width of 2.7, with Bmax=96 and beam_width_capped()=0 and
+                // level_frac=1.00 at used=0.88 -- the beam is limited neither by the ceiling nor by
+                // the clock.  It completes comfortably at a width of three because the controller
+                // believes each state costs what the entire set-up cost.
+                //
+                // Three otherwise unexplained observations fall out of this one:
+                //   - OGC_STEPS=2 is 5.6-6.3x cheaper per expansion at fixed work (measured under
+                //     OGC_WORKCAP) and yet performs the SAME work in the same wall time when run
+                //     free -- because per is dominated by the fixed term the stride does not touch.
+                //   - raising the budget helps far more than it should: 3x the clock is worth
+                //     -30.7% on prob_1 (results/audit/flatctl.log), because `left` is the only
+                //     term in fit that the budget moves, so width scales with the budget.
+                //   - beam_width_capped() is 0 everywhere, so every measurement that tried to buy
+                //     search by raising OGC_BCAP was raising a ceiling nothing was touching.
+                //
+                // THE MARGINAL COST IS THE RIGHT NUMBER and it is one subtraction away: price the
+                // last level by what the last level actually spent.  The set-up is then charged
+                // once, to level 1, instead of to every level forever.
+                //
+                // OGC_PERMARG=0 restores the average and is byte-identical to the old behaviour.
+                static const bool PERMARG=[](){const char*e=getenv("OGC_PERMARG");
+                                               return !(e&&e[0]=='0');}();
+                double per;
+                if(_wcap>0.0){
+                    per = 1.0;                    // work mode: the unit IS a state expansion
+                } else if(PERMARG && work>_pm_work+1e-9 && elapsed()>_pm_el){
+                    per = (elapsed()-_pm_el)/(work-_pm_work);
+                } else {
+                    per = elapsed()/work;
+                }
+                _pm_el = elapsed(); _pm_work = work;
                 double left = _wcap>0.0 ? (_wcap-work) : (time_budget_s*AIM-elapsed());
                 int rem=nord-level;
                 int fit=(per>1e-12&&rem>0)? (int)(left/(per*(double)rem)) : Bmax;
