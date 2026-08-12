@@ -9,3 +9,12 @@
   opstat  TOTAL       9      74.5   99.1%                        
 P1  [b120.f8.r1]   120s  obj=584609      Z1=20.0     Z2=7223   Z3=716.0     feas=y   ran 78s  py3.12
 # [b120.f20.r1]
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        3      21.0   28.0%    978876007 46525750.3
+  opstat  grow        1      13.5   18.0%       141929    10497.1
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        2       7.3    9.8%         2511      343.2
+  opstat  bay         1      13.8   18.4%            0        0.0
+  opstat  brk         1      18.7   24.9%        28026     1498.5
+  opstat  TOTAL       9      74.4   99.2%                        
+P1  [b120.f20.r1]   120s  obj=584609      Z1=20.0     Z2=7223   Z3=716.0     feas=y   ran 78s  py3.12
