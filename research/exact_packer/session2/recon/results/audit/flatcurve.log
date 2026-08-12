@@ -1,2 +1,5 @@
 # [t20.p1.r1]
 DIRGATE fired: peak_util=1.016 in [1.00,1.30], timelimit 20 <= 60
+WSTAT round=0 n=3 712040 843700 758116  spread=18.49%
+P1  [t20.p1.r1]     20s  obj=712040      Z1=29.0     Z2=4299   Z3=843.0     feas=y   ran 11s  py3.12
+# WALL [t20.p1.r1] 11.98
