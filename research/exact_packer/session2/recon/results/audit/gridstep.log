@@ -838,3 +838,32 @@ BEAMSTAT salv=0 capped=0 used=0.88 level=1.00 B=96 K=4 work=884
 FILL round=1 budget=20 moved=1 best=510450
 P1  [C.p1.r3]       60s  obj=510450      Z1=12.0     Z2=4882   Z3=693.0     feas=y   ran 49s  py3.12
 # WALL [C.p1.r3] 48.97
+# [D.p1.r3]
+DIRGATE fired: peak_util=1.016 in [1.00,1.30], timelimit 60 <= 60
+BEAMSTAT salv=1 capped=0 used=0.10 level=0.74 B=67 K=5 work=432
+BEAMSTAT salv=1 capped=0 used=0.10 level=0.33 B=67 K=5 work=156
+BEAMSTAT salv=0 capped=1 used=0.85 level=1.00 B=67 K=5 work=3739
+BEAMSTAT salv=0 capped=1 used=0.88 level=1.00 B=96 K=4 work=3654
+BEAMSTAT salv=0 capped=0 used=0.87 level=1.00 B=96 K=3 work=1110
+BEAMSTAT salv=0 capped=0 used=0.88 level=1.00 B=67 K=5 work=1218
+BEAMSTAT salv=1 capped=0 used=0.10 level=0.69 B=96 K=3 work=400
+BEAMSTAT salv=1 capped=0 used=0.10 level=0.93 B=48 K=6 work=500
+BEAMSTAT salv=1 capped=0 used=0.10 level=0.73 B=96 K=4 work=414
+BEAMSTAT salv=1 capped=0 used=0.10 level=0.35 B=96 K=4 work=146
+BEAMSTAT salv=1 capped=0 used=0.10 level=0.73 B=67 K=5 work=398
+BEAMSTAT salv=0 capped=1 used=0.85 level=1.00 B=67 K=5 work=3735
+BEAMSTAT salv=0 capped=1 used=0.87 level=1.00 B=48 K=6 work=4182
+WSTAT round=0 n=3 662634 704888 606074  spread=16.30%
+PARFILL round=1 parity=even even=606074 odd=704888 wids=[12, 14, 16]
+BEAMSTAT salv=0 capped=1 used=0.87 level=1.00 B=96 K=4 work=2413
+BEAMSTAT salv=0 capped=1 used=0.88 level=1.00 B=48 K=6 work=2796
+BEAMSTAT salv=0 capped=1 used=0.88 level=1.00 B=67 K=5 work=2521
+BEAMSTAT salv=0 capped=0 used=0.90 level=1.00 B=67 K=5 work=810
+BEAMSTAT salv=0 capped=0 used=0.88 level=1.00 B=96 K=4 work=763
+BEAMSTAT salv=0 capped=0 used=0.90 level=1.00 B=96 K=3 work=732
+BEAMSTAT salv=0 capped=1 used=0.88 level=1.00 B=48 K=6 work=2946
+BEAMSTAT salv=0 capped=1 used=0.87 level=1.00 B=96 K=4 work=2520
+BEAMSTAT salv=0 capped=0 used=0.89 level=1.00 B=67 K=5 work=2571
+FILL round=1 budget=17 moved=1 best=528760
+P1  [D.p1.r3]       60s  obj=528760      Z1=22.0     Z2=4162   Z3=616.0     feas=y   ran 48s  py3.12
+# WALL [D.p1.r3] 48.36
