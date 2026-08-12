@@ -725,3 +725,11 @@ BEAMSTAT salv=1 capped=0 used=0.10 level=0.11 B=67 K=5 work=82
 FILL round=1 budget=16 moved=0 best=3726345
 P16 [D.p16.r2]      60s  obj=3726345     Z1=195.0    Z2=2970   Z3=4470.0    feas=y   ran 53s  py3.12
 # WALL [D.p16.r2] 53.45
+# [E.p16.r2]
+DIRGATE fired: peak_util=1.231 in [1.00,1.30], timelimit 60 <= 60
+BEAMSTAT salv=1 capped=0 used=0.10 level=0.55 B=67 K=5 work=356
+BEAMSTAT salv=1 capped=0 used=0.90 level=1.00 B=96 K=4 work=2674
+BEAMSTAT salv=1 capped=0 used=0.90 level=1.00 B=67 K=5 work=2561
+BEAMSTAT salv=0 capped=0 used=0.54 level=1.00 B=96 K=3 work=575
+BEAMSTAT salv=0 capped=0 used=0.54 level=1.00 B=67 K=5 work=571
+BEAMSTAT salv=1 capped=0 used=0.10 level=0.15 B=67 K=5 work=106
