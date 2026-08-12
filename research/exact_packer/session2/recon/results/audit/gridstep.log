@@ -350,3 +350,9 @@ PARFILL round=1 parity=even even=4616362 odd=4710690 wids=[12, 14, 16]
 BEAMSTAT salv=1 capped=0 used=0.90 level=1.00 B=96 K=4 work=1936
 BEAMSTAT salv=0 capped=0 used=0.90 level=1.00 B=67 K=5 work=1974
 BEAMSTAT salv=0 capped=0 used=0.90 level=1.00 B=48 K=6 work=2284
+BEAMSTAT salv=0 capped=0 used=0.54 level=1.00 B=67 K=5 work=436
+BEAMSTAT salv=0 capped=0 used=0.90 level=1.00 B=96 K=3 work=773
+BEAMSTAT salv=0 capped=0 used=0.90 level=1.00 B=96 K=4 work=768
+FILL round=1 budget=16 moved=1 best=4415873
+P16 [D.p16.r1]      60s  obj=4411623     Z1=257.0    Z2=1264   Z3=3925.0    feas=y   ran 53s  py3.12
+# WALL [D.p16.r1] 53.09
