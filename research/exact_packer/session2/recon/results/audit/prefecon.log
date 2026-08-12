@@ -330,3 +330,4 @@ PARFILL round=1 parity=even even=997503 odd=1024466 wids=[12, 14, 16]
 FILL round=1 budget=16 moved=1 best=894705
 P7  [w4.0.p7.r3]    60s  obj=887122      Z1=44.0     Z2=560    Z3=1977.0    feas=y   ran 52s  py3.12
 # WALL [w4.0.p7.r3] 53.24
+PREFECONDONE
