@@ -20,3 +20,7 @@ P2  [m8.p2.r1]      60s  obj=60324179    Z1=4443.0   Z2=2915   Z3=7160.0    feas
 WSTAT round=0 n=2 - 73416067 61573990  spread=19.23%
 P2  [m81.p2.r1]     60s  obj=61573990    Z1=4534.0   Z2=2667   Z3=7410.0    feas=y   ran 61s  py3.12
 # WALL [m81.p2.r1] 62.12
+# [m1.p2.r1]
+WSTAT round=0 n=3 79754681 62062493 81286723  spread=30.98%
+P2  [m1.p2.r1]      60s  obj=62062493    Z1=4567.0   Z2=4483   Z3=7685.0    feas=y   ran 56s  py3.12
+# WALL [m1.p2.r1] 57.11
