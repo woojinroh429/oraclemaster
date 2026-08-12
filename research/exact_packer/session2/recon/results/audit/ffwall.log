@@ -30,3 +30,8 @@ MGATE fired: peak_util=3.289 >= 2.00, MSET=8
 WSTAT round=0 n=3 65228483 60167297 68557292  spread=13.94%
 P2  [C.p2.r1]       60s  obj=60167297    Z1=4429.0   Z2=2710   Z3=7364.0    feas=y   ran 59s  py3.12
 # WALL [C.p2.r1] 59.27
+# [A.p1.r1]
+DIRGATE fired: peak_util=1.016 in [1.00,1.30], timelimit 60 <= 60
+WSTAT round=0 n=3 712652 741633 605585  spread=22.47%
+P1  [A.p1.r1]       60s  obj=605585      Z1=8.0      Z2=4083   Z3=900.0     feas=y   ran 34s  py3.12
+# WALL [A.p1.r1] 34.37
