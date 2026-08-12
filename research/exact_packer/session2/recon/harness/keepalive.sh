@@ -69,7 +69,29 @@ if ! /usr/bin/python3.12 -c "import shapely, numpy" >/dev/null 2>&1; then
       echo "keepalive: reinstall failed; refusing to start a queue that would only record crashes"
       exit 0; }
 fi
-Q="$(cat harness/CURRENT 2>/dev/null || echo overnight)"
+# CURRENT NOW CARRIES "<tag> <pid>", NOT A BARE TAG, AND THIS READ TOOK THE WHOLE LINE.
+#
+# harness/lock.sh writes the owner's pid alongside the tag so a stale lock can be told from a live
+# one -- that is the whole point of the owner check.  This line then asked for
+# `harness/gridstep 2232.sh`, found nothing, and fell through to `overnight`.  overnight.sh is a
+# finished queue whose every stage skips on an existing result file, so each restart "relaunched"
+# a script that did nothing and exited, while the experiment that was actually in flight stayed
+# dead.  The hook reported success every time: "queue relaunched: overnight".
+#
+# Visible in this session as gridstep advancing only 4 cells per restart, and only when a human
+# noticed and relaunched it by hand.
+#
+# Take the first field, and treat the idle marker as "nothing to resume" rather than as a script
+# name.
+# harness/RESUME NAMES A CHAIN AND OUTRANKS CURRENT, WHICH NAMES ONE STAGE.
+#
+# CURRENT is the experiment LOCK -- it holds whichever single stage owns the box right now, and it
+# goes to `idle` between stages.  Resuming from it therefore brings back one stage and drops
+# everything queued behind it, because the waiters died with the container.  RESUME names the
+# chain script instead, which re-enters its own stages and skips the cells that already exist.
+Q="$(cut -d' ' -f1 harness/RESUME 2>/dev/null)"
+[ -n "$Q" ] && [ -f "harness/$Q.sh" ] || Q="$(cut -d' ' -f1 harness/CURRENT 2>/dev/null || echo overnight)"
+[ -n "$Q" ] && [ "$Q" != "idle" ] || Q=overnight
 [ -f "harness/$Q.sh" ] || Q=overnight
 [ -f "harness/$Q.sh" ] || exit 0
 mkdir -p results
