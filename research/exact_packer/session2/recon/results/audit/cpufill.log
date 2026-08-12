@@ -58,3 +58,10 @@ MGATE fired: peak_util=4.089 >= 2.00, MSET=8
 WSTAT round=0 n=0 - - - - -  spread=0.00%
 P13 [w5.p13.r4]     60s  obj=4027473504  Z1=604088.0 Z2=18808  Z3=0.0       feas=y   ran 55s  py3.12
 # WALL [w5.p13.r4] 55.44
+# [w3.p1.r1]
+DIRGATE fired: peak_util=1.016 in [1.00,1.30], timelimit 60 <= 60
+WSTAT round=0 n=3 712652 661691 605585  spread=17.68%
+PARFILL round=1 parity=even even=605585 odd=661691 wids=[12, 14, 16]
+FILL round=1 budget=18 moved=0 best=605585
+P1  [w3.p1.r1]      60s  obj=605585      Z1=8.0      Z2=4083   Z3=900.0     feas=y   ran 51s  py3.12
+# WALL [w3.p1.r1] 51.67
