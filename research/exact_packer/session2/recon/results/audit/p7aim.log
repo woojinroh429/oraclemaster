@@ -16,3 +16,10 @@ PARFILL round=1 parity=even even=763997 odd=1152326 wids=[12, 14, 16]
 BEAMSTAT salv=0 capped=0 used=0.90 level=1.00 B=67 K=5 work=323
 BEAMSTAT salv=0 capped=0 used=0.90 level=1.00 B=48 K=6 work=326
 BEAMSTAT salv=0 capped=0 used=0.90 level=1.00 B=96 K=4 work=317
+BEAMSTAT salv=0 capped=0 used=0.89 level=1.00 B=96 K=3 work=504
+BEAMSTAT salv=0 capped=0 used=0.90 level=1.00 B=67 K=5 work=515
+BEAMSTAT salv=0 capped=0 used=0.90 level=1.00 B=96 K=4 work=482
+BEAMSTAT salv=0 capped=0 used=0.92 level=1.00 B=96 K=4 work=349
+FILL round=1 budget=17 moved=0 best=763997
+P7  [A.p7.r1]       60s  obj=763997      Z1=31.0     Z2=232    Z3=2327.0    feas=y   ran 52s  py3.12
+# WALL [A.p7.r1] 52.62
