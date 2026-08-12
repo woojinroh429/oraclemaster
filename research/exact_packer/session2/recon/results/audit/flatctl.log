@@ -53,3 +53,7 @@ PARFILL round=1 parity=even even=4832289 odd=5028973 wids=[12, 14, 16]
 FILL round=1 budget=16 moved=0 best=4745843
 P3  [g60on.p3.r2]    60s  obj=4745843     Z1=190.0    Z2=6845   Z3=7626.0    feas=y   ran 55s  py3.12
 # WALL [g60on.p3.r2] 55.66
+# [g60off.p3.r2]
+WSTAT round=0 n=3 4654665 4945991 4668817  spread=6.26%
+P3  [g60off.p3.r2]    60s  obj=4654665     Z1=150.0    Z2=6850   Z3=7705.0    feas=y   ran 55s  py3.12
+# WALL [g60off.p3.r2] 56.75
