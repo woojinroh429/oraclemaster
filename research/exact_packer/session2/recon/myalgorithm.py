@@ -5174,7 +5174,35 @@ def algorithm(prob_info, timelimit=60):
     reserve = (max(2.0, float(_rv)) if _rv else
                (max(2.0, _rfrac * timelimit) if (_rfrac is not None and _POLISH) else
                 (max(2.0, min(0.20 * timelimit, 40.0)) if _POLISH else 3.0)))
-    wbudget = max(4.0, timelimit - reserve - (time.time() - t0) - 1.0)
+    # ONE SECOND OF END MARGIN IS NOT ENOUGH AND THE RUN GOES PAST THE WALL.
+    #
+    # Every deadline in this function is `timelimit - elapsed - 1.0`, so the last round is told to
+    # stop at t0 + timelimit - 1 and algorithm() is expected to return just inside the limit.  It
+    # does not.  Measured at a 60 s limit on the saturated instances, by algorithm()'s OWN clock
+    # rather than the wall (results/audit/mins.log, 27 cells):
+    #
+    #     MGATE on (MSET=8)    7 of 9 cells returned at >= 60 s
+    #     MGATE off            2 of 9
+    #
+    # The second is consumed between the deadline test and the return -- pool.terminate() and
+    # join() on nw forked processes, the final _total() evaluations, and the polish getting a
+    # last look.  None of that is free and none of it was budgeted.
+    #
+    # AN OVERRUN IS NOT A BAD SCORE, IT IS A DISQUALIFICATION, so the margin is a knob rather than
+    # a literal and its default is set to be comfortable rather than tight.  The cost is bounded
+    # and small: ENDPAD seconds out of the limit, 5% at 60 s for the default 3, and it comes off
+    # the LAST round, which is the one already running short.
+    #
+    # THIS IS NOT THE `room` CHANGE THAT WAS TRIED AND REVERTED.  That one bounded the round's
+    # wait relative to the WORKER'S budget (_rb + grace) and cut healthy draws, because on these
+    # instances the worker genuinely needs every second of the remaining clock -- prob_13 fell
+    # from n=3 to n=1 on every replicate.  This moves the ABSOLUTE deadline by two seconds and
+    # leaves the worker's share of it untouched.
+    try:
+        _endpad = max(1.0, float(os.environ.get("OGC_ENDPAD", "3.0")))
+    except Exception:
+        _endpad = 3.0
+    wbudget = max(4.0, timelimit - reserve - (time.time() - t0) - _endpad)
 
     # ROUNDS: TRADE LENGTH FOR ATTEMPTS.  The answer is already a minimum over nw workers, so
     # what varies between runs is not the average quality but whether the good basin is FOUND.
@@ -5275,7 +5303,7 @@ def algorithm(prob_info, timelimit=60):
         try:
             if nw > 1:
                 out = _pool_round(prob_info, _rb, _r, nw, cwd, _shdir,
-                                  timelimit - (time.time() - t0) - 1.0, _wl_r)
+                                  timelimit - (time.time() - t0) - _endpad, _wl_r)
             else:
                 out = [_worker((prob_info, _rb, _r * nw, cwd, 1.0, _shdir))]
         except Exception:
@@ -5358,7 +5386,7 @@ def algorithm(prob_info, timelimit=60):
     _PARFILL = os.environ.get("OGC_PARFILL", "1") != "0"
     _fr = _R                                   # next round index: continues, never repeats
     while True:
-        left = timelimit - (time.time() - t0) - 1.0
+        left = timelimit - (time.time() - t0) - _endpad
         if _POLISH and left > 3.0:
             # TWO PASSES, NOT ONE.  z3_reassign only generates moves toward a MORE-preferred bay
             # and skips any block already in its best one, so it cannot remove tardiness from a
@@ -5401,7 +5429,7 @@ def algorithm(prob_info, timelimit=60):
                             best = (o, imp)
                 except Exception:
                     pass
-                left = timelimit - (time.time() - t0) - 1.0
+                left = timelimit - (time.time() - t0) - _endpad
             # THE TAIL POLISH IS HANDED EVERY REMAINING SECOND AND DOES NOT NEED THEM.
             #
             # `left` here is the whole reserve, so z3_reassign takes it all and the fill loop below
@@ -5462,7 +5490,7 @@ def algorithm(prob_info, timelimit=60):
                             _sy.stderr.flush()
                         if o < best[0]:
                             best = (o, imp)
-                    left = timelimit - (time.time() - t0) - 1.0
+                    left = timelimit - (time.time() - t0) - _endpad
             except Exception:
                 pass
             try:
@@ -5478,7 +5506,7 @@ def algorithm(prob_info, timelimit=60):
                 pass
         if not _FILL:
             break
-        left = timelimit - (time.time() - t0) - 1.0
+        left = timelimit - (time.time() - t0) - _endpad
         # A round needs enough time to be worth starting.  The same floor the round loop uses --
         # a quarter of a nominal round -- and never less than the beam's own 4 s floor.
         # MARGIN, BECAUSE AN OVERRUN IS DISQUALIFICATION, NOT A BAD SCORE.  A fill round only ever
