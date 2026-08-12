@@ -3825,6 +3825,87 @@ def _worker(args):
         band.tell(ai, _fast_obj(prob_info, s) if s is not None else pool[0][0] * 1.05)
         return s
 
+    # THE EXCHANGE, REBUILT AS A RECONSTRUCTION INSTEAD OF A MOVE (OGC_XSWAP=1, absent = off).
+    #
+    # p1_anatomy.md found the pathology and it is an exchange: the incumbent displaces 22 blocks for
+    # Z3 = 1009 with the worst payers at 98, 96, 90 and 84, while blocks carrying regret 6, 7, 10
+    # and 16 -- with MORE area -- keep their first choice.  The wrong blocks were displaced.
+    #
+    # _bay_swap was written for exactly this and is unregistered because it found nothing: "147
+    # overlapping cross-bay pairs carry a positive preference gain, and not one swap survives ...
+    # the destination bay simply has no room for the block's whole residency."  Three other
+    # single-move mechanisms reached the same wall the same night.  The reason is structural -- a
+    # rigid exchange holds both residency windows fixed, so it needs a hole the shape of a block
+    # that is not there, while the beam that built the layout could have seated everyone
+    # differently had it known.
+    #
+    # So this does not move two blocks.  It reads the mismatch out of the incumbent, corrects the
+    # preference signal that produced it, and REBUILDS -- every block free to land somewhere else,
+    # which is the one thing the refuted move class could never offer.  Payers are the blocks that
+    # gave up regret; keepers are the low-regret blocks sitting in the bay a payer wanted.  Boost
+    # the payer's target, penalise the keeper's seat, hand it back to the same constructor.
+    #
+    # The caller's prob_info is never touched, so the grader still scores true preferences; only
+    # this draw's search sees the rewrite.  It is a search operator (field 4 True): a beam given
+    # too little returns nothing rather than something worse.
+    def _xswap(t):
+        try:
+            if not pool:
+                return None
+            _s0 = pool[0][1]
+            _ops = (_s0 or {}).get("operations", {})
+            _bay = {}
+            for _ts, _row in _ops.items():
+                for _op in _row:
+                    if _op.get("type") == "ENTRY":
+                        _bay[_op["block_id"]] = _op["bay_id"]
+            _B = prob_info["blocks"]
+            if len(_bay) != len(_B):
+                return None
+            _pay = []      # (regret given up, block, bay it wanted)
+            _keep = {}     # bay -> [(regret, block)] for blocks sitting cheaply
+            for _i, _b in enumerate(_B):
+                _p = _b["bay_preferences"]
+                _mx = max(_p)
+                _got = _bay.get(_i)
+                if _got is None:
+                    return None
+                _r = _mx - _p[_got]
+                if _r > 0:
+                    _pay.append((_r, _i, _p.index(_mx)))
+                else:
+                    _keep.setdefault(_got, []).append((_mx - min(_p), _i))
+            if not _pay:
+                return None
+            _pay.sort(reverse=True)
+            _k = max(1, int(len(_pay) * 0.34))
+            _bump = {}
+            for _r, _i, _want in _pay[:_k]:
+                _bump[(_i, _want)] = _bump.get((_i, _want), 0.0) + float(_r)
+                _cands = sorted(_keep.get(_want, []))[:2]     # cheapest sitters in the wanted bay
+                for _cr, _cj in _cands:
+                    _bump[(_cj, _want)] = _bump.get((_cj, _want), 0.0) - float(_r)
+            if not _bump:
+                return None
+            _nb = []
+            for _i, _b in enumerate(_B):
+                _c = dict(_b)
+                _p = list(_b["bay_preferences"])
+                _touched = False
+                for _j in range(len(_p)):
+                    _d = _bump.get((_i, _j))
+                    if _d:
+                        _p[_j] = _p[_j] + _d
+                        _touched = True
+                if _touched:
+                    _c["bay_preferences"] = _p
+                _nb.append(_c)
+            _pi = dict(prob_info); _pi["blocks"] = _nb
+            gen[0] += 1
+            return _beam_once(_pi, t, axes[gen[0] % len(axes)], share)
+        except Exception:
+            return None
+
     # (name, run, needs an incumbent, starves without budget, smallest useful slice)
     #
     # The last field stops a spin: a beam handed less than its own internal floor gives up
@@ -3880,6 +3961,10 @@ def _worker(args):
             False, 0.5)]
     if os.environ.get("OGC_Z1OP") != "1":
         ops = [o for o in ops if o[0] != "z1"]
+    # OGC_XSWAP=1 registers the guided rebuild above.  Needs an incumbent (field 3) and starves on
+    # a short slice like any beam (field 4), so it carries the beam's own 4.0 s floor.
+    if os.environ.get("OGC_XSWAP") == "1":
+        ops = ops + [("xswap", _xswap, True, True, 4.0)]
     # pull / pmov / swap / cpas stay DEFINED and UNREGISTERED.  Each was measured: _pull_early
     # bought 0.05% for 22 s, _pref_move fired on nothing, _bay_swap survived no candidate, and
     # _cpassign was 34% worse.  Registered they still draw probe slices, and the roster ablation
