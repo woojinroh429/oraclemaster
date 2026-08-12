@@ -52,3 +52,12 @@ P3  [d.p3.brkonly.60]    60s  obj=4903064     Z1=113.0    Z2=5663   Z3=8418.0   
   opstat  brk         0       0.0    0.0%            0        0.0
   opstat  TOTAL       7      27.0   95.4%                        
 P3  [d.p3.stock.60]    60s  obj=4748401     Z1=189.0    Z2=6316   Z3=7644.0    feas=y   ran 35s  py3.12
+# [d.p1.tpctl.60]
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        4      12.3   43.7%    978786615 79871979.2
+  opstat  grow        1       5.1   18.3%       120972    23565.5
+  opstat  bal         1       0.0    0.1%            0        0.0
+  opstat  pref        2       4.2   14.8%        12843     3088.0
+  opstat  bay         1       5.4   19.2%            0        0.0
+  opstat  brk         1       0.6    2.0%            0        0.0
+  opstat  TOTAL      10      27.5   98.2%                        
