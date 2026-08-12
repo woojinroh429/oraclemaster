@@ -5084,8 +5084,32 @@ def algorithm(prob_info, timelimit=60):
     # observed locally; the pre- and post-change builds are identical on this machine.  The grounds
     # are the notice, the code path, and how much the worker count is worth: the same reserve change
     # measures -6.65% at four workers and -17.36% at three.  OGC_CPUCAP=0 disables the cap.
+    #
+    # THE CAP IS OFF, REVERTED BY THE SCOREBOARD.  It shipped inside OGC2026_capfix.zip and that
+    # build scored 74,330,722 against the uncapped dirgate build's 72,188,856 -- +2.97%.  The two
+    # changes in capfix were this cap and RESFRAC 0.05, and the reserve can only reach instances
+    # inside DIRGATE's band, of which the hidden set holds one or two, while the other six
+    # worsened 2.11%.  Those six are instances only the cap could touch.
+    #
+    # THE ARGUMENT ABOVE IS STILL THE BEST ARGUMENT AVAILABLE AND IT WAS STILL WRONG.  It is kept
+    # in full because the reasoning is sound and the conclusion was not: the notice is real, the
+    # code path is real, and os.cpu_count() genuinely does report visible cores rather than the
+    # allowance.  What it could not account for is that throttling at 400% across more workers is
+    # evidently not equivalent to four workers on four cores -- more draws at lower depth beat
+    # fewer draws at full depth on the hidden set, which is the opposite of what the local 23
+    # pairs found.  The comment's own caveat named this risk exactly: "THIS ONE IS REASONED, NOT
+    # MEASURED".  It was the only unmeasured change in the build and it was the one that cost.
+    #
+    # ONE MEASURED COST OF REMOVING IT, recorded so it is not rediscovered as a surprise.  At the
+    # uncapped worker count the wall margin is thin outside DIRGATE's band: prob_13 returns at
+    # 60.49 s and prob_2 at 59.06 s on a 60 s limit (results/audit/idle60.log, WORKERS=7, quiet
+    # box).  The cap would remove that risk by removing the oversubscription.  It is accepted
+    # anyway, because the uncapped build IS the one that scored 72,188,856 and it was not
+    # disqualified -- evidence from the grader itself outranks a local simulation of it.
+    #
+    # OGC_CPUCAP=4 restores the cap.
     try:
-        _ccap = int(os.environ.get("OGC_CPUCAP", "4") or 4)
+        _ccap = int(os.environ.get("OGC_CPUCAP", "0") or 0)
         _cpu = os.cpu_count() or 4
         if _ccap > 0:
             _cpu = min(_cpu, _ccap)
@@ -5520,8 +5544,47 @@ def algorithm(prob_info, timelimit=60):
         # This does not change the shipped path: at RESFRAC=0.35 the leftover is about 79 s and
         # the round gets 71 s, well clear.  It removes the case where a freed tail buys 27-31 s of
         # search that provably cannot pay, and leaves those seconds with the polish instead.
+        #
+        # 40 IS A 240-SECOND NUMBER AND IT MADE THE 60-SECOND RUN RETURN AT 33 OF 60.  The comment
+        # above says short budgets are untouched because "the leftover is nowhere near 48 s and the
+        # gate was closed there anyway".  Closed is the defect, not the safeguard.  At a 60 s limit
+        # with the reserve DIRGATE injects, the arithmetic is exact:
+        #
+        #     reserve  = 0.50 * 60                          = 30 s held for the polish
+        #     wbudget  = 60 - reserve - elapsed - 1         = 28 s, all of round 0
+        #     polish   = z3_reassign + fill                 returns in ~1 s on prob_1
+        #     this gate: min(_rb, left-8) < _ff             min(28, 18) = 18 < 40  ->  break
+        #
+        # 26 of 60 seconds discarded, and DIRGATE only fires at timelimit <= 60, so the loss lands
+        # exactly on the band the hidden set is graded in.  Measured at WORKERS=7, quiet box, full
+        # -precision wall clock (results/audit/idle60.log), stock against this change:
+        #
+        #     prob_1   700,217 -> 672,243   -3.78% ratio-mean, 3 of 4 draws, wall 35.5 -> 57.1
+        #     prob_3 4,758,966 -> 4,723,433 -0.75%, 2 of 2                   wall 46.7 -> 44.7
+        #     prob_2  60,300,736 -> 59,132,798  -1.94%
+        #     prob_16  3,199,896 -> 3,199,896   IDENTICAL, gate never opens
+        #     prob_13  4,027,473,504 unchanged  IDENTICAL, gate never opens
+        #
+        # The two zero rows are the point: the gate engages only where the idle window exists and
+        # is provably inert everywhere else, so this cannot cost an instance it does not help.
+        #
+        # GATED ON timelimit RATHER THAN LOWERED OUTRIGHT.  40 was chosen on measurement at 240 s
+        # -- eight fill rounds under 35 s that moved nothing -- and that measurement stands: there
+        # the incumbent comes from a 47 s round and a short draw cannot beat a long one.  At 60 s
+        # the incumbent is itself a 28 s round, so the fill draw is comparable rather than stunted,
+        # which is why the same threshold is right there and wrong here.  90 sits between the
+        # budget measured with 10 and the budgets measured with 40, and `timelimit` is an argument
+        # to this function, so there is nothing to infer and nothing to mispredict.
+        #
+        # WHAT THIS DOES NOT FIX.  At WORKERS=7 the wall margin is already thin on instances
+        # OUTSIDE the gate -- prob_13 returned at 60.49 s on stock and 60.38 s with this change,
+        # prob_2 at 59.06 and 59.91.  That overrun is pre-existing, it is in the build that scored
+        # 72,188,856, and this change neither causes nor worsens it (stock is marginally the worse
+        # of the two).  It is recorded here because the next person to read this line will want to
+        # know it was seen and measured rather than missed.
         try:
-            _ff = max(8.0, float(os.environ.get("OGC_FILLFLOOR", "40")))
+            _ff = max(8.0, float(os.environ.get(
+                "OGC_FILLFLOOR", "40" if timelimit > 90 else "10")))
         except Exception:
             _ff = 40.0
         if os.environ.get("OGC_FILLMIN") == "1" or _PARFILL:

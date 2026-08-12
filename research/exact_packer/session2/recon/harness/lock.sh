@@ -48,4 +48,16 @@ lock_release(){ # $1 = tag -- refuses to free a lock this process does not hold
 # Any process still running a solver, regardless of which script launched it.  A script that is
 # about to take the lock can use this to refuse to start on a box that is not actually quiet --
 # the liveness test above only knows about the recorded owner, not about orphans.
-lock_box_busy(){ ps -eo args 2>/dev/null | grep -c "[r]un1\.py"; }
+#
+# MATCH ON THE INTERPRETER, NOT ON THE STRING.  `ps -eo args | grep -c "[r]un1\.py"` counts any
+# process whose command line MENTIONS run1.py, which includes the shell that is about to launch
+# one -- so a caller whose own command line contained the name aborted itself on an empty box.
+# The [r]un1 bracket trick only stops grep matching its own process; it does nothing about a
+# parent shell carrying the pattern in its args.  Keying on comm being a python interpreter counts
+# solvers and nothing that merely talks about them.
+# The pattern is run1\.py with NO leading space: the command line is `harness/run1.py`, so a
+# space-anchored pattern matches nothing and the guard passes on every box, silently.  That is
+# worse than having no guard, because it reads as a check that ran.  comm being a python
+# interpreter is what excludes the shells; the path separator must not be assumed.
+lock_box_busy(){ ps -eo comm,args 2>/dev/null \
+    | awk '$1 ~ /^python/ && /run1\.py/ {n++} END{print n+0}'; }
