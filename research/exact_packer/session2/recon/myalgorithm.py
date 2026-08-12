@@ -2033,7 +2033,42 @@ def _beam_once(prob_info, budget, cfg, share=1.0):
         _ff = min(1.0, max(0.1, float(os.environ.get("OGC_FINEFRAC", "0.6"))))
     except Exception:
         _ff = 0.6
-    for step, frac in ((1, _ff), (2, 1.0)):
+    # WHICH GRID RESOLUTIONS TO TRY, AND IN WHAT ORDER (OGC_STEPS).
+    #
+    # `step` is the stride of the position scan, so step 2 looks at half the positions on each
+    # axis -- a quarter of the cells -- and a state expansion costs roughly a quarter as much.
+    # That is not a small saving in a beam whose width is set by
+    #
+    #     Bcur = left / (per * rem)                    ogc_fast.cpp:1957
+    #
+    # because `per` is the per-expansion cost: a quarter the cost buys about four times the width
+    # at the same budget, and four times the width at the same depth is four times the work.
+    #
+    # WHY THAT MIGHT BE THE TRADE WORTH MAKING.  The reserve note above records that "prob_1's
+    # best axis is still improving at work 12,000 (51 s) while production stops it around 9 s".
+    # prob_1's quality is limited by WORK, and step 2 is the only lever in the file that multiplies
+    # work rather than adding a few per cent to it.  flatctl then measured the same thing from the
+    # other side: three times the wall clock is worth -30.7% on prob_1.
+    #
+    # WHAT IT COSTS, and it is not free.  A coarser grid cannot express every placement a fine one
+    # can, so each individual answer is worse -- the question is whether four times as many states
+    # at a coarser resolution beats a quarter as many at full resolution.  Nothing in this file has
+    # ever asked, because the loop below hard-codes fine-then-coarse and returns on the first
+    # feasible answer, so step 2 runs only when step 1 fails outright.
+    #
+    # DEFAULT "1,2" IS THE EXISTING TUPLE, BYTE FOR BYTE.  "2" runs the coarse rung alone, "2,1"
+    # inverts the order.  The frac rule is unchanged: every rung but the last gets OGC_FINEFRAC of
+    # what is left, the last gets all of it.
+    _steps = []
+    for _s in os.environ.get("OGC_STEPS", "1,2").split(","):
+        _s = _s.strip()
+        if _s.isdigit() and 1 <= int(_s) <= 8:
+            _steps.append(int(_s))
+    if not _steps:
+        _steps = [1, 2]
+    _rungs = [(_st, (_ff if _i < len(_steps) - 1 else 1.0))
+              for _i, _st in enumerate(_steps)]
+    for step, frac in _rungs:
         left = budget - (time.time() - t0)
         if left < 2.0:
             break
