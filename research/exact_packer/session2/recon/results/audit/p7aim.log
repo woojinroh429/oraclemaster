@@ -762,3 +762,32 @@ BEAMSTAT salv=0 capped=0 used=0.88 level=1.00 B=67 K=5 work=402
 FILL round=1 budget=18 moved=1 best=656866
 P1  [B.p1.r3]       60s  obj=656866      Z1=19.0     Z2=5331   Z3=857.0     feas=y   ran 52s  py3.12
 # WALL [B.p1.r3] 52.31
+# [C.p1.r3]
+DIRGATE fired: peak_util=1.016 in [1.00,1.30], timelimit 60 <= 60
+BEAMSTAT salv=0 capped=0 used=0.96 level=1.00 B=96 K=4 work=536
+BEAMSTAT salv=0 capped=0 used=0.96 level=1.00 B=67 K=5 work=551
+BEAMSTAT salv=1 capped=0 used=0.50 level=0.64 B=67 K=5 work=286
+BEAMSTAT salv=1 capped=0 used=0.30 level=0.52 B=67 K=5 work=286
+BEAMSTAT salv=0 capped=0 used=0.97 level=1.00 B=67 K=5 work=966
+BEAMSTAT salv=0 capped=0 used=0.97 level=1.00 B=96 K=3 work=895
+BEAMSTAT salv=1 capped=0 used=0.18 level=0.27 B=96 K=3 work=102
+BEAMSTAT salv=0 capped=0 used=0.97 level=1.00 B=48 K=6 work=616
+BEAMSTAT salv=0 capped=0 used=0.95 level=1.00 B=67 K=5 work=535
+BEAMSTAT salv=1 capped=0 used=0.11 level=0.15 B=48 K=6 work=62
+WSTAT round=0 n=3 712652 777255 683809  spread=13.67%
+PARFILL round=1 parity=even even=683809 odd=777255 wids=[12, 14, 16]
+BEAMSTAT salv=0 capped=0 used=0.95 level=1.00 B=96 K=4 work=407
+BEAMSTAT salv=0 capped=0 used=0.96 level=1.00 B=67 K=5 work=413
+BEAMSTAT salv=0 capped=0 used=0.96 level=1.00 B=48 K=6 work=445
+BEAMSTAT salv=0 capped=0 used=0.96 level=1.00 B=96 K=4 work=706
+BEAMSTAT salv=0 capped=0 used=0.99 level=1.00 B=96 K=3 work=648
+BEAMSTAT salv=1 capped=0 used=0.99 level=0.99 B=67 K=5 work=733
+BEAMSTAT salv=0 capped=0 used=0.57 level=1.00 B=67 K=5 work=227
+BEAMSTAT salv=0 capped=0 used=0.96 level=1.00 B=48 K=6 work=428
+BEAMSTAT salv=0 capped=0 used=0.96 level=1.00 B=96 K=4 work=377
+BEAMSTAT salv=0 capped=0 used=0.56 level=1.00 B=96 K=3 work=231
+BEAMSTAT salv=0 capped=0 used=0.95 level=1.00 B=96 K=4 work=444
+BEAMSTAT salv=0 capped=0 used=0.96 level=1.00 B=67 K=5 work=426
+FILL round=1 budget=18 moved=1 best=672273
+P1  [C.p1.r3]       60s  obj=640290      Z1=30.0     Z2=6760   Z3=700.0     feas=y   ran 52s  py3.12
+# WALL [C.p1.r3] 52.29
