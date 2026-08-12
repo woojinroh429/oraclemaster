@@ -23,3 +23,4 @@ P1  [c.p1.ctl.r6]   120s  obj=515621      Z1=23.0     Z2=5760   Z3=575.0     fea
 # [c.p1.rt.r6]
 P1  [c.p1.rt.r6]   120s  obj=534661      Z1=22.0     Z2=6129   Z3=616.0     feas=y   ran 82s  py3.12
 # [c.p3.ctl.r1]
+P3  [c.p3.ctl.r1]   120s  obj=4421578     Z1=158.0    Z2=7205   Z3=7213.0    feas=y   ran 87s  py3.12
