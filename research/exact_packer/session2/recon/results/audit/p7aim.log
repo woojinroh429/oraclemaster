@@ -70,3 +70,32 @@ BEAMSTAT salv=0 capped=0 used=0.99 level=1.00 B=67 K=5 work=611
 FILL round=1 budget=17 moved=0 best=799283
 P7  [C.p7.r1]       60s  obj=799283      Z1=38.0     Z2=1047   Z3=1902.0    feas=y   ran 53s  py3.12
 # WALL [C.p7.r1] 53.31
+# [A.p1.r1]
+DIRGATE fired: peak_util=1.016 in [1.00,1.30], timelimit 60 <= 60
+BEAMSTAT salv=0 capped=0 used=0.87 level=1.00 B=67 K=5 work=504
+BEAMSTAT salv=0 capped=0 used=0.88 level=1.00 B=96 K=4 work=449
+BEAMSTAT salv=1 capped=0 used=0.10 level=0.19 B=67 K=5 work=72
+BEAMSTAT salv=1 capped=0 used=0.10 level=0.23 B=67 K=5 work=100
+BEAMSTAT salv=0 capped=0 used=0.87 level=1.00 B=96 K=3 work=814
+BEAMSTAT salv=0 capped=0 used=0.88 level=1.00 B=67 K=5 work=848
+BEAMSTAT salv=0 capped=0 used=0.87 level=1.00 B=48 K=6 work=572
+BEAMSTAT salv=1 capped=0 used=0.10 level=0.18 B=96 K=3 work=70
+BEAMSTAT salv=0 capped=0 used=0.87 level=1.00 B=67 K=5 work=508
+BEAMSTAT salv=0 capped=0 used=0.87 level=1.00 B=96 K=4 work=517
+BEAMSTAT salv=1 capped=0 used=0.10 level=0.17 B=48 K=6 work=66
+WSTAT round=0 n=3 712652 819927 739986  spread=15.05%
+PARFILL round=1 parity=even even=712652 odd=819927 wids=[12, 14, 16]
+BEAMSTAT salv=0 capped=0 used=0.85 level=1.00 B=96 K=4 work=328
+BEAMSTAT salv=0 capped=0 used=0.87 level=1.00 B=48 K=6 work=389
+BEAMSTAT salv=0 capped=0 used=0.88 level=1.00 B=67 K=5 work=342
+BEAMSTAT salv=0 capped=0 used=0.90 level=1.00 B=67 K=5 work=627
+BEAMSTAT salv=0 capped=0 used=0.89 level=1.00 B=96 K=4 work=513
+BEAMSTAT salv=0 capped=0 used=0.88 level=1.00 B=96 K=3 work=574
+BEAMSTAT salv=0 capped=0 used=0.88 level=1.00 B=67 K=5 work=341
+BEAMSTAT salv=0 capped=0 used=0.86 level=1.00 B=96 K=4 work=310
+BEAMSTAT salv=0 capped=0 used=0.87 level=1.00 B=48 K=6 work=397
+BEAMSTAT salv=0 capped=0 used=0.86 level=1.00 B=96 K=3 work=338
+BEAMSTAT salv=0 capped=0 used=0.85 level=1.00 B=67 K=5 work=356
+FILL round=1 budget=17 moved=1 best=643469
+P1  [A.p1.r1]       60s  obj=643469      Z1=11.0     Z2=6644   Z3=917.0     feas=y   ran 50s  py3.12
+# WALL [A.p1.r1] 50.64
