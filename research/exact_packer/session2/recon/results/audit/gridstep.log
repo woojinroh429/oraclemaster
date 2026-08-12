@@ -1059,3 +1059,16 @@ BEAMSTAT salv=0 capped=0 used=0.90 level=1.00 B=96 K=4 work=1107
 BEAMSTAT salv=1 capped=0 used=0.10 level=0.15 B=67 K=5 work=106
 BEAMSTAT salv=0 capped=0 used=0.90 level=1.00 B=67 K=5 work=972
 BEAMSTAT salv=0 capped=0 used=0.90 level=1.00 B=96 K=3 work=957
+BEAMSTAT salv=1 capped=0 used=0.10 level=0.15 B=67 K=5 work=106
+WSTAT round=0 n=3 3944326 3746589 3250495  spread=21.35%
+PARFILL round=1 parity=even even=3250495 odd=3746589 wids=[12, 14, 16]
+BEAMSTAT salv=0 capped=0 used=0.89 level=1.00 B=48 K=6 work=806
+BEAMSTAT salv=0 capped=0 used=0.91 level=1.00 B=67 K=5 work=782
+BEAMSTAT salv=1 capped=0 used=0.90 level=1.00 B=96 K=4 work=724
+BEAMSTAT salv=0 capped=0 used=0.53 level=1.00 B=67 K=5 work=419
+BEAMSTAT salv=0 capped=0 used=0.90 level=1.00 B=96 K=3 work=703
+BEAMSTAT salv=0 capped=0 used=0.90 level=1.00 B=96 K=4 work=714
+BEAMSTAT salv=0 capped=0 used=0.90 level=1.00 B=48 K=6 work=814
+FILL round=1 budget=16 moved=0 best=3250495
+P16 [C.p16.r3]      60s  obj=3250495     Z1=160.0    Z2=1155   Z3=4455.0    feas=y   ran 53s  py3.12
+# WALL [C.p16.r3] 53.56
