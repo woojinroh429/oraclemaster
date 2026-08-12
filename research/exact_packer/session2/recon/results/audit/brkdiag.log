@@ -37,3 +37,8 @@ P1  [d.p1.brkonly.240]   240s  obj=480916      Z1=16.0     Z2=4548   Z3=601.0   
   opstat  TOTAL       8      25.6   98.1%                        
 P1  [d.p1.brkfloor.60]    60s  obj=605585      Z1=8.0      Z2=4083   Z3=900.0     feas=y   ran 32s  py3.12
 # [d.p3.brkonly.60]
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        6      20.8   81.0%   1218872436 58599098.3
+  opstat  brk         1       4.0   15.7%            0        0.0
+  opstat  TOTAL       7      24.8   96.7%                        
+P3  [d.p3.brkonly.60]    60s  obj=4903064     Z1=113.0    Z2=5663   Z3=8418.0    feas=y   ran 31s  py3.12
