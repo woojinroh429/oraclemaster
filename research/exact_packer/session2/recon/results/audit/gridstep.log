@@ -1114,3 +1114,4 @@ BEAMSTAT salv=1 capped=0 used=0.10 level=0.10 B=48 K=6 work=76
 FILL round=1 budget=15 moved=0 best=3928841
 P16 [E.p16.r3]      60s  obj=3928841     Z1=203.0    Z2=1414   Z3=4872.0    feas=y   ran 52s  py3.12
 # WALL [E.p16.r3] 52.92
+GRIDSTEPDONE
