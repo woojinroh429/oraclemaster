@@ -83,3 +83,8 @@ MGATE fired: peak_util=3.289 >= 2.00, MSET=8
 WSTAT round=0 n=2 - 60324179 67634913  spread=12.12%
 P2  [e1.p2.r2]      60s  obj=60324179    Z1=4443.0   Z2=2915   Z3=7160.0    feas=y   ran 60s  py3.12
 # WALL [e1.p2.r2] 60.46
+# [e5.p2.r2]
+MGATE fired: peak_util=3.289 >= 2.00, MSET=8
+WSTAT round=0 n=3 65666559 60324179 62946613  spread=8.86%
+P2  [e5.p2.r2]      60s  obj=60324179    Z1=4443.0   Z2=2915   Z3=7160.0    feas=y   ran 42s  py3.12
+# WALL [e5.p2.r2] 42.72
