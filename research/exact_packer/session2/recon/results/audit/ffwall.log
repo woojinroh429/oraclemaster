@@ -1,0 +1,5 @@
+# [A.p16.r1]
+DIRGATE fired: peak_util=1.231 in [1.00,1.30], timelimit 60 <= 60
+WSTAT round=0 n=3 3440983 3942581 3233805  spread=21.92%
+P16 [A.p16.r1]      60s  obj=3231625     Z1=151.0    Z2=2364   Z3=4845.0    feas=y   ran 36s  py3.12
+# WALL [A.p16.r1] 36.49
