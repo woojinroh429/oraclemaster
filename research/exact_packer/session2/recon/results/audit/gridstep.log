@@ -901,3 +901,10 @@ P1  [E.p1.r3]       60s  obj=528760      Z1=22.0     Z2=4162   Z3=616.0     feas
 DIRGATE fired: peak_util=1.182 in [1.00,1.30], timelimit 60 <= 60
 BEAMSTAT salv=0 capped=0 used=0.90 level=1.00 B=96 K=4 work=461
 BEAMSTAT salv=0 capped=0 used=0.90 level=1.00 B=67 K=5 work=453
+BEAMSTAT salv=1 capped=0 used=0.10 level=0.12 B=67 K=5 work=62
+BEAMSTAT salv=0 capped=0 used=0.90 level=1.00 B=67 K=5 work=730
+BEAMSTAT salv=0 capped=0 used=0.90 level=1.00 B=96 K=3 work=708
+BEAMSTAT salv=1 capped=0 used=0.10 level=0.27 B=67 K=5 work=122
+BEAMSTAT salv=1 capped=0 used=0.90 level=0.99 B=48 K=6 work=508
+BEAMSTAT salv=0 capped=0 used=0.90 level=1.00 B=67 K=5 work=460
+WSTAT round=0 n=3 4745843 4918444 4901218  spread=3.64%
