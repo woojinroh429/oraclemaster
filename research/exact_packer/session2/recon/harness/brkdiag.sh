@@ -54,5 +54,19 @@ run "d.p1.brkonly.240" 1 240 "OGC_OPS=beam,brk"
 run "d.p1.brkfloor.60" 1 60  "OGC_OPS=beam,brk OGC_BRKFLOOR=25"
 run "d.p3.brkonly.60"  3 60  "OGC_OPS=beam,brk"
 run "d.p3.stock.60"    3 60  "OGC_DEBUG=0"
+# AND THE PARALLEL BUILD THAT HAS NEVER RUN.  cranepack.cpp sizes its conflict-graph build from
+# omp_get_max_threads() and carries the pragmas -- but _worker calls threadpool_limits(1), which
+# pins libgomp along with everything else, so omp_get_max_threads() returns 1 and the O(ncol^2)
+# pair loop that the file names as "where brk's 34-36 s goes" has been serial for the whole
+# project.  OGC_TPCTL=0 leaves the limiter off.
+#
+# The cap is right for the beam -- four single-threaded workers fill four cores exactly under the
+# 400% throttle -- so this is priced as a brk-only question: does unlocking the build make brk
+# finish somewhere it currently does not, and is the contention it creates with the other workers
+# worth it.  brkfast.log already shows brk at 0.5-1.6 s with gain 0 on another instance, so speed
+# is not the whole story; prob_1's 13.3 s is the case where it might be.
+run "d.p1.tpctl.60"    1 60  "OGC_TPCTL=0"
+run "d.p1.tpctl.brkonly.60" 1 60 "OGC_OPS=beam,brk OGC_TPCTL=0"
+run "d.p1.tpctl.brkonly.120" 1 120 "OGC_OPS=beam,brk OGC_TPCTL=0"
 echo "BRKDIAGDONE" >> $L
 echo idle > harness/CURRENT
