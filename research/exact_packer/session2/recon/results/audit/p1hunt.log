@@ -5,3 +5,4 @@ P1  [bcap137]       60s  obj=492458      Z1=2.0      Z2=2708   Z3=785.0     feas
 # [bcap192]
 P1  [bcap192]       60s  obj=492458      Z1=2.0      Z2=2708   Z3=785.0     feas=y   ran 33s  py3.12
 # [bcap256]
+P1  [bcap256]       60s  obj=492458      Z1=2.0      Z2=2708   Z3=785.0     feas=y   ran 33s  py3.12
