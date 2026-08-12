@@ -22,3 +22,4 @@ P1  [m.p1.2.r3]    120s  obj=636883      Z1=16.0     Z2=7137   Z3=848.0     feas
 P1  [m.p1.4.r3]    120s  obj=661766      Z1=20.0     Z2=5542   Z3=853.0     feas=y   ran 81s  py3.12
 # [m.p1.8.r3]
 P1  [m.p1.8.r3]    120s  obj=682260      Z1=27.0     Z2=6417   Z3=805.0     feas=y   ran 82s  py3.12
+M120DONE

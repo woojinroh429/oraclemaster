@@ -59,12 +59,21 @@ ci(){ ( cd "$(git rev-parse --show-toplevel)" \
                   research/exact_packer/session2/recon/harness/idle60.sh \
         && git commit -q -m "in-flight: idle60 $1" \
         && git push -q origin claude/repair-plan-model-1ig6it ) >/dev/null 2>&1; }
+# WALL TIME AT FULL PRECISION, BECAUSE AN OVERRUN IS DISQUALIFICATION AND run1.py PRINTS %.0f.
+# rf7's cross-instance cells came back with "ran 60s" on a 60 s limit for P3, P16 and P13 -- which
+# at one significant figure means anything from 59.5 to 60.5.  That is not a number a decision about
+# the wall can be made from.  WALL is measured around the whole interpreter, so it includes ~0.3 s
+# of startup the grader may or may not charge us: it OVER-estimates, which is the safe direction.
 run(){ local tag="$1" p="$2" rf="$3" ff="$4"
     grep -vE '^# ' $L 2>/dev/null | grep -q "\[$tag\]" && return
     echo "# [$tag]" >> $L
+    local _s _e
+    _s=$(date +%s.%N)
     env WORKERS=7 OGC_RESFRAC=$rf OGC_FILLFLOOR=$ff timeout 200 /usr/bin/python3.12 \
         harness/run1.py myalgorithm $p 60 "[$tag]" --data data/stage2 >> $L 2>&1 \
         || echo "P$p [$tag] CRASH rc=$?" >> $L
+    _e=$(date +%s.%N)
+    echo "# WALL [$tag] $(awk -v a="$_s" -v b="$_e" 'BEGIN{printf "%.2f", b-a}')" >> $L
     ci "$tag"; }
 for rep in 1 2 3 4; do
   run "A.p1.r$rep" 1 0.50 40
