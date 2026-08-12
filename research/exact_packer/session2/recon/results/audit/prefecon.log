@@ -58,3 +58,6 @@ P1  [w4.0.p1.r1]    60s  obj=707229      Z1=18.0     Z2=7541   Z3=941.0     feas
 DIRGATE fired: peak_util=1.231 in [1.00,1.30], timelimit 60 <= 60
 WSTAT round=0 n=3 3549168 3233601 3615093  spread=11.80%
 PARFILL round=1 parity=odd even=3549168 odd=3233601 wids=[13, 15, 17]
+FILL round=1 budget=16 moved=0 best=3199896
+P16 [w0.5.p16.r1]    60s  obj=3199896     Z1=145.0    Z2=2287   Z3=5039.0    feas=y   ran 52s  py3.12
+# WALL [w0.5.p16.r1] 53.51
