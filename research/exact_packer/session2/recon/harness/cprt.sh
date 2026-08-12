@@ -32,14 +32,24 @@
 #
 # JUDGED: six draws each on prob_1 -- the control spans 605k-684k tonight, so fewer cannot resolve
 # the 5-10% this would have to be worth.  prob_3 and prob_16 gate it afterwards.
+#
+# RUN AT 120 s, NOT 60.  The CP-SAT solve is a fixed cost paid before any search starts -- 15 s of a
+# 60 s budget is a quarter of the run handed to the planner, which prices the plan against a search
+# that has been robbed to pay for it.  At 120 s with a 25 s solve the overhead halves and the
+# question becomes what the plan is worth rather than what it costs.
+#
+# IT ALSO CHANGES THE CONFIGURATION, DELIBERATELY RECORDED: DIRGATE fires only at timelimit <= 60,
+# so these cells run WITHOUT the lst order, the halved w3 and the 0.50 reserve that the shipped
+# 60 s path installs.  Whatever this measures transfers to a 120 s grader directly and to a 60 s
+# one only as a direction.
 set -u
 cd /home/user/oraclemaster/research/exact_packer/session2/recon || exit 1
 while [ "$(cat harness/CURRENT 2>/dev/null)" != "idle" ]; do sleep 15; done
-echo cprt > harness/CURRENT
-L=results/audit/cprt.log
+echo cprt120 > harness/CURRENT
+L=results/audit/cprt120.log
 mkdir -p results/audit; touch $L
 ci(){ ( cd "$(git rev-parse --show-toplevel)" \
-        && git add research/exact_packer/session2/recon/results/audit/cprt.log \
+        && git add research/exact_packer/session2/recon/results/audit/cprt120.log \
                   research/exact_packer/session2/recon/harness/CURRENT \
                   research/exact_packer/session2/recon/harness/cprt.sh \
         && git commit -q -m "in-flight: cprt $1" \
@@ -47,17 +57,17 @@ ci(){ ( cd "$(git rev-parse --show-toplevel)" \
 run(){ local tag="$1" p="$2" envs="$3"
     grep -vE '^# ' $L 2>/dev/null | grep -q "\[$tag\]" && return
     echo "# [$tag]" >> $L
-    env $envs timeout 250 /usr/bin/python3.12 harness/run1.py myalgorithm $p 60 \
+    env $envs timeout 400 /usr/bin/python3.12 harness/run1.py myalgorithm $p 120 \
         "[$tag]" --data data/stage2 >> $L 2>&1 || echo "P$p [$tag] CRASH rc=$?" >> $L
     ci "$tag"; }
 for rep in 1 2 3 4 5 6; do
   run "c.p1.ctl.r$rep"  1 "OGC_DEBUG=0"
-  run "c.p1.rt.r$rep"   1 "OGC_CPANCH=15 OGC_CPANCHW=0 OGC_CPRT=1"
+  run "c.p1.rt.r$rep"   1 "OGC_CPANCH=25 OGC_CPANCHW=0 OGC_CPRT=1"
 done
 for rep in 1 2 3; do
   for p in 3 16; do
     run "c.p$p.ctl.r$rep" $p "OGC_DEBUG=0"
-    run "c.p$p.rt.r$rep"  $p "OGC_CPANCH=15 OGC_CPANCHW=0 OGC_CPRT=1"
+    run "c.p$p.rt.r$rep"  $p "OGC_CPANCH=25 OGC_CPANCHW=0 OGC_CPRT=1"
   done
 done
 echo "CPRTDONE" >> $L

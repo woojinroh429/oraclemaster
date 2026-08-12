@@ -2,3 +2,5 @@
 P1  [c.p1.ctl.r1]    60s  obj=605585      Z1=8.0      Z2=4083   Z3=900.0     feas=y   ran 34s  py3.12
 # [c.p1.rt.r1]
 P1  [c.p1.rt.r1]    60s  obj=598517      Z1=29.0     Z2=8058   Z3=635.0     feas=y   ran 31s  py3.12
+# [c.p1.ctl.r2]
+P1  [c.p1.ctl.r2]    60s  obj=605585      Z1=8.0      Z2=4083   Z3=900.0     feas=y   ran 33s  py3.12
