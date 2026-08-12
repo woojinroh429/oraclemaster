@@ -1,2 +1,5 @@
 # [e1.p13.r1]
 MGATE fired: peak_util=4.089 >= 2.00, MSET=8
+WSTAT round=0 n=2 71491212 68921195 -  spread=3.73%
+P13 [e1.p13.r1]     60s  obj=68921195    Z1=9489.0   Z2=432    Z3=7072.0    feas=y   ran 60s  py3.12
+# WALL [e1.p13.r1] 60.89
