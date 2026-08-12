@@ -5198,10 +5198,33 @@ def algorithm(prob_info, timelimit=60):
     # instances the worker genuinely needs every second of the remaining clock -- prob_13 fell
     # from n=3 to n=1 on every replicate.  This moves the ABSOLUTE deadline by two seconds and
     # leaves the worker's share of it untouched.
+    # MEASURED, 54 CELLS, SIX INSTANCES, THREE REPLICATES (results/audit/endpad.log), judged in
+    # the order fixed before the run:
+    #
+    #     ENDPAD        floors        ran >= 60 s      max ran      quality vs ENDPAD 1
+    #     1 (old)       1 of 18       3 of 18          60 s         --
+    #     3             1 of 18       0 of 18          58 s         +1.53%
+    #     5             1 of 18       0 of 18          56 s         -0.22%
+    #
+    # FLOORS FIRST, and they are identical across the three: the margin is NOT being bought with
+    # the catastrophe it exists to avoid, which was this change's named kill condition.
+    #
+    # THEN THE OVERRUN, and 3 already removes it completely.  5 buys two further seconds of
+    # headroom on top.
+    #
+    # QUALITY DOES NOT SEPARATE 3 FROM 5.  The ordering is not monotone -- more margin measured
+    # BETTER than less -- which at n=3 on instances whose single-draw spread reaches 40% means the
+    # difference is noise, not signal.  So the tie is broken on the safety axis, where 5 wins with
+    # four seconds of margin against two, and where a disqualification is the failure being
+    # priced.  It is not free and it is not claimed to be: it is 8% of a 60 s budget.
+    #
+    # CLAMPED ON SHORT BUDGETS.  A flat 5 s would be a quarter of a 20 s limit, and nothing here
+    # was measured below 60.  15% keeps the fraction sane where the constant would not be.
     try:
-        _endpad = max(1.0, float(os.environ.get("OGC_ENDPAD", "3.0")))
+        _endpad = max(1.0, float(os.environ.get("OGC_ENDPAD", "5.0")))
     except Exception:
-        _endpad = 3.0
+        _endpad = 5.0
+    _endpad = min(_endpad, max(1.0, 0.15 * float(timelimit)))
     wbudget = max(4.0, timelimit - reserve - (time.time() - t0) - _endpad)
 
     # ROUNDS: TRADE LENGTH FOR ATTEMPTS.  The answer is already a minimum over nw workers, so
