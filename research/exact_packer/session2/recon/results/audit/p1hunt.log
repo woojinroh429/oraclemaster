@@ -17,3 +17,4 @@ P1  [finefrac40]    60s  obj=492458      Z1=2.0      Z2=2708   Z3=785.0     feas
 # [z1op]
 P1  [z1op]          60s  obj=492458      Z1=2.0      Z2=2708   Z3=785.0     feas=y   ran 33s  py3.12
 # [bmul_all15]
+P1  [bmul_all15]    60s  obj=492458      Z1=2.0      Z2=2708   Z3=785.0     feas=y   ran 33s  py3.12
