@@ -66,3 +66,8 @@ PARFILL round=1 parity=even even=3233805 odd=3942581 wids=[12, 14, 16]
 FILL round=1 budget=16 moved=0 best=3231625
 P16 [C.p16.r2]      60s  obj=3231625     Z1=151.0    Z2=2364   Z3=4845.0    feas=y   ran 58s  py3.12
 # WALL [C.p16.r2] 58.08
+# [A.p13.r2]
+MGATE fired: peak_util=4.089 >= 2.00, MSET=8
+WSTAT round=0 n=3 71491212 68921195 71286054  spread=3.73%
+P13 [A.p13.r2]      60s  obj=68921195    Z1=9489.0   Z2=432    Z3=7072.0    feas=y   ran 59s  py3.12
+# WALL [A.p13.r2] 59.56
