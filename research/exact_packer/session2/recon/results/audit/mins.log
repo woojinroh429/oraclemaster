@@ -63,3 +63,8 @@ P2  [m81.p2.r2]     60s  obj=67634913    Z1=4993.0   Z2=2636   Z3=7018.0    feas
 WSTAT round=0 n=2 80164977 - 78481720  spread=2.14%
 P2  [m1.p2.r2]      60s  obj=78481720    Z1=5792.0   Z2=3371   Z3=8290.0    feas=y   ran 60s  py3.12
 # WALL [m1.p2.r2] 60.50
+# [m8.p36.r2]
+MGATE fired: peak_util=4.664 >= 2.00, MSET=8
+WSTAT round=0 n=3 80802505 80178385 81575792  spread=1.74%
+P36 [m8.p36.r2]     60s  obj=80178385    Z1=11045.0  Z2=570    Z3=8176.0    feas=y   ran 60s  py3.12
+# WALL [m8.p36.r2] 60.95
