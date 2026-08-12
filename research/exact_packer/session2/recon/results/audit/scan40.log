@@ -101,3 +101,8 @@ P3  [A.p3]          60s  obj=4690735     Z1=170.0    Z2=7277   Z3=7642.0    feas
 # WALL [A.p3] 54.79
 # [B.p3]
 DIRGATE fired: peak_util=1.182 in [1.00,1.30], timelimit 60 <= 60
+BEAMSTAT salv=0 capped=0 used=0.90 level=1.00 B=96 K=4 work=475
+BEAMSTAT salv=0 capped=0 used=0.89 level=1.00 B=67 K=5 work=500
+BEAMSTAT salv=0 capped=0 used=0.90 level=1.00 B=67 K=5 work=523
+BEAMSTAT salv=0 capped=0 used=0.90 level=1.00 B=96 K=3 work=479
+BEAMSTAT salv=1 capped=0 used=0.10 level=0.12 B=67 K=5 work=60
