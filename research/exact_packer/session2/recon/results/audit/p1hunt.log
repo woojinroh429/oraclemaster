@@ -19,3 +19,4 @@ P1  [z1op]          60s  obj=492458      Z1=2.0      Z2=2708   Z3=785.0     feas
 # [bmul_all15]
 P1  [bmul_all15]    60s  obj=492458      Z1=2.0      Z2=2708   Z3=785.0     feas=y   ran 33s  py3.12
 # [bcap192_pref]
+P1  [bcap192_pref]    60s  obj=492458      Z1=2.0      Z2=2708   Z3=785.0     feas=y   ran 34s  py3.12
