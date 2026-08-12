@@ -885,3 +885,34 @@ BEAMSTAT salv=0 capped=0 used=0.90 level=1.00 B=48 K=6 work=748
 FILL round=1 budget=17 moved=1 best=964466
 P33 [A.p33.r3]      60s  obj=964466      Z1=78.0     Z2=360    Z3=2206.0    feas=y   ran 52s  py3.12
 # WALL [A.p33.r3] 52.40
+# [B.p33.r3]
+DIRGATE fired: peak_util=1.236 in [1.00,1.30], timelimit 60 <= 60
+BEAMSTAT salv=0 capped=0 used=0.91 level=1.00 B=96 K=4 work=1054
+BEAMSTAT salv=0 capped=0 used=0.90 level=1.00 B=67 K=5 work=1124
+BEAMSTAT salv=1 capped=0 used=0.90 level=0.91 B=67 K=5 work=1212
+BEAMSTAT salv=1 capped=0 used=0.54 level=0.93 B=67 K=5 work=1006
+BEAMSTAT salv=0 capped=0 used=0.90 level=1.00 B=67 K=5 work=1473
+BEAMSTAT salv=0 capped=0 used=0.90 level=1.00 B=96 K=3 work=1438
+BEAMSTAT salv=1 capped=0 used=0.32 level=0.75 B=96 K=3 work=394
+BEAMSTAT salv=1 capped=0 used=0.90 level=0.99 B=67 K=5 work=1218
+BEAMSTAT salv=1 capped=0 used=0.20 level=0.80 B=48 K=6 work=270
+BEAMSTAT salv=1 capped=0 used=0.90 level=0.99 B=48 K=6 work=1177
+BEAMSTAT salv=0 capped=0 used=0.54 level=1.00 B=96 K=3 work=668
+BEAMSTAT salv=1 capped=0 used=0.12 level=0.58 B=96 K=4 work=180
+BEAMSTAT salv=0 capped=0 used=0.54 level=1.00 B=96 K=4 work=647
+BEAMSTAT salv=1 capped=0 used=0.54 level=0.99 B=48 K=6 work=568
+WSTAT round=0 n=3 1160642 1429354 1179636  spread=23.15%
+PARFILL round=1 parity=even even=1160642 odd=1429354 wids=[12, 14, 16]
+BEAMSTAT salv=0 capped=0 used=0.90 level=1.00 B=67 K=5 work=714
+BEAMSTAT salv=0 capped=0 used=0.91 level=1.00 B=96 K=4 work=783
+BEAMSTAT salv=1 capped=0 used=0.90 level=0.99 B=48 K=6 work=760
+BEAMSTAT salv=0 capped=0 used=0.54 level=1.00 B=96 K=4 work=710
+BEAMSTAT salv=0 capped=0 used=0.90 level=1.00 B=96 K=3 work=1209
+BEAMSTAT salv=0 capped=0 used=0.91 level=1.00 B=67 K=5 work=1226
+BEAMSTAT salv=1 capped=0 used=0.54 level=0.99 B=96 K=4 work=459
+BEAMSTAT salv=0 capped=0 used=0.32 level=1.00 B=67 K=5 work=278
+BEAMSTAT salv=0 capped=0 used=0.33 level=1.00 B=67 K=5 work=276
+BEAMSTAT salv=0 capped=0 used=0.90 level=1.00 B=67 K=5 work=731
+FILL round=1 budget=17 moved=1 best=969384
+P33 [B.p33.r3]      60s  obj=969384      Z1=77.0     Z2=625    Z3=2252.0    feas=y   ran 52s  py3.12
+# WALL [B.p33.r3] 52.54
