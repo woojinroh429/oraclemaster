@@ -38,3 +38,5 @@ P16 [D.p16.r1]      60s  obj=3214614     Z1=147.0    Z2=1471   Z3=5001.0    feas
 P1  [A.p1.r2]       60s  obj=669732      Z1=30.0     Z2=3574   Z3=765.0     feas=y   ran 35s  py3.12
 # WALL [A.p1.r2] 35.61
 # [B.p1.r2]
+P1  [B.p1.r2]       60s  obj=647835      Z1=21.0     Z2=6876   Z3=812.0     feas=y   ran 57s  py3.12
+# WALL [B.p1.r2] 57.19
