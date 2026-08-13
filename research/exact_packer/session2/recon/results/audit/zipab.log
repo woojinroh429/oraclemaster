@@ -2,3 +2,5 @@
 P1  [zA.p1.r1]      60s  obj=605585      Z1=8.0      Z2=4083   Z3=900.0     feas=y   ran 50s  py3.12
 # WALL [zA.p1.r1] 50.67
 # [zB.p1.r1]
+P1  [zB.p1.r1]      60s  obj=510450      Z1=12.0     Z2=4882   Z3=693.0     feas=y   ran 49s  py3.12
+# WALL [zB.p1.r1] 49.81
