@@ -2,3 +2,7 @@
 P3  [A.p3.r1]       60s  obj=4669641     Z1=175.0    Z2=7289   Z3=7571.0    feas=y   ran 52s  py3.12
 # CPU [A.p3.r1] peak=340% mean=252% samples=199 rc=0
 # WALL [A.p3.r1] 53.13
+# [B.p3.r1] tree=omp_on env=OGC_DUMMY=0
+P3  [B.p3.r1]       60s  obj=4683800     Z1=148.0    Z2=7472   Z3=7764.0    feas=y   ran 52s  py3.12
+# CPU [B.p3.r1] peak=340% mean=256% samples=196 rc=0
+# WALL [B.p3.r1] 52.45
