@@ -13,3 +13,4 @@ P16 [p16.r1]        60s  obj=3127301     Z1=133.0    Z2=1254   Z3=5401.0    feas
 # [p20.r1]
 P20 [p20.r1]        60s  obj=11412559    Z1=1479.0   Z2=2627   Z3=10207.0   feas=y   ran 40s  py3.12
 # GAP [p20.r1] wall=38.5s  below200=6.8s (18%)  idle_core_s=13.5
+# [p7.r1]
