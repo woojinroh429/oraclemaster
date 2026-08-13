@@ -238,3 +238,5 @@ P13 [D.p13.r3]      60s  obj=67433655    Z1=9230.0   Z2=2845   Z3=7368.0    feas
 P5  [A.p5.r3]       60s  obj=7970627     Z1=2069.0   Z2=650    Z3=2672.0    feas=y   ran 45s  py3.12
 # WALL [A.p5.r3] 45.73
 # [B.p5.r3] OGC_RESFRAC=0.20
+P5  [B.p5.r3]       60s  obj=7844839     Z1=1978.0   Z2=1085   Z3=3106.0    feas=y   ran 50s  py3.12
+# WALL [B.p5.r3] 49.94
