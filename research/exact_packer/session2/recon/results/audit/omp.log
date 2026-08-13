@@ -38,3 +38,7 @@ P20 [A.p20.r1]      60s  obj=10653656    Z1=1372.0   Z2=1304   Z3=9974.0    feas
 P20 [B.p20.r1]      60s  obj=10686538    Z1=1382.0   Z2=718    Z3=9780.0    feas=y   ran 39s  py3.12
 # CPU [B.p20.r1] peak=328% mean=280% samples=150 rc=0
 # WALL [B.p20.r1] 39.93
+# [C.p20.r1] tree=omp_on env=OMP_NUM_THREADS=2 WORKERS=2
+P20 [C.p20.r1]      60s  obj=10686538    Z1=1382.0   Z2=718    Z3=9780.0    feas=y   ran 39s  py3.12
+# CPU [C.p20.r1] peak=244% mean=193% samples=151 rc=0
+# WALL [C.p20.r1] 40.07
