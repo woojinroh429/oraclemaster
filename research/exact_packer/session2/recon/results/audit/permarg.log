@@ -320,3 +320,26 @@ BEAMSTAT salv=1 capped=0 used=0.10 level=0.19 B=96 K=4 work=90
 FILL round=1 budget=17 moved=0 best=4680068
 P3  [off.p3.r2]     60s  obj=4663161     Z1=191.0    Z2=6207   Z3=7473.0    feas=y   ran 55s  py3.12
 # WALL [off.p3.r2] 55.52
+# [on.p3.r2]
+DIRGATE fired: peak_util=1.182 in [1.00,1.30], timelimit 60 <= 60
+BEAMSTAT salv=0 capped=0 used=0.90 level=1.00 B=96 K=4 work=639
+BEAMSTAT salv=1 capped=0 used=0.90 level=0.98 B=67 K=5 work=626
+BEAMSTAT salv=0 capped=0 used=0.53 level=1.00 B=96 K=3 work=506
+BEAMSTAT salv=1 capped=0 used=0.10 level=0.14 B=67 K=5 work=70
+BEAMSTAT salv=0 capped=0 used=0.89 level=1.00 B=67 K=5 work=780
+BEAMSTAT salv=1 capped=0 used=0.10 level=0.28 B=67 K=5 work=128
+BEAMSTAT salv=0 capped=0 used=0.53 level=1.00 B=48 K=6 work=370
+BEAMSTAT salv=0 capped=0 used=0.88 level=1.00 B=67 K=5 work=594
+BEAMSTAT salv=1 capped=0 used=0.54 level=0.97 B=96 K=4 work=336
+BEAMSTAT salv=0 capped=0 used=0.88 level=1.00 B=96 K=3 work=556
+WSTAT round=0 n=3 4745689 4675119 4673670  spread=1.54%
+PARFILL round=1 parity=even even=4673670 odd=4675119 wids=[12, 14, 16]
+BEAMSTAT salv=0 capped=0 used=0.88 level=1.00 B=67 K=5 work=353
+BEAMSTAT salv=0 capped=0 used=0.88 level=1.00 B=48 K=6 work=384
+BEAMSTAT salv=0 capped=0 used=0.89 level=1.00 B=96 K=4 work=409
+BEAMSTAT salv=0 capped=0 used=0.86 level=1.00 B=96 K=4 work=766
+BEAMSTAT salv=0 capped=0 used=0.89 level=1.00 B=96 K=3 work=588
+BEAMSTAT salv=0 capped=0 used=0.89 level=1.00 B=67 K=5 work=685
+FILL round=1 budget=17 moved=0 best=4673670
+P3  [on.p3.r2]      60s  obj=4673670     Z1=144.0    Z2=6635   Z3=7781.0    feas=y   ran 52s  py3.12
+# WALL [on.p3.r2] 51.90
