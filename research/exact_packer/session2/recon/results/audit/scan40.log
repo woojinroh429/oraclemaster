@@ -347,3 +347,9 @@ MGATE fired: peak_util=2.138 >= 2.00, MSET=8
 BEAMSTAT salv=1 capped=0 used=0.10 level=0.08 B=67 K=5 work=224
 BEAMSTAT salv=1 capped=0 used=0.90 level=0.35 B=67 K=5 work=1784
 BEAMSTAT salv=1 capped=0 used=0.90 level=0.34 B=96 K=4 work=1872
+BEAMSTAT salv=1 capped=0 used=0.11 level=0.10 B=67 K=5 work=264
+BEAMSTAT salv=1 capped=0 used=0.54 level=0.28 B=96 K=3 work=1296
+BEAMSTAT salv=1 capped=0 used=0.54 level=0.28 B=67 K=5 work=1256
+WSTAT round=0 n=3 7409681 7810770 7408233  spread=5.43%
+P11 [B.p11]         60s  obj=7408233     Z1=411.0    Z2=9021   Z3=7121.0    feas=y   ran 45s  py3.12
+# WALL [B.p11] 45.15
