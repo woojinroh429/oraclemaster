@@ -38,3 +38,5 @@ P16 [zB.p16.r1]     60s  obj=3363872     Z1=155.0    Z2=919    Z3=5178.0    feas
 P20 [zA.p20.r1]     60s  obj=9589154     Z1=1232.0   Z2=645    Z3=9135.0    feas=y   ran 42s  py3.12
 # WALL [zA.p20.r1] 43.19
 # [zB.p20.r1]
+P20 [zB.p20.r1]     60s  obj=10607755    Z1=1373.0   Z2=1558   Z3=9610.0    feas=y   ran 40s  py3.12
+# WALL [zB.p20.r1] 40.14
