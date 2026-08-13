@@ -70,3 +70,6 @@ P30 [C.p30.r1]      60s  obj=2055626     Z1=124.0    Z2=3764   Z3=3038.0    feas
 # [D.p30.r1] OGC_FILLFLOOR=8
 P30 [D.p30.r1]      60s  obj=2042902     Z1=123.0    Z2=4053   Z3=3029.0    feas=y   ran 42s  py3.12
 # WALL [D.p30.r1] 42.69
+# [A.p3.r1] OGC_DUMMY=0
+P3  [A.p3.r1]       60s  obj=4744902     Z1=196.0    Z2=6138   Z3=7596.0    feas=y   ran 54s  py3.12
+# WALL [A.p3.r1] 54.80
