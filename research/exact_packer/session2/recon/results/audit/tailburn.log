@@ -210,3 +210,6 @@ P20 [C.p20.r3]      60s  obj=9892701     Z1=1275.0   Z2=822    Z3=9238.0    feas
 # [D.p20.r3] OGC_FILLFLOOR=8
 P20 [D.p20.r3]      60s  obj=10686538    Z1=1382.0   Z2=718    Z3=9780.0    feas=y   ran 39s  py3.12
 # WALL [D.p20.r3] 40.00
+# [A.p26.r3] OGC_DUMMY=0
+P26 [A.p26.r3]      60s  obj=25590787    Z1=2469.0   Z2=9964   Z3=11400.0   feas=y   ran 41s  py3.12
+# WALL [A.p26.r3] 41.81
