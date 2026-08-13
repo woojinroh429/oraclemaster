@@ -49,3 +49,4 @@ P5  [D.p5.r1]       60s  obj=7877646     Z1=2051.0   Z2=807    Z3=2586.0    feas
 # [A.p2.r1] OGC_DUMMY=0
 P2  [A.p2.r1]       60s  obj=60116544    Z1=4426.0   Z2=3659   Z3=7267.0    feas=y   ran 53s  py3.12
 # WALL [A.p2.r1] 53.88
+# [B.p2.r1] OGC_RESFRAC=0.20
