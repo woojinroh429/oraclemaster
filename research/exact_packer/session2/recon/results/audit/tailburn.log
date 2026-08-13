@@ -184,3 +184,5 @@ P3  [B.p3.r2]       60s  obj=4523208     Z1=142.0    Z2=7032   Z3=7506.0    feas
 P3  [C.p3.r2]       60s  obj=4648362     Z1=178.0    Z2=5638   Z3=7534.0    feas=y   ran 54s  py3.12
 # WALL [C.p3.r2] 54.71
 # [D.p3.r2] OGC_FILLFLOOR=8
+P3  [D.p3.r2]       60s  obj=4683800     Z1=148.0    Z2=7472   Z3=7764.0    feas=y   ran 52s  py3.12
+# WALL [D.p3.r2] 52.41
