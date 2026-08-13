@@ -800,3 +800,58 @@ PARFILL round=1 parity=even even=860744 odd=1136100 wids=[12, 14, 16]
 FILL round=1 budget=17 moved=1 best=763997
 P7  [A.p7.r4]       60s  obj=763997      Z1=31.0     Z2=232    Z3=2327.0    feas=y   ran 52s  py3.12
 # WALL [A.p7.r4] 52.10
+# [B.p7.r4]
+DIRGATE fired: peak_util=1.271 in [1.00,1.30], timelimit 60 <= 60
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        1       0.0    0.0%            0        0.0
+  opstat  grow        4      15.5   65.8%   2701918674 174661281.5
+  opstat  bal         1       0.0    0.1%            0        0.0
+  opstat  pref        2       4.7   20.1%        30687     6489.6
+  opstat  bay         1       0.0    0.0%            0        0.0
+  opstat  brk         1       2.6   11.1%            0        0.0
+  opstat  TOTAL      10      22.8   97.1%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        1       0.0    0.0%            0        0.0
+  opstat  grow        6      17.5   72.9%   2701887861 154071011.6
+  opstat  bal         1       0.1    0.3%            0        0.0
+  opstat  pref        2       5.0   20.8%        65008    13002.7
+  opstat  bay         1       0.0    0.0%            0        0.0
+  opstat  brk         1       0.7    3.0%            0        0.0
+  opstat  TOTAL      12      23.3   97.0%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        1       0.0    0.0%            0        0.0
+  opstat  grow        7      15.2   62.9%   2701916178 178148264.7
+  opstat  bal         2       0.2    0.6%          699     4609.5
+  opstat  pref        3       7.7   32.0%        10579     1368.8
+  opstat  bay         1       0.0    0.0%            0        0.0
+  opstat  brk         1       0.7    2.8%            0        0.0
+  opstat  TOTAL      15      23.7   98.4%                        
+WSTAT round=0 n=3 1222271 1218763 1244176  spread=2.09%
+PARFILL round=1 parity=odd even=1222271 odd=1218763 wids=[13, 15, 17]
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        1       0.0    0.0%            0        0.0
+  opstat  grow        3      10.0   62.2%   2701620349 269855621.1
+  opstat  bal         1       0.1    0.5%            0        0.0
+  opstat  pref        3       4.8   29.7%        52551    10986.9
+  opstat  bay         1       0.0    0.0%            0        0.0
+  opstat  brk         1       0.6    4.0%            0        0.0
+  opstat  TOTAL      10      15.5   96.4%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        1       0.0    0.0%            0        0.0
+  opstat  grow        4      12.4   76.7%   2701961540 218010847.1
+  opstat  bal         1       0.1    0.5%            0        0.0
+  opstat  pref        2       2.7   16.7%         6333     2342.7
+  opstat  bay         1       0.0    0.0%            0        0.0
+  opstat  brk         1       0.7    4.3%            0        0.0
+  opstat  TOTAL      10      15.9   98.1%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        1       0.0    0.0%            0        0.0
+  opstat  grow        3       9.5   58.6%   2701749860 284380817.8
+  opstat  bal         2       0.2    1.0%            0        0.0
+  opstat  pref        3       5.3   32.7%        74120    13985.2
+  opstat  bay         1       0.0    0.0%            0        0.0
+  opstat  brk         1       0.5    3.4%            0        0.0
+  opstat  TOTAL      11      15.5   95.7%                        
+FILL round=1 budget=17 moved=1 best=1203759
+P7  [B.p7.r4]       60s  obj=1199807     Z1=62.0     Z2=873    Z3=2447.0    feas=y   ran 52s  py3.12
+# WALL [B.p7.r4] 52.23
