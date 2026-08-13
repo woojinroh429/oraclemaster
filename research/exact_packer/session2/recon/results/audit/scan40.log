@@ -395,3 +395,11 @@ BEAMSTAT salv=1 capped=0 used=0.91 level=0.20 B=67 K=5 work=1176
 WSTAT round=0 n=3 72535951 67446833 73641744  spread=9.18%
 P13 [A.p13]         60s  obj=67446833    Z1=9220.0   Z2=2693   Z3=7468.0    feas=y   ran 53s  py3.12
 # WALL [A.p13] 53.80
+# [B.p13]
+MGATE fired: peak_util=4.089 >= 2.00, MSET=8
+BEAMSTAT salv=1 capped=0 used=0.10 level=0.07 B=67 K=5 work=224
+BEAMSTAT salv=1 capped=0 used=0.90 level=0.24 B=67 K=5 work=1688
+BEAMSTAT salv=1 capped=0 used=0.90 level=0.21 B=96 K=4 work=1560
+WSTAT round=0 n=3 74646234 69459085 71782603  spread=7.47%
+P13 [B.p13]         60s  obj=69360700    Z1=9412.0   Z2=2896   Z3=8260.0    feas=y   ran 54s  py3.12
+# WALL [B.p13] 54.69
