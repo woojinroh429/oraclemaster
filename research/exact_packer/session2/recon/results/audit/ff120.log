@@ -78,3 +78,4 @@ py3.12  obj=2885991  feas=True  Z1=132.0 Z2=1595 Z3=4485.0  wall=112.55
 # above, the control arm having moved 0.55-5.36% between identical runs.
 # Stopped early because the box was needed for the direction question, which is a 2.03x effect
 # against this queue's 0.04%.
+py3.12  obj=9260204  feas=True  Z1=1176.0 Z2=364 Z3=9446.0  wall=83.34
