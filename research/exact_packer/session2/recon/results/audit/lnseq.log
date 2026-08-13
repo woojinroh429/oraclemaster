@@ -118,3 +118,6 @@ P7  [A.p7.r3]       60s  obj=848632      Z1=37.0     Z2=723    Z3=2335.0    feas
 # [B.p7.r3]
 P7  [B.p7.r3]       60s  obj=860744      Z1=47.0     Z2=1599   Z3=1486.0    feas=y   ran 52s  py3.12
 # WALL [B.p7.r3] 52.04
+# [A.p1.r3]
+P1  [A.p1.r3]       60s  obj=627329      Z1=23.0     Z2=7196   Z3=754.0     feas=y   ran 48s  py3.12
+# WALL [A.p1.r3] 48.63
