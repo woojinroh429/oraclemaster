@@ -32,3 +32,5 @@ py3.12  obj=53066629  feas=True  Z1=3865.0 Z2=2492 Z3=3824.0  wall=41.54
 py3.12  obj=57532930  feas=True  Z1=4194.0 Z2=364 Z3=4034.0  wall=40.62
 # [L0.p2.r1] burners=0 OGC_DUMMY=0
 py3.12  obj=59783816  feas=True  Z1=4410.0 Z2=2609 Z3=6499.0  wall=53.42
+# [L2.p2.r1] burners=2 OGC_DUMMY=0
+py3.12  obj=58444637  feas=True  Z1=4295.0 Z2=2913 Z3=7785.0  wall=54.79
