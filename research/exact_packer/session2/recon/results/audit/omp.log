@@ -51,3 +51,6 @@ P16 [A.p16.r1]      60s  obj=3273584     Z1=152.0    Z2=906    Z3=4977.0    feas
 # CPU [A.p16.r1] peak=340% mean=259% samples=196 rc=0
 # WALL [A.p16.r1] 52.37
 # [B.p16.r1] tree=omp_on env=OGC_DUMMY=0
+P16 [B.p16.r1]      60s  obj=3301626     Z1=156.0    Z2=1726   Z3=4866.0    feas=y   ran 53s  py3.12
+# CPU [B.p16.r1] peak=336% mean=261% samples=199 rc=0
+# WALL [B.p16.r1] 53.08
