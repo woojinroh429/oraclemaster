@@ -423,3 +423,5 @@ BEAMSTAT salv=1 capped=0 used=0.11 level=0.08 B=67 K=5 work=224
 BEAMSTAT salv=1 capped=0 used=0.54 level=0.18 B=67 K=5 work=1072
 BEAMSTAT salv=1 capped=0 used=0.54 level=0.19 B=96 K=3 work=1088
 WSTAT round=0 n=3 710485 710654 700310  spread=1.48%
+P14 [B.p14]         60s  obj=699936      Z1=1654.0   Z2=2409   Z3=5435.0    feas=y   ran 40s  py3.12
+# WALL [B.p14] 40.58
