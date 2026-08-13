@@ -88,3 +88,6 @@ P20 [on.p20.r4]     60s  obj=10607755    Z1=1373.0   Z2=1558   Z3=9610.0    feas
 # WALL [on.p20.r4] 40.22
 # [off.p1.r1]
 DIRGATE fired: peak_util=1.016 in [1.00,1.30], timelimit 60 <= 60
+WSTAT round=0 n=3 712652 695248 680523  spread=4.72%
+PARFILL round=1 parity=even even=680523 odd=695248 wids=[12, 14, 16]
+FILL round=1 budget=20 moved=1 best=665025
