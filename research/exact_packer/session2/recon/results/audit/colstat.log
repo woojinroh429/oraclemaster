@@ -25,3 +25,10 @@ COLSTAT ncol=998 geom_slots=998 ratio=1.00 blocks=24 entries_per_block avg=1.00 
 COLSTAT ncol=3116 geom_slots=3116 ratio=1.00 blocks=24 entries_per_block avg=1.00 max=1
 COLSTAT ncol=10302 geom_slots=10302 ratio=1.00 blocks=24 entries_per_block avg=1.00 max=1
 P1  [p1]            60s  obj=605585      Z1=8.0      Z2=4083   Z3=900.0     feas=y   ran 50s  py3.12
+# [p20]
+COLSTAT ncol=802 geom_slots=802 ratio=1.00 blocks=24 entries_per_block avg=1.00 max=1
+COLSTAT ncol=2214 geom_slots=2214 ratio=1.00 blocks=24 entries_per_block avg=1.00 max=1
+COLSTAT ncol=6628 geom_slots=6628 ratio=1.00 blocks=24 entries_per_block avg=1.00 max=1
+COLSTAT ncol=23100 geom_slots=23100 ratio=1.00 blocks=24 entries_per_block avg=1.00 max=1
+COLSTAT ncol=812 geom_slots=812 ratio=1.00 blocks=24 entries_per_block avg=1.00 max=1
+P20 [p20]           60s  obj=10607755    Z1=1373.0   Z2=1558   Z3=9610.0    feas=y   ran 40s  py3.12
