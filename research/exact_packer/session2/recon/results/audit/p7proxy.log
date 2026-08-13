@@ -77,3 +77,6 @@ P16 [B.p16.r1]      60s  obj=3252294     Z1=152.0    Z2=1976   Z3=4879.0    feas
 # WALL [B.p16.r1] 48.94
 # [C.p16.r1]
 DIRGATE fired: peak_util=1.231 in [1.00,1.30], timelimit 60 <= 60
+WSTAT round=0 n=3 3081462 3478594 3186941  spread=12.89%
+P16 [C.p16.r1]      60s  obj=3081462     Z1=144.0    Z2=1170   Z3=4632.0    feas=y   ran 52s  py3.12
+# WALL [C.p16.r1] 52.70
