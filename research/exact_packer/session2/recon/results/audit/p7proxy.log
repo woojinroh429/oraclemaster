@@ -21,3 +21,7 @@ PARFILL round=1 parity=odd even=12766274 odd=10435654 wids=[13, 15, 17]
 FILL round=1 budget=11 moved=1 best=9142449
 P20 [A.p20.r1]      60s  obj=9142449     Z1=1157.0   Z2=3560   Z3=9335.0    feas=y   ran 52s  py3.12
 # WALL [A.p20.r1] 52.88
+# [B.p20.r1]
+WSTAT round=0 n=3 12009693 10351993 12937156  spread=24.97%
+P20 [B.p20.r1]      60s  obj=10351993    Z1=1333.0   Z2=1404   Z3=9691.0    feas=y   ran 51s  py3.12
+# WALL [B.p20.r1] 51.54
