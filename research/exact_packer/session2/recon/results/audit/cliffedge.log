@@ -44,3 +44,5 @@ py3.12  obj=4255755887  feas=True  Z1=638329.0 Z2=4111 Z3=0.0  wall=55.23
 py3.12  obj=4255755887  feas=True  Z1=638329.0 Z2=4111 Z3=0.0  wall=55.14
 # [L4.p25.r2] burners=4 OGC_DUMMY=0
 py3.12  obj=4255755887  feas=True  Z1=638329.0 Z2=4111 Z3=0.0  wall=55.16
+# [N4.p25.r2] burners=4 OGC_MGATE=0
+py3.12  obj=4255755887  feas=True  Z1=638329.0 Z2=4111 Z3=0.0  wall=55.16
