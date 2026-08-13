@@ -122,3 +122,5 @@ P24 [A.p24.r2]      60s  obj=2848145     Z1=578.0    Z2=3353   Z3=1497.0    feas
 WSTAT round=0 n=3 3419392 2880946 3354917  spread=18.69%
 P24 [B.p24.r2]      60s  obj=2848145     Z1=578.0    Z2=3353   Z3=1497.0    feas=y   ran 40s  py3.12
 # WALL [B.p24.r2] 40.74
+# [A.p26.r2]
+MGATE fired: peak_util=2.224 >= 2.00, MSET=8
