@@ -6,3 +6,22 @@ P16 [p16]           60s  obj=3219407     Z1=149.0    Z2=2180   Z3=4905.0    feas
 P13 [p13]           60s  obj=67433655    Z1=9230.0   Z2=2845   Z3=7368.0    feas=y   ran 47s  py3.12
 # [p2]
 P2  [p2]            60s  obj=59787460    Z1=4410.0   Z2=2170   Z3=6535.0    feas=y   ran 55s  py3.12
+# [p1]
+COLSTAT ncol=462 geom_slots=462 ratio=1.00 blocks=24 entries_per_block avg=1.00 max=1
+COLSTAT ncol=1400 geom_slots=1400 ratio=1.00 blocks=24 entries_per_block avg=1.00 max=1
+COLSTAT ncol=3948 geom_slots=3948 ratio=1.00 blocks=24 entries_per_block avg=1.00 max=1
+COLSTAT ncol=13732 geom_slots=13732 ratio=1.00 blocks=24 entries_per_block avg=1.00 max=1
+COLSTAT ncol=572 geom_slots=572 ratio=1.00 blocks=24 entries_per_block avg=1.00 max=1
+COLSTAT ncol=1034 geom_slots=1034 ratio=1.00 blocks=24 entries_per_block avg=1.00 max=1
+COLSTAT ncol=3318 geom_slots=3318 ratio=1.00 blocks=24 entries_per_block avg=1.00 max=1
+COLSTAT ncol=530 geom_slots=530 ratio=1.00 blocks=24 entries_per_block avg=1.00 max=1
+COLSTAT ncol=11014 geom_slots=11014 ratio=1.00 blocks=24 entries_per_block avg=1.00 max=1
+COLSTAT ncol=572 geom_slots=572 ratio=1.00 blocks=24 entries_per_block avg=1.00 max=1
+COLSTAT ncol=1034 geom_slots=1034 ratio=1.00 blocks=24 entries_per_block avg=1.00 max=1
+COLSTAT ncol=3318 geom_slots=3318 ratio=1.00 blocks=24 entries_per_block avg=1.00 max=1
+COLSTAT ncol=11014 geom_slots=11014 ratio=1.00 blocks=24 entries_per_block avg=1.00 max=1
+COLSTAT ncol=530 geom_slots=530 ratio=1.00 blocks=24 entries_per_block avg=1.00 max=1
+COLSTAT ncol=998 geom_slots=998 ratio=1.00 blocks=24 entries_per_block avg=1.00 max=1
+COLSTAT ncol=3116 geom_slots=3116 ratio=1.00 blocks=24 entries_per_block avg=1.00 max=1
+COLSTAT ncol=10302 geom_slots=10302 ratio=1.00 blocks=24 entries_per_block avg=1.00 max=1
+P1  [p1]            60s  obj=605585      Z1=8.0      Z2=4083   Z3=900.0     feas=y   ran 50s  py3.12
