@@ -46,3 +46,6 @@ P26 [A.p26.r1]      60s  obj=24322950    Z1=2392.0   Z2=9086   Z3=10458.0   feas
 # [B.p26.r1] OGC_ORDER=lst OGC_W3MUL=0.5
 MGATE fired: peak_util=2.224 >= 2.00, MSET=8
 P26 [B.p26.r1]      60s  obj=24985029    Z1=2475.0   Z2=13804  Z3=10588.0   feas=y   ran 44s  py3.12
+# [C.p26.r1] OGC_DIRSET=0
+MGATE fired: peak_util=2.224 >= 2.00, MSET=8
+P26 [C.p26.r1]      60s  obj=24546080    Z1=2386.0   Z2=14618  Z3=10780.0   feas=y   ran 40s  py3.12
