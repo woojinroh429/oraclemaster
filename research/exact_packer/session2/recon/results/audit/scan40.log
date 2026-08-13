@@ -202,3 +202,6 @@ BEAMSTAT salv=0 capped=0 used=0.92 level=1.00 B=96 K=4 work=326
 BEAMSTAT salv=0 capped=0 used=0.90 level=1.00 B=96 K=3 work=513
 BEAMSTAT salv=0 capped=0 used=0.90 level=1.00 B=96 K=4 work=501
 BEAMSTAT salv=0 capped=0 used=0.90 level=1.00 B=67 K=5 work=520
+FILL round=1 budget=17 moved=1 best=870555
+P7  [A.p7]          60s  obj=870555      Z1=43.0     Z2=398    Z3=1963.0    feas=y   ran 53s  py3.12
+# WALL [A.p7] 54.25
