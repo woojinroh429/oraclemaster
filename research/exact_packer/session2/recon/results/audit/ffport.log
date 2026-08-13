@@ -193,3 +193,4 @@ P3  [C.p3.r2]       60s  obj=4663161     Z1=191.0    Z2=6207   Z3=7473.0    feas
 # [A.p16.r3]
 DIRGATE fired: peak_util=1.231 in [1.00,1.30], timelimit 60 <= 60
 WSTAT round=0 n=3 3442763 3827890 3311655  spread=15.59%
+PARFILL round=1 parity=even even=3311655 odd=3827890 wids=[12, 14, 16]
