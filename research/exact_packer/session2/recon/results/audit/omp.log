@@ -6,3 +6,7 @@ P3  [A.p3.r1]       60s  obj=4669641     Z1=175.0    Z2=7289   Z3=7571.0    feas
 P3  [B.p3.r1]       60s  obj=4683800     Z1=148.0    Z2=7472   Z3=7764.0    feas=y   ran 52s  py3.12
 # CPU [B.p3.r1] peak=340% mean=256% samples=196 rc=0
 # WALL [B.p3.r1] 52.45
+# [C.p3.r1] tree=omp_on env=OMP_NUM_THREADS=2 WORKERS=2
+P3  [C.p3.r1]       60s  obj=4663161     Z1=191.0    Z2=6207   Z3=7473.0    feas=y   ran 54s  py3.12
+# CPU [C.p3.r1] peak=224% mean=180% samples=204 rc=0
+# WALL [C.p3.r1] 54.11
