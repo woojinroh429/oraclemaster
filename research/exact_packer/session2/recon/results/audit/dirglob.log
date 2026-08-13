@@ -43,3 +43,6 @@ P20 [C.p20.r1]      60s  obj=10653656    Z1=1372.0   Z2=1304   Z3=9974.0    feas
 # [A.p26.r1] OGC_DUMMY=0
 MGATE fired: peak_util=2.224 >= 2.00, MSET=8
 P26 [A.p26.r1]      60s  obj=24322950    Z1=2392.0   Z2=9086   Z3=10458.0   feas=y   ran 41s  py3.12
+# [B.p26.r1] OGC_ORDER=lst OGC_W3MUL=0.5
+MGATE fired: peak_util=2.224 >= 2.00, MSET=8
+P26 [B.p26.r1]      60s  obj=24985029    Z1=2475.0   Z2=13804  Z3=10588.0   feas=y   ran 44s  py3.12
