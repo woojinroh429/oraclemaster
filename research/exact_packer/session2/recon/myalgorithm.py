@@ -3145,6 +3145,52 @@ def _worker(args):
         _aims = [a for a in os.environ.get("OGC_AIMSET", "0.90,0.10").split(",") if a.strip()]
         os.environ["OGC_BEAMAIM"] = _aims[wid % len(_aims)].strip()
 
+    # THE RUNG SPLIT AS A PORTFOLIO POSITION, BECAUSE CHOOSING PER INSTANCE DOES NOT WORK.
+    #
+    # WHAT HAPPENED.  FINEFRAC 0.85 against the shipped 0.60 is worth -22.15% on prob_1, three
+    # replicates of three, the largest reproducible effect this study has produced.  It costs
+    # +3.39% on prob_16.  Three separate attempts to decide per instance WHICH of those two an
+    # instance wants were all rejected on measurement -- Z3 share, mean layer count, and the beam's
+    # own salvage rate, the last of them sealed before its holdout existed and then scoring 3 of 7.
+    # Across 21 paired instances the population median is exactly +0.00%: on a typical instance the
+    # setting does nothing, and the mean is carried by prob_1 alone.
+    #
+    # SO STOP CHOOSING.  The answer is a MINIMUM over the pool, which means a configuration that
+    # loses is free -- its draw is simply not the one taken.  A gate has to be right in advance; a
+    # portfolio position does not have to be right at all.
+    #
+    # AND THE SPLIT IS ALREADY THE RIGHT ONE.  results/audit/workers.md, from every WSTAT line this
+    # project has logged:
+    #
+    #     inst       even (w0,w2) wins    odd (w1,w3) wins
+    #     prob_1          92%                   8%
+    #     prob_16         20%                  80%
+    #     prob_20          6%                  94%
+    #     prob_36          0%                 100%
+    #
+    # and its own conclusion: "The even configuration exists for prob_1 and essentially nothing
+    # else; the odd configuration answers every other instance measured."  prob_1 takes its answer
+    # from the even half; prob_16 and the rest take theirs from the odd half.  Putting 0.85 on the
+    # even half alone therefore reaches exactly the instance it helps and leaves the instances it
+    # hurts reading a worker that never saw it.
+    #
+    # NOT A FOURTH GATE.  Nothing here is predicted from the instance.  wid % 2 already carries
+    # MCAND, ORDER, W3MUL and the aim this way; this is a fifth knob on the same existing split,
+    # not a new division of the pool.  The warning above about spreading -- four aims beat two only
+    # by halving the count at each end, and prob_1 needs its SECOND deep worker -- is why this
+    # indexes wid % 2 rather than creating new positions.
+    #
+    # WHAT WOULD MAKE IT FAIL, named first.  The even half is prob_1's ONLY winning half, so a
+    # change that makes it worse costs prob_1 twice over -- there is no odd worker to fall back on
+    # there.  The 92/8 split is also a population statistic over 200 runs, not a guarantee: on the
+    # 8% of runs where prob_1's minimum comes from an odd worker, this buys nothing.  And prob_16's
+    # 20% even share means one run in five could still see the change.
+    #
+    # OGC_FFSET is empty by default, so the shipped path is byte-identical until it is measured.
+    _ffs = [f for f in os.environ.get("OGC_FFSET", "").split(",") if f.strip()]
+    if _ffs and "OGC_FINEFRAC" not in os.environ:
+        os.environ["OGC_FINEFRAC"] = _ffs[wid % len(_ffs)].strip()
+
     # THE LOOKAHEAD FIX AS A PORTFOLIO POSITION, FOR THE REASON THE 7TH SUBMISSION TAUGHT.
     #
     # wb_hz1 scores an unplaced block's ENTRY against a due date that applies to its EXIT, so the
