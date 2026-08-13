@@ -13,3 +13,6 @@ P2  [A.p2.r1]       60s  obj=60851014    Z1=4474.0   Z2=1518   Z3=7954.0    feas
 # [B.p2.r1] OGC_ORDER=lst OGC_W3MUL=0.5
 MGATE fired: peak_util=3.289 >= 2.00, MSET=8
 P2  [B.p2.r1]       60s  obj=60665280    Z1=4466.0   Z2=2038   Z3=7413.0    feas=y   ran 52s  py3.12
+# [C.p2.r1] OGC_DIRSET=0
+MGATE fired: peak_util=3.289 >= 2.00, MSET=8
+P2  [C.p2.r1]       60s  obj=59956136    Z1=4412.0   Z2=1185   Z3=7508.0    feas=y   ran 55s  py3.12
