@@ -94,3 +94,12 @@ P16 [C.p16.r1]      60s  obj=3040720     Z1=133.0    Z2=977    Z3=5058.0    feas
 # [D.p16.r1] OGC_FILLFLOOR=8
 P16 [D.p16.r1]      60s  obj=3301626     Z1=156.0    Z2=1726   Z3=4866.0    feas=y   ran 53s  py3.12
 # WALL [D.p16.r1] 53.37
+# [A.p20.r2] OGC_DUMMY=0
+# DESIGN FLAW, found when the "controls" moved.  P3 and P16 were carried as DIRGATE controls on
+# the premise that this change is non-DIRGATE-only.  That premise is wrong.  DIRGATE injects its
+# settings with `if _k not in os.environ`, and OGC_RESFRAC is one of the three it injects, so an
+# arm that SETS OGC_RESFRAC overrides the gate instead of leaving it alone.  Arms B and C
+# therefore move P3/P16 from RESFRAC 0.50 (DIRGATE's value) to 0.20/0.10 -- they are treatment
+# cells, not controls, and nothing here vetoes anything.
+# Arm D is the only arm that does not set OGC_RESFRAC, so D alone remains a valid control on
+# P3/P16, and D reads -1.82% on P3 at r1.
