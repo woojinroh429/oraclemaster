@@ -7,3 +7,6 @@ P20 [B.p20.r1]      60s  obj=9728309     Z1=1239.0   Z2=1762   Z3=9692.0    feas
 # [C.p20.r1] OGC_RESFRAC=0.10
 P20 [C.p20.r1]      60s  obj=9892701     Z1=1275.0   Z2=822    Z3=9238.0    feas=y   ran 53s  py3.12
 # WALL [C.p20.r1] 53.91
+# [D.p20.r1] OGC_FILLFLOOR=8
+P20 [D.p20.r1]      60s  obj=10284359    Z1=1323.0   Z2=2446   Z3=9629.0    feas=y   ran 40s  py3.12
+# WALL [D.p20.r1] 40.06
