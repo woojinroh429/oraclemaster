@@ -1049,3 +1049,6 @@ PARFILL round=1 parity=even even=4650983 odd=4799250 wids=[12, 14, 16]
 FILL round=1 budget=15 moved=0 best=4588058
 P3  [A.p3.r1]       60s  obj=4588058     Z1=158.0    Z2=6546   Z3=7534.0    feas=y   ran 52s  py3.12
 # WALL [A.p3.r1] 52.76
+# STOPPED at 13 of 36.  The pre-registered rule needs BOTH proxies to improve and prob_7 lost
+# twice at +33.78/+24.14 -- no remaining replicate can satisfy it.  Recorded: prob_20 -11.66%
+# (2/2, on a baseline with 0.0% spread) and prob_7 +28.96% (2/2) are both real and opposite.

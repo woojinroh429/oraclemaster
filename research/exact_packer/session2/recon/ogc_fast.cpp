@@ -3608,6 +3608,20 @@ beam_work_ = work;
         hillclimb();
         std::vector<std::array<int,7>> best_recs=recs; double best_obj=evalobj();
         uint64_t rng=0x9E3779B97F4A7C15ULL; int nofuel=0;
+        // PLATEAU ACCEPTANCE (OGC_LNSEQ=1, absent = unchanged).  The sibling operator ruin_tardy
+        // measured the geometry this loop also sits in: on a saturated yard 102 of 102 completed
+        // rounds were rejected and the BEST of them came in at a relative delta of exactly 0.0.
+        // Strict improvement in that landscape stops at the edge of the plateau -- a round that
+        // costs nothing is still a round, and walking across equal-scoring layouts is how the
+        // search reaches the far side where an improving ruin exists.  ruin_tardy already carries
+        // this fix; ruin_recreate never got it.
+        //
+        // It cannot return something worse: best_recs is tracked separately and is what leaves the
+        // function.  What it CAN cost is elsewhere -- the loop currently quits early on nofuel and
+        // hands the remainder back to the fill rounds, so a walk that keeps going spends time the
+        // worker pool would otherwise use for another draw.  That is the trade being measured.
+        static const bool LNSEQ=[](){const char*e=getenv("OGC_LNSEQ");
+                                     return (e&&e[0]=='1');}();
         while(elapsed()<time_budget_s){
             bool did=ruin_recreate(rng);
             if(!did){ if(++nofuel>4*n_bays+8) break; continue; }  // nothing left to ruin
@@ -3615,6 +3629,7 @@ beam_work_ = work;
             hillclimb();
             double o=evalobj();
             if(o<best_obj-1e-9){ best_obj=o; best_recs=recs; }
+            else if(LNSEQ && o<best_obj+1e-9){ /* plateau: leave the walk where it landed */ }
             else { recs=best_recs; rebuild(recs); }   // always perturb from the best-so-far
         }
         recs=best_recs;
