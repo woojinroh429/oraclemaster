@@ -67,3 +67,6 @@ P13 [zB.p13.r1]     60s  obj=68441506    Z1=9363.0   Z2=785    Z3=7522.0    feas
 # [zA.p24.r1]
 P24 [zA.p24.r1]     60s  obj=2943725     Z1=595.0    Z2=2570   Z3=1571.0    feas=y   ran 39s  py3.12
 # WALL [zA.p24.r1] 39.33
+# [zB.p24.r1]
+P24 [zB.p24.r1]     60s  obj=3074138     Z1=634.0    Z2=1088   Z3=1589.0    feas=y   ran 39s  py3.12
+# WALL [zB.p24.r1] 39.35
