@@ -168,3 +168,6 @@ P30 [A.p30.r2]      60s  obj=2045538     Z1=123.0    Z2=4159   Z3=3045.0    feas
 # [B.p30.r2] OGC_RESFRAC=0.20
 P30 [B.p30.r2]      60s  obj=2013737     Z1=118.0    Z2=3428   Z3=3359.0    feas=y   ran 52s  py3.12
 # WALL [B.p30.r2] 52.34
+# [C.p30.r2] OGC_RESFRAC=0.10
+P30 [C.p30.r2]      60s  obj=2062877     Z1=124.0    Z2=2410   Z3=3161.0    feas=y   ran 54s  py3.12
+# WALL [C.p30.r2] 54.05
