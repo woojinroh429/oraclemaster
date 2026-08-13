@@ -222,3 +222,6 @@ P26 [C.p26.r3]      60s  obj=25590787    Z1=2469.0   Z2=9964   Z3=11400.0   feas
 # [D.p26.r3] OGC_FILLFLOOR=8
 P26 [D.p26.r3]      60s  obj=23635015    Z1=2269.0   Z2=16392  Z3=10614.0   feas=y   ran 41s  py3.12
 # WALL [D.p26.r3] 41.69
+# [A.p13.r3] OGC_DUMMY=0
+P13 [A.p13.r3]      60s  obj=67433655    Z1=9230.0   Z2=2845   Z3=7368.0    feas=y   ran 48s  py3.12
+# WALL [A.p13.r3] 48.32
