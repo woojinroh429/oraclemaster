@@ -3242,7 +3242,21 @@ def _worker(args):
     # operators returning gain 0 on prob_1.
     #
     # The knob stays: OGC_FFSET=0.85,0.6 reproduces everything above.
-    _ffs = [f for f in os.environ.get("OGC_FFSET", "").split(",") if f.strip()]
+    # RE-ENABLED.  The withdrawal above rested on prob_2 / prob_27 / prob_33 losing 6.8-8.9% in
+    # ffwide -- one replicate each.  Re-measured artifact-to-artifact in zipab, prob_27 and prob_33
+    # come back -5.84% and -8.89%, both signs REVERSED, and prob_2 is an exact tie.  The raw values
+    # show why: on prob_27 the two runs' A cells agree to 0.6% while the B cells differ by 12.8%, so
+    # what flipped was one draw, not the setting.  A single paired draw on these instances carries
+    # +/-10% of false sign, which is the same trap this session fell into repeatedly.
+    #
+    # What survives replication is prob_1, and only prob_1: -16.57 / -16.08 / -17.47 / 0.00 in
+    # ffport and -15.71% artifact-to-artifact -- five independent measurements, same direction,
+    # same magnitude.  Nothing else measured today is that stable.
+    #
+    # Over 13 paired instances the two artifacts are otherwise indistinguishable: mean +0.17%,
+    # median exactly +0.00%, 6W/2T/5L.  So this ships for prob_1's sake on the one signal that
+    # replicated, with the rest of the field measured as a wash rather than assumed to be one.
+    _ffs = [f for f in os.environ.get("OGC_FFSET", "0.85,0.6").split(",") if f.strip()]
     if _ffs and "OGC_FINEFRAC" not in os.environ:
         os.environ["OGC_FINEFRAC"] = _ffs[wid % len(_ffs)].strip()
 
