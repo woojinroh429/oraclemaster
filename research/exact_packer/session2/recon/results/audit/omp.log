@@ -78,3 +78,23 @@ P1  [C.p1.r1]       60s  obj=662634      Z1=18.0     Z2=3276   Z3=888.0     feas
 P1  [D.p1.r1]       60s  obj=716245      Z1=28.0     Z2=3723   Z3=864.0     feas=y   ran 51s  py3.12
 # CPU [D.p1.r1] peak=224% mean=106% samples=194 rc=0
 # WALL [D.p1.r1] 51.58
+# [A.p3.r2] tree=omp_off env=OMP_NUM_THREADS=1
+P3  [A.p3.r2]       60s  obj=4745843     Z1=190.0    Z2=6845   Z3=7626.0    feas=y   ran 52s  py3.12
+# CPU [A.p3.r2] peak=348% mean=257% samples=198 rc=0
+# VERDICT: REJECTED.  Replicate 1, five instances, four arms.
+#   arm means vs A:  B +0.37%   C +0.77%   D +5.29%      -- every arm loses
+#   CPU  (peak/mean averaged over the five):
+#       A 345/269    B 333/268    C 234/186    D 218/106
+# The decisive cell is P5, where A and B return 7,877,646 BYTE-IDENTICALLY: the threaded build
+# executes the same search as the serial one.  D holds mean 106% on all five instances -- one
+# worker with four OpenMP threads uses one core's worth, so the parallel regions carry
+# essentially none of the runtime.  The -6.8% that opened this branch was two-sample noise: the
+# same threaded build that produced 9,543,933 and 9,988,749 on P20 produces 10,686,538 here.
+# Stopped after replicate 1 because the byte-identical cell settles the mechanism question and
+# the pre-registered adoption clause (a SHIPPABLE arm beating A without losing on P3 or P5) is
+# already unreachable -- C loses on P5 by 1.18%.
+#
+# CORRECTION TO THE IN-FLIGHT NOTE ON IDLE CPU.  I wrote that roughly 150 points sit idle against
+# the 400% allowance.  That mis-stated it: with nw=3 the ceiling is 300%, not 400%, so mean 269%
+# is 90% per-worker utilisation -- the workers are nearly saturated.  The genuinely unrequested
+# headroom is the 100% we never ask for, because nw = cpu_count - 1 leaves one core unused.
