@@ -1,2 +1,4 @@
 # [A.p13.r1] FILLFLOOR=40
 py3.12  obj=69056997  feas=True  Z1=9425.0 Z2=1322 Z3=7774.0  wall=100.92
+# [B.p13.r1] FILLFLOOR=10
+py3.12  obj=69056997  feas=True  Z1=9425.0 Z2=1322 Z3=7774.0  wall=102.94
