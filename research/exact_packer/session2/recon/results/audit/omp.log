@@ -58,3 +58,7 @@ P16 [B.p16.r1]      60s  obj=3301626     Z1=156.0    Z2=1726   Z3=4866.0    feas
 P16 [C.p16.r1]      60s  obj=3355125     Z1=159.0    Z2=1726   Z3=4920.0    feas=y   ran 52s  py3.12
 # CPU [C.p16.r1] peak=248% mean=183% samples=198 rc=0
 # WALL [C.p16.r1] 52.71
+# [D.p16.r1] tree=omp_on env=OMP_NUM_THREADS=4 WORKERS=1
+P16 [D.p16.r1]      60s  obj=3119187     Z1=132.0    Z2=577    Z3=5430.0    feas=y   ran 52s  py3.12
+# CPU [D.p16.r1] peak=216% mean=106% samples=197 rc=0
+# WALL [D.p16.r1] 52.36
