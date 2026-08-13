@@ -25,3 +25,6 @@ P26 [p26.r1]        60s  obj=24695637    Z1=2424.0   Z2=16429  Z3=10648.0   feas
 # [p1.r2]
 P1  [p1.r2]         60s  obj=665025      Z1=21.0     Z2=4006   Z3=855.0     feas=y   ran 49s  py3.12
 # GAP [p1.r2] wall=47.5s  below200=7.8s (16%)  idle_core_s=15.6
+# [p3.r2]
+# STOPPED after replicate 1: replicate 2 not needed -- the traces exposed a larger effect (runs on non-DIRGATE instances RETURN at 38-45s of a 60s limit) and the box was redirected to measure that.
+P3  [p3.r2]         60s  obj=4645963     Z1=142.0    Z2=6751   Z3=7740.0    feas=y   ran 55s  py3.12
