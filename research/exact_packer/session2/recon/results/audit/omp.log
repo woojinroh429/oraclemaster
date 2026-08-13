@@ -18,3 +18,4 @@ P3  [D.p3.r1]       60s  obj=4659659     Z1=163.0    Z2=6932   Z3=7632.0    feas
 P5  [A.p5.r1]       60s  obj=7877646     Z1=2051.0   Z2=807    Z3=2586.0    feas=y   ran 45s  py3.12
 # CPU [A.p5.r1] peak=348% mean=270% samples=172 rc=0
 # WALL [A.p5.r1] 45.96
+# [B.p5.r1] tree=omp_on env=OGC_DUMMY=0
