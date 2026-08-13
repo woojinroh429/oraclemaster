@@ -55,3 +55,5 @@ py3.12  obj=25132011  feas=True  Z1=2500.0 Z2=8511 Z3=10570.0  wall=81.26
 py3.12  obj=24322950  feas=True  Z1=2392.0 Z2=9086 Z3=10458.0  wall=112.77
 # [C.p26.r1] FILLFLOOR=20
 py3.12  obj=24470117  feas=True  Z1=2380.0 Z2=12257 Z3=10738.0  wall=113.32
+# [A.p3.r1] FILLFLOOR=40
+py3.12  obj=4402196  feas=True  Z1=150.0 Z2=9159 Z3=7201.0  wall=78.24
