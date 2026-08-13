@@ -67,3 +67,14 @@ py3.12  obj=2891641  feas=True  Z1=133.0 Z2=1284 Z3=4458.0  wall=80.47
 py3.12  obj=2902091  feas=True  Z1=133.0 Z2=1184 Z3=4501.0  wall=112.48
 # [C.p16.r1] FILLFLOOR=20
 py3.12  obj=2885991  feas=True  Z1=132.0 Z2=1595 Z3=4485.0  wall=112.55
+# [A.p20.r1] FILLFLOOR=40
+# VERDICT: REJECTED, and stopped after replicate 1's first six instances.
+#     B (FILLFLOOR 10)  mean +0.04%  2W/3L      C (FILLFLOOR 20)  mean +0.16%  4W/2L
+#     max wall 115.38 against a 120 s limit
+# B spends the time it was meant to reclaim -- wall against the control is +21.0 s on P2, +37.2 s
+# on P3, +32.0 s on P16, +31.5 s on P26 -- and the population mean is +0.04%.  That is the
+# pre-registered "the wall extends and the objective does not follow" outcome: the refused rounds
+# were worth nothing.  The 60-vs-120 regression that opened this queue is separately retracted
+# above, the control arm having moved 0.55-5.36% between identical runs.
+# Stopped early because the box was needed for the direction question, which is a 2.03x effect
+# against this queue's 0.04%.
