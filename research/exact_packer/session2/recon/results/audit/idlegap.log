@@ -22,3 +22,6 @@ P13 [p13.r1]        60s  obj=67433655    Z1=9230.0   Z2=2845   Z3=7368.0    feas
 # [p26.r1]
 P26 [p26.r1]        60s  obj=24695637    Z1=2424.0   Z2=16429  Z3=10648.0   feas=y   ran 40s  py3.12
 # GAP [p26.r1] wall=38.5s  below200=7.0s (18%)  idle_core_s=14.0
+# [p1.r2]
+P1  [p1.r2]         60s  obj=665025      Z1=21.0     Z2=4006   Z3=855.0     feas=y   ran 49s  py3.12
+# GAP [p1.r2] wall=47.5s  below200=7.8s (16%)  idle_core_s=15.6
