@@ -538,3 +538,13 @@ BEAMSTAT salv=0 capped=0 used=0.90 level=1.00 B=67 K=5 work=531
 BEAMSTAT salv=0 capped=0 used=0.90 level=1.00 B=96 K=4 work=641
 BEAMSTAT salv=0 capped=0 used=0.90 level=1.00 B=96 K=3 work=479
 WSTAT round=0 n=3 4781316 4674750 4854618  spread=3.85%
+PARFILL round=1 parity=odd even=4781316 odd=4674750 wids=[13, 15, 17]
+BEAMSTAT salv=1 capped=0 used=0.11 level=0.09 B=67 K=5 work=48
+BEAMSTAT salv=1 capped=0 used=0.10 level=0.10 B=96 K=3 work=50
+BEAMSTAT salv=1 capped=0 used=0.10 level=0.10 B=96 K=4 work=52
+BEAMSTAT salv=1 capped=0 used=0.10 level=0.17 B=67 K=5 work=84
+BEAMSTAT salv=1 capped=0 used=0.10 level=0.18 B=48 K=6 work=86
+BEAMSTAT salv=1 capped=0 used=0.10 level=0.18 B=96 K=4 work=86
+FILL round=1 budget=17 moved=0 best=4674750
+P3  [off.p3.r3]     60s  obj=4674750     Z1=185.0    Z2=7826   Z3=7511.0    feas=y   ran 52s  py3.12
+# WALL [off.p3.r3] 52.55
