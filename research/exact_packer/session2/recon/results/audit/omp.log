@@ -19,3 +19,6 @@ P5  [A.p5.r1]       60s  obj=7877646     Z1=2051.0   Z2=807    Z3=2586.0    feas
 # CPU [A.p5.r1] peak=348% mean=270% samples=172 rc=0
 # WALL [A.p5.r1] 45.96
 # [B.p5.r1] tree=omp_on env=OGC_DUMMY=0
+P5  [B.p5.r1]       60s  obj=7877646     Z1=2051.0   Z2=807    Z3=2586.0    feas=y   ran 48s  py3.12
+# CPU [B.p5.r1] peak=332% mean=263% samples=182 rc=0
+# WALL [B.p5.r1] 48.60
