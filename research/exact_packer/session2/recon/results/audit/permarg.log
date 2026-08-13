@@ -678,3 +678,4 @@ FILL round=1 budget=17 moved=1 best=769588
 P7  [on.p7.r3]      60s  obj=769588      Z1=31.0     Z2=795    Z3=2338.0    feas=y   ran 52s  py3.12
 # WALL [on.p7.r3] 51.89
 PERMARGDONE
+PERMARGDONE
