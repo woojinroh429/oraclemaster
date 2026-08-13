@@ -78,3 +78,35 @@ py3.12  obj=59504906  feas=True  Z1=4386.0 Z2=2192 Z3=6784.0  wall=55.46
 py3.12  obj=63126658  feas=True  Z1=4654.0 Z2=2394 Z3=7102.0  wall=46.38
 # [N4.p2.r2] burners=4 OGC_MGATE=0
 py3.12  obj=66840534  feas=True  Z1=4930.0 Z2=3161 Z3=7308.0  wall=53.99
+CLIFFEDGEDONE
+# RESULT, and the budget makes it moot for this competition: the user confirms the finals budget
+# is not 60 s, so nothing below needs acting on before the deadline.  Recorded because it is a
+# real, reproducible property of the shipped build.
+#
+#     inst  L0(quiet)        L2            L4(4 burners)      N4(4 burners, MGATE=0)
+#     P25   4,255,755,887   4,255,755,887  4,255,755,887      4,255,755,887
+#     P36      76,324,079      77,676,046  4,023,023,953 +5171%   96,962,397 +27%
+#     P13      67,433,655      68,921,195  4,027,473,504 +5872%   86,309,865 +28%
+#     P39      54,556,684      52,308,158     53,066,629  -2.7%   57,532,930  +5.5%
+#     P2       59,783,816      58,444,637     60,953,789  +2.0%   62,051,061  +3.8%
+#
+# TWO SEPARATE THINGS.
+#
+# 1. prob_25 floors at 60 s WITH NO LOAD, and identically with MGATE off, so the gate is not the
+#    cause there.  The fingerprint is Z3 = 0.0 exactly with Z1 = 638,329: _safe_sequential places
+#    every block in its most-preferred bay, so Z3 collapses to zero and tardiness explodes.  It
+#    exits feas=True at wall 55.13 with no signal.  prob_25 has the highest peak_util of the 40
+#    (6.26), and at 60 s no worker completes.
+#
+# 2. prob_36 and prob_13 floor only under 4-way contention, and OGC_MGATE=0 prevents it (+27-28%
+#    instead of +5000%).  That is exactly the pre-registered "floor in L4 but not N4 makes
+#    OGC_MGATET the fix" branch.
+#
+# WHAT THIS DOES NOT OVERTURN.  The user's objection stands and is now precisely bounded: three
+# graded entries have carried MGATE with zero floors, so on the hidden set at its real budget this
+# does not fire.  What changed is that the floor is demonstrably REACHABLE rather than
+# hypothetical -- "we were fine" and "it is safe" are different claims, and only the first is
+# supported.
+#
+# Stopped at 30 of 40 cells; the remaining cells are P39/P2 replicate 2, which showed no floor in
+# replicate 1.
