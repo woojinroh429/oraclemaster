@@ -3216,8 +3216,33 @@ def _worker(args):
     # setting does nothing and prob_1 carries the entire mean.  A portfolio position does not need
     # the rule.
     #
-    # OGC_FFSET= (empty) restores the previous behaviour exactly.
-    _ffs = [f for f in os.environ.get("OGC_FFSET", "0.85,0.6").split(",") if f.strip()]
+    # WITHDRAWN AFTER A WIDER PASS.  ffport adopted this on four instances; ffwide then ran eleven
+    # more and the tally is not a win:
+    #
+    #     wins    P1 -12.53%   P20 -2.07%   P3 -1.73%   P16 -0.25%      2-4 replicates each
+    #     ties    P24, P36, P5, P13 -- exactly 0.00%                    1 replicate
+    #     losses  P33 +8.89%   P2 +7.33%   P27 +6.78%                   1 replicate
+    #
+    # Scoring is per-instance rank summed, so four wins against three losses is close to a wash,
+    # and the losses are both large and unconfirmed.  There is no reason to trade a verified
+    # 69,827,705 build for that.
+    #
+    # AND IT REFUTES THE ARGUMENT I ADOPTED IT ON.  I wrote that a portfolio position "does not have
+    # to be right at all" because the answer is a minimum and the untouched half protects it.  That
+    # holds only when the untouched half is the one that ANSWERS.  This REPLACES the even workers'
+    # rung split rather than adding a configuration, so on an instance whose minimum comes from the
+    # even half the original draw is gone -- and P1's -12.53% is exactly that mechanism working in
+    # our favour, with P2, P27 and P33 the same mechanism working against us.  Generalising from
+    # workers.md's seven rows was the error; the four instances it covers all landed inside 1.5%,
+    # and every large loss came from an instance it does not cover.
+    #
+    # WHAT WOULD MAKE THIS SHIPPABLE is a construction that ADDS a configuration instead of
+    # swapping one, so no existing draw can be lost.  That needs spare budget, and the only spare
+    # budget measured in this file is the 41.7% of a worker's slice that OPSTAT records going to
+    # operators returning gain 0 on prob_1.
+    #
+    # The knob stays: OGC_FFSET=0.85,0.6 reproduces everything above.
+    _ffs = [f for f in os.environ.get("OGC_FFSET", "").split(",") if f.strip()]
     if _ffs and "OGC_FINEFRAC" not in os.environ:
         os.environ["OGC_FINEFRAC"] = _ffs[wid % len(_ffs)].strip()
 

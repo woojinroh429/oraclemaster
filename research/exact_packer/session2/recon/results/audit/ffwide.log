@@ -140,3 +140,7 @@ P30 [A.p30.r2]      60s  obj=2077246     Z1=129.0    Z2=2444   Z3=2741.0    feas
 WSTAT round=0 n=3 2050917 2197773 2128910  spread=7.16%
 P30 [B.p30.r2]      60s  obj=2048911     Z1=123.0    Z2=4117   Z3=3074.0    feas=y   ran 42s  py3.12
 # WALL [B.p30.r2] 42.38
+# [A.p36.r2]
+MGATE fired: peak_util=4.664 >= 2.00, MSET=8
+# STOPPED at 26 of 44 by decision: replicate 1 was complete and its verdict was clear enough
+# to act on -- three uncovered instances losing 6.78-8.89%.  NOT a completed run.
