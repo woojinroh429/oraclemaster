@@ -26,3 +26,6 @@ P30 [B.p30.r1]      60s  obj=2048570     Z1=124.0    Z2=4088   Z3=2966.0    feas
 # WALL [B.p30.r1] 41.26
 # [A.p36.r1]
 MGATE fired: peak_util=4.664 >= 2.00, MSET=8
+WSTAT round=0 n=1 - 77452737 -  spread=0.00%
+P36 [A.p36.r1]      60s  obj=77452737    Z1=10747.0  Z2=888    Z3=7252.0    feas=y   ran 56s  py3.12
+# WALL [A.p36.r1] 56.77
