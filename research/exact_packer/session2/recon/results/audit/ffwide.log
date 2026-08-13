@@ -115,3 +115,6 @@ FILL round=1 budget=17 moved=0 best=1017042
 P33 [B.p33.r1]      60s  obj=1017042     Z1=87.0     Z2=157    Z3=2178.0    feas=y   ran 52s  py3.12
 # WALL [B.p33.r1] 51.98
 # [A.p24.r2]
+WSTAT round=0 n=3 3419392 2880946 3286979  spread=18.69%
+P24 [A.p24.r2]      60s  obj=2848145     Z1=578.0    Z2=3353   Z3=1497.0    feas=y   ran 40s  py3.12
+# WALL [A.p24.r2] 40.75
