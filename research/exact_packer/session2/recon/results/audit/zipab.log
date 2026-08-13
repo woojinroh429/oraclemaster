@@ -13,3 +13,4 @@ P2  [zB.p2.r1]      60s  obj=60116544    Z1=4426.0   Z2=3659   Z3=7267.0    feas
 # [zA.p27.r1]
 P27 [zA.p27.r1]     60s  obj=795054      Z1=83.0     Z2=353    Z3=968.0     feas=y   ran 52s  py3.12
 # WALL [zA.p27.r1] 52.48
+# [zB.p27.r1]
