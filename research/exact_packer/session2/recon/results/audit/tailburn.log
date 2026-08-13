@@ -52,3 +52,6 @@ P2  [A.p2.r1]       60s  obj=60116544    Z1=4426.0   Z2=3659   Z3=7267.0    feas
 # [B.p2.r1] OGC_RESFRAC=0.20
 P2  [B.p2.r1]       60s  obj=57836096    Z1=4250.0   Z2=1974   Z3=7753.0    feas=y   ran 55s  py3.12
 # WALL [B.p2.r1] 55.75
+# [C.p2.r1] OGC_RESFRAC=0.10
+P2  [C.p2.r1]       60s  obj=57723509    Z1=4247.0   Z2=1002   Z3=7295.0    feas=y   ran 53s  py3.12
+# WALL [C.p2.r1] 53.08
