@@ -533,3 +533,8 @@ BEAMSTAT salv=1 capped=0 used=0.10 level=0.13 B=67 K=5 work=66
 BEAMSTAT salv=0 capped=0 used=0.90 level=1.00 B=67 K=5 work=942
 BEAMSTAT salv=0 capped=0 used=0.90 level=1.00 B=96 K=3 work=795
 BEAMSTAT salv=1 capped=0 used=0.10 level=0.37 B=67 K=5 work=164
+BEAMSTAT salv=0 capped=0 used=0.90 level=1.00 B=48 K=6 work=686
+BEAMSTAT salv=0 capped=0 used=0.90 level=1.00 B=67 K=5 work=531
+BEAMSTAT salv=0 capped=0 used=0.90 level=1.00 B=96 K=4 work=641
+BEAMSTAT salv=0 capped=0 used=0.90 level=1.00 B=96 K=3 work=479
+WSTAT round=0 n=3 4781316 4674750 4854618  spread=3.85%
