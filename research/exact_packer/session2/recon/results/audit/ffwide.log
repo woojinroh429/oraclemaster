@@ -20,3 +20,7 @@ P26 [B.p26.r1]      60s  obj=25159239    Z1=2396.0   Z2=13907  Z3=11464.0   feas
 WSTAT round=0 n=3 2112134 2155154 2074467  spread=3.89%
 P30 [A.p30.r1]      60s  obj=2074467     Z1=129.0    Z2=2085   Z3=2736.0    feas=y   ran 40s  py3.12
 # WALL [A.p30.r1] 41.22
+# [B.p30.r1]
+WSTAT round=0 n=3 2159325 2264715 2050778  spread=10.43%
+P30 [B.p30.r1]      60s  obj=2048570     Z1=124.0    Z2=4088   Z3=2966.0    feas=y   ran 41s  py3.12
+# WALL [B.p30.r1] 41.26
