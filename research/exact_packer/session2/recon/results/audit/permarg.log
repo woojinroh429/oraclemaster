@@ -1,0 +1,33 @@
+# [off.p1.r1]
+DIRGATE fired: peak_util=1.016 in [1.00,1.30], timelimit 60 <= 60
+BEAMSTAT salv=1 capped=0 used=0.10 level=0.27 B=67 K=5 work=100
+BEAMSTAT salv=0 capped=0 used=0.87 level=1.00 B=96 K=4 work=813
+BEAMSTAT salv=0 capped=0 used=0.87 level=1.00 B=67 K=5 work=812
+BEAMSTAT salv=1 capped=0 used=0.10 level=0.38 B=67 K=5 work=198
+BEAMSTAT salv=0 capped=0 used=0.88 level=1.00 B=67 K=5 work=1687
+BEAMSTAT salv=0 capped=0 used=0.89 level=1.00 B=96 K=3 work=1488
+BEAMSTAT salv=1 capped=0 used=0.10 level=0.27 B=96 K=3 work=100
+BEAMSTAT salv=1 capped=0 used=0.10 level=0.27 B=48 K=6 work=96
+BEAMSTAT salv=1 capped=0 used=0.10 level=0.29 B=96 K=4 work=114
+BEAMSTAT salv=0 capped=0 used=0.88 level=1.00 B=67 K=5 work=861
+BEAMSTAT salv=1 capped=0 used=0.10 level=0.49 B=96 K=4 work=212
+BEAMSTAT salv=1 capped=0 used=0.10 level=0.33 B=67 K=5 work=126
+BEAMSTAT salv=0 capped=0 used=0.88 level=1.00 B=96 K=3 work=803
+BEAMSTAT salv=1 capped=0 used=0.10 level=0.25 B=67 K=5 work=96
+WSTAT round=0 n=3 684664 772500 647835  spread=19.24%
+PARFILL round=1 parity=even even=647835 odd=772500 wids=[12, 14, 16]
+BEAMSTAT salv=0 capped=0 used=0.88 level=1.00 B=96 K=4 work=616
+BEAMSTAT salv=0 capped=0 used=0.86 level=1.00 B=48 K=6 work=824
+BEAMSTAT salv=0 capped=0 used=0.87 level=1.00 B=67 K=5 work=713
+BEAMSTAT salv=0 capped=0 used=0.89 level=1.00 B=96 K=4 work=1204
+BEAMSTAT salv=0 capped=0 used=0.90 level=1.00 B=96 K=3 work=1152
+BEAMSTAT salv=0 capped=0 used=0.90 level=1.00 B=67 K=5 work=1139
+BEAMSTAT salv=0 capped=0 used=0.87 level=1.00 B=96 K=4 work=709
+BEAMSTAT salv=0 capped=0 used=0.87 level=1.00 B=67 K=5 work=826
+BEAMSTAT salv=0 capped=0 used=0.88 level=1.00 B=48 K=6 work=762
+BEAMSTAT salv=0 capped=0 used=0.88 level=1.00 B=67 K=5 work=911
+BEAMSTAT salv=0 capped=0 used=0.88 level=1.00 B=96 K=3 work=834
+BEAMSTAT salv=0 capped=0 used=0.88 level=1.00 B=96 K=4 work=731
+FILL round=1 budget=20 moved=1 best=627329
+P1  [off.p1.r1]     60s  obj=627329      Z1=23.0     Z2=7196   Z3=754.0     feas=y   ran 48s  py3.12
+# WALL [off.p1.r1] 47.94
