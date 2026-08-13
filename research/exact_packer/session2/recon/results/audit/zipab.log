@@ -101,3 +101,6 @@ P27 [zA.p27.r2]     60s  obj=790645      Z1=50.0     Z2=588    Z3=1163.0    feas
 # [zB.p27.r2]
 P27 [zB.p27.r2]     60s  obj=844225      Z1=131.0    Z2=1274   Z3=748.0     feas=y   ran 53s  py3.12
 # WALL [zB.p27.r2] 53.39
+# [zA.p33.r2]
+P33 [zA.p33.r2]     60s  obj=964466      Z1=78.0     Z2=360    Z3=2206.0    feas=y   ran 52s  py3.12
+# WALL [zA.p33.r2] 52.84
