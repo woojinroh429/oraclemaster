@@ -25,3 +25,7 @@ P20 [A.p20.r1]      60s  obj=9142449     Z1=1157.0   Z2=3560   Z3=9335.0    feas
 WSTAT round=0 n=3 12009693 10351993 12937156  spread=24.97%
 P20 [B.p20.r1]      60s  obj=10351993    Z1=1333.0   Z2=1404   Z3=9691.0    feas=y   ran 51s  py3.12
 # WALL [B.p20.r1] 51.54
+# [C.p20.r1]
+WSTAT round=0 n=2 12734338 - 12900979  spread=1.31%
+P20 [C.p20.r1]      60s  obj=12734338    Z1=1684.0   Z2=1695   Z3=9957.0    feas=y   ran 56s  py3.12
+# WALL [C.p20.r1] 56.27
