@@ -163,3 +163,31 @@ PARFILL round=1 parity=even even=848632 odd=1066670 wids=[12, 14, 16]
 FILL round=1 budget=17 moved=0 best=848632
 P7  [C.p7.r1]       60s  obj=848632      Z1=37.0     Z2=723    Z3=2335.0    feas=y   ran 52s  py3.12
 # WALL [C.p7.r1] 51.98
+# [A.p20.r1]
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        1       9.4   29.2%   1847719469 196895616.7
+  opstat  grow        1       9.6   29.8%            0        0.0
+  opstat  bal         1       0.0    0.1%            0        0.0
+  opstat  pref        1       2.9    8.9%            0        0.0
+  opstat  bay         1      10.0   31.2%            0        0.0
+  opstat  brk         0       0.0    0.0%            0        0.0
+  opstat  TOTAL       5      31.9   99.2%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        3      11.0   33.2%   1845296710 167315295.1
+  opstat  grow        1       6.1   18.5%            0        0.0
+  opstat  bal         1       0.0    0.1%            0        0.0
+  opstat  pref        2       4.9   14.6%        39919     8229.1
+  opstat  bay         1       8.8   26.6%            0        0.0
+  opstat  brk         1       1.4    4.1%            0        0.0
+  opstat  TOTAL       9      32.2   97.0%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        2       7.4   22.2%   1845509739 249981110.3
+  opstat  grow        1       6.1   18.4%            0        0.0
+  opstat  bal         1       0.0    0.1%            0        0.0
+  opstat  pref        2       5.6   16.9%        25753     4569.5
+  opstat  bay         1      11.1   33.2%            0        0.0
+  opstat  brk         1       2.6    7.9%            0        0.0
+  opstat  TOTAL       8      32.8   98.7%                        
+WSTAT round=0 n=3 12870515 10686538 13069378  spread=22.30%
+P20 [A.p20.r1]      60s  obj=10686538    Z1=1382.0   Z2=718    Z3=9780.0    feas=y   ran 40s  py3.12
+# WALL [A.p20.r1] 39.92
