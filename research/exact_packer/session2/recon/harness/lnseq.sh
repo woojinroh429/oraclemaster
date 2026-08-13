@@ -50,8 +50,31 @@
 #   * A result inside +/-1% on prob_20/prob_3 is reported as "no effect", not dressed as a win.
 # Step 0 is an identity check: the new .so with LNSEQ unset must reproduce prob_20 EXACTLY, because
 # prob_20's spread is 0.0% and the patch is supposed to be inert when off.
+#
+# BUILD-FLAG TRAP, caught here on the first two cells and worth writing down.  The first rebuild of
+# this patch used harness/buildabi.sh's line, which carries -fopenmp.  build_submission.sh does NOT:
+#
+#     build_submission.sh   CXXFLAGS="-O3 -shared -std=c++17 -fPIC -w"       <- no -fopenmp
+#     harness/buildabi.sh   g++ -O3 -shared -std=c++17 -fPIC -fopenmp -w
+#
+# ogc_fast.cpp has 2 `#pragma omp parallel for` regions and 20 `#pragma omp atomic`, with no
+# _OPENMP guards, so the flag decides whether those loops are threaded -- and -w hides the fact
+# that the pragmas are being ignored.  Checked against the artifacts:
+#
+#     zA (shipped OGC2026_gate_endpad)  0 OpenMP symbols
+#     working-tree .so before the patch 0 OpenMP symbols
+#     the -fopenmp rebuild              5 OpenMP symbols
+#
+# So the shipped engine and every measurement this session were consistently SERIAL; only my
+# rebuild diverged.  Nothing before it is contaminated.  The two ID cells taken on that build were
+# discarded and this log restarted.  Any rebuild in this tree must use build_submission.sh's flags.
 set -u
 cd /home/user/oraclemaster/research/exact_packer/session2/recon || exit 1
+if nm -D ogc_fast.cpython-312-x86_64-linux-gnu.so 2>/dev/null | grep -q 'GOMP_\|omp_get'; then
+    echo "ABORT: working .so carries OpenMP; the shipped build does not.  Rebuild with"
+    echo "  g++ -O3 -shared -std=c++17 -fPIC -w \$(python3.12 -m pybind11 --includes) ogc_fast.cpp -o ogc_fast.cpython-312-x86_64-linux-gnu.so"
+    exit 1
+fi
 . harness/lock.sh
 lock_acquire lnseq
 L=results/audit/lnseq.log
