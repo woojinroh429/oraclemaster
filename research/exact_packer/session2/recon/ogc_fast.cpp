@@ -1989,9 +1989,33 @@ struct Engine {
                 // last level by what the last level actually spent.  The set-up is then charged
                 // once, to level 1, instead of to every level forever.
                 //
-                // OGC_PERMARG=0 restores the average and is byte-identical to the old behaviour.
+                // MEASURED AND REJECTED, SO IT IS OFF BY DEFAULT (results/audit/permarg.log).
+                // Twelve paired cells against the average estimator, three replicates each:
+                //
+                //     prob_1  -11.02 +3.77 +19.01   mean +3.92%   1W/2L
+                //     prob_3   -0.90 +0.23  -0.25   mean -0.31%
+                //     prob_16  +7.24 -8.99  +8.24   mean +2.16%   1W/2L
+                //     prob_7   -3.40 -3.40  -0.89   mean -2.57%   3W/0L
+                //     all 12 pairs: mean +0.80%, median -0.57%, 7W/5L
+                //
+                // prob_1's opening -11.02% was draw luck and its three-replicate mean is a loss.
+                // The predicted mechanism was not confirmed either: the beam got NARROWER, not
+                // wider, and the objective did not follow.  Only prob_7 is consistent, which is
+                // not enough to change a global default.
+                //
+                // THE DEFAULT WAS ON WHEN THIS WAS WRITTEN AND THAT SHIPPED A REJECTED CHANGE.
+                // permarg.sh restores the .so it swaps into the working directory, but
+                // build_submission.sh compiles from THIS FILE, so reverting the binary left the
+                // source patched and the next zip carried it silently.  Caught by diffing the new
+                // submission against the one that scored 69,827,705: myalgorithm.py's diff was the
+                // two intended knobs, and ogc_fast.so differed for no reason anyone had asked for.
+                //
+                // Kept rather than deleted because the diagnosis behind it stands and is worth not
+                // re-deriving: at level 1 the beam holds one state, so elapsed()/work prices a
+                // state expansion at the whole fixed set-up cost.  That is real; correcting it
+                // simply does not pay.  OGC_PERMARG=1 enables it for measurement.
                 static const bool PERMARG=[](){const char*e=getenv("OGC_PERMARG");
-                                               return !(e&&e[0]=='0');}();
+                                               return (e&&e[0]=='1');}();
                 double per;
                 if(_wcap>0.0){
                     per = 1.0;                    // work mode: the unit IS a state expansion
@@ -2000,7 +2024,12 @@ struct Engine {
                 } else {
                     per = elapsed()/work;
                 }
-                _pm_el = elapsed(); _pm_work = work;
+                // Only the enabled path pays for the marker.  Keeping the assignment
+                // unconditional would call elapsed() one extra time per level even with PERMARG
+                // off, and this controller is driven by that same clock -- a few nanoseconds per
+                // level is not nothing when `per` is elapsed()/work and the width follows it.  Off
+                // must mean untouched, not almost untouched.
+                if(PERMARG){ _pm_el = elapsed(); _pm_work = work; }
                 double left = _wcap>0.0 ? (_wcap-work) : (time_budget_s*AIM-elapsed());
                 int rem=nord-level;
                 int fit=(per>1e-12&&rem>0)? (int)(left/(per*(double)rem)) : Bmax;

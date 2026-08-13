@@ -24,3 +24,5 @@ P30 [A.p30.r1]      60s  obj=2074467     Z1=129.0    Z2=2085   Z3=2736.0    feas
 WSTAT round=0 n=3 2159325 2264715 2050778  spread=10.43%
 P30 [B.p30.r1]      60s  obj=2048570     Z1=124.0    Z2=4088   Z3=2966.0    feas=y   ran 41s  py3.12
 # WALL [B.p30.r1] 41.26
+# [A.p36.r1]
+MGATE fired: peak_util=4.664 >= 2.00, MSET=8
