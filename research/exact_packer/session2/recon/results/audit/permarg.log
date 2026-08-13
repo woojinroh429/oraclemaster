@@ -167,3 +167,32 @@ BEAMSTAT salv=0 capped=0 used=0.90 level=1.00 B=96 K=3 work=529
 FILL round=1 budget=16 moved=0 best=2957485
 P16 [on.p16.r1]     60s  obj=2957485     Z1=128.0    Z2=1037   Z3=4991.0    feas=y   ran 53s  py3.12
 # WALL [on.p16.r1] 53.16
+# [off.p7.r1]
+DIRGATE fired: peak_util=1.271 in [1.00,1.30], timelimit 60 <= 60
+BEAMSTAT salv=1 capped=0 used=0.10 level=0.33 B=67 K=5 work=120
+BEAMSTAT salv=0 capped=0 used=0.89 level=1.00 B=96 K=4 work=1017
+BEAMSTAT salv=0 capped=0 used=0.91 level=1.00 B=67 K=5 work=776
+BEAMSTAT salv=1 capped=0 used=0.10 level=0.50 B=67 K=5 work=230
+BEAMSTAT salv=0 capped=0 used=0.91 level=1.00 B=67 K=5 work=1557
+BEAMSTAT salv=0 capped=0 used=0.91 level=1.00 B=96 K=3 work=1480
+BEAMSTAT salv=0 capped=0 used=0.90 level=1.00 B=48 K=6 work=1062
+BEAMSTAT salv=1 capped=0 used=0.90 level=0.99 B=96 K=4 work=810
+BEAMSTAT salv=1 capped=0 used=0.10 level=0.30 B=96 K=3 work=104
+WSTAT round=0 n=3 912166 1267682 937755  spread=38.97%
+PARFILL round=1 parity=even even=912166 odd=1267682 wids=[12, 14, 16]
+BEAMSTAT salv=0 capped=0 used=0.89 level=1.00 B=96 K=4 work=633
+BEAMSTAT salv=1 capped=0 used=0.90 level=0.99 B=67 K=5 work=697
+BEAMSTAT salv=1 capped=0 used=0.91 level=0.99 B=48 K=6 work=670
+BEAMSTAT salv=0 capped=0 used=0.54 level=1.00 B=96 K=3 work=565
+BEAMSTAT salv=0 capped=0 used=0.53 level=1.00 B=96 K=4 work=497
+BEAMSTAT salv=0 capped=0 used=0.89 level=1.00 B=67 K=5 work=975
+BEAMSTAT salv=0 capped=0 used=0.54 level=1.00 B=96 K=4 work=383
+BEAMSTAT salv=0 capped=0 used=0.54 level=1.00 B=48 K=6 work=368
+BEAMSTAT salv=0 capped=0 used=0.54 level=1.00 B=67 K=5 work=346
+BEAMSTAT salv=0 capped=0 used=0.55 level=1.00 B=96 K=4 work=337
+BEAMSTAT salv=1 capped=0 used=0.90 level=0.99 B=67 K=5 work=659
+BEAMSTAT salv=0 capped=0 used=0.54 level=1.00 B=67 K=5 work=410
+BEAMSTAT salv=0 capped=0 used=0.55 level=1.00 B=96 K=4 work=357
+FILL round=1 budget=18 moved=1 best=860744
+P7  [off.p7.r1]     60s  obj=860744      Z1=47.0     Z2=1599   Z3=1486.0    feas=y   ran 51s  py3.12
+# WALL [off.p7.r1] 51.58
