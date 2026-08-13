@@ -60,3 +60,7 @@ P7  [on.p7.r3]      60s  obj=840474      Z1=37.0     Z2=629    Z3=2285.0    feas
 WSTAT round=0 n=3 12870515 10607755 13113748  spread=23.62%
 P20 [off.p20.r3]    60s  obj=10607755    Z1=1373.0   Z2=1558   Z3=9610.0    feas=y   ran 40s  py3.12
 # WALL [off.p20.r3] 40.16
+# [on.p20.r3]
+WSTAT round=0 n=3 12007100 11012962 12007100  spread=9.03%
+P20 [on.p20.r3]     60s  obj=11012962    Z1=1444.0   Z2=2733   Z3=9093.0    feas=y   ran 40s  py3.12
+# WALL [on.p20.r3] 40.43
