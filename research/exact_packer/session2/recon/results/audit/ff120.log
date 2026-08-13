@@ -52,3 +52,4 @@ py3.12  obj=78928738  feas=True  Z1=11027.0 Z2=529 Z3=6764.0  wall=94.09
 #    disqualification-class rather than score-class.
 py3.12  obj=25132011  feas=True  Z1=2500.0 Z2=8511 Z3=10570.0  wall=81.26
 # [B.p26.r1] FILLFLOOR=10
+py3.12  obj=24322950  feas=True  Z1=2392.0 Z2=9086 Z3=10458.0  wall=112.77
