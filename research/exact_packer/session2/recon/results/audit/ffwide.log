@@ -133,3 +133,6 @@ WSTAT round=0 n=3 25248989 24810023 25555011  spread=3.00%
 P26 [B.p26.r2]      60s  obj=24810023    Z1=2400.0   Z2=14023  Z3=10994.0   feas=y   ran 46s  py3.12
 # WALL [B.p26.r2] 46.40
 # [A.p30.r2]
+WSTAT round=0 n=3 2098539 2155154 2077246  spread=3.75%
+P30 [A.p30.r2]      60s  obj=2077246     Z1=129.0    Z2=2444   Z3=2741.0    feas=y   ran 44s  py3.12
+# WALL [A.p30.r2] 44.50
