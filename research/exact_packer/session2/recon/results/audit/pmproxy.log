@@ -86,3 +86,5 @@ P20 [off.p20.r4]    60s  obj=10607755    Z1=1373.0   Z2=1558   Z3=9610.0    feas
 WSTAT round=0 n=3 12767534 10607755 12822048  spread=20.87%
 P20 [on.p20.r4]     60s  obj=10607755    Z1=1373.0   Z2=1558   Z3=9610.0    feas=y   ran 40s  py3.12
 # WALL [on.p20.r4] 40.22
+# [off.p1.r1]
+DIRGATE fired: peak_util=1.016 in [1.00,1.30], timelimit 60 <= 60
