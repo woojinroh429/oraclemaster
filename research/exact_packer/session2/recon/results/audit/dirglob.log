@@ -36,3 +36,5 @@ MGATE fired: peak_util=4.089 >= 2.00, MSET=8
 P13 [C.p13.r1]      60s  obj=67433655    Z1=9230.0   Z2=2845   Z3=7368.0    feas=y   ran 47s  py3.12
 # [A.p20.r1] OGC_DUMMY=0
 P20 [A.p20.r1]      60s  obj=10686538    Z1=1382.0   Z2=718    Z3=9780.0    feas=y   ran 40s  py3.12
+# [B.p20.r1] OGC_ORDER=lst OGC_W3MUL=0.5
+P20 [B.p20.r1]      60s  obj=10506476    Z1=1352.0   Z2=1899   Z3=9850.0    feas=y   ran 39s  py3.12
