@@ -108,3 +108,6 @@ P33 [zA.p33.r2]     60s  obj=964466      Z1=78.0     Z2=360    Z3=2206.0    feas
 P33 [zB.p33.r2]     60s  obj=1017042     Z1=87.0     Z2=157    Z3=2178.0    feas=y   ran 52s  py3.12
 # WALL [zB.p33.r2] 52.31
 # [zA.p3.r2]
+# STOPPED at 27 of 56.  Superseded by the scoreboard: ffclean's hidden P1 came back +10.10%, which
+# answers the artifact question directly and better than any local pairing could.  13 pairs stand
+# as the record: mean +0.17%, median exactly +0.00%, zB 6W/2T/5L.
