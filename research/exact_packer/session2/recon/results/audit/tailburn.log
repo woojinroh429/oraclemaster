@@ -138,3 +138,6 @@ P13 [C.p13.r2]      60s  obj=70853740    Z1=9653.0   Z2=1189   Z3=8120.0    feas
 # [D.p13.r2] OGC_FILLFLOOR=8
 P13 [D.p13.r2]      60s  obj=67433655    Z1=9230.0   Z2=2845   Z3=7368.0    feas=y   ran 49s  py3.12
 # WALL [D.p13.r2] 49.01
+# [A.p5.r2] OGC_DUMMY=0
+P5  [A.p5.r2]       60s  obj=7970627     Z1=2069.0   Z2=650    Z3=2672.0    feas=y   ran 46s  py3.12
+# WALL [A.p5.r2] 46.11
