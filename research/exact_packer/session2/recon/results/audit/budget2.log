@@ -219,3 +219,31 @@ P20 [A.p20.r1]      60s  obj=10686538    Z1=1382.0   Z2=718    Z3=9780.0    feas
 WSTAT round=0 n=3 12914989 9373855 13181437  spread=40.62%
 P20 [B.p20.r1]      60s  obj=9373855     Z1=1197.0   Z2=407    Z3=9268.0    feas=y   ran 39s  py3.12
 # WALL [B.p20.r1] 39.77
+# [C.p20.r1]
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        1      10.0   30.1%   1848086984 185067756.0
+  opstat  grow        1      10.0   30.2%            0        0.0
+  opstat  bal         1       0.0    0.1%            0        0.0
+  opstat  pref        2       4.4   13.3%         7365     1665.4
+  opstat  bay         1       8.0   24.1%         1858      232.7
+  opstat  brk         0       0.0    0.0%            0        0.0
+  opstat  TOTAL       6      32.4   97.9%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        2       6.5   19.6%   1844947757 282790813.5
+  opstat  grow        1       3.6   10.7%       261560    73176.1
+  opstat  bal         1       0.0    0.1%            0        0.0
+  opstat  pref        3       9.5   28.6%        38865     4079.2
+  opstat  bay         1       9.9   29.8%            0        0.0
+  opstat  brk         1       2.6    7.9%            0        0.0
+  opstat  TOTAL       9      32.2   96.8%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        4      13.5   40.5%   1846350395 136699402.1
+  opstat  grow        1       3.6   10.7%            0        0.0
+  opstat  bal         1       0.0    0.1%            0        0.0
+  opstat  pref        2       5.1   15.3%        44249     8675.1
+  opstat  bay         1       8.8   26.4%            0        0.0
+  opstat  brk         1       1.5    4.6%            0        0.0
+  opstat  TOTAL      10      32.5   97.7%                        
+WSTAT round=0 n=3 13157825 10309800 12011363  spread=27.62%
+P20 [C.p20.r1]      60s  obj=10309800    Z1=1318.0   Z2=2218   Z3=10033.0   feas=y   ran 39s  py3.12
+# WALL [C.p20.r1] 39.73
