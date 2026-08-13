@@ -180,3 +180,6 @@ P3  [A.p3.r2]       60s  obj=4645963     Z1=142.0    Z2=6751   Z3=7740.0    feas
 # [B.p3.r2] OGC_RESFRAC=0.20
 P3  [B.p3.r2]       60s  obj=4523208     Z1=142.0    Z2=7032   Z3=7506.0    feas=y   ran 48s  py3.12
 # WALL [B.p3.r2] 48.74
+# [C.p3.r2] OGC_RESFRAC=0.10
+P3  [C.p3.r2]       60s  obj=4648362     Z1=178.0    Z2=5638   Z3=7534.0    feas=y   ran 54s  py3.12
+# WALL [C.p3.r2] 54.71
