@@ -8,3 +8,5 @@ py3.12  obj=75872841  feas=True  Z1=10633.0 Z2=5030 Z3=6222.0  wall=45.31
 py3.12  obj=24322950  feas=True  Z1=2392.0 Z2=9086 Z3=10458.0  wall=40.80
 # [p3.T60]
 py3.12  obj=4675497  feas=True  Z1=157.0 Z2=9691 Z3=7663.0  wall=52.17
+# [p16.T60]
+py3.12  obj=3114589  feas=True  Z1=135.0 Z2=628 Z3=5251.0  wall=53.30
