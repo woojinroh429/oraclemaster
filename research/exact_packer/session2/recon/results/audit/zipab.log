@@ -107,3 +107,4 @@ P33 [zA.p33.r2]     60s  obj=964466      Z1=78.0     Z2=360    Z3=2206.0    feas
 # [zB.p33.r2]
 P33 [zB.p33.r2]     60s  obj=1017042     Z1=87.0     Z2=157    Z3=2178.0    feas=y   ran 52s  py3.12
 # WALL [zB.p33.r2] 52.31
+# [zA.p3.r2]

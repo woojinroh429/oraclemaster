@@ -3256,7 +3256,20 @@ def _worker(args):
     # Over 13 paired instances the two artifacts are otherwise indistinguishable: mean +0.17%,
     # median exactly +0.00%, 6W/2T/5L.  So this ships for prob_1's sake on the one signal that
     # replicated, with the rest of the field measured as a wash rather than assumed to be one.
-    _ffs = [f for f in os.environ.get("OGC_FFSET", "0.85,0.6").split(",") if f.strip()]
+    # OFF, AND THE SCOREBOARD IS WHY.  ffclean shipped this and hidden P1 went 2,817,513 ->
+    # 3,102,200, +10.10% -- the single instance the change was made for.  Total was a wash
+    # (69,827,705 -> 69,791,698, -0.05%, five instances better and three worse), so the cost is
+    # concentrated exactly where it hurts under per-instance rank scoring.
+    #
+    # THE REASON IS NOT THAT THE MEASUREMENT WAS WRONG.  Practice prob_1 really does improve
+    # 12-17% under this, across five independent measurements.  PRACTICE prob_1 IS NOT HIDDEN P1.
+    # Hidden P1 moved +10.10%, and the practice instances that move that way under FFSET are
+    # prob_7 (+12.66%) and prob_20 (+10.62%) -- not prob_1, which moves -15.71%.
+    #
+    # A competitor told us this before the scoreboard did: reducing their prob_7 moved their hidden
+    # P1 a long way.  That was dismissed at the time on the grounds that our prob_7 is draw-luck
+    # dominated.  It was correct.
+    _ffs = [f for f in os.environ.get("OGC_FFSET", "").split(",") if f.strip()]
     if _ffs and "OGC_FINEFRAC" not in os.environ:
         os.environ["OGC_FINEFRAC"] = _ffs[wid % len(_ffs)].strip()
 
