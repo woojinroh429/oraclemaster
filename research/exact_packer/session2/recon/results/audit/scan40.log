@@ -698,3 +698,9 @@ P22 [B.p22]         60s  obj=3730        Z1=0.0      Z2=430    Z3=110.0     feas
 # WALL [B.p22] 38.55
 # [A.p23]
 MGATE fired: peak_util=2.794 >= 2.00, MSET=8
+BEAMSTAT salv=1 capped=0 used=0.10 level=0.01 B=67 K=5 work=88
+BEAMSTAT salv=1 capped=0 used=0.90 level=0.22 B=96 K=4 work=664
+BEAMSTAT salv=1 capped=0 used=0.90 level=0.21 B=67 K=5 work=616
+WSTAT round=0 n=3 14207642 13946062 14447554  spread=3.60%
+P23 [A.p23]         60s  obj=13890354    Z1=1533.0   Z2=4281   Z3=7314.0    feas=y   ran 41s  py3.12
+# WALL [A.p23] 41.40
