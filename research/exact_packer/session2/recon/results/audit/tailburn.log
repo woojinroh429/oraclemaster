@@ -216,3 +216,6 @@ P26 [A.p26.r3]      60s  obj=25590787    Z1=2469.0   Z2=9964   Z3=11400.0   feas
 # [B.p26.r3] OGC_RESFRAC=0.20
 P26 [B.p26.r3]      60s  obj=25190693    Z1=2508.0   Z2=12257  Z3=10572.0   feas=y   ran 53s  py3.12
 # WALL [B.p26.r3] 53.55
+# [C.p26.r3] OGC_RESFRAC=0.10
+P26 [C.p26.r3]      60s  obj=25590787    Z1=2469.0   Z2=9964   Z3=11400.0   feas=y   ran 55s  py3.12
+# WALL [C.p26.r3] 55.37
