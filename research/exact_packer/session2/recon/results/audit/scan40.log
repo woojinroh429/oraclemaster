@@ -696,3 +696,5 @@ BEAMSTAT salv=0 capped=0 used=0.90 level=1.00 B=67 K=5 work=1622
 WSTAT round=0 n=3 3730 4557 4229  spread=22.17%
 P22 [B.p22]         60s  obj=3730        Z1=0.0      Z2=430    Z3=110.0     feas=y   ran 38s  py3.12
 # WALL [B.p22] 38.55
+# [A.p23]
+MGATE fired: peak_util=2.794 >= 2.00, MSET=8
