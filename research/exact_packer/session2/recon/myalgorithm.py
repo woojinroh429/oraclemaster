@@ -3186,8 +3186,38 @@ def _worker(args):
     # 8% of runs where prob_1's minimum comes from an odd worker, this buys nothing.  And prob_16's
     # 20% even share means one run in five could still see the change.
     #
-    # OGC_FFSET is empty by default, so the shipped path is byte-identical until it is measured.
-    _ffs = [f for f in os.environ.get("OGC_FFSET", "").split(",") if f.strip()]
+    # MEASURED AND ADOPTED (results/audit/ffport.log).  B = this split, C = FINEFRAC 0.85 on every
+    # worker, both paired against the shipped 0.60:
+    #
+    #     inst   B (even 0.85 only)                      C (global 0.85)
+    #     P1     -16.57 -16.08 -17.47 +0.00   -12.53%    -8.28 -1.38 -18.56 +3.02   -6.30%
+    #     P16     +3.46  +0.00  -4.20          -0.25%    +0.52 -1.17 +1.89          +0.41%
+    #     P20     -5.47  +0.00  -0.74          -2.07%    +9.56 -0.74                +4.41%
+    #     P3      -1.72  -1.74                 -1.73%    -0.65 -1.74                -1.20%
+    #     all    12 cells  -5.05%  8W/3T/1L    11 cells  -1.59%  7W/0T/4L
+    #
+    # All three pre-registered criteria pass: prob_1 beats the default across four replicates with
+    # no loss, prob_16 and prob_20 do not regress (they improve), and B beats C on every instance --
+    # which is what says the parity split is doing the work rather than the value 0.85 alone.
+    #
+    # THE ONE LOSS IN TWELVE IS THE POINT.  A gate that picks wrong pays the full cost on that
+    # instance; a portfolio position cannot, because the answer is a MINIMUM over the pool and the
+    # untouched odd workers are still in it.  Worst cell here is +3.46% and three cells are exactly
+    # 0.00% -- the shape of a change that can only be ignored, not suffered.
+    #
+    # prob_20 is the clearest single row: workers.md has it at 94% odd-won, so switching FINEFRAC on
+    # globally poisons the half it depends on for +4.41%, while confining it to the even half gives
+    # -2.07%.  Same value, 6.5% apart, purely from where it is applied.
+    #
+    # WHY THIS RATHER THAN A GATE.  Three gates were built and rejected on measurement this session
+    # -- Z3 share, mean layer count, and the beam's own salvage rate (that one sealed before its
+    # holdout existed, then scoring 3 of 7).  Across 21 paired instances the global 0.85's median is
+    # exactly +0.00%: there is no instance-level rule to find, because on a typical instance the
+    # setting does nothing and prob_1 carries the entire mean.  A portfolio position does not need
+    # the rule.
+    #
+    # OGC_FFSET= (empty) restores the previous behaviour exactly.
+    _ffs = [f for f in os.environ.get("OGC_FFSET", "0.85,0.6").split(",") if f.strip()]
     if _ffs and "OGC_FINEFRAC" not in os.environ:
         os.environ["OGC_FINEFRAC"] = _ffs[wid % len(_ffs)].strip()
 
