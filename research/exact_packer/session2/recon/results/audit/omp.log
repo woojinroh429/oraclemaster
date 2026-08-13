@@ -1,1 +1,4 @@
 # [A.p3.r1] tree=omp_off env=OMP_NUM_THREADS=1
+P3  [A.p3.r1]       60s  obj=4669641     Z1=175.0    Z2=7289   Z3=7571.0    feas=y   ran 52s  py3.12
+# CPU [A.p3.r1] peak=340% mean=252% samples=199 rc=0
+# WALL [A.p3.r1] 53.13
