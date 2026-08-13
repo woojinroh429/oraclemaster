@@ -85,3 +85,6 @@ P3  [D.p3.r1]       60s  obj=4658555     Z1=181.0    Z2=10082  Z3=7476.0    feas
 # [A.p16.r1] OGC_DUMMY=0
 P16 [A.p16.r1]      60s  obj=3301626     Z1=156.0    Z2=1726   Z3=4866.0    feas=y   ran 53s  py3.12
 # WALL [A.p16.r1] 53.54
+# [B.p16.r1] OGC_RESFRAC=0.20
+P16 [B.p16.r1]      60s  obj=3233654     Z1=151.0    Z2=1957   Z3=4858.0    feas=y   ran 49s  py3.12
+# WALL [B.p16.r1] 49.23
