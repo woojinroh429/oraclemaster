@@ -25,3 +25,6 @@ P5  [B.p5.r1]       60s  obj=7809007     Z1=2073.0   Z2=1122   Z3=2224.0    feas
 # [C.p5.r1] OGC_DIRSET=0
 MGATE fired: peak_util=3.154 >= 2.00, MSET=8
 P5  [C.p5.r1]       60s  obj=7970627     Z1=2069.0   Z2=650    Z3=2672.0    feas=y   ran 45s  py3.12
+# [A.p13.r1] OGC_DUMMY=0
+MGATE fired: peak_util=4.089 >= 2.00, MSET=8
+P13 [A.p13.r1]      60s  obj=67433655    Z1=9230.0   Z2=2845   Z3=7368.0    feas=y   ran 48s  py3.12
