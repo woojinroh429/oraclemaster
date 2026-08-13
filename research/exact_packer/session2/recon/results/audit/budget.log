@@ -68,3 +68,10 @@ PARFILL round=1 parity=odd even=4769402 odd=3785351 wids=[13, 15, 17]
 FILL round=1 budget=13 moved=0 best=3785351
 P16 [B.p16.r1]      60s  obj=3785351     Z1=209.0    Z2=1668   Z3=3975.0    feas=y   ran 52s  py3.12
 # WALL [B.p16.r1] 52.81
+# [C.p16.r1]
+DIRGATE fired: peak_util=1.231 in [1.00,1.30], timelimit 60 <= 60
+WSTAT round=0 n=3 4125079 4153506 4355062  spread=5.58%
+PARFILL round=1 parity=even even=4125079 odd=4153506 wids=[12, 14, 16]
+FILL round=1 budget=17 moved=1 best=3546818
+P16 [C.p16.r1]      60s  obj=3540139     Z1=179.0    Z2=2094   Z3=4589.0    feas=y   ran 52s  py3.12
+# WALL [C.p16.r1] 52.78
