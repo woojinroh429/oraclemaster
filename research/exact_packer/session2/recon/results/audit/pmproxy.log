@@ -20,3 +20,10 @@ P20 [off.p20.r1]    60s  obj=10686538    Z1=1382.0   Z2=718    Z3=9780.0    feas
 WSTAT round=0 n=3 12312219 10607755 12312219  spread=16.07%
 P20 [on.p20.r1]     60s  obj=10607755    Z1=1373.0   Z2=1558   Z3=9610.0    feas=y   ran 39s  py3.12
 # WALL [on.p20.r1] 39.77
+# [off.p7.r2]
+DIRGATE fired: peak_util=1.271 in [1.00,1.30], timelimit 60 <= 60
+WSTAT round=0 n=3 848632 1126046 860744  spread=32.69%
+PARFILL round=1 parity=even even=848632 odd=1126046 wids=[12, 14, 16]
+FILL round=1 budget=17 moved=0 best=848632
+P7  [off.p7.r2]     60s  obj=848632      Z1=37.0     Z2=723    Z3=2335.0    feas=y   ran 52s  py3.12
+# WALL [off.p7.r2] 52.09
