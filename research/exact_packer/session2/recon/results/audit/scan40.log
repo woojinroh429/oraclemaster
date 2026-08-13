@@ -712,3 +712,11 @@ BEAMSTAT salv=1 capped=0 used=0.91 level=0.27 B=67 K=5 work=936
 WSTAT round=0 n=3 14899331 14770512 14700778  spread=1.35%
 P23 [B.p23]         60s  obj=14688090    Z1=1636.0   Z2=2126   Z3=7549.0    feas=y   ran 44s  py3.12
 # WALL [B.p23] 45.07
+# [A.p24]
+BEAMSTAT salv=1 capped=0 used=0.10 level=0.53 B=67 K=5 work=202
+BEAMSTAT salv=0 capped=0 used=0.90 level=1.00 B=96 K=4 work=1068
+BEAMSTAT salv=0 capped=0 used=0.90 level=1.00 B=67 K=5 work=1180
+# STOPPED at 21 of 40 pairs by decision, not by completion.  R1 was already rejected on its
+# holdout (3 of 7 = 43%, below the pre-registered 60% floor) and the population median held at
+# exactly +0.00% across 10, 18 and 21 pairs, so the remaining 19 pairs were unlikely to move the
+# conclusion.  This log is NOT a completed scan and must not be read as one.
