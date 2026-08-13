@@ -294,3 +294,34 @@ P16 [C.p16.r3]      60s  obj=3183437     Z1=146.0    Z2=1523   Z3=4929.0    feas
 # [D.p16.r3] OGC_FILLFLOOR=8
 P16 [D.p16.r3]      60s  obj=3119187     Z1=132.0    Z2=577    Z3=5430.0    feas=y   ran 52s  py3.12
 # WALL [D.p16.r3] 52.89
+TAILBURNDONE
+# VERDICT: ALL THREE ARMS REJECTED.  Six non-DIRGATE instances, three replicates, 18 paired cells.
+#     B (RESFRAC 0.20)  mean -0.53%  10W/8L  max wall 56.3
+#     C (RESFRAC 0.10)  mean -0.81%  10W/7L  max wall 56.3
+#     D (FILLFLOOR 8)   mean -0.64%   7W/5L  max wall 53.7      (A max wall 54.8)
+#
+# THE CLOSING ARGUMENT IS ARM D, not the means.  D is verifiably near-inert: on P13 it reads
+# +0.00% in all three replicates with walls of 48.6/49.0/48.9 against stock's 49.9/48.4/48.3, so
+# the fill gate never opened and the run is the shipped run.  That arm still posts a population
+# mean of -0.64%, which is indistinguishable from B's -0.53% and C's -0.81%.  A knob that does
+# nothing produces the same population mean as the two that do something, so these means carry no
+# information and cannot support adoption.
+#
+# WHAT IS REAL, and it is per-instance rather than population:
+#     P20 arm B   -8.97 / -6.00 / -11.91     3 of 3, mean -8.96%
+#     P13 arm B   +7.85 /  +7.62 /  +7.62    3 of 3, repeating to two decimals
+#     P5  arm C   -3.95 /  -5.07 /  -5.07    3 of 3
+# The reserve is a real lever whose SIGN is a property of the instance.  Under per-instance rank
+# scoring that is an expected-value-zero trade at odds set by the hidden set's composition.
+#
+# NOT FITTING A GATE TO PREDICT THE SIGN.  Three gates fitted on small evidence this session
+# (Z3-share, mean-layer-count, beam-salvage-rate) all died on holdout, the last after looking
+# 8-of-8 correct.
+#
+# TWO DESIGN FAULTS IN THIS QUEUE, recorded so the numbers are not reused as if they were clean:
+#   1. P3/P16 were labelled DIRGATE controls and are not.  DIRGATE injects OGC_RESFRAC with
+#      `if _k not in os.environ`, so arms B and C override the gate.  Only D is a control there.
+#   2. The hypothesis the queue was opened on -- instances that return early are throwing time
+#      away, so give it back -- is falsified by its own data.  Stock walls split the set (P20
+#      39.7, P26 40.7, P30 40.1 early; P5 45.6, P13 49.9, P2 53.9 not) and the gains ignore the
+#      split: P2 already runs to 53.9s and gains, P26 finishes earliest and gains nothing.
