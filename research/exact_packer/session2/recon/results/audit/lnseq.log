@@ -1,3 +1,6 @@
 # [ID.p20.r1]
 P20 [ID.p20.r1]     60s  obj=10686538    Z1=1382.0   Z2=718    Z3=9780.0    feas=y   ran 39s  py3.12
 # WALL [ID.p20.r1] 39.76
+# [ID.p20.r2]
+P20 [ID.p20.r2]     60s  obj=10284359    Z1=1323.0   Z2=2446   Z3=9629.0    feas=y   ran 40s  py3.12
+# WALL [ID.p20.r2] 39.97
