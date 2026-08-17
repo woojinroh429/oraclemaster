@@ -91,8 +91,19 @@ fi
 # chain script instead, which re-enters its own stages and skips the cells that already exist.
 Q="$(cut -d' ' -f1 harness/RESUME 2>/dev/null)"
 [ -n "$Q" ] && [ -f "harness/$Q.sh" ] || Q="$(cut -d' ' -f1 harness/CURRENT 2>/dev/null || echo overnight)"
-[ -n "$Q" ] && [ "$Q" != "idle" ] || Q=overnight
-[ -f "harness/$Q.sh" ] || Q=overnight
+# `idle` MEANS NOTHING TO RESUME, AND IT USED TO MEAN `overnight`.
+#
+# These lines read `... || Q=overnight` twice, which does the OPPOSITE of the comment above: an
+# idle marker fell through to the overnight chain instead of stopping.  overnight is a finished
+# queue that exits on an AssertionError, so every session restart relaunched it and appended the
+# same traceback to results/overnight.log -- four times after the competition work was done and the
+# box was meant to be quiet.  Setting RESUME to idle did not stop it, because idle was exactly the
+# value that triggered the fallback.
+#
+# NOTE FOR WHOEVER EDITS THIS FILE NEXT: do not run it to test a change.  Line 50 does
+# `git reset --hard FETCH_HEAD`, so an uncommitted edit to this script is destroyed by running it.
+# That is how this fix was lost the first time.  Commit, then test.
+[ -n "$Q" ] && [ "$Q" != "idle" ] || exit 0
 [ -f "harness/$Q.sh" ] || exit 0
 mkdir -p results
 nohup bash "harness/$Q.sh" >> "results/$Q.log" 2>&1 < /dev/null &
