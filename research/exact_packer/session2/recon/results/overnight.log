@@ -40,3 +40,6 @@ AssertionError: the nent=6 tier is not in the table
 Traceback (most recent call last):
   File "<string>", line 4, in <module>
 AssertionError: the nent=6 tier is not in the table
+Traceback (most recent call last):
+  File "<string>", line 4, in <module>
+AssertionError: the nent=6 tier is not in the table
