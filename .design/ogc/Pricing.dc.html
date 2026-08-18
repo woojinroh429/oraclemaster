@@ -1,0 +1,90 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+  <style>
+    body { margin: 0; }
+    a { color: #3a6089; }
+    a:hover { color: #2a4664; }
+  </style>
+</helmet>
+
+<div style="width: 1280px; height: 720px; background: #fbfaf7; color: #17191d; font-family: 'IBM Plex Sans KR', 'Malgun Gothic', sans-serif; display: flex; flex-direction: column; padding: 62px 96px 46px; box-sizing: border-box;">
+
+  <div style="display: flex; flex-direction: column; gap: 16px;">
+    <h2 style="margin: 0; font-size: 40px; font-weight: 600; letter-spacing: -0.015em;">블록이 아니라 자리에 값을 매기기</h2>
+    <div style="height: 1px; background: #17191d;"></div>
+  </div>
+
+  <div style="display: flex; gap: 52px; margin-top: 34px; flex-grow: 1;">
+
+    <div style="width: 470px; display: flex; flex-direction: column; gap: 18px;">
+      <div style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; letter-spacing: 0.12em; color: #a6552f; font-weight: 500;">문제 — 가중치가 블록에 붙어 있었다</div>
+      <p style="margin: 0; font-size: 18px; line-height: 1.55; color: #3f434a;">솔버는 후보 <strong style="font-weight: 600;">열(column)</strong> 목록을 받는다 — 하나의 열 = 한 블록의 한 방향·위치·<strong style="font-weight: 600;">진입시각</strong>.</p>
+      <p style="margin: 0; font-size: 18px; line-height: 1.55; color: #3f434a;">목적함수는 (베이, 진입시각)만 읽는다. 진입 변형이야말로 <strong style="font-weight: 600;">한 블록의 대안들이 갈리는 바로 그 입도</strong>다.</p>
+
+      <div style="border-left: 2px solid #a6552f; padding: 4px 0 4px 18px; margin-top: 2px;">
+        <p style="margin: 0; font-size: 18px; line-height: 1.5;">정시 열과 <strong style="font-weight: 600;">열흘 늦은 열이 같은 숫자</strong>를 달고 있었고, 그래서 솔버는 더 쉽게 앉는 쪽을 취했다.</p>
+      </div>
+
+      <div style="margin-top: 6px; display: flex; flex-direction: column; gap: 8px;">
+        <p style="margin: 0; font-size: 16px; line-height: 1.5; color: #6b6f76;">바깥에서 고치려는 시도는 전부 실패했다. 손익분기 지연에서 할인이 이득 전부와 같아져 후회가 큰 블록의 가중치가 바닥으로 붕괴한다.</p>
+        <div style="display: flex; align-items: baseline; gap: 14px;">
+          <span style="font-family: 'IBM Plex Mono', monospace; font-size: 24px; font-weight: 600; color: #9a9ea4;">9승 21패</span>
+          <span style="font-size: 15px; color: #6b6f76;">중앙값 +0.00% — 늦은 창을 아예 제안하지 않는 것과 구분되지 않음</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 20px;">
+      <div style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; letter-spacing: 0.12em; color: #3a6089; font-weight: 500;">해법 — 가중치를 진입 변형에 붙인다</div>
+
+      <div style="background: #ffffff; border: 1px solid #dddcd6; padding: 22px 24px;">
+        <div style="font-family: 'IBM Plex Mono', monospace; font-size: 21px; line-height: 1.6; color: #17191d;">p(w) = g − w₁·( max(0, e<tspan style="font-size: 15px;">w</tspan> − d) − max(0, e₀ − d) )</div>
+      </div>
+      <div style="font-family: 'IBM Plex Mono', monospace; font-size: 14px; line-height: 1.7; color: #6b6f76;">g 이동의 이득 · e_w 창 w에서의 퇴장 · e₀ 현재 퇴장 · d 납기</div>
+
+      <svg width="560" height="150" viewBox="0 0 560 150">
+        <line x1="20" y1="96" x2="540" y2="96" stroke="#dddcd6" stroke-width="1"></line>
+        <line x1="286" y1="30" x2="286" y2="118" stroke="#9a9ea4" stroke-width="1" stroke-dasharray="4 3"></line>
+        <text x="252" y="136" font-family="IBM Plex Sans KR, sans-serif" font-size="12.5" fill="#6b6f76">현재 진입 e₀</text>
+        <rect x="96" y="72" width="86" height="24" fill="#3a6089"></rect>
+        <text x="106" y="88" font-family="IBM Plex Mono, monospace" font-size="12" fill="#ffffff">p &gt; 기준</text>
+        <text x="96" y="62" font-family="IBM Plex Sans KR, sans-serif" font-size="12.5" fill="#3a6089">이른 창 — 앞으로 당기는 대가를 받는다</text>
+        <rect x="286" y="72" width="86" height="24" fill="#c9ccd0"></rect>
+        <text x="300" y="88" font-family="IBM Plex Mono, monospace" font-size="12" fill="#3f434a">기준</text>
+        <rect x="418" y="72" width="86" height="24" fill="#a6552f"></rect>
+        <text x="428" y="88" font-family="IBM Plex Mono, monospace" font-size="12" fill="#ffffff">p &lt; 기준</text>
+        <text x="418" y="122" font-family="IBM Plex Sans KR, sans-serif" font-size="12.5" fill="#a6552f">늦은 창</text>
+      </svg>
+
+      <p style="margin: 0; font-size: 18px; line-height: 1.5;"><strong style="font-weight: 600;">양방향으로 정확하다.</strong> 현재보다 이른 창은 기준보다 높게 값이 매겨지고, 솔버가 블록을 앞으로 당기는 대가를 받을 수 있다 — 블록별 가중치로는 표현조차 불가능한 것.</p>
+
+      <div style="border-top: 2px solid #17191d; padding-top: 16px; display: flex; align-items: baseline; gap: 20px;">
+        <span style="font-family: 'IBM Plex Mono', monospace; font-size: 34px; font-weight: 600;">20승 9패</span>
+        <span style="font-family: 'IBM Plex Mono', monospace; font-size: 22px; font-weight: 500; color: #a6552f;">p ≈ 0.03</span>
+      </div>
+      <p style="margin: -14px 0 0; font-size: 15px; color: #6b6f76;">본선 39개 · 평균 −0.74% · 늦은 창이 열릴 수 없는 4개에서는 2승 1패로 해를 끼치지 않는다</p>
+    </div>
+  </div>
+
+  <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #dddcd6; padding-top: 14px;">
+    <span style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: #9a9ea4;">보고서 2.2 · 성공 ⑤</span>
+    <span style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: #9a9ea4;">9 / 11 · 1:10</span>
+  </div>
+
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":1280,"height":720}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
