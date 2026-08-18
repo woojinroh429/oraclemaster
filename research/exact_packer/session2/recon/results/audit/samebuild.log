@@ -1,0 +1,135 @@
+pre-patch source: dd7fcd5dde90
+post-patch source: 60ace76cd6fb
+2102a2103,2117
+>                 // MOVED ONCE, AND ONLY ONCE.  The top-up pass below rescans keyed from the
+>                 // start, so without this it moves states the quota pass already took.  The
+>                 // second move yields a CBState whose three vectors are empty -- and a moved-from
+>                 // vector has data()==nullptr, so the next level's `c.placed[bi]=1` writes
+>                 // through a null pointer.  That is the crash actually observed: stage-2 prob_12,
+>                 // "segfault at c8 ... in ogc_fast.cpython-312 [4c4e4]", 0xc8 == 200 == the block
+>                 // index, faulting on exactly that store.
+>                 //
+>                 // The guard this replaces (`flat.empty() && nplaced==0`) could never fire.  The
+>                 // implicit move constructor moves the vectors but COPIES the scalars, so a
+>                 // moved-from state keeps its old nplaced, and every child has nplaced>=1 by
+>                 // construction -- the conjunction is unsatisfiable for the states it was meant
+>                 // to catch.  Recording what was taken tests the thing itself instead of trying
+>                 // to infer it from the wreckage.
+>                 std::vector<char> moved(children.size(),0);
+2106c2121
+<                     taken[par]++; nb2.push_back(std::move(children[idx]));
+---
+>                     taken[par]++; moved[idx]=1; nb2.push_back(std::move(children[idx]));
+2110,2111c2125,2126
+<                     if(children[idx].flat.empty() && children[idx].nplaced==0) continue;
+<                     nb2.push_back(std::move(children[idx]));
+---
+>                     if(moved[idx]) continue;
+>                     moved[idx]=1; nb2.push_back(std::move(children[idx]));
+== build both from the same command line ==
+build_pre/ogc_fast.cpp:261:8: warning: 'Engine' declared with greater visibility than the type of its field 'Engine::nfp_provider' [-Wattributes]
+  261 | struct Engine {
+      |        ^~~~~~
+/home/user/oraclemaster/research/exact_packer/session2/recon/ogc_fast.cpp:261:8: warning: 'Engine' declared with greater visibility than the type of its field 'Engine::nfp_provider' [-Wattributes]
+  261 | struct Engine {
+      |        ^~~~~~
+  pre  287139f43f1e
+  post 7b65b66fe89b
+# [r1.pre.12]
+WSTAT round=0 n=4 156299 159177 158453 161174  spread=3.12%
+P12 [r1.pre.12]     60s  obj=154059      Z1=18.0     Z2=11615  Z3=5458.0    feas=y   ran 59s  py3.12
+# [r1.post.12]
+WSTAT round=0 n=4 144062 154309 155281 150055  spread=7.79%
+P12 [r1.post.12]    60s  obj=142150      Z1=7.0      Z2=7969   Z3=5274.0    feas=y   ran 59s  py3.12
+# [r1.pre.3]
+WSTAT round=0 n=4 4961976 4818557 4860583 5055513  spread=4.92%
+P3  [r1.pre.3]      60s  obj=4812737     Z1=164.0    Z2=9060   Z3=7885.0    feas=y   ran 59s  py3.12
+# [r1.post.3]
+WSTAT round=0 n=4 4929233 4722653 5010503 4854145  spread=6.10%
+P3  [r1.post.3]     60s  obj=4712314     Z1=195.0    Z2=7974   Z3=7517.0    feas=y   ran 59s  py3.12
+# [r1.pre.1]
+WSTAT round=0 n=4 560224 589374 822149 831065  spread=48.35%
+P1  [r1.pre.1]      60s  obj=560224      Z1=22.0     Z2=5250   Z3=663.0     feas=y   ran 48s  py3.12
+# [r1.post.1]
+WSTAT round=0 n=4 610313 928145 822149 749016  spread=52.08%
+P1  [r1.post.1]     60s  obj=610313      Z1=17.0     Z2=5858   Z3=799.0     feas=y   ran 49s  py3.12
+# [r1.pre.26]
+WSTAT round=0 n=4 32707178 24889389 24402259 27544842  spread=34.03%
+P26 [r1.pre.26]     60s  obj=24402259    Z1=2400.0   Z2=9459   Z3=10490.0   feas=y   ran 59s  py3.12
+# [r1.post.26]
+WSTAT round=0 n=4 24726407 33710296 24402259 28415557  spread=38.14%
+P26 [r1.post.26]    60s  obj=24402259    Z1=2400.0   Z2=9459   Z3=10490.0   feas=y   ran 57s  py3.12
+# [r1.pre.30]
+WSTAT round=0 n=4 2660738 2049434 2042425 2277516  spread=30.27%
+P30 [r1.pre.30]     60s  obj=2042425     Z1=125.0    Z2=4800   Z3=2776.0    feas=y   ran 59s  py3.12
+# [r1.post.30]
+WSTAT round=0 n=4 2702732 2049048 2069628 2276851  spread=31.90%
+P30 [r1.post.30]    60s  obj=2049048     Z1=125.0    Z2=3383   Z3=2897.0    feas=y   ran 59s  py3.12
+# [r1.pre.6]
+WSTAT round=0 n=4 5645380 5966632 6000897 5791161  spread=6.30%
+P6  [r1.pre.6]      60s  obj=5634980     Z1=361.0    Z2=3317   Z3=6054.0    feas=y   ran 59s  py3.12
+# [r1.post.6]
+WSTAT round=0 n=4 5553520 5967137 5882031 6093260  spread=9.72%
+P6  [r1.post.6]     60s  obj=5551041     Z1=354.0    Z2=4025   Z3=6098.0    feas=y   ran 59s  py3.12
+# [r1.pre.16]
+WSTAT round=0 n=4 3516583 4482290 4953138 4904847  spread=40.85%
+P16 [r1.pre.16]     60s  obj=3513968     Z1=173.0    Z2=1203   Z3=4815.0    feas=y   ran 59s  py3.12
+# [r1.post.16]
+WSTAT round=0 n=4 4081301 4280948 4709399 3574878  spread=31.74%
+P16 [r1.post.16]    60s  obj=3574878     Z1=183.0    Z2=1813   Z3=4518.0    feas=y   ran 59s  py3.12
+# [r1.pre.20]
+WSTAT round=0 n=4 8876985 9162795 11642846 11216222  spread=31.16%
+P20 [r1.pre.20]     60s  obj=8876985     Z1=1125.0   Z2=2220   Z3=9059.0    feas=y   ran 59s  py3.12
+# [r1.post.20]
+WSTAT round=0 n=4 9023076 11363037 8862263 11591216  spread=30.79%
+P20 [r1.post.20]    60s  obj=8854193     Z1=1123.0   Z2=3419   Z3=8932.0    feas=y   ran 59s  py3.12
+REPDONE 1
+# [r2.pre.12]
+WSTAT round=0 n=4 159177 151715 153442 146311  spread=8.79%
+P12 [r2.pre.12]     60s  obj=140907      Z1=8.0      Z2=8018   Z3=5209.0    feas=y   ran 59s  py3.12
+# [r2.post.12]
+WSTAT round=0 n=4 152812 159177 151715 158214  spread=4.92%
+P12 [r2.post.12]    60s  obj=151715      Z1=19.0     Z2=11213  Z3=5367.0    feas=y   ran 59s  py3.12
+# [r2.pre.3]
+WSTAT round=0 n=4 5048598 4864867 4855209 4854145  spread=4.01%
+P3  [r2.pre.3]      60s  obj=4806660     Z1=248.0    Z2=9846   Z3=7338.0    feas=y   ran 59s  py3.12
+# [r2.post.3]
+WSTAT round=0 n=4 4854145 4765149 4915276 5111652  spread=7.27%
+P3  [r2.post.3]     60s  obj=4765149     Z1=177.0    Z2=8407   Z3=7723.0    feas=y   ran 60s  py3.12
+# [r2.pre.1]
+WSTAT round=0 n=4 560224 822149 831065 589374  spread=48.35%
+P1  [r2.pre.1]      60s  obj=560224      Z1=22.0     Z2=5250   Z3=663.0     feas=y   ran 48s  py3.12
+# [r2.post.1]
+WSTAT round=0 n=4 589374 880133 682888 677668  spread=49.33%
+P1  [r2.post.1]     60s  obj=589374      Z1=33.0     Z2=6521   Z3=583.0     feas=y   ran 48s  py3.12
+# [r2.pre.26]
+WSTAT round=0 n=4 24889389 32556532 25269531 28522953  spread=30.80%
+P26 [r2.pre.26]     60s  obj=24875007    Z1=2438.0   Z2=11261  Z3=10762.0   feas=y   ran 59s  py3.12
+# [r2.post.26]
+WSTAT round=0 n=4 24726407 32556532 25269531 29622223  spread=31.67%
+P26 [r2.post.26]    60s  obj=24726407    Z1=2433.0   Z2=14396  Z3=10614.0   feas=y   ran 57s  py3.12
+# [r2.pre.30]
+WSTAT round=0 n=4 2683117 2276851 2052354 2049048  spread=30.94%
+P30 [r2.pre.30]     60s  obj=2049048     Z1=125.0    Z2=3383   Z3=2897.0    feas=y   ran 59s  py3.12
+# [r2.post.30]
+WSTAT round=0 n=4 2049048 2683117 2042425 2276851  spread=31.37%
+P30 [r2.post.30]    60s  obj=2042425     Z1=125.0    Z2=4800   Z3=2776.0    feas=y   ran 59s  py3.12
+# [r2.pre.6]
+WSTAT round=0 n=4 5730063 6165343 5752935 5587009  spread=10.35%
+P6  [r2.pre.6]      60s  obj=5577062     Z1=358.0    Z2=4335   Z3=5881.0    feas=y   ran 59s  py3.12
+# [r2.post.6]
+WSTAT round=0 n=4 6083478 6162794 5719036 5890414  spread=7.76%
+P6  [r2.post.6]     60s  obj=5719036     Z1=367.0    Z2=2373   Z3=6120.0    feas=y   ran 59s  py3.12
+# [r2.pre.16]
+WSTAT round=0 n=4 4442974 4853508 3516583 4328545  spread=38.02%
+P16 [r2.pre.16]     60s  obj=3513968     Z1=173.0    Z2=1203   Z3=4815.0    feas=y   ran 59s  py3.12
+# [r2.post.16]
+WSTAT round=0 n=4 4771086 4836012 4442974 3472568  spread=39.26%
+P16 [r2.post.16]    60s  obj=3472568     Z1=185.0    Z2=2321   Z3=3996.0    feas=y   ran 59s  py3.12
+# [r2.pre.20]
+WSTAT round=0 n=4 9162795 8973323 11165881 11795726  spread=31.45%
+P20 [r2.pre.20]     60s  obj=8962507     Z1=1127.0   Z2=181    Z3=9649.0    feas=y   ran 59s  py3.12
+# [r2.post.20]
+WSTAT round=0 n=4 9213031 9249368 11624394 10928619  spread=26.17%
+P20 [r2.post.20]    60s  obj=9213031     Z1=1167.0   Z2=1049   Z3=9495.0    feas=y   ran 59s  py3.12
+REPDONE 2

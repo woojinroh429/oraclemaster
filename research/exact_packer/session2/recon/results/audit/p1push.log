@@ -1,0 +1,11 @@
+WSTAT round=0 n=4 538723 747457 524295 773648  spread=47.56%
+WSTAT round=0 n=4 438791 740405 504490 716089  spread=68.74%
+# [rv80]
+WSTAT round=0 n=4 556620 707039 540342 773648  spread=43.18%
+# [rv80]
+# [owr]
+WSTAT round=0 n=4 437484 720112 472234 766981  spread=75.32%
+FILL round=1 budget=111 moved=0 best=437484
+P1  [owr]          240s  obj=437484      Z1=15.0     Z2=4293   Z3=541.0     feas=y   ran 233s  py3.12
+# [rv60]
+# [rv60]

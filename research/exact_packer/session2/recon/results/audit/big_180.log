@@ -1,0 +1,23 @@
+    brk calib: 544:3.99e-07 1004:6.41e-08 -> rate 6.41e-08 at 1004 cols, growth n^0.000
+    brk tier: room=60s rate=6.41e-08 -> tier 3 (step 6 nout 10 nent 2) ncol~11416 pred=8.3s  [hard=70 slice=29s]
+    brk calib: 464:1.84e-06 1384:4.62e-08 -> rate 4.62e-08 at 1384 cols, growth n^0.000
+    brk tier: room=59s rate=4.62e-08 -> tier 3 (step 6 nout 10 nent 2) ncol~15644 pred=11.3s  [hard=69 slice=29s]
+    brk calib: 548:1.02e-07 1014:3.23e-08 -> rate 3.23e-08 at 1014 cols, growth n^0.000
+    brk tier: room=57s rate=3.23e-08 -> tier 2 (step 4 nout 20 nent 3) ncol~31998 pred=33.1s  [hard=67 slice=29s]
+    brk calib: 522:3.06e-07 972:4.61e-08 -> rate 4.61e-08 at 972 cols, growth n^0.000
+    brk tier: room=56s rate=4.61e-08 -> tier 2 (step 4 nout 20 nent 3) ncol~31190 pred=44.8s  [hard=65 slice=29s]
+    brk: build refused at tier 2 (2.0s) -- stepping down to tier 3
+    brk: build refused at tier 2 (3.7s) -- stepping down to tier 3
+    brk cost: ncol~11416 real_ncol=11213 build=3.4s ask=28.6s total=29.2s
+    brk cost: tier 3 ncol~11416 real_ncol=11213 build=3.4s total=29.2s  -> rate 2.613e-08 s/col^2
+    brk[pressure] tgt=2 res=37 outs=10 displaced b28 could not be rehomed in any other bay
+    brk cost: ncol~15644 real_ncol=15711 build=4.6s ask=28.6s total=29.3s
+    brk cost: tier 3 ncol~15644 real_ncol=15711 build=4.6s total=29.3s  -> rate 1.862e-08 s/col^2
+    brk[pressure] tgt=1 res=44 outs=7 displaced b2 could not be rehomed in any other bay
+    brk cost: ncol~11682 real_ncol=11496 build=3.9s ask=28.6s total=28.7s
+    brk cost: tier 3 ncol~11682 real_ncol=11496 build=3.9s total=28.7s  -> rate 2.838e-08 s/col^2
+    brk[pressure] tgt=2 res=37 outs=10 displaced b1 could not be rehomed in any other bay
+    brk cost: ncol~10824 real_ncol=10722 build=3.0s ask=28.6s total=28.8s
+    brk cost: tier 3 ncol~10824 real_ncol=10722 build=3.0s total=28.8s  -> rate 2.581e-08 s/col^2
+    brk[pressure] tgt=2 res=36 outs=10 displaced b78 could not be rehomed in any other bay
+P1  big            180s  obj=544390      Z1=19.0     Z2=5839   Z3=667.0     feas=y   ran 145s

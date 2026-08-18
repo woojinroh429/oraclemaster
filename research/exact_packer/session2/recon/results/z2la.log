@@ -1,0 +1,6 @@
+Z2 lookahead wired at both state-rank sites; exact-objective sites untouched
+=== z2_off_p3_r1.log  (Z2LA off P3 r1)  14:49:30
+P3  Z2LA off P3 r1   240s  obj=90545       Z1=0.0      Z2=2299   Z3=527.0     feas=y   ran 239s
+=== z2_on_p3_r1.log  (Z2LA on  P3 r1)  14:53:32
+P3  Z2LA on  P3 r1   240s  obj=90545       Z1=0.0      Z2=2299   Z3=527.0     feas=y   ran 239s
+=== z2_off_p3_r2.log  (Z2LA off P3 r2)  14:57:33

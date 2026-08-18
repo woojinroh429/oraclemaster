@@ -1,0 +1,14 @@
+myalg_base on P3: obj=106700  Z2=2680  Z3=622
+   contested bay 0: 43x23, u=2.078, 54 residents
+   146 outsiders would improve the objective by entering it; taking the 17 best, worth 69245 in total if all were admitted
+
+   packing 71 blocks (54 residents + 17 outsiders) into 43x23, grid step 2, 3 entry times each, 120s
+
+[RESULT]
+   residents re-seated : 53 of 54
+   outsiders admitted  : 4 of 17
+      blk 106 (+10850), blk 128 (+6595), blk 191 (+3910), blk 32 (+2280)
+   residents displaced : 164
+
+   objective 106700 -> 90120  (-15.54%),  Z2 2680 -> 3324,  Z3 622 -> 490
+   -> bay 0 was BADLY PACKED, not full: 4 more blocks fit once the residents may move, worth 15.54% of the objective

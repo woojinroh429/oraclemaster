@@ -1,0 +1,113 @@
+# [zA.p1.r1]
+P1  [zA.p1.r1]      60s  obj=605585      Z1=8.0      Z2=4083   Z3=900.0     feas=y   ran 50s  py3.12
+# WALL [zA.p1.r1] 50.67
+# [zB.p1.r1]
+P1  [zB.p1.r1]      60s  obj=510450      Z1=12.0     Z2=4882   Z3=693.0     feas=y   ran 49s  py3.12
+# WALL [zB.p1.r1] 49.81
+# [zA.p2.r1]
+P2  [zA.p2.r1]      60s  obj=60116544    Z1=4426.0   Z2=3659   Z3=7267.0    feas=y   ran 53s  py3.12
+# WALL [zA.p2.r1] 53.46
+# [zB.p2.r1]
+P2  [zB.p2.r1]      60s  obj=60116544    Z1=4426.0   Z2=3659   Z3=7267.0    feas=y   ran 55s  py3.12
+# WALL [zB.p2.r1] 55.40
+# [zA.p27.r1]
+P27 [zA.p27.r1]     60s  obj=795054      Z1=83.0     Z2=353    Z3=968.0     feas=y   ran 52s  py3.12
+# WALL [zA.p27.r1] 52.48
+# [zB.p27.r1]
+P27 [zB.p27.r1]     60s  obj=748652      Z1=80.0     Z2=1777   Z3=881.0     feas=y   ran 52s  py3.12
+# WALL [zB.p27.r1] 52.87
+# [zA.p33.r1]
+P33 [zA.p33.r1]     60s  obj=1056012     Z1=88.0     Z2=324    Z3=2332.0    feas=y   ran 52s  py3.12
+# WALL [zA.p33.r1] 52.40
+# [zB.p33.r1]
+P33 [zB.p33.r1]     60s  obj=962127      Z1=74.0     Z2=841    Z3=2306.0    feas=y   ran 52s  py3.12
+# WALL [zB.p33.r1] 52.12
+# [zA.p3.r1]
+P3  [zA.p3.r1]      60s  obj=4712090     Z1=155.0    Z2=7419   Z3=7774.0    feas=y   ran 55s  py3.12
+# WALL [zA.p3.r1] 55.73
+# [zB.p3.r1]
+P3  [zB.p3.r1]      60s  obj=4647856     Z1=175.0    Z2=9050   Z3=7507.0    feas=y   ran 52s  py3.12
+# WALL [zB.p3.r1] 52.59
+# [zA.p16.r1]
+P16 [zA.p16.r1]     60s  obj=3301626     Z1=156.0    Z2=1726   Z3=4866.0    feas=y   ran 53s  py3.12
+# WALL [zA.p16.r1] 53.12
+# [zB.p16.r1]
+P16 [zB.p16.r1]     60s  obj=3363872     Z1=155.0    Z2=919    Z3=5178.0    feas=y   ran 52s  py3.12
+# WALL [zB.p16.r1] 52.90
+# [zA.p20.r1]
+P20 [zA.p20.r1]     60s  obj=9589154     Z1=1232.0   Z2=645    Z3=9135.0    feas=y   ran 42s  py3.12
+# WALL [zA.p20.r1] 43.19
+# [zB.p20.r1]
+P20 [zB.p20.r1]     60s  obj=10607755    Z1=1373.0   Z2=1558   Z3=9610.0    feas=y   ran 40s  py3.12
+# WALL [zB.p20.r1] 40.14
+# [zA.p5.r1]
+P5  [zA.p5.r1]      60s  obj=7425282     Z1=1943.0   Z2=407    Z3=2364.0    feas=y   ran 41s  py3.12
+# WALL [zA.p5.r1] 41.48
+# [zB.p5.r1]
+P5  [zB.p5.r1]      60s  obj=7844839     Z1=1978.0   Z2=1085   Z3=3106.0    feas=y   ran 42s  py3.12
+# WALL [zB.p5.r1] 42.74
+# [zA.p7.r1]
+P7  [zA.p7.r1]      60s  obj=763997      Z1=31.0     Z2=232    Z3=2327.0    feas=y   ran 52s  py3.12
+# WALL [zA.p7.r1] 52.06
+# [zB.p7.r1]
+P7  [zB.p7.r1]      60s  obj=860744      Z1=47.0     Z2=1599   Z3=1486.0    feas=y   ran 52s  py3.12
+# WALL [zB.p7.r1] 52.06
+# [zA.p10.r1]
+P10 [zA.p10.r1]     60s  obj=4434214     Z1=298.0    Z2=1845   Z3=2268.0    feas=y   ran 39s  py3.12
+# WALL [zA.p10.r1] 39.56
+# [zB.p10.r1]
+P10 [zB.p10.r1]     60s  obj=4424169     Z1=297.0    Z2=3267   Z3=2256.0    feas=y   ran 40s  py3.12
+# WALL [zB.p10.r1] 40.43
+# [zA.p13.r1]
+P13 [zA.p13.r1]     60s  obj=68441506    Z1=9363.0   Z2=785    Z3=7522.0    feas=y   ran 43s  py3.12
+# WALL [zA.p13.r1] 43.65
+# [zB.p13.r1]
+P13 [zB.p13.r1]     60s  obj=68441506    Z1=9363.0   Z2=785    Z3=7522.0    feas=y   ran 52s  py3.12
+# WALL [zB.p13.r1] 53.08
+# [zA.p24.r1]
+P24 [zA.p24.r1]     60s  obj=2943725     Z1=595.0    Z2=2570   Z3=1571.0    feas=y   ran 39s  py3.12
+# WALL [zA.p24.r1] 39.33
+# [zB.p24.r1]
+P24 [zB.p24.r1]     60s  obj=3074138     Z1=634.0    Z2=1088   Z3=1589.0    feas=y   ran 39s  py3.12
+# WALL [zB.p24.r1] 39.35
+# [zA.p26.r1]
+P26 [zA.p26.r1]     60s  obj=24954970    Z1=2461.0   Z2=11483  Z3=10670.0   feas=y   ran 41s  py3.12
+# WALL [zA.p26.r1] 42.04
+# [zB.p26.r1]
+P26 [zB.p26.r1]     60s  obj=24695637    Z1=2424.0   Z2=16429  Z3=10648.0   feas=y   ran 40s  py3.12
+# WALL [zB.p26.r1] 40.09
+# [zA.p30.r1]
+P30 [zA.p30.r1]     60s  obj=2020997     Z1=125.0    Z2=3437   Z3=2670.0    feas=y   ran 39s  py3.12
+# WALL [zA.p30.r1] 39.84
+# [zB.p30.r1]
+P30 [zB.p30.r1]     60s  obj=2103281     Z1=122.0    Z2=2380   Z3=3699.0    feas=y   ran 43s  py3.12
+# WALL [zB.p30.r1] 43.13
+# [zA.p1.r2]
+# [zA.p1.r2]
+P1  [zA.p1.r2]      60s  obj=665025      Z1=21.0     Z2=4006   Z3=855.0     feas=y   ran 50s  py3.12
+# WALL [zA.p1.r2] 50.48
+# [zB.p1.r2]
+P1  [zB.p1.r2]      60s  obj=622153      Z1=4.0      Z2=3495   Z3=975.0     feas=y   ran 50s  py3.12
+# WALL [zB.p1.r2] 50.11
+# [zA.p2.r2]
+P2  [zA.p2.r2]      60s  obj=59783816    Z1=4410.0   Z2=2609   Z3=6499.0    feas=y   ran 52s  py3.12
+# WALL [zA.p2.r2] 52.19
+# [zB.p2.r2]
+P2  [zB.p2.r2]      60s  obj=59788783    Z1=4403.0   Z2=2621   Z3=7154.0    feas=y   ran 56s  py3.12
+# WALL [zB.p2.r2] 55.93
+# [zA.p27.r2]
+P27 [zA.p27.r2]     60s  obj=790645      Z1=50.0     Z2=588    Z3=1163.0    feas=y   ran 52s  py3.12
+# WALL [zA.p27.r2] 54.07
+# [zB.p27.r2]
+P27 [zB.p27.r2]     60s  obj=844225      Z1=131.0    Z2=1274   Z3=748.0     feas=y   ran 53s  py3.12
+# WALL [zB.p27.r2] 53.39
+# [zA.p33.r2]
+P33 [zA.p33.r2]     60s  obj=964466      Z1=78.0     Z2=360    Z3=2206.0    feas=y   ran 52s  py3.12
+# WALL [zA.p33.r2] 52.84
+# [zB.p33.r2]
+P33 [zB.p33.r2]     60s  obj=1017042     Z1=87.0     Z2=157    Z3=2178.0    feas=y   ran 52s  py3.12
+# WALL [zB.p33.r2] 52.31
+# [zA.p3.r2]
+# STOPPED at 27 of 56.  Superseded by the scoreboard: ffclean's hidden P1 came back +10.10%, which
+# answers the artifact question directly and better than any local pairing could.  13 pairs stand
+# as the record: mean +0.17%, median exactly +0.00%, zB 6W/2T/5L.

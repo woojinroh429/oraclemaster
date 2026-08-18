@@ -1,0 +1,22 @@
+    brk calib: 380:3.93e-07 900:7.49e-08 -> rate 7.49e-08 at 900 cols, growth n^0.000
+    brk tier: room=263s rate=7.49e-08 -> tier 2 (step 4 nout 20 nent 4) ncol~48306 pred=174.7s  [hard=310 slice=88s]
+    brk calib: 378:1.8e-06 912:5.68e-08 -> rate 5.68e-08 at 912 cols, growth n^0.000
+    brk tier: room=246s rate=5.68e-08 -> tier 2 (step 4 nout 20 nent 4) ncol~43646 pred=108.3s  [hard=290 slice=88s]
+    brk calib: 746:9.88e-07 1614:1.78e-08 -> rate 1.78e-08 at 1614 cols, growth n^0.000
+    brk tier: room=243s rate=1.78e-08 -> tier 2 (step 4 nout 20 nent 4) ncol~90070 pred=144.5s  [hard=286 slice=88s]
+    brk: build refused at tier 2 (4.0s) -- stepping down to tier 3
+    brk calib: 368:1.22e-05 914:4.89e-07 -> rate 4.89e-07 at 914 cols, growth n^0.000
+    brk tier: room=216s rate=4.89e-07 -> tier 3 (step 6 nout 10 nent 2) ncol~10592 pred=54.9s  [hard=254 slice=88s]
+    brk cost: ncol~23648 real_ncol=23533 build=18.0s ask=87.8s total=108.0s
+    brk cost: tier 3 ncol~23648 real_ncol=23533 build=18.0s total=108.0s  -> rate 3.219e-08 s/col^2
+    brk[pressure] tgt=0 res=52 outs=10 displaced b0 could not be rehomed in any other bay
+    brk cost: ncol~10592 real_ncol=10772 build=4.8s ask=87.8s total=93.0s
+    brk cost: tier 3 ncol~10592 real_ncol=10772 build=4.8s total=93.0s  -> rate 4.305e-08 s/col^2
+    brk[pressure] tgt=1 res=37 outs=10 displaced b36 could not be rehomed in any other bay
+    brk cost: ncol~48306 real_ncol=46959 build=83.6s ask=87.8s total=187.1s
+    brk cost: tier 2 ncol~48306 real_ncol=46959 build=83.6s total=187.1s  -> rate 3.582e-08 s/col^2
+    brk[pressure] tgt=1 res=46 outs=20 displaced b11 could not be rehomed in any other bay
+    brk cost: ncol~43646 real_ncol=42813 build=77.0s ask=87.8s total=168.0s
+    brk cost: tier 2 ncol~43646 real_ncol=42813 build=77.0s total=168.0s  -> rate 4.041e-08 s/col^2
+    brk[pressure] tgt=1 res=42 outs=20 displaced b2 could not be rehomed in any other bay
+P4  askcap P4      480s  obj=1981906     Z1=99.0     Z2=1627   Z3=4337.0    feas=y   ran 463s

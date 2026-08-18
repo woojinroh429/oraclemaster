@@ -1,0 +1,40 @@
+== build 02:52:29 ==
+-- python3.12 -> ogc_fast.cpython-312-x86_64-linux-gnu.so
+/home/user/oraclemaster/research/exact_packer/session2/recon/ogc_fast.cpp:261:8: warning: 'Engine' declared with greater visibility than the type of its field 'Engine::nfp_provider' [-Wattributes]
+  261 | struct Engine {
+      |        ^~~~~~
+-- python3.10 -> ogc_fast.cpython-310-x86_64-linux-gnu.so
+/home/user/oraclemaster/research/exact_packer/session2/recon/ogc_fast.cpp:261:8: warning: 'Engine' declared with greater visibility than the type of its field 'Engine::nfp_provider' [-Wattributes]
+  261 | struct Engine {
+      |        ^~~~~~
+-- python3.11 -> ogc_fast.cpython-311-x86_64-linux-gnu.so
+/home/user/oraclemaster/research/exact_packer/session2/recon/ogc_fast.cpp:261:8: warning: 'Engine' declared with greater visibility than the type of its field 'Engine::nfp_provider' [-Wattributes]
+  261 | struct Engine {
+      |        ^~~~~~
+-- python3.13 -> ogc_fast.cpython-313-x86_64-linux-gnu.so
+/home/user/oraclemaster/research/exact_packer/session2/recon/ogc_fast.cpp:261:8: warning: 'Engine' declared with greater visibility than the type of its field 'Engine::nfp_provider' [-Wattributes]
+  261 | struct Engine {
+      |        ^~~~~~
+== import check ==
+ogc_fast   /home/user/oraclemaster/research/exact_packer/session2/recon/build_new/ogc_fast.cpython-312-x86_64-linux-gnu.so
+cranepack  /home/user/oraclemaster/research/exact_packer/session2/recon/cranepack.cpython-312-x86_64-linux-gnu.so
+== paired old vs new, same instances and budget ==
+# P12
+P12 [old.12]        60s  obj=151715      Z1=19.0     Z2=11213  Z3=5367.0    feas=y   ran 60s  py3.12
+P12 [new.12]        60s  obj=151723      Z1=17.0     Z2=10062  Z3=5440.0    feas=y   ran 59s  py3.12
+# P1
+P1  [old.1]         60s  obj=568085      Z1=23.0     Z2=6048   Z3=661.0     feas=y   ran 59s  py3.12
+P1  [new.1]         60s  obj=594330      Z1=27.0     Z2=2507   Z3=678.0     feas=y   ran 48s  py3.12
+# P16
+P16 [old.16]        60s  obj=3574878     Z1=183.0    Z2=1813   Z3=4518.0    feas=y   ran 59s  py3.12
+P16 [new.16]        60s  obj=3513968     Z1=173.0    Z2=1203   Z3=4815.0    feas=y   ran 59s  py3.12
+# P26
+P26 [old.26]        60s  obj=24726407    Z1=2433.0   Z2=14396  Z3=10614.0   feas=y   ran 59s  py3.12
+P26 [new.26]        60s  obj=24120575    Z1=2252.0   Z2=16891  Z3=11362.0   feas=y   ran 60s  py3.12
+# P6
+P6  [old.6]         60s  obj=5727013     Z1=369.0    Z2=2705   Z3=5967.0    feas=y   ran 59s  py3.12
+P6  [new.6]         60s  obj=5712436     Z1=364.0    Z2=4052   Z3=6308.0    feas=y   ran 60s  py3.12
+# P3
+P3  [old.3]         60s  obj=4804672     Z1=175.0    Z2=8381   Z3=7810.0    feas=y   ran 59s  py3.12
+P3  [new.3]         60s  obj=4550944     Z1=148.0    Z2=6843   Z3=7523.0    feas=y   ran 59s  py3.12
+REBUILDDONE

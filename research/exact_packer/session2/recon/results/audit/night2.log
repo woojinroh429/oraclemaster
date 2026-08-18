@@ -1,0 +1,326 @@
+== PHASE A prefw ==
+# [A.p1.a0.pw0.0]
+P1   [A.p1.a0.pw0.0] work=3000      B=96   K=4 axis=0  obj=1174681      feas=y    22.7s  digest=70a2b32ad25991a0
+# [A.p1.a0.pw0.5]
+== PHASE A prefw ==
+# [A.p1.a0.pw0.5]
+P1   [A.p1.a0.pw0.5] work=3000      B=96   K=4 axis=0  obj=1174681      feas=y    22.9s  digest=70a2b32ad25991a0
+# [A.p1.a0.pw1.0]
+P1   [A.p1.a0.pw1.0] work=3000      B=96   K=4 axis=0  obj=1174681      feas=y    22.2s  digest=70a2b32ad25991a0
+== PHASE A prefw ==
+# [A.p1.a0.pw2.0]
+P1   [A.p1.a0.pw2.0] work=3000      B=96   K=4 axis=0  obj=1174681      feas=y    22.6s  digest=70a2b32ad25991a0
+# [A.p1.a0.pw4.0]
+P1   [A.p1.a0.pw4.0] work=3000      B=96   K=4 axis=0  obj=1174681      feas=y    22.7s  digest=70a2b32ad25991a0
+# [A.p1.a2.pw0.0]
+P1   [A.p1.a2.pw0.0] work=3000      B=96   K=4 axis=2  obj=684687       feas=y    15.7s  digest=34e5f49cfcb0d2e4
+# [A.p1.a2.pw0.5]
+P1   [A.p1.a2.pw0.5] work=3000      B=96   K=4 axis=2  obj=684687       feas=y    15.2s  digest=34e5f49cfcb0d2e4
+# [A.p1.a2.pw1.0]
+P1   [A.p1.a2.pw1.0] work=3000      B=96   K=4 axis=2  obj=684687       feas=y    15.2s  digest=34e5f49cfcb0d2e4
+== PHASE A w3mul ==
+# [A.p1.a0.wm0.25]
+P1   [A.p1.a0.wm0.25] work=3000      B=96   K=4 axis=0  obj=1201102      feas=y    22.5s  digest=46b73682311582ef
+# [A.p1.a0.wm0.5]
+P1   [A.p1.a0.wm0.5] work=3000      B=96   K=4 axis=0  obj=1201926      feas=y    22.4s  digest=5b9b03049d5151f5
+# [A.p1.a0.wm1.0]
+P1   [A.p1.a0.wm1.0] work=3000      B=96   K=4 axis=0  obj=1174681      feas=y    22.5s  digest=70a2b32ad25991a0
+# [A.p1.a0.wm2.0]
+P1   [A.p1.a0.wm2.0] work=3000      B=96   K=4 axis=0  obj=1459516      feas=y    22.2s  digest=aed2effe4c1cee8d
+# [A.p1.a0.wm4.0]
+P1   [A.p1.a0.wm4.0] work=3000      B=96   K=4 axis=0  obj=1500279      feas=y    22.2s  digest=a54c45043c633856
+# [A.p1.a0.wm8.0]
+P1   [A.p1.a0.wm8.0] work=3000      B=96   K=4 axis=0  obj=1500279      feas=y    22.6s  digest=a54c45043c633856
+# [A.p1.a2.wm0.25]
+P1   [A.p1.a2.wm0.25] work=3000      B=96   K=4 axis=2  obj=612236       feas=y    16.1s  digest=f8d329a33cdd663d
+# [A.p1.a2.wm0.5]
+P1   [A.p1.a2.wm0.5] work=3000      B=96   K=4 axis=2  obj=587906       feas=y    16.0s  digest=39737f8bfcbdf615
+# [A.p1.a2.wm1.0]
+P1   [A.p1.a2.wm1.0] work=3000      B=96   K=4 axis=2  obj=587906       feas=y    16.1s  digest=39737f8bfcbdf615
+# [A.p1.a2.wm2.0]
+P1   [A.p1.a2.wm2.0] work=3000      B=96   K=4 axis=2  obj=587906       feas=y    16.6s  digest=39737f8bfcbdf615
+# [A.p1.a2.wm4.0]
+P1   [A.p1.a2.wm4.0] work=3000      B=96   K=4 axis=2  obj=684687       feas=y    15.3s  digest=34e5f49cfcb0d2e4
+# [A.p1.a2.wm8.0]
+P1   [A.p1.a2.wm8.0] work=3000      B=96   K=4 axis=2  obj=684687       feas=y    15.1s  digest=34e5f49cfcb0d2e4
+# [A.p1.a3.wm0.25]
+P1   [A.p1.a3.wm0.25] work=3000      B=96   K=4 axis=3  obj=800610       feas=y    19.0s  digest=0bae0495cec9cfb8
+# [A.p1.a3.wm0.5]
+P1   [A.p1.a3.wm0.5] work=3000      B=96   K=4 axis=3  obj=612492       feas=y    18.8s  digest=37164361c118eddc
+# [A.p1.a3.wm1.0]
+P1   [A.p1.a3.wm1.0] work=3000      B=96   K=4 axis=3  obj=737578       feas=y    19.0s  digest=35dc269622b01ecb
+# [A.p1.a3.wm2.0]
+P1   [A.p1.a3.wm2.0] work=3000      B=96   K=4 axis=3  obj=710521       feas=y    19.1s  digest=7b8f9f75cd6ba10e
+# [A.p1.a3.wm4.0]
+P1   [A.p1.a3.wm4.0] work=3000      B=96   K=4 axis=3  obj=810009       feas=y    18.6s  digest=4aad2a30e0e34e49
+== PHASE A prefw ==
+# [A.p1.a2.pw2.0]
+P1   [A.p1.a2.pw2.0] work=3000      B=96   K=4 axis=2  obj=684687       feas=y    15.3s  digest=34e5f49cfcb0d2e4
+# [A.p1.a2.pw4.0]
+P1   [A.p1.a2.pw4.0] work=3000      B=96   K=4 axis=2  obj=684687       feas=y    17.8s  digest=34e5f49cfcb0d2e4
+== PHASE A w3mul ==
+# [A.p1.a3.wm8.0]
+P1   [A.p1.a3.wm8.0] work=3000      B=96   K=4 axis=3  obj=810009       feas=y    18.8s  digest=4aad2a30e0e34e49
+# [A.p4.a0.wm0.25]
+P4   [A.p4.a0.wm0.25] work=3000      B=96   K=4 axis=0  obj=3587738      feas=y    31.4s  digest=07d692e5f3d27dca
+# [A.p4.a0.wm0.5]
+P4   [A.p4.a0.wm0.5] work=3000      B=96   K=4 axis=0  obj=3347832      feas=y    33.3s  digest=5eb18c0d6606b6fb
+# [A.p4.a0.wm1.0]
+P4   [A.p4.a0.wm1.0] work=3000      B=96   K=4 axis=0  obj=3408101      feas=y    32.2s  digest=06f3cbf8714cf2ff
+# [A.p4.a0.wm2.0]
+P4   [A.p4.a0.wm2.0] work=3000      B=96   K=4 axis=0  obj=3487415      feas=y    31.4s  digest=7735fbd8a4fe2c72
+# [A.p4.a0.wm4.0]
+P4   [A.p4.a0.wm4.0] work=3000      B=96   K=4 axis=0  obj=3352169      feas=y    31.8s  digest=1829dc6da525e1c2
+# [A.p4.a0.wm8.0]
+P4   [A.p4.a0.wm8.0] work=3000      B=96   K=4 axis=0  obj=3359028      feas=y    32.1s  digest=5e30d83d6101904b
+== PHASE A w3mul ==
+# [A.p4.a2.wm0.25]
+P4   [A.p4.a2.wm0.25] work=3000      B=96   K=4 axis=2  obj=2969566      feas=y    13.9s  digest=ed6439749ddae9ab
+# [A.p4.a2.wm0.5]
+P4   [A.p4.a2.wm0.5] work=3000      B=96   K=4 axis=2  obj=2767277      feas=y    13.9s  digest=a23dc5d76cc0657a
+# [A.p4.a2.wm1.0]
+P4   [A.p4.a2.wm1.0] work=3000      B=96   K=4 axis=2  obj=3138215      feas=y    13.4s  digest=27c49d8818b4cd4f
+# [A.p4.a2.wm2.0]
+P4   [A.p4.a2.wm2.0] work=3000      B=96   K=4 axis=2  obj=3115288      feas=y    13.6s  digest=70875476f0b03962
+# [A.p4.a2.wm4.0]
+P4   [A.p4.a2.wm4.0] work=3000      B=96   K=4 axis=2  obj=3028676      feas=y    14.0s  digest=d9368aaa7b7c23dc
+# [A.p4.a2.wm8.0]
+P4   [A.p4.a2.wm8.0] work=3000      B=96   K=4 axis=2  obj=3028676      feas=y    13.7s  digest=d9368aaa7b7c23dc
+# [A.p4.a3.wm0.25]
+P4   [A.p4.a3.wm0.25] work=3000      B=96   K=4 axis=3  obj=3140404      feas=y    19.7s  digest=a17d6ee5378c46fe
+# [A.p4.a3.wm0.5]
+P4   [A.p4.a3.wm0.5] work=3000      B=96   K=4 axis=3  obj=3124163      feas=y    17.4s  digest=1186066e540de988
+# [A.p4.a3.wm1.0]
+P4   [A.p4.a3.wm1.0] work=3000      B=96   K=4 axis=3  obj=3189844      feas=y    17.8s  digest=d2379d37cd122821
+# [A.p4.a3.wm2.0]
+P4   [A.p4.a3.wm2.0] work=3000      B=96   K=4 axis=3  obj=3145024      feas=y    17.0s  digest=70fdf6e2419695b9
+# [A.p4.a3.wm4.0]
+P4   [A.p4.a3.wm4.0] work=3000      B=96   K=4 axis=3  obj=3145024      feas=y    16.3s  digest=70fdf6e2419695b9
+# [A.p4.a3.wm8.0]
+P4   [A.p4.a3.wm8.0] work=3000      B=96   K=4 axis=3  obj=3145024      feas=y    16.6s  digest=70fdf6e2419695b9
+# [A.p24.a0.wm0.25]
+P24  [A.p24.a0.wm0.25] work=3000      B=96   K=4 axis=0  obj=3198127      feas=y    11.8s  digest=98399e5e271145fd
+# [A.p24.a0.wm0.5]
+P24  [A.p24.a0.wm0.5] work=3000      B=96   K=4 axis=0  obj=3031260      feas=y    11.5s  digest=1156855491f8683f
+# [A.p24.a0.wm1.0]
+P24  [A.p24.a0.wm1.0] work=3000      B=96   K=4 axis=0  obj=3080029      feas=y    11.8s  digest=3868ad810c8df23d
+# [A.p24.a0.wm2.0]
+P24  [A.p24.a0.wm2.0] work=3000      B=96   K=4 axis=0  obj=3080029      feas=y    11.6s  digest=3868ad810c8df23d
+== PHASE A w3mul ==
+# [A.p24.a0.wm4.0]
+P24  [A.p24.a0.wm4.0] work=3000      B=96   K=4 axis=0  obj=3179342      feas=y    12.1s  digest=f0ef37530afba03b
+# [A.p24.a0.wm8.0]
+P24  [A.p24.a0.wm8.0] work=3000      B=96   K=4 axis=0  obj=3179342      feas=y    11.4s  digest=f0ef37530afba03b
+# [A.p24.a2.wm0.25]
+P24  [A.p24.a2.wm0.25] work=3000      B=96   K=4 axis=2  obj=3382861      feas=y    11.9s  digest=005867f5b371efa1
+# [A.p24.a2.wm0.5]
+P24  [A.p24.a2.wm0.5] work=3000      B=96   K=4 axis=2  obj=3585275      feas=y    10.9s  digest=bafa31746d6c14d8
+# [A.p24.a2.wm1.0]
+P24  [A.p24.a2.wm1.0] work=3000      B=96   K=4 axis=2  obj=3477706      feas=y     9.0s  digest=372629a12583acc3
+# [A.p24.a2.wm2.0]
+P24  [A.p24.a2.wm2.0] work=3000      B=96   K=4 axis=2  obj=3477706      feas=y    10.7s  digest=372629a12583acc3
+# [A.p24.a2.wm4.0]
+P24  [A.p24.a2.wm4.0] work=3000      B=96   K=4 axis=2  obj=3326701      feas=y     9.2s  digest=fb0f96e047c6dac9
+# [A.p24.a2.wm8.0]
+P24  [A.p24.a2.wm8.0] work=3000      B=96   K=4 axis=2  obj=3738623      feas=y    11.0s  digest=107a138488f73749
+# [A.p24.a3.wm0.25]
+P24  [A.p24.a3.wm0.25] work=3000      B=96   K=4 axis=3  obj=3863374      feas=y    14.0s  digest=4b2314c6a9e20dab
+# [A.p24.a3.wm0.5]
+P24  [A.p24.a3.wm0.5] work=3000      B=96   K=4 axis=3  obj=3761834      feas=y    13.5s  digest=cb8141058805f77e
+# [A.p24.a3.wm1.0]
+P24  [A.p24.a3.wm1.0] work=3000      B=96   K=4 axis=3  obj=3637538      feas=y    13.1s  digest=4b380afc89ebe57b
+# [A.p24.a3.wm2.0]
+== PHASE A w3mul ==
+# [A.p24.a3.wm2.0]
+P24  [A.p24.a3.wm2.0] work=3000      B=96   K=4 axis=3  obj=3778567      feas=y    12.9s  digest=7d7dfc913cea230f
+P24  [A.p24.a3.wm2.0] work=3000      B=96   K=4 axis=3  obj=3778567      feas=y    11.0s  digest=7d7dfc913cea230f
+# [A.p24.a3.wm4.0]
+P24  [A.p24.a3.wm4.0] work=3000      B=96   K=4 axis=3  obj=3734922      feas=y    13.0s  digest=c70956a6787cde09
+# [A.p24.a3.wm8.0]
+P24  [A.p24.a3.wm8.0] work=3000      B=96   K=4 axis=3  obj=3778567      feas=y    13.5s  digest=7d7dfc913cea230f
+# [A.p16.a0.wm0.25]
+P16  [A.p16.a0.wm0.25] work=3000      B=96   K=4 axis=0  obj=6739594      feas=y    12.1s  digest=07bccd0d6dbc65ef
+# [A.p16.a0.wm0.5]
+P16  [A.p16.a0.wm0.5] work=3000      B=96   K=4 axis=0  obj=6727305      feas=y    13.0s  digest=13d95e8cee45ce58
+# [A.p16.a0.wm1.0]
+P16  [A.p16.a0.wm1.0] work=3000      B=96   K=4 axis=0  obj=6671345      feas=y    11.7s  digest=c6e4496f9a52c7c2
+# [A.p16.a0.wm2.0]
+P16  [A.p16.a0.wm2.0] work=3000      B=96   K=4 axis=0  obj=6649639      feas=y    12.8s  digest=8f23ecbff466001d
+# [A.p16.a0.wm4.0]
+P16  [A.p16.a0.wm4.0] work=3000      B=96   K=4 axis=0  obj=6851362      feas=y    12.9s  digest=92988b947c82d0e3
+# [A.p16.a0.wm8.0]
+P16  [A.p16.a0.wm8.0] work=3000      B=96   K=4 axis=0  obj=6858833      feas=y    13.1s  digest=eae574288936b716
+# [A.p16.a2.wm0.25]
+P16  [A.p16.a2.wm0.25] work=3000      B=96   K=4 axis=2  obj=2666108      feas=y     9.8s  digest=11c20b51ae9039a5
+# [A.p16.a2.wm0.5]
+P16  [A.p16.a2.wm0.5] work=3000      B=96   K=4 axis=2  obj=3266111      feas=y     9.9s  digest=1a30f8197edb0866
+# [A.p16.a2.wm1.0]
+P16  [A.p16.a2.wm1.0] work=3000      B=96   K=4 axis=2  obj=3031963      feas=y     8.0s  digest=160a7824b61d747d
+# [A.p16.a2.wm2.0]
+P16  [A.p16.a2.wm2.0] work=3000      B=96   K=4 axis=2  obj=2507632      feas=y     9.7s  digest=c5adce88bf334f5c
+# [A.p16.a2.wm4.0]
+P16  [A.p16.a2.wm4.0] work=3000      B=96   K=4 axis=2  obj=3070648      feas=y     8.2s  digest=568dcb84ba88723c
+# [A.p16.a2.wm8.0]
+P16  [A.p16.a2.wm8.0] work=3000      B=96   K=4 axis=2  obj=3103182      feas=y     9.0s  digest=0f12d837bc0e5ad5
+# [A.p16.a3.wm0.25]
+P16  [A.p16.a3.wm0.25] work=3000      B=96   K=4 axis=3  obj=5002973      feas=y    13.3s  digest=a276a02c1f6e3a56
+# [A.p16.a3.wm0.5]
+P16  [A.p16.a3.wm0.5] work=3000      B=96   K=4 axis=3  obj=4917712      feas=y    14.0s  digest=df39641fe225ba89
+# [A.p16.a3.wm1.0]
+P16  [A.p16.a3.wm1.0] work=3000      B=96   K=4 axis=3  obj=4799778      feas=y    13.3s  digest=0cd7b689344ab6d1
+# [A.p16.a3.wm2.0]
+P16  [A.p16.a3.wm2.0] work=3000      B=96   K=4 axis=3  obj=4890499      feas=y    11.6s  digest=28178dc725a0d7c5
+# [A.p16.a3.wm4.0]
+P16  [A.p16.a3.wm4.0] work=3000      B=96   K=4 axis=3  obj=5159337      feas=y    13.6s  digest=d0fe6cf16bfa8033
+# [A.p16.a3.wm8.0]
+P16  [A.p16.a3.wm8.0] work=3000      B=96   K=4 axis=3  obj=5250681      feas=y    13.5s  digest=41034ea96d526b46
+# [A.p20.a0.wm0.25]
+P20  [A.p20.a0.wm0.25] work=3000      B=96   K=4 axis=0  obj=11395418     feas=y    11.8s  digest=690ebcb1dd04961c
+# [A.p20.a0.wm0.5]
+P20  [A.p20.a0.wm0.5] work=3000      B=96   K=4 axis=0  obj=11624137     feas=y    12.4s  digest=681f51c6b45cc745
+# [A.p20.a0.wm1.0]
+P20  [A.p20.a0.wm1.0] work=3000      B=96   K=4 axis=0  obj=10663479     feas=y    10.1s  digest=9ed632839866a27b
+# [A.p20.a0.wm2.0]
+P20  [A.p20.a0.wm2.0] work=3000      B=96   K=4 axis=0  obj=10998288     feas=y    12.0s  digest=a6c0f93e7c2bd1a9
+# [A.p20.a0.wm4.0]
+P20  [A.p20.a0.wm4.0] work=3000      B=96   K=4 axis=0  obj=11337323     feas=y    12.6s  digest=c23208f6870484e1
+# [A.p20.a0.wm8.0]
+P20  [A.p20.a0.wm8.0] work=3000      B=96   K=4 axis=0  obj=11329436     feas=y    11.2s  digest=b6c03abdd30b56b6
+# [A.p20.a2.wm0.25]
+P20  [A.p20.a2.wm0.25] work=3000      B=96   K=4 axis=2  obj=11888425     feas=y    11.1s  digest=d50976c45a55b933
+# [A.p20.a2.wm0.5]
+P20  [A.p20.a2.wm0.5] work=3000      B=96   K=4 axis=2  obj=11945589     feas=y    13.1s  digest=314424dd642803b4
+# [A.p20.a2.wm1.0]
+P20  [A.p20.a2.wm1.0] work=3000      B=96   K=4 axis=2  obj=12679235     feas=y    11.1s  digest=d34f856c2efdeb8d
+# [A.p20.a2.wm2.0]
+P20  [A.p20.a2.wm2.0] work=3000      B=96   K=4 axis=2  obj=13045251     feas=y    11.1s  digest=706998215057277f
+# [A.p20.a2.wm4.0]
+P20  [A.p20.a2.wm4.0] work=3000      B=96   K=4 axis=2  obj=12234749     feas=y    11.8s  digest=dc3aec1eefac9c68
+# [A.p20.a2.wm8.0]
+P20  [A.p20.a2.wm8.0] work=3000      B=96   K=4 axis=2  obj=12056639     feas=y    11.5s  digest=56d85fcac877abe0
+# [A.p20.a3.wm0.25]
+P20  [A.p20.a3.wm0.25] work=3000      B=96   K=4 axis=3  obj=14052144     feas=y    12.1s  digest=8ca29bf4f233bafa
+# [A.p20.a3.wm0.5]
+P20  [A.p20.a3.wm0.5] work=3000      B=96   K=4 axis=3  obj=13877005     feas=y    14.3s  digest=46c54348eca8d073
+# [A.p20.a3.wm1.0]
+P20  [A.p20.a3.wm1.0] work=3000      B=96   K=4 axis=3  obj=13361189     feas=y    13.1s  digest=f7237496e8902a6d
+# [A.p20.a3.wm2.0]
+P20  [A.p20.a3.wm2.0] work=3000      B=96   K=4 axis=3  obj=12910553     feas=y    13.9s  digest=36c3fd88520d40ee
+# [A.p20.a3.wm4.0]
+P20  [A.p20.a3.wm4.0] work=3000      B=96   K=4 axis=3  obj=13104099     feas=y    12.4s  digest=41d071c5ded15ed8
+# [A.p20.a3.wm8.0]
+P20  [A.p20.a3.wm8.0] work=3000      B=96   K=4 axis=3  obj=13621051     feas=y    12.5s  digest=a36c0aaaa4102018
+== PHASE A done ==
+== PHASE B order ==
+# [B.p1.edd]
+P1   [B.p1.edd] work=3000      B=96   K=4 axis=0  obj=753892       feas=y     9.4s  digest=7ede2d91bdd5c2c2
+# [B.p1.lst]
+P1   [B.p1.lst] work=3000      B=96   K=4 axis=0  obj=690840       feas=y     9.9s  digest=94d47da753e78c99
+# [B.p1.defer_big]
+P1   [B.p1.defer_big] work=3000      B=96   K=4 axis=0  obj=1174681      feas=y    12.4s  digest=70a2b32ad25991a0
+# [B.p1.big_first]
+P1   [B.p1.big_first] work=3000      B=96   K=4 axis=0  obj=1175085      feas=y    12.5s  digest=13110ac874b05b3c
+# [B.p1.rank]
+P1   [B.p1.rank] work=3000      B=96   K=4 axis=0  obj=1157208      feas=y     8.1s  digest=5f954439d65ea666
+# [B.p1.sac3]
+P1   [B.p1.sac3] work=3000      B=96   K=4 axis=0  obj=1297164      feas=y     8.6s  digest=b4c4c2c57f4f9c0d
+# [B.p1.aspect]
+P1   [B.p1.aspect] work=3000      B=96   K=4 axis=0  obj=1107676      feas=y     9.9s  digest=b9307569e8c21049
+# [B.p1.boxfill]
+P1   [B.p1.boxfill] work=3000      B=96   K=4 axis=0  obj=1512746      feas=y    10.9s  digest=3deed782a7442ef3
+# [B.p1.cohort]
+P1   [B.p1.cohort] work=3000      B=96   K=4 axis=0  obj=716348       feas=y     9.7s  digest=d5aafc13e46efdf6
+# [B.p4.edd]
+P4   [B.p4.edd] work=3000      B=96   K=4 axis=0  obj=3562076      feas=y    15.2s  digest=66aa5d9977b119a7
+# [B.p4.lst]
+P4   [B.p4.lst] work=3000      B=96   K=4 axis=0  obj=3471994      feas=y    11.2s  digest=b8e246ceb232c49a
+# [B.p4.defer_big]
+P4   [B.p4.defer_big] work=3000      B=96   K=4 axis=0  obj=3408101      feas=y    18.3s  digest=06f3cbf8714cf2ff
+# [B.p4.big_first]
+P4   [B.p4.big_first] work=3000      B=96   K=4 axis=0  obj=4600291      feas=y    20.7s  digest=30d5b321d289ee3b
+# [B.p4.rank]
+P4   [B.p4.rank] work=3000      B=96   K=4 axis=0  obj=5136701      feas=y    16.5s  digest=eb52268ab5e39fb2
+# [B.p4.sac3]
+P4   [B.p4.sac3] work=3000      B=96   K=4 axis=0  obj=4683285      feas=y    14.9s  digest=150b8eeb4faff9e5
+# [B.p4.aspect]
+P4   [B.p4.aspect] work=3000      B=96   K=4 axis=0  obj=4191189      feas=y    16.5s  digest=b6a2c0a5ad309493
+# [B.p4.boxfill]
+P4   [B.p4.boxfill] work=3000      B=96   K=4 axis=0  obj=4299154      feas=y    16.9s  digest=86722af384d5aa60
+# [B.p4.cohort]
+P4   [B.p4.cohort] work=3000      B=96   K=4 axis=0  obj=3274635      feas=y    11.1s  digest=75009f83175a3b88
+# [B.p24.edd]
+P24  [B.p24.edd] work=3000      B=96   K=4 axis=0  obj=3815891      feas=y    12.9s  digest=5b49b4dc3ce26b4e
+# [B.p24.lst]
+P24  [B.p24.lst] work=3000      B=96   K=4 axis=0  obj=3408582      feas=y    11.5s  digest=ce1a65ebf225b291
+# [B.p24.defer_big]
+P24  [B.p24.defer_big] work=3000      B=96   K=4 axis=0  obj=3080029      feas=y    12.0s  digest=3868ad810c8df23d
+# [B.p24.big_first]
+P24  [B.p24.big_first] work=3000      B=96   K=4 axis=0  obj=3550303      feas=y    12.7s  digest=70e92eb8d9107c2a
+# [B.p24.rank]
+P24  [B.p24.rank] work=3000      B=96   K=4 axis=0  obj=5318547      feas=y    13.5s  digest=8a23ee755df04cab
+# [B.p24.sac3]
+P24  [B.p24.sac3] work=3000      B=96   K=4 axis=0  obj=4646621      feas=y    12.4s  digest=f5b55995c5a89826
+# [B.p24.aspect]
+P24  [B.p24.aspect] work=3000      B=96   K=4 axis=0  obj=5471671      feas=y    14.1s  digest=15de6c27b13e6587
+# [B.p24.boxfill]
+P24  [B.p24.boxfill] work=3000      B=96   K=4 axis=0  obj=4487400      feas=y    12.6s  digest=6e0cf55d31845267
+# [B.p24.cohort]
+P24  [B.p24.cohort] work=3000      B=96   K=4 axis=0  obj=4092375      feas=y    11.8s  digest=72fe75a4579cfcdf
+# [B.p16.edd]
+P16  [B.p16.edd] work=3000      B=96   K=4 axis=0  obj=5556697      feas=y    10.3s  digest=2b9d126b2143343f
+# [B.p16.lst]
+P16  [B.p16.lst] work=3000      B=96   K=4 axis=0  obj=3379892      feas=y     9.2s  digest=5dd4559d58bff552
+# [B.p16.defer_big]
+P16  [B.p16.defer_big] work=3000      B=96   K=4 axis=0  obj=6671345      feas=y    13.4s  digest=c6e4496f9a52c7c2
+# [B.p16.big_first]
+P16  [B.p16.big_first] work=3000      B=96   K=4 axis=0  obj=9707740      feas=y    12.8s  digest=93aed05d680b5f70
+# [B.p16.rank]
+P16  [B.p16.rank] work=3000      B=96   K=4 axis=0  obj=10066586     feas=y    11.3s  digest=6c02e0ed0ce6ec26
+# [B.p16.sac3]
+P16  [B.p16.sac3] work=3000      B=96   K=4 axis=0  obj=10141688     feas=y    12.5s  digest=b40b2575301485da
+# [B.p16.aspect]
+P16  [B.p16.aspect] work=3000      B=96   K=4 axis=0  obj=12208761     feas=y    17.5s  digest=34a2abaa52b0693d
+# [B.p16.boxfill]
+P16  [B.p16.boxfill] work=3000      B=96   K=4 axis=0  obj=13647982     feas=y    17.1s  digest=7487fd121fc576dd
+# [B.p16.cohort]
+P16  [B.p16.cohort] work=3000      B=96   K=4 axis=0  obj=3625371      feas=y     9.1s  digest=39280d3ed8be0811
+# [B.p20.edd]
+P20  [B.p20.edd] work=3000      B=96   K=4 axis=0  obj=13562348     feas=y    14.3s  digest=e1d6081e2edd7f3b
+# [B.p20.lst]
+P20  [B.p20.lst] work=3000      B=96   K=4 axis=0  obj=12142815     feas=y    11.4s  digest=307831228fb3fba4
+# [B.p20.defer_big]
+P20  [B.p20.defer_big] work=3000      B=96   K=4 axis=0  obj=10663479     feas=y     9.6s  digest=9ed632839866a27b
+# [B.p20.big_first]
+P20  [B.p20.big_first] work=3000      B=96   K=4 axis=0  obj=11007061     feas=y    11.1s  digest=8a85ae6ff2b0d8af
+# [B.p20.rank]
+P20  [B.p20.rank] work=3000      B=96   K=4 axis=0  obj=16958484     feas=y    17.0s  digest=263be3c4fef7eeea
+# [B.p20.sac3]
+P20  [B.p20.sac3] work=3000      B=96   K=4 axis=0  obj=14461132     feas=y    12.7s  digest=9e631e2606d0cb22
+# [B.p20.aspect]
+P20  [B.p20.aspect] work=3000      B=96   K=4 axis=0  obj=17222056     feas=y    17.9s  digest=665ad8c691d7ce5a
+# [B.p20.boxfill]
+P20  [B.p20.boxfill] work=3000      B=96   K=4 axis=0  obj=16101337     feas=y    15.2s  digest=f4158d25fe2a72bb
+# [B.p20.cohort]
+P20  [B.p20.cohort] work=3000      B=96   K=4 axis=0  obj=12510372     feas=y    13.2s  digest=876b39ac0841d8fe
+== PHASE B done ==
+== PHASE C untouched knobs ==
+# [C.p1.shadow0.25]
+P1   [C.p1.shadow0.25] work=3000      B=96   K=4 axis=0  obj=1174681      feas=y    16.9s  digest=70a2b32ad25991a0
+# [C.p1.shadow1.0]
+P1   [C.p1.shadow1.0] work=3000      B=96   K=4 axis=0  obj=1333384      feas=y    18.6s  digest=ed90ded9630959db
+# [C.p1.span0.25]
+P1   [C.p1.span0.25] work=3000      B=96   K=4 axis=0  obj=1273625      feas=y    17.9s  digest=cc1fe1447196bb17
+# [C.p1.span1.0]
+P1   [C.p1.span1.0] work=3000      B=96   K=4 axis=0  obj=1225808      feas=y    18.4s  digest=44b801bf6fe29d75
+# [C.p1.conw0.5]
+P1   [C.p1.conw0.5] work=3000      B=96   K=4 axis=0  obj=1537086      feas=y    13.5s  digest=8b1d315989b2f957
+# [C.p1.conw2.0]
+P1   [C.p1.conw2.0] work=3000      B=96   K=4 axis=0  obj=1450407      feas=y    11.4s  digest=f29f72d4032f01f4
+# [C.p1.hmatch0.25]
+P1   [C.p1.hmatch0.25] work=3000      B=96   K=4 axis=0  obj=1353423      feas=y    20.9s  digest=0fb046df14d4e938
+# [C.p1.hmatch1.0]
+P1   [C.p1.hmatch1.0] work=3000      B=96   K=4 axis=0  obj=1462458      feas=y    21.8s  digest=6363553fd0d52013
+# [C.p1.mum0.5]
+P1   [C.p1.mum0.5] work=3000      B=96   K=4 axis=0  obj=1174681      feas=y    10.8s  digest=70a2b32ad25991a0
+# [C.p1.mum2.0]
+P1   [C.p1.mum2.0] work=3000      B=96   K=4 axis=0  obj=1174681      feas=y    11.0s  digest=70a2b32ad25991a0

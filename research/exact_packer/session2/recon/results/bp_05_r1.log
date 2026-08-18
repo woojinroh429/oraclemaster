@@ -1,0 +1,22 @@
+    brk calib: 352:4.51e-07 910:3.54e-08 -> rate 3.54e-08 at 910 cols, growth n^0.000
+    brk tier: room=95s rate=3.54e-08 -> tier 0 (step 4 nout 40 nent 6) ncol~30782 pred=33.5s  [hard=112 slice=40s]
+    brk calib: 366:5.05e-07 956:3.14e-08 -> rate 3.14e-08 at 956 cols, growth n^0.000
+    brk tier: room=95s rate=3.14e-08 -> tier 0 (step 4 nout 40 nent 6) ncol~30782 pred=29.7s  [hard=111 slice=40s]
+    brk calib: 364:5.05e-07 934:3.36e-08 -> rate 3.36e-08 at 934 cols, growth n^0.000
+    brk tier: room=94s rate=3.36e-08 -> tier 0 (step 4 nout 40 nent 6) ncol~30782 pred=31.8s  [hard=110 slice=40s]
+    brk calib: 762:1.2e-07 2510:3.1e-09 -> rate 3.1e-09 at 2510 cols, growth n^0.000
+    brk tier: room=94s rate=3.1e-09 -> tier 0 (step 4 nout 40 nent 6) ncol~99902 pred=31.0s  [hard=110 slice=40s]
+    brk cost: ncol~99902 real_ncol=98384 build=24.8s ask=39.8s total=30.0s
+    brk cost: tier 0 ncol~99902 real_ncol=98384 build=24.8s total=30.0s  -> rate 2.482e-09 s/col^2
+    brk[pressure] tgt=1 res=60 outs=3 admitted 3, displaced 0, obj 1727228509 vs base 2488362823 -> KEEP
+    brk cost: ncol~30782 real_ncol=30431 build=6.8s ask=39.8s total=47.5s
+    brk cost: tier 0 ncol~30782 real_ncol=30431 build=6.8s total=47.5s  -> rate 7.137e-09 s/col^2
+    brk[pressure] tgt=0 res=51 outs=19 admitted 8, displaced 4, obj 109890 vs base 157990 -> KEEP
+    brk cost: ncol~30782 real_ncol=30436 build=6.9s ask=39.8s total=47.3s
+    brk cost: tier 0 ncol~30782 real_ncol=30436 build=6.9s total=47.3s  -> rate 7.332e-09 s/col^2
+    brk[pressure] tgt=0 res=52 outs=18 admitted 5, displaced 2, obj 94345 vs base 110800 -> KEEP
+    brk cost: ncol~30782 real_ncol=30342 build=7.2s ask=39.8s total=47.5s
+    brk cost: tier 0 ncol~30782 real_ncol=30342 build=7.2s total=47.5s  -> rate 7.603e-09 s/col^2
+    brk[pressure] tgt=0 res=53 outs=17 admitted 5, displaced 2, obj 87410 vs base 96990 -> KEEP
+    brk: declined, smallest tier predicts 5s of 9s
+P3  brkpool 0.5 r1   240s  obj=87410       Z1=0.0      Z2=3442   Z3=468.0     feas=y   ran 239s

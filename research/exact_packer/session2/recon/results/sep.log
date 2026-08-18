@@ -1,0 +1,4 @@
+P6  construction   obj=28261134    Z1=4022.0  Z2=2570  Z3=9506.0
+P6  re-packed      obj=34812781    Z1=5019.0  Z2=2276  Z3=8886.0  feasible=True  (9s)
+   181 of 250 blocks could not keep the bay they were asked for
+   -> position CONSTRAINS the schedule: +23.18% and 181 blocks displaced

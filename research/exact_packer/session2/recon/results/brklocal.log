@@ -1,0 +1,45 @@
+P3: 200 blocks.  beam 10s per evaluation, 4 trials per perturbation strength
+
+=== edd        seed obj = 165295   (8.7s)
+      swaps   trials   best        vs seed    wins
+          1        4   165295             +0   0/4
+          2        4   165295             +0   0/4
+          4        4   164270          -1025   1/4
+          8        4   153250         -12045   2/4
+         16        4   163130          -2165   1/4
+         32        4   150210         -15085   2/4
+
+=== lst        seed obj = 148650   (8.9s)
+      swaps   trials   best        vs seed    wins
+          1        4   148650             +0   0/4
+          2        4   148650             +0   0/4
+          4        4   133180         -15470   1/4
+          8        4   135050         -13600   1/4
+         16        4   139800          -8850   2/4
+         32        4   157120          +8470   0/4
+
+=== big_first  seed obj = 166605   (8.1s)
+      swaps   trials   best        vs seed    wins
+          1        4   166015           -590   1/4
+          2        4   167040           +435   0/4
+          4        4   167180           +575   0/4
+          8        4   176670         +10065   0/4
+         16        4   189693         +23088   0/4
+         32        4   156335         -10270   2/4
+
+=== defer_big  seed obj = 175200   (8.6s)
+      swaps   trials   best        vs seed    wins
+          1        4   162015         -13185   3/4
+          2        4   165540          -9660   1/4
+          4        4   162015         -13185   1/4
+          8        4   158935         -16265   2/4
+         16        4   158840         -16360   1/4
+         32        4   165715          -9485   1/4
+
+[VERDICT]
+   22 of 96 perturbations beat their own seed
+   best improvement: defer_big at 16 swaps, 175200 -> 158840 (-9.34%)
+   -> a real gradient: perturbing the designed orders beats them often.  A
+      population search has something to climb, and the 42.7ms decoder makes
+      thousands of climbs affordable.  This is the case for building it.
+

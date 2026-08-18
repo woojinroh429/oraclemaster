@@ -1,0 +1,61 @@
+# [r1.p1.off]
+WSTAT round=0 n=4 422629 741633 499210 759388  spread=79.68%
+PARFILL round=1 parity=even even=422629 odd=741633 wids=[16, 18, 20, 22]
+FILL round=1 budget=73 moved=0 best=422629
+P1  [r1.p1.off]    240s  obj=422629      Z1=7.0      Z2=3720   Z3=608.0     feas=y   ran 233s  py3.12
+# [r1.p1.all]
+WSTAT round=0 n=4 469427 688482 453039 596780  spread=51.97%
+PARFILL round=1 parity=even even=453039 odd=596780 wids=[16, 18, 20, 22]
+FILL round=1 budget=73 moved=0 best=453039
+P1  [r1.p1.all]    240s  obj=453039      Z1=24.0     Z2=7877   Z3=449.0     feas=y   ran 234s  py3.12
+# [r1.p1.half]
+WSTAT round=0 n=4 492458 755074 499210 596780  spread=53.33%
+PARFILL round=1 parity=even even=492458 odd=596780 wids=[16, 18, 20, 22]
+FILL round=1 budget=63 moved=0 best=492458
+P1  [r1.p1.half]   240s  obj=492458      Z1=2.0      Z2=2708   Z3=785.0     feas=y   ran 234s  py3.12
+# [r2.p1.off]
+WSTAT round=0 n=4 512240 661691 499210 826636  spread=65.59%
+PARFILL round=1 parity=even even=499210 odd=661691 wids=[16, 18, 20, 22]
+FILL round=1 budget=72 moved=0 best=499210
+P1  [r2.p1.off]    240s  obj=499210      Z1=19.0     Z2=7579   Z3=583.0     feas=y   ran 235s  py3.12
+# [r2.p1.all]
+WSTAT round=0 n=4 478291 718072 472234 736693  spread=56.00%
+PARFILL round=1 parity=even even=472234 odd=718072 wids=[16, 18, 20, 22]
+FILL round=1 budget=74 moved=0 best=472234
+P1  [r2.p1.all]    240s  obj=472234      Z1=16.0     Z2=7054   Z3=574.0     feas=y   ran 234s  py3.12
+# [r2.p1.half]
+WSTAT round=0 n=4 486096 781046 472234 858266  spread=81.75%
+PARFILL round=1 parity=even even=472234 odd=781046 wids=[16, 18, 20, 22]
+FILL round=1 budget=73 moved=0 best=472234
+P1  [r2.p1.half]   240s  obj=472234      Z1=16.0     Z2=7054   Z3=574.0     feas=y   ran 234s  py3.12
+# [r3.p1.off]
+WSTAT round=0 n=4 422629 741633 499210 765163  spread=81.05%
+PARFILL round=1 parity=even even=422629 odd=741633 wids=[16, 18, 20, 22]
+FILL round=1 budget=74 moved=0 best=422629
+P1  [r3.p1.off]    240s  obj=422629      Z1=7.0      Z2=3720   Z3=608.0     feas=y   ran 234s  py3.12
+# [r3.p1.all]
+WSTAT round=0 n=4 413954 692931 437484 755086  spread=82.41%
+PARFILL round=1 parity=even even=413954 odd=692931 wids=[16, 18, 20, 22]
+FILL round=1 budget=73 moved=0 best=413954
+P1  [r3.p1.all]    240s  obj=413954      Z1=14.0     Z2=4472   Z3=512.0     feas=y   ran 234s  py3.12
+# [r3.p1.half]
+WSTAT round=0 n=4 485018 705447 472234 689851  spread=49.39%
+PARFILL round=1 parity=even even=472234 odd=689851 wids=[16, 18, 20, 22]
+FILL round=1 budget=74 moved=0 best=472234
+P1  [r3.p1.half]   240s  obj=472234      Z1=16.0     Z2=7054   Z3=574.0     feas=y   ran 233s  py3.12
+# [r4.p1.off]
+WSTAT round=0 n=4 512240 759160 472234 799008  spread=69.20%
+PARFILL round=1 parity=even even=472234 odd=759160 wids=[16, 18, 20, 22]
+FILL round=1 budget=74 moved=0 best=472234
+P1  [r4.p1.off]    240s  obj=472234      Z1=16.0     Z2=7054   Z3=574.0     feas=y   ran 233s  py3.12
+# [r4.p1.all]
+WSTAT round=0 n=4 512240 689187 437484 755086  spread=72.60%
+PARFILL round=1 parity=even even=437484 odd=689187 wids=[16, 18, 20, 22]
+FILL round=1 budget=73 moved=0 best=437484
+P1  [r4.p1.all]    240s  obj=437484      Z1=15.0     Z2=4293   Z3=541.0     feas=y   ran 234s  py3.12
+# [r4.p1.half]
+WSTAT round=0 n=4 515188 692931 570872 800475  spread=55.38%
+PARFILL round=1 parity=even even=515188 odd=692931 wids=[16, 18, 20, 22]
+FILL round=1 budget=74 moved=0 best=515188
+P1  [r4.p1.half]   240s  obj=515188      Z1=25.0     Z2=7571   Z3=543.0     feas=y   ran 233s  py3.12
+== BRKHALF prob_1 done ==

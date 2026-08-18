@@ -1,0 +1,33 @@
+
+P1  300s, ONE worker   obj=612635  feas=True  wall=260.4s   beam wall=182.8s over 8 calls
+  phase              seconds   % wall
+  cb_t_scan            172.3    66.2%
+  cb_t_exact           110.5    42.4%
+  cb_t_retry             9.7     3.7%
+  cb_t_rebuild           0.1     0.0%
+  cb_t_roll              0.0     0.0%
+  accounted            292.5   112.3%   (beam wall 182.8 s -- the rest is the loop itself)
+
+  count                     value
+  cb_n_scan                     0
+  cb_n_cell             851390962
+  cb_n_ok                73985263
+  cb_n_after             64542483
+  cb_n_bitmap           189854713
+  cb_n_exact             91010891
+  cb_n_hard             715162817
+  cb_n_corner                   0
+  cb_n_sweep              2508776
+  cb_n_both                     0
+  cb_n_pruned           298868796
+  cb_n_retry                31124
+  cb_n_arskip                   0
+  cb_n_arbad                    0
+  cb_n_badrej                   0
+
+  exact tests per cell visited: 0.1069   (bitmap resolved: 0.2230)
+  cells that survive feasibility and get scored: 8.69%
+  cells scored AFTER the best was found: 64542483 of 73985263 (87.2%) -- the early-exit prize
+  cells the early exit skipped: 298868796 of 1150259758 that would have been visited (26.0%)
+  candidate set per (block,bay,orient): corner only 0.0%, full sweep 100.0%, BOTH 0.0%
+BEAMDONE

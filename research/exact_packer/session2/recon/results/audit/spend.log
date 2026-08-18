@@ -1,0 +1,78 @@
+# [D.p1.r1]
+P1  [D.p1.r1]       60s  obj=663059      Z1=23.0     Z2=8306   Z3=808.0     feas=y   ran 30s  py3.12
+# [D.p3.r1]
+P3  [D.p3.r1]       60s  obj=4745843     Z1=190.0    Z2=6845   Z3=7626.0    feas=y   ran 35s  py3.12
+# [D.p27.r1]
+P27 [D.p27.r1]      60s  obj=785787      Z1=83.0     Z2=1085   Z3=941.0     feas=y   ran 33s  py3.12
+# [D.p16.r1]
+P16 [D.p16.r1]      60s  obj=3199896     Z1=145.0    Z2=2287   Z3=5039.0    feas=y   ran 37s  py3.12
+# [D.p7.r1]
+P7  [D.p7.r1]       60s  obj=906265      Z1=48.0     Z2=2083   Z3=1678.0    feas=y   ran 34s  py3.12
+# [D.p33.r1]
+P33 [D.p33.r1]      60s  obj=1179775     Z1=103.0    Z2=786    Z3=2430.0    feas=y   ran 33s  py3.12
+# [D.p1.r2]
+P1  [D.p1.r2]       60s  obj=605585      Z1=8.0      Z2=4083   Z3=900.0     feas=y   ran 31s  py3.12
+# [D.p3.r2]
+P3  [D.p3.r2]       60s  obj=4614767     Z1=125.0    Z2=7267   Z3=7781.0    feas=y   ran 37s  py3.12
+# [D.p27.r2]
+P27 [D.p27.r2]      60s  obj=783964      Z1=83.0     Z2=520    Z3=945.0     feas=y   ran 33s  py3.12
+# [D.p16.r2]
+P16 [D.p16.r2]      60s  obj=3120369     Z1=133.0    Z2=1110   Z3=5375.0    feas=y   ran 37s  py3.12
+# [D.p7.r2]
+P7  [D.p7.r2]       60s  obj=906265      Z1=48.0     Z2=2083   Z3=1678.0    feas=y   ran 33s  py3.12
+# [D.p33.r2]
+P33 [D.p33.r2]      60s  obj=933974      Z1=76.0     Z2=898    Z3=2096.0    feas=y   ran 33s  py3.12
+# [D.p1.r3]
+P1  [D.p1.r3]       60s  obj=663059      Z1=23.0     Z2=8306   Z3=808.0     feas=y   ran 30s  py3.12
+# [D.p3.r3]
+P3  [D.p3.r3]       60s  obj=4614767     Z1=125.0    Z2=7267   Z3=7781.0    feas=y   ran 36s  py3.12
+# [D.p27.r3]
+P27 [D.p27.r3]      60s  obj=783964      Z1=83.0     Z2=520    Z3=945.0     feas=y   ran 33s  py3.12
+# [D.p16.r3]
+P16 [D.p16.r3]      60s  obj=3199896     Z1=145.0    Z2=2287   Z3=5039.0    feas=y   ran 38s  py3.12
+# [D.p7.r3]
+P7  [D.p7.r3]       60s  obj=873513      Z1=36.0     Z2=825    Z3=2585.0    feas=y   ran 33s  py3.12
+# [D.p33.r3]
+P33 [D.p33.r3]      60s  obj=1179775     Z1=103.0    Z2=786    Z3=2430.0    feas=y   ran 33s  py3.12
+# [E.p1.r1]
+P1  [E.p1.r1]       60s  obj=725958      Z1=27.0     Z2=3183   Z3=894.0     feas=y   ran 31s  py3.12
+# [E.p27.r1]
+P27 [E.p27.r1]      60s  obj=897791      Z1=108.0    Z2=1451   Z3=990.0     feas=y   ran 33s  py3.12
+# [E.p1.r2]
+P1  [E.p1.r2]       60s  obj=721023      Z1=27.0     Z2=2738   Z3=888.0     feas=y   ran 30s  py3.12
+# [E.p27.r2]
+P27 [E.p27.r2]      60s  obj=886006      Z1=145.0    Z2=1262   Z3=739.0     feas=y   ran 34s  py3.12
+SPENDDONE
+
+VERDICT -- spend
+================
+RECOVERING THE WASTED 29 SECONDS AS EXTRA DRAWS FAILS.  MORE ROUNDS IS WORSE EVERYWHERE.
+
+        A=0.50 1rnd   B=0.05 1rnd   D=0.50 2rnd   E=0.50 3rnd
+  P1        510,450       571,668       663,059       723,490
+  P3      4,583,170     4,468,072     4,614,767            -
+  P27       859,349       692,860       783,964       891,898
+  P16     3,252,294     3,022,891     3,199,896            -
+  P7        860,744       749,573       906,265            -
+  P33       964,466       933,974     1,179,775            -
+  median-sum  11,030,473   -5.36%        +2.88%       (partial)
+
+THE PREMISE WAS RIGHT AND THE REMEDY IS WRONG.  A really does leave 29 of its 60 seconds unused --
+every A cell returns at 30-31 s.  And a minimum genuinely cannot lose on an extra draw.  But
+OGC_ROUNDS does not ADD a draw, it SPLITS the budget: _rb = wbudget/_R turns one 29 s round into
+two of 14.5.  Two shallower searches are not the same experiment as one deep search plus one more,
+and this pipeline lives on depth.  D loses on five of six instances; P33 loses 22.3%.
+
+P1 IS MONOTONE IN HOW FINELY THE BUDGET IS SPLIT: 510,450 at one round, 663,059 at two, 723,490 at
+three.  It is also monotone the other way -- 571,668 when the same budget is spent as one LONGER
+round (B).  Both perturbations of A's 29 s single round are worse, in both directions, which is
+what an instance sitting in a tuned local optimum looks like.
+
+SO THE 29 SECONDS STAY UNSPENT, AND THAT IS NOW A MEASURED CONCLUSION RATHER THAN AN OVERSIGHT.
+Three ways to spend them have been tried and all lose: a longer single round (B on P1), two rounds,
+three rounds.  fillmoved.log had already found the fill round cannot take them either -- 0 of 4
+cells supplied the minimum.  Whatever the leftover is worth, no knob in this file can convert it.
+
+B STILL SHIPS.  It is the only arm that beats A on the median-sum, -5.36%, and it wins five of six
+instances.  P1 is the exception and it is a tie by mean (566,837 vs 571,668, +0.9%) because A's
+three draws span 34.2% while B returns the same value every time.

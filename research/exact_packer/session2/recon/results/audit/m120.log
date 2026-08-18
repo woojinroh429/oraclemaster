@@ -1,0 +1,25 @@
+# [m.p1.1.r1]
+P1  [m.p1.1.r1]    120s  obj=515621      Z1=23.0     Z2=5760   Z3=575.0     feas=y   ran 79s  py3.12
+# [m.p1.2.r1]
+P1  [m.p1.2.r1]    120s  obj=642408      Z1=24.0     Z2=7000   Z3=769.0     feas=y   ran 81s  py3.12
+# [m.p1.4.r1]
+P1  [m.p1.4.r1]    120s  obj=736279      Z1=49.0     Z2=4932   Z3=658.0     feas=y   ran 80s  py3.12
+# [m.p1.8.r1]
+P1  [m.p1.8.r1]    120s  obj=629743      Z1=28.0     Z2=6489   Z3=706.0     feas=y   ran 82s  py3.12
+# [m.p1.1.r2]
+P1  [m.p1.1.r2]    120s  obj=554984      Z1=20.0     Z2=5748   Z3=674.0     feas=y   ran 79s  py3.12
+# [m.p1.2.r2]
+P1  [m.p1.2.r2]    120s  obj=757389      Z1=12.0     Z2=6195   Z3=1098.0    feas=y   ran 82s  py3.12
+# [m.p1.4.r2]
+P1  [m.p1.4.r2]    120s  obj=623088      Z1=21.0     Z2=3027   Z3=790.0     feas=y   ran 82s  py3.12
+# [m.p1.8.r2]
+P1  [m.p1.8.r2]    120s  obj=629743      Z1=28.0     Z2=6489   Z3=706.0     feas=y   ran 82s  py3.12
+# [m.p1.1.r3]
+P1  [m.p1.1.r3]    120s  obj=500196      Z1=12.0     Z2=5264   Z3=674.0     feas=y   ran 80s  py3.12
+# [m.p1.2.r3]
+P1  [m.p1.2.r3]    120s  obj=636883      Z1=16.0     Z2=7137   Z3=848.0     feas=y   ran 82s  py3.12
+# [m.p1.4.r3]
+P1  [m.p1.4.r3]    120s  obj=661766      Z1=20.0     Z2=5542   Z3=853.0     feas=y   ran 81s  py3.12
+# [m.p1.8.r3]
+P1  [m.p1.8.r3]    120s  obj=682260      Z1=27.0     Z2=6417   Z3=805.0     feas=y   ran 82s  py3.12
+M120DONE

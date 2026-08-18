@@ -1,0 +1,328 @@
+# [A.p20.r1] OGC_DUMMY=0
+P20 [A.p20.r1]      60s  obj=10686538    Z1=1382.0   Z2=718    Z3=9780.0    feas=y   ran 39s  py3.12
+# WALL [A.p20.r1] 39.71
+# [B.p20.r1] OGC_RESFRAC=0.20
+P20 [B.p20.r1]      60s  obj=9728309     Z1=1239.0   Z2=1762   Z3=9692.0    feas=y   ran 48s  py3.12
+# WALL [B.p20.r1] 48.60
+# [C.p20.r1] OGC_RESFRAC=0.10
+P20 [C.p20.r1]      60s  obj=9892701     Z1=1275.0   Z2=822    Z3=9238.0    feas=y   ran 53s  py3.12
+# WALL [C.p20.r1] 53.91
+# [D.p20.r1] OGC_FILLFLOOR=8
+P20 [D.p20.r1]      60s  obj=10284359    Z1=1323.0   Z2=2446   Z3=9629.0    feas=y   ran 40s  py3.12
+# WALL [D.p20.r1] 40.06
+# [A.p26.r1] OGC_DUMMY=0
+P26 [A.p26.r1]      60s  obj=24866510    Z1=2493.0   Z2=13679  Z3=10290.0   feas=y   ran 40s  py3.12
+# WALL [A.p26.r1] 40.73
+# [B.p26.r1] OGC_RESFRAC=0.20
+P26 [B.p26.r1]      60s  obj=24891585    Z1=2451.0   Z2=11568  Z3=10674.0   feas=y   ran 53s  py3.12
+# WALL [B.p26.r1] 53.75
+# [C.p26.r1] OGC_RESFRAC=0.10
+P26 [C.p26.r1]      60s  obj=24858512    Z1=2460.0   Z2=12892  Z3=10556.0   feas=y   ran 55s  py3.12
+# WALL [C.p26.r1] 55.39
+# [D.p26.r1] OGC_FILLFLOOR=8
+P26 [D.p26.r1]      60s  obj=24322950    Z1=2392.0   Z2=9086   Z3=10458.0   feas=y   ran 41s  py3.12
+# WALL [D.p26.r1] 41.64
+# [A.p13.r1] OGC_DUMMY=0
+P13 [A.p13.r1]      60s  obj=67433655    Z1=9230.0   Z2=2845   Z3=7368.0    feas=y   ran 49s  py3.12
+# WALL [A.p13.r1] 49.90
+# [B.p13.r1] OGC_RESFRAC=0.20
+P13 [B.p13.r1]      60s  obj=72725696    Z1=9812.0   Z2=292    Z3=9136.0    feas=y   ran 56s  py3.12
+# WALL [B.p13.r1] 56.10
+# [C.p13.r1] OGC_RESFRAC=0.10
+P13 [C.p13.r1]      60s  obj=76792370    Z1=10418.0  Z2=1164   Z3=9168.0    feas=y   ran 56s  py3.12
+# WALL [C.p13.r1] 56.14
+# [D.p13.r1] OGC_FILLFLOOR=8
+P13 [D.p13.r1]      60s  obj=67433655    Z1=9230.0   Z2=2845   Z3=7368.0    feas=y   ran 48s  py3.12
+# WALL [D.p13.r1] 48.64
+# [A.p5.r1] OGC_DUMMY=0
+P5  [A.p5.r1]       60s  obj=7877646     Z1=2051.0   Z2=807    Z3=2586.0    feas=y   ran 45s  py3.12
+# WALL [A.p5.r1] 45.61
+# [B.p5.r1] OGC_RESFRAC=0.20
+P5  [B.p5.r1]       60s  obj=7844839     Z1=1978.0   Z2=1085   Z3=3106.0    feas=y   ran 51s  py3.12
+# WALL [B.p5.r1] 51.75
+# [C.p5.r1] OGC_RESFRAC=0.10
+P5  [C.p5.r1]       60s  obj=7566813     Z1=1970.0   Z2=267    Z3=2496.0    feas=y   ran 54s  py3.12
+# WALL [C.p5.r1] 54.30
+# [D.p5.r1] OGC_FILLFLOOR=8
+P5  [D.p5.r1]       60s  obj=7877646     Z1=2051.0   Z2=807    Z3=2586.0    feas=y   ran 45s  py3.12
+# WALL [D.p5.r1] 45.56
+# [A.p2.r1] OGC_DUMMY=0
+P2  [A.p2.r1]       60s  obj=60116544    Z1=4426.0   Z2=3659   Z3=7267.0    feas=y   ran 53s  py3.12
+# WALL [A.p2.r1] 53.88
+# [B.p2.r1] OGC_RESFRAC=0.20
+P2  [B.p2.r1]       60s  obj=57836096    Z1=4250.0   Z2=1974   Z3=7753.0    feas=y   ran 55s  py3.12
+# WALL [B.p2.r1] 55.75
+# [C.p2.r1] OGC_RESFRAC=0.10
+P2  [C.p2.r1]       60s  obj=57723509    Z1=4247.0   Z2=1002   Z3=7295.0    feas=y   ran 53s  py3.12
+# WALL [C.p2.r1] 53.08
+# [D.p2.r1] OGC_FILLFLOOR=8
+P2  [D.p2.r1]       60s  obj=60116544    Z1=4426.0   Z2=3659   Z3=7267.0    feas=y   ran 53s  py3.12
+# WALL [D.p2.r1] 53.73
+# [A.p30.r1] OGC_DUMMY=0
+P30 [A.p30.r1]      60s  obj=2008680     Z1=118.0    Z2=3481   Z3=3316.0    feas=y   ran 40s  py3.12
+# WALL [A.p30.r1] 40.09
+# [B.p30.r1] OGC_RESFRAC=0.20
+P30 [B.p30.r1]      60s  obj=1974299     Z1=119.0    Z2=3362   Z3=2940.0    feas=y   ran 49s  py3.12
+# WALL [B.p30.r1] 49.08
+# [C.p30.r1] OGC_RESFRAC=0.10
+P30 [C.p30.r1]      60s  obj=2055626     Z1=124.0    Z2=3764   Z3=3038.0    feas=y   ran 55s  py3.12
+# WALL [C.p30.r1] 54.99
+# [D.p30.r1] OGC_FILLFLOOR=8
+P30 [D.p30.r1]      60s  obj=2042902     Z1=123.0    Z2=4053   Z3=3029.0    feas=y   ran 42s  py3.12
+# WALL [D.p30.r1] 42.69
+# [A.p3.r1] OGC_DUMMY=0
+P3  [A.p3.r1]       60s  obj=4744902     Z1=196.0    Z2=6138   Z3=7596.0    feas=y   ran 54s  py3.12
+# WALL [A.p3.r1] 54.80
+# [B.p3.r1] OGC_RESFRAC=0.20
+P3  [B.p3.r1]       60s  obj=4607234     Z1=171.0    Z2=5456   Z3=7503.0    feas=y   ran 49s  py3.12
+# WALL [B.p3.r1] 49.31
+# [C.p3.r1] OGC_RESFRAC=0.10
+P3  [C.p3.r1]       60s  obj=4405576     Z1=177.0    Z2=9045   Z3=7040.0    feas=y   ran 54s  py3.12
+# WALL [C.p3.r1] 54.59
+# [D.p3.r1] OGC_FILLFLOOR=8
+P3  [D.p3.r1]       60s  obj=4658555     Z1=181.0    Z2=10082  Z3=7476.0    feas=y   ran 53s  py3.12
+# WALL [D.p3.r1] 53.44
+# [A.p16.r1] OGC_DUMMY=0
+P16 [A.p16.r1]      60s  obj=3301626     Z1=156.0    Z2=1726   Z3=4866.0    feas=y   ran 53s  py3.12
+# WALL [A.p16.r1] 53.54
+# [B.p16.r1] OGC_RESFRAC=0.20
+P16 [B.p16.r1]      60s  obj=3233654     Z1=151.0    Z2=1957   Z3=4858.0    feas=y   ran 49s  py3.12
+# WALL [B.p16.r1] 49.23
+# [C.p16.r1] OGC_RESFRAC=0.10
+P16 [C.p16.r1]      60s  obj=3040720     Z1=133.0    Z2=977    Z3=5058.0    feas=y   ran 55s  py3.12
+# WALL [C.p16.r1] 55.12
+# [D.p16.r1] OGC_FILLFLOOR=8
+P16 [D.p16.r1]      60s  obj=3301626     Z1=156.0    Z2=1726   Z3=4866.0    feas=y   ran 53s  py3.12
+# WALL [D.p16.r1] 53.37
+# [A.p20.r2] OGC_DUMMY=0
+# DESIGN FLAW, found when the "controls" moved.  P3 and P16 were carried as DIRGATE controls on
+# the premise that this change is non-DIRGATE-only.  That premise is wrong.  DIRGATE injects its
+# settings with `if _k not in os.environ`, and OGC_RESFRAC is one of the three it injects, so an
+# arm that SETS OGC_RESFRAC overrides the gate instead of leaving it alone.  Arms B and C
+# therefore move P3/P16 from RESFRAC 0.50 (DIRGATE's value) to 0.20/0.10 -- they are treatment
+# cells, not controls, and nothing here vetoes anything.
+# Arm D is the only arm that does not set OGC_RESFRAC, so D alone remains a valid control on
+# P3/P16, and D reads -1.82% on P3 at r1.
+P20 [A.p20.r2]      60s  obj=10284359    Z1=1323.0   Z2=2446   Z3=9629.0    feas=y   ran 40s  py3.12
+# WALL [A.p20.r2] 40.14
+# [B.p20.r2] OGC_RESFRAC=0.20
+P20 [B.p20.r2]      60s  obj=9667345     Z1=1237.0   Z2=2577   Z3=9331.0    feas=y   ran 49s  py3.12
+# WALL [B.p20.r2] 49.35
+# [C.p20.r2] OGC_RESFRAC=0.10
+P20 [C.p20.r2]      60s  obj=9903384     Z1=1290.0   Z2=1113   Z3=8627.0    feas=y   ran 54s  py3.12
+# WALL [C.p20.r2] 54.64
+# [D.p20.r2] OGC_FILLFLOOR=8
+P20 [D.p20.r2]      60s  obj=10607755    Z1=1373.0   Z2=1558   Z3=9610.0    feas=y   ran 40s  py3.12
+# WALL [D.p20.r2] 39.98
+# [A.p26.r2] OGC_DUMMY=0
+P26 [A.p26.r2]      60s  obj=24812731    Z1=2398.0   Z2=14065  Z3=11014.0   feas=y   ran 41s  py3.12
+# WALL [A.p26.r2] 41.55
+# [B.p26.r2] OGC_RESFRAC=0.20
+P26 [B.p26.r2]      60s  obj=25285503    Z1=2450.0   Z2=15353  Z3=11170.0   feas=y   ran 52s  py3.12
+# WALL [B.p26.r2] 52.69
+# [C.p26.r2] OGC_RESFRAC=0.10
+P26 [C.p26.r2]      60s  obj=24858512    Z1=2460.0   Z2=12892  Z3=10556.0   feas=y   ran 55s  py3.12
+# WALL [C.p26.r2] 55.86
+# [D.p26.r2] OGC_FILLFLOOR=8
+P26 [D.p26.r2]      60s  obj=24942454    Z1=2504.0   Z2=8286   Z3=10300.0   feas=y   ran 41s  py3.12
+# WALL [D.p26.r2] 41.39
+# [A.p13.r2] OGC_DUMMY=0
+P13 [A.p13.r2]      60s  obj=67433655    Z1=9230.0   Z2=2845   Z3=7368.0    feas=y   ran 48s  py3.12
+# WALL [A.p13.r2] 48.44
+# [B.p13.r2] OGC_RESFRAC=0.20
+P13 [B.p13.r2]      60s  obj=72571916    Z1=9917.0   Z2=877    Z3=8068.0    feas=y   ran 56s  py3.12
+# WALL [B.p13.r2] 56.26
+# [C.p13.r2] OGC_RESFRAC=0.10
+P13 [C.p13.r2]      60s  obj=70853740    Z1=9653.0   Z2=1189   Z3=8120.0    feas=y   ran 56s  py3.12
+# WALL [C.p13.r2] 56.33
+# [D.p13.r2] OGC_FILLFLOOR=8
+P13 [D.p13.r2]      60s  obj=67433655    Z1=9230.0   Z2=2845   Z3=7368.0    feas=y   ran 49s  py3.12
+# WALL [D.p13.r2] 49.01
+# [A.p5.r2] OGC_DUMMY=0
+P5  [A.p5.r2]       60s  obj=7970627     Z1=2069.0   Z2=650    Z3=2672.0    feas=y   ran 46s  py3.12
+# WALL [A.p5.r2] 46.11
+# [B.p5.r2] OGC_RESFRAC=0.20
+P5  [B.p5.r2]       60s  obj=7844839     Z1=1978.0   Z2=1085   Z3=3106.0    feas=y   ran 52s  py3.12
+# WALL [B.p5.r2] 52.51
+# [C.p5.r2] OGC_RESFRAC=0.10
+P5  [C.p5.r2]       60s  obj=7566813     Z1=1970.0   Z2=267    Z3=2496.0    feas=y   ran 55s  py3.12
+# WALL [C.p5.r2] 55.60
+# [D.p5.r2] OGC_FILLFLOOR=8
+P5  [D.p5.r2]       60s  obj=7877646     Z1=2051.0   Z2=807    Z3=2586.0    feas=y   ran 45s  py3.12
+# WALL [D.p5.r2] 45.08
+# [A.p2.r2] OGC_DUMMY=0
+P2  [A.p2.r2]       60s  obj=59783816    Z1=4410.0   Z2=2609   Z3=6499.0    feas=y   ran 52s  py3.12
+# WALL [A.p2.r2] 52.17
+# [B.p2.r2] OGC_RESFRAC=0.20
+P2  [B.p2.r2]       60s  obj=60239446    Z1=4422.0   Z2=1180   Z3=8508.0    feas=y   ran 55s  py3.12
+# WALL [B.p2.r2] 55.66
+# [C.p2.r2] OGC_RESFRAC=0.10
+P2  [C.p2.r2]       60s  obj=60072279    Z1=4423.0   Z2=2030   Z3=7282.0    feas=y   ran 53s  py3.12
+# WALL [C.p2.r2] 53.57
+# [D.p2.r2] OGC_FILLFLOOR=8
+P2  [D.p2.r2]       60s  obj=60116544    Z1=4426.0   Z2=3659   Z3=7267.0    feas=y   ran 53s  py3.12
+# WALL [D.p2.r2] 53.11
+# [A.p30.r2] OGC_DUMMY=0
+P30 [A.p30.r2]      60s  obj=2045538     Z1=123.0    Z2=4159   Z3=3045.0    feas=y   ran 42s  py3.12
+# WALL [A.p30.r2] 42.36
+# [B.p30.r2] OGC_RESFRAC=0.20
+P30 [B.p30.r2]      60s  obj=2013737     Z1=118.0    Z2=3428   Z3=3359.0    feas=y   ran 52s  py3.12
+# WALL [B.p30.r2] 52.34
+# [C.p30.r2] OGC_RESFRAC=0.10
+P30 [C.p30.r2]      60s  obj=2062877     Z1=124.0    Z2=2410   Z3=3161.0    feas=y   ran 54s  py3.12
+# WALL [C.p30.r2] 54.05
+# [D.p30.r2] OGC_FILLFLOOR=8
+P30 [D.p30.r2]      60s  obj=2042902     Z1=123.0    Z2=4053   Z3=3029.0    feas=y   ran 39s  py3.12
+# WALL [D.p30.r2] 39.84
+# [A.p3.r2] OGC_DUMMY=0
+P3  [A.p3.r2]       60s  obj=4645963     Z1=142.0    Z2=6751   Z3=7740.0    feas=y   ran 53s  py3.12
+# WALL [A.p3.r2] 53.20
+# [B.p3.r2] OGC_RESFRAC=0.20
+P3  [B.p3.r2]       60s  obj=4523208     Z1=142.0    Z2=7032   Z3=7506.0    feas=y   ran 48s  py3.12
+# WALL [B.p3.r2] 48.74
+# [C.p3.r2] OGC_RESFRAC=0.10
+P3  [C.p3.r2]       60s  obj=4648362     Z1=178.0    Z2=5638   Z3=7534.0    feas=y   ran 54s  py3.12
+# WALL [C.p3.r2] 54.71
+# [D.p3.r2] OGC_FILLFLOOR=8
+P3  [D.p3.r2]       60s  obj=4683800     Z1=148.0    Z2=7472   Z3=7764.0    feas=y   ran 52s  py3.12
+# WALL [D.p3.r2] 52.41
+# [A.p16.r2] OGC_DUMMY=0
+P16 [A.p16.r2]      60s  obj=3114589     Z1=135.0    Z2=628    Z3=5251.0    feas=y   ran 53s  py3.12
+# WALL [A.p16.r2] 53.40
+# [B.p16.r2] OGC_RESFRAC=0.20
+P16 [B.p16.r2]      60s  obj=3250495     Z1=160.0    Z2=1155   Z3=4455.0    feas=y   ran 50s  py3.12
+# WALL [B.p16.r2] 50.23
+# [C.p16.r2] OGC_RESFRAC=0.10
+P16 [C.p16.r2]      60s  obj=3040720     Z1=133.0    Z2=977    Z3=5058.0    feas=y   ran 55s  py3.12
+# WALL [C.p16.r2] 55.88
+# [D.p16.r2] OGC_FILLFLOOR=8
+P16 [D.p16.r2]      60s  obj=3301626     Z1=156.0    Z2=1726   Z3=4866.0    feas=y   ran 52s  py3.12
+# WALL [D.p16.r2] 52.92
+# [A.p20.r3] OGC_DUMMY=0
+P20 [A.p20.r3]      60s  obj=10917085    Z1=1419.0   Z2=2414   Z3=9582.0    feas=y   ran 39s  py3.12
+# WALL [A.p20.r3] 39.68
+# [B.p20.r3] OGC_RESFRAC=0.20
+P20 [B.p20.r3]      60s  obj=9616607     Z1=1237.0   Z2=1166   Z3=9068.0    feas=y   ran 48s  py3.12
+# WALL [B.p20.r3] 48.39
+# [C.p20.r3] OGC_RESFRAC=0.10
+P20 [C.p20.r3]      60s  obj=9892701     Z1=1275.0   Z2=822    Z3=9238.0    feas=y   ran 54s  py3.12
+# WALL [C.p20.r3] 54.02
+# [D.p20.r3] OGC_FILLFLOOR=8
+P20 [D.p20.r3]      60s  obj=10686538    Z1=1382.0   Z2=718    Z3=9780.0    feas=y   ran 39s  py3.12
+# WALL [D.p20.r3] 40.00
+# [A.p26.r3] OGC_DUMMY=0
+P26 [A.p26.r3]      60s  obj=25590787    Z1=2469.0   Z2=9964   Z3=11400.0   feas=y   ran 41s  py3.12
+# WALL [A.p26.r3] 41.81
+# [B.p26.r3] OGC_RESFRAC=0.20
+P26 [B.p26.r3]      60s  obj=25190693    Z1=2508.0   Z2=12257  Z3=10572.0   feas=y   ran 53s  py3.12
+# WALL [B.p26.r3] 53.55
+# [C.p26.r3] OGC_RESFRAC=0.10
+P26 [C.p26.r3]      60s  obj=25590787    Z1=2469.0   Z2=9964   Z3=11400.0   feas=y   ran 55s  py3.12
+# WALL [C.p26.r3] 55.37
+# [D.p26.r3] OGC_FILLFLOOR=8
+P26 [D.p26.r3]      60s  obj=23635015    Z1=2269.0   Z2=16392  Z3=10614.0   feas=y   ran 41s  py3.12
+# WALL [D.p26.r3] 41.69
+# [A.p13.r3] OGC_DUMMY=0
+P13 [A.p13.r3]      60s  obj=67433655    Z1=9230.0   Z2=2845   Z3=7368.0    feas=y   ran 48s  py3.12
+# WALL [A.p13.r3] 48.32
+# [B.p13.r3] OGC_RESFRAC=0.20
+P13 [B.p13.r3]      60s  obj=72571916    Z1=9917.0   Z2=877    Z3=8068.0    feas=y   ran 56s  py3.12
+# WALL [B.p13.r3] 56.13
+# [C.p13.r3] OGC_RESFRAC=0.10
+P13 [C.p13.r3]      60s  obj=71706491    Z1=9714.0   Z2=4053   Z3=8674.0    feas=y   ran 56s  py3.12
+# WALL [C.p13.r3] 56.16
+# [D.p13.r3] OGC_FILLFLOOR=8
+P13 [D.p13.r3]      60s  obj=67433655    Z1=9230.0   Z2=2845   Z3=7368.0    feas=y   ran 48s  py3.12
+# WALL [D.p13.r3] 48.87
+# [A.p5.r3] OGC_DUMMY=0
+P5  [A.p5.r3]       60s  obj=7970627     Z1=2069.0   Z2=650    Z3=2672.0    feas=y   ran 45s  py3.12
+# WALL [A.p5.r3] 45.73
+# [B.p5.r3] OGC_RESFRAC=0.20
+P5  [B.p5.r3]       60s  obj=7844839     Z1=1978.0   Z2=1085   Z3=3106.0    feas=y   ran 50s  py3.12
+# WALL [B.p5.r3] 49.94
+# [C.p5.r3] OGC_RESFRAC=0.10
+P5  [C.p5.r3]       60s  obj=7566813     Z1=1970.0   Z2=267    Z3=2496.0    feas=y   ran 55s  py3.12
+# WALL [C.p5.r3] 55.58
+# [D.p5.r3] OGC_FILLFLOOR=8
+P5  [D.p5.r3]       60s  obj=7970627     Z1=2069.0   Z2=650    Z3=2672.0    feas=y   ran 45s  py3.12
+# WALL [D.p5.r3] 45.71
+# [A.p2.r3] OGC_DUMMY=0
+P2  [A.p2.r3]       60s  obj=60116544    Z1=4426.0   Z2=3659   Z3=7267.0    feas=y   ran 54s  py3.12
+# WALL [A.p2.r3] 54.51
+# [B.p2.r3] OGC_RESFRAC=0.20
+P2  [B.p2.r3]       60s  obj=60239446    Z1=4422.0   Z2=1180   Z3=8508.0    feas=y   ran 54s  py3.12
+# WALL [B.p2.r3] 54.64
+# [C.p2.r3] OGC_RESFRAC=0.10
+P2  [C.p2.r3]       60s  obj=57723509    Z1=4247.0   Z2=1002   Z3=7295.0    feas=y   ran 54s  py3.12
+# WALL [C.p2.r3] 54.22
+# [D.p2.r3] OGC_FILLFLOOR=8
+P2  [D.p2.r3]       60s  obj=59783816    Z1=4410.0   Z2=2609   Z3=6499.0    feas=y   ran 51s  py3.12
+# WALL [D.p2.r3] 51.11
+# [A.p30.r3] OGC_DUMMY=0
+P30 [A.p30.r3]      60s  obj=2042902     Z1=123.0    Z2=4053   Z3=3029.0    feas=y   ran 40s  py3.12
+# WALL [A.p30.r3] 40.22
+# [B.p30.r3] OGC_RESFRAC=0.20
+P30 [B.p30.r3]      60s  obj=2115029     Z1=127.0    Z2=4248   Z3=3170.0    feas=y   ran 49s  py3.12
+# WALL [B.p30.r3] 49.36
+# [C.p30.r3] OGC_RESFRAC=0.10
+P30 [C.p30.r3]      60s  obj=2021310     Z1=122.0    Z2=4989   Z3=2918.0    feas=y   ran 53s  py3.12
+# WALL [C.p30.r3] 52.92
+# [D.p30.r3] OGC_FILLFLOOR=8
+P30 [D.p30.r3]      60s  obj=2045538     Z1=123.0    Z2=4159   Z3=3045.0    feas=y   ran 41s  py3.12
+# WALL [D.p30.r3] 41.34
+# [A.p3.r3] OGC_DUMMY=0
+P3  [A.p3.r3]       60s  obj=4666364     Z1=125.0    Z2=7176   Z3=7879.0    feas=y   ran 52s  py3.12
+# WALL [A.p3.r3] 52.40
+# [B.p3.r3] OGC_RESFRAC=0.20
+P3  [B.p3.r3]       60s  obj=4644183     Z1=173.0    Z2=5442   Z3=7560.0    feas=y   ran 49s  py3.12
+# WALL [B.p3.r3] 49.63
+# [C.p3.r3] OGC_RESFRAC=0.10
+P3  [C.p3.r3]       60s  obj=4395868     Z1=181.0    Z2=7048   Z3=7023.0    feas=y   ran 54s  py3.12
+# WALL [C.p3.r3] 54.58
+# [D.p3.r3] OGC_FILLFLOOR=8
+P3  [D.p3.r3]       60s  obj=4720475     Z1=189.0    Z2=6819   Z3=7585.0    feas=y   ran 53s  py3.12
+# WALL [D.p3.r3] 53.07
+# [A.p16.r3] OGC_DUMMY=0
+P16 [A.p16.r3]      60s  obj=3301626     Z1=156.0    Z2=1726   Z3=4866.0    feas=y   ran 53s  py3.12
+# WALL [A.p16.r3] 52.95
+# [B.p16.r3] OGC_RESFRAC=0.20
+P16 [B.p16.r3]      60s  obj=3011137     Z1=134.0    Z2=1505   Z3=4880.0    feas=y   ran 49s  py3.12
+# WALL [B.p16.r3] 49.44
+# [C.p16.r3] OGC_RESFRAC=0.10
+P16 [C.p16.r3]      60s  obj=3183437     Z1=146.0    Z2=1523   Z3=4929.0    feas=y   ran 55s  py3.12
+# WALL [C.p16.r3] 54.99
+# [D.p16.r3] OGC_FILLFLOOR=8
+P16 [D.p16.r3]      60s  obj=3119187     Z1=132.0    Z2=577    Z3=5430.0    feas=y   ran 52s  py3.12
+# WALL [D.p16.r3] 52.89
+TAILBURNDONE
+# VERDICT: ALL THREE ARMS REJECTED.  Six non-DIRGATE instances, three replicates, 18 paired cells.
+#     B (RESFRAC 0.20)  mean -0.53%  10W/8L  max wall 56.3
+#     C (RESFRAC 0.10)  mean -0.81%  10W/7L  max wall 56.3
+#     D (FILLFLOOR 8)   mean -0.64%   7W/5L  max wall 53.7      (A max wall 54.8)
+#
+# THE CLOSING ARGUMENT IS ARM D, not the means.  D is verifiably near-inert: on P13 it reads
+# +0.00% in all three replicates with walls of 48.6/49.0/48.9 against stock's 49.9/48.4/48.3, so
+# the fill gate never opened and the run is the shipped run.  That arm still posts a population
+# mean of -0.64%, which is indistinguishable from B's -0.53% and C's -0.81%.  A knob that does
+# nothing produces the same population mean as the two that do something, so these means carry no
+# information and cannot support adoption.
+#
+# WHAT IS REAL, and it is per-instance rather than population:
+#     P20 arm B   -8.97 / -6.00 / -11.91     3 of 3, mean -8.96%
+#     P13 arm B   +7.85 /  +7.62 /  +7.62    3 of 3, repeating to two decimals
+#     P5  arm C   -3.95 /  -5.07 /  -5.07    3 of 3
+# The reserve is a real lever whose SIGN is a property of the instance.  Under per-instance rank
+# scoring that is an expected-value-zero trade at odds set by the hidden set's composition.
+#
+# NOT FITTING A GATE TO PREDICT THE SIGN.  Three gates fitted on small evidence this session
+# (Z3-share, mean-layer-count, beam-salvage-rate) all died on holdout, the last after looking
+# 8-of-8 correct.
+#
+# TWO DESIGN FAULTS IN THIS QUEUE, recorded so the numbers are not reused as if they were clean:
+#   1. P3/P16 were labelled DIRGATE controls and are not.  DIRGATE injects OGC_RESFRAC with
+#      `if _k not in os.environ`, so arms B and C override the gate.  Only D is a control there.
+#   2. The hypothesis the queue was opened on -- instances that return early are throwing time
+#      away, so give it back -- is falsified by its own data.  Stock walls split the set (P20
+#      39.7, P26 40.7, P30 40.1 early; P5 45.6, P13 49.9, P2 53.9 not) and the gains ignore the
+#      split: P2 already runs to 53.9s and gains, P26 finishes earliest and gains nothing.
+TAILBURNDONE

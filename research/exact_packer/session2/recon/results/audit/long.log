@@ -1,0 +1,247 @@
+# [cen.p1]
+# [cen.p1]
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        8     140.5   71.2%    978310041  6961913.1
+  opstat  grow        1      27.9   14.2%       707895    25341.6
+  opstat  bal         2       0.0    0.0%            0        0.0
+  opstat  pref        2       7.1    3.6%         2511      355.5
+  opstat  bay         1      21.1   10.7%            0        0.0
+  opstat  TOTAL      14     196.7   99.7%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam       14      76.7   38.7%    978768789 12765272.6
+  opstat  grow        2      11.8    6.0%            0        0.0
+  opstat  bal         2       0.1    0.0%            0        0.0
+  opstat  pref        4      83.8   42.3%       112142     1337.9
+  opstat  bay         1      25.0   12.6%            0        0.0
+  opstat  TOTAL      23     197.3   99.7%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        8     127.8   64.5%    978922561  7660122.0
+  opstat  grow        1      32.5   16.4%       164317     5053.1
+  opstat  bal         2       0.0    0.0%        18855  1065469.3
+  opstat  pref        2       2.8    1.4%        56819    20613.2
+  opstat  bay         1      34.3   17.3%            0        0.0
+  opstat  TOTAL      14     197.4   99.7%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam       25     144.6   73.0%    978714194  6770420.1
+  opstat  grow        1       6.7    3.4%            0        0.0
+  opstat  bal         1       0.1    0.0%            0        0.0
+  opstat  pref        4      15.6    7.9%       145903     9342.8
+  opstat  bay         1      29.4   14.8%        69945     2379.8
+  opstat  TOTAL      32     196.4   99.1%                        
+WSTAT round=0 n=4 612635 752151 470530 703040  spread=59.85%
+P1  [cen.p1]       240s  obj=470530      Z1=19.0     Z2=7419   Z3=536.0     feas=y   ran 200s  py3.12
+# [cen.p20]
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        6     104.8   52.9%   1848918779 17640509.0
+  opstat  grow        2      26.1   13.2%            0        0.0
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        2      22.9   11.6%          666       29.0
+  opstat  bay         1      43.0   21.7%            0        0.0
+  opstat  TOTAL      12     196.8   99.4%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        6     110.0   55.5%   1848145422 16794446.2
+  opstat  grow        1      26.4   13.3%            0        0.0
+  opstat  bal         2       0.2    0.1%            0        0.0
+  opstat  pref        2      21.9   11.1%        13012      593.2
+  opstat  bay         1      38.9   19.6%            0        0.0
+  opstat  TOTAL      12     197.5   99.6%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        4      72.2   36.4%   1847756717 25586615.6
+  opstat  grow        1      35.9   18.1%            0        0.0
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        3      48.9   24.7%        23948      489.5
+  opstat  bay         1      40.0   20.2%            0        0.0
+  opstat  TOTAL      10     197.1   99.4%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        5      98.3   49.5%   1845635061 18780598.3
+  opstat  grow        1      35.9   18.1%      1382530    38498.7
+  opstat  bal         3       0.2    0.1%         5338    30672.8
+  opstat  pref        2      23.5   11.8%        47744     2029.9
+  opstat  bay         2      39.1   19.7%            0        0.0
+  opstat  TOTAL      13     197.0   99.2%                        
+WSTAT round=0 n=4 10625342 10247573 11335334 9486562  spread=19.49%
+P20 [cen.p20]      240s  obj=9475172     Z1=1214.0   Z2=1848   Z3=9111.0    feas=y   ran 239s  py3.12
+# [cen.p16]
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        5      95.7   48.5%   8399240559 87758590.9
+  opstat  grow        1      35.5   18.0%       473155    13346.3
+  opstat  bal         1       0.1    0.1%          527     4494.8
+  opstat  pref        1      19.9   10.1%        21997     1105.0
+  opstat  bay         1      44.5   22.6%            0        0.0
+  opstat  TOTAL       9     195.7   99.2%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        7     118.1   59.6%   8399934679 71096426.3
+  opstat  grow        1      19.0    9.6%       172708     9099.5
+  opstat  bal         1       0.1    0.1%            0        0.0
+  opstat  pref        2      21.4   10.8%        52909     2476.7
+  opstat  bay         1      36.8   18.6%            0        0.0
+  opstat  TOTAL      12     195.4   98.6%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        7     116.9   58.3%   8399988411 71871411.1
+  opstat  grow        1      21.9   10.9%            0        0.0
+  opstat  bal         1       0.1    0.0%            0        0.0
+  opstat  pref        1      19.9    9.9%        38554     1936.8
+  opstat  bay         1      39.8   19.9%         9530      239.2
+  opstat  TOTAL      11     198.6   99.1%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        4      75.2   37.0%   8397414932 111739241.5
+  opstat  grow        2      68.9   34.0%      1697649    24632.2
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        1      20.2   10.0%        11904      588.6
+  opstat  bay         1      37.1   18.3%          117        3.2
+  opstat  TOTAL       9     201.4   99.2%                        
+WSTAT round=0 n=4 4568140 3532446 3956504 3656247  spread=29.32%
+P16 [cen.p16]      240s  obj=3522150     Z1=184.0    Z2=876    Z3=4265.0    feas=y   ran 239s  py3.12
+# [cen.p6]
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        9     119.2   60.2%   3661285477 30703104.6
+  opstat  grow        1      16.6    8.4%            0        0.0
+  opstat  bal         3       0.6    0.3%          380      623.4
+  opstat  pref        2      23.7   12.0%        14674      618.6
+  opstat  bay         1      35.2   17.7%          310        8.8
+  opstat  TOTAL      16     195.3   98.5%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        6     106.7   53.3%   3660633744 34311667.5
+  opstat  grow        1      35.8   17.9%       446021    12455.7
+  opstat  bal         1       0.1    0.0%           39      589.3
+  opstat  pref        1      20.0   10.0%        13777      687.2
+  opstat  bay         1      35.8   17.9%            0        0.0
+  opstat  TOTAL      10     198.4   99.2%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        8     119.6   59.4%   3660792863 30612672.6
+  opstat  grow        2      23.8   11.8%            0        0.0
+  opstat  bal         1       0.3    0.1%          310     1226.0
+  opstat  pref        1      19.9    9.9%         7876      395.7
+  opstat  bay         1      35.6   17.7%         8016      225.0
+  opstat  TOTAL      13     199.2   99.0%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        5      79.3   39.2%   3660263588 46165429.6
+  opstat  grow        1      35.9   17.7%      1030766    28719.0
+  opstat  bal         2       0.1    0.1%          169     1387.5
+  opstat  pref        2      47.8   23.6%         8990      188.0
+  opstat  bay         1      37.8   18.7%            0        0.0
+  opstat  TOTAL      11     200.9   99.2%                        
+WSTAT round=0 n=4 5237234 5239906 5447166 5731682  spread=9.44%
+P6  [cen.p6]       240s  obj=5237234     Z1=334.0    Z2=3347   Z3=5769.0    feas=y   ran 239s  py3.12
+== CENSUS done ==
+# [am.p16.base]
+== CENSUS done ==
+# [op.p1.base]
+P1  [op.p1.base]   240s  obj=470530      Z1=19.0     Z2=7419   Z3=536.0     feas=y   ran 200s  py3.12
+== CENSUS done ==
+# [op.p1.nobay]
+P1  [op.p1.nobay]   240s  obj=470530      Z1=19.0     Z2=7419   Z3=536.0     feas=y   ran 200s  py3.12
+# [op.p1.beamgrow]
+P1  [op.p1.beamgrow]   240s  obj=612635      Z1=17.0     Z2=5432   Z3=805.0     feas=y   ran 201s  py3.12
+# [op.p1.beamonly]
+P1  [op.p1.beamonly]   240s  obj=530650      Z1=7.0      Z2=4927   Z3=782.0     feas=y   ran 201s  py3.12
+# [op.p20.base]
+== CENSUS done ==
+# [op.p1.fill]
+P1  [op.p1.fill]   240s  obj=470530      Z1=19.0     Z2=7419   Z3=536.0     feas=y   ran 232s  py3.12
+== CENSUS done ==
+# [op.p20.base]
+P20 [op.p20.base]   240s  obj=8908086     Z1=1118.0   Z2=1910   Z3=9594.0    feas=y   ran 239s  py3.12
+# [op.p20.nobay]
+P20 [op.p20.nobay]   240s  obj=9255809     Z1=1173.0   Z2=1621   Z3=9483.0    feas=y   ran 238s  py3.12
+# [op.p20.beamgrow]
+P20 [op.p20.beamgrow]   240s  obj=9086103     Z1=1157.0   Z2=1898   Z3=9048.0    feas=y   ran 238s  py3.12
+# [op.p20.beamonly]
+P20 [op.p20.beamonly]   240s  obj=9144888     Z1=1166.0   Z2=1052   Z3=9085.0    feas=y   ran 239s  py3.12
+== CENSUS done ==
+# [op.p20.fill]
+P20 [op.p20.fill]   240s  obj=8962507     Z1=1127.0   Z2=181    Z3=9649.0    feas=y   ran 239s  py3.12
+# [op.p16.base]
+P16 [op.p16.base]   240s  obj=3271186     Z1=162.0    Z2=1080   Z3=4432.0    feas=y   ran 239s  py3.12
+# [op.p16.nobay]
+== CENSUS done ==
+# [am.p16.base]
+P16 [am.p16.base]   240s  obj=3286759     Z1=158.0    Z2=1965   Z3=4697.0    feas=y   ran 240s  py3.12
+== CENSUS done ==
+# [am.p16.lo]
+P16 [am.p16.lo]    240s  obj=3530471     Z1=185.0    Z2=2122   Z3=4230.0    feas=y   ran 240s  py3.12
+# [am.p16.hi]
+P16 [am.p16.hi]    240s  obj=3067661     Z1=142.0    Z2=1125   Z3=4684.0    feas=y   ran 240s  py3.12
+# [am.p16.adapt]
+P16 [am.p16.adapt]   240s  obj=3281165     Z1=168.0    Z2=2407   Z3=4136.0    feas=y   ran 239s  py3.12
+# [am.p36.base]
+P36 [am.p36.base]   240s  obj=75775974    Z1=10641.0  Z2=427    Z3=6040.0    feas=y   ran 240s  py3.12
+# [am.p36.lo]
+P36 [am.p36.lo]    240s  obj=75907319    Z1=10513.0  Z2=1148   Z3=7270.0    feas=y   ran 240s  py3.12
+# [am.p36.hi]
+P36 [am.p36.hi]    240s  obj=87795877    Z1=12456.0  Z2=2925   Z3=5936.0    feas=y   ran 236s  py3.12
+# [am.p36.adapt]
+P36 [am.p36.adapt]   240s  obj=75196066    Z1=10474.0  Z2=2708   Z3=6704.0    feas=y   ran 238s  py3.12
+# [am.p1.base]
+P1  [am.p1.base]   240s  obj=470530      Z1=19.0     Z2=7419   Z3=536.0     feas=y   ran 201s  py3.12
+# [am.p1.lo]
+P1  [am.p1.lo]     240s  obj=740405      Z1=32.0     Z2=6687   Z3=845.0     feas=y   ran 239s  py3.12
+# [am.p1.hi]
+P1  [am.p1.hi]     240s  obj=524295      Z1=21.0     Z2=6496   Z3=608.0     feas=y   ran 228s  py3.12
+# [am.p1.adapt]
+P1  [am.p1.adapt]   240s  obj=470530      Z1=19.0     Z2=7419   Z3=536.0     feas=y   ran 201s  py3.12
+== AIM 240 done ==
+== CENSUS done ==
+== AIM 240 done ==
+# [rd.p1.R1]
+P1  [rd.p1.R1]     240s  obj=470530      Z1=19.0     Z2=7419   Z3=536.0     feas=y   ran 201s  py3.12
+# [rd.p1.R2]
+P1  [rd.p1.R2]     240s  obj=544247      Z1=23.0     Z2=7502   Z3=614.0     feas=y   ran 239s  py3.12
+# [rd.p1.R4]
+P1  [rd.p1.R4]     240s  obj=682888      Z1=31.0     Z2=5737   Z3=765.0     feas=y   ran 222s  py3.12
+# [rd.p20.R1]
+P20 [rd.p20.R1]    240s  obj=8939039     Z1=1131.0   Z2=589    Z3=9293.0    feas=y   ran 239s  py3.12
+# [rd.p20.R2]
+P20 [rd.p20.R2]    240s  obj=8939039     Z1=1131.0   Z2=589    Z3=9293.0    feas=y   ran 239s  py3.12
+# [rd.p20.R4]
+P20 [rd.p20.R4]    240s  obj=8924228     Z1=1110.0   Z2=1576   Z3=10075.0   feas=y   ran 240s  py3.12
+# [rd.p16.R1]
+P16 [rd.p16.R1]    240s  obj=3286759     Z1=158.0    Z2=1965   Z3=4697.0    feas=y   ran 239s  py3.12
+# [rd.p16.R2]
+== CENSUS done ==
+== AIM 240 done ==
+# [rd.p16.R2]
+P16 [rd.p16.R2]    240s  obj=3286759     Z1=158.0    Z2=1965   Z3=4697.0    feas=y   ran 240s  py3.12
+== CENSUS done ==
+== AIM 240 done ==
+# [rd.p16.R4]
+P16 [rd.p16.R4]    240s  obj=3472568     Z1=185.0    Z2=2321   Z3=3996.0    feas=y   ran 240s  py3.12
+# [rd.p6.R1]
+P6  [rd.p6.R1]     240s  obj=5048880     Z1=321.0    Z2=3667   Z3=5644.0    feas=y   ran 240s  py3.12
+# [rd.p6.R2]
+== CENSUS done ==
+== AIM 240 done ==
+# [rd.p6.R2]
+P6  [rd.p6.R2]     240s  obj=5308404     Z1=338.0    Z2=3430   Z3=5900.0    feas=y   ran 233s  py3.12
+# [rd.p6.R4]
+P6  [rd.p6.R4]     240s  obj=5443337     Z1=341.0    Z2=4116   Z3=6588.0    feas=y   ran 240s  py3.12
+== ROUNDS 240 done ==
+# [po.p1.base]
+P1  [po.p1.base]   240s  obj=470530      Z1=19.0     Z2=7419   Z3=536.0     feas=y   ran 201s  py3.12
+# [po.p1.dir5]
+P1  [po.p1.dir5]   240s  obj=470530      Z1=19.0     Z2=7419   Z3=536.0     feas=y   ran 201s  py3.12
+# [po.p1.z1op]
+P1  [po.p1.z1op]   240s  obj=540247      Z1=25.0     Z2=7124   Z3=587.0     feas=y   ran 202s  py3.12
+# [po.p1.both]
+P1  [po.p1.both]   240s  obj=470530      Z1=19.0     Z2=7419   Z3=536.0     feas=y   ran 201s  py3.12
+# [po.p20.base]
+P20 [po.p20.base]   240s  obj=8939039     Z1=1131.0   Z2=589    Z3=9293.0    feas=y   ran 239s  py3.12
+# [po.p20.dir5]
+P20 [po.p20.dir5]   240s  obj=8908086     Z1=1118.0   Z2=1910   Z3=9594.0    feas=y   ran 239s  py3.12
+# [po.p20.z1op]
+P20 [po.p20.z1op]   240s  obj=9445374     Z1=1206.0   Z2=3609   Z3=9174.0    feas=y   ran 229s  py3.12
+# [po.p20.both]
+P20 [po.p20.both]   240s  obj=9198949     Z1=1177.0   Z2=1680   Z3=8923.0    feas=y   ran 240s  py3.12
+# [po.p16.base]
+P16 [po.p16.base]   240s  obj=3281165     Z1=168.0    Z2=2407   Z3=4136.0    feas=y   ran 239s  py3.12
+== CENSUS done ==
+== AIM 240 done ==
+== ROUNDS 240 done ==
+# [po.p16.dir5]
+P16 [po.p16.dir5]   240s  obj=3286759     Z1=158.0    Z2=1965   Z3=4697.0    feas=y   ran 240s  py3.12
+== CENSUS done ==
+== AIM 240 done ==
+== ROUNDS 240 done ==
+# [po.p16.z1op]
+P16 [po.p16.z1op]   240s  obj=3398993     Z1=185.0    Z2=2296   Z3=3702.0    feas=y   ran 240s  py3.12
+# [po.p16.both]

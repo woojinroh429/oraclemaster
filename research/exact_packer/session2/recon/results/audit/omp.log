@@ -1,0 +1,100 @@
+# [A.p3.r1] tree=omp_off env=OMP_NUM_THREADS=1
+P3  [A.p3.r1]       60s  obj=4669641     Z1=175.0    Z2=7289   Z3=7571.0    feas=y   ran 52s  py3.12
+# CPU [A.p3.r1] peak=340% mean=252% samples=199 rc=0
+# WALL [A.p3.r1] 53.13
+# [B.p3.r1] tree=omp_on env=OGC_DUMMY=0
+P3  [B.p3.r1]       60s  obj=4683800     Z1=148.0    Z2=7472   Z3=7764.0    feas=y   ran 52s  py3.12
+# CPU [B.p3.r1] peak=340% mean=256% samples=196 rc=0
+# WALL [B.p3.r1] 52.45
+# [C.p3.r1] tree=omp_on env=OMP_NUM_THREADS=2 WORKERS=2
+P3  [C.p3.r1]       60s  obj=4663161     Z1=191.0    Z2=6207   Z3=7473.0    feas=y   ran 54s  py3.12
+# CPU [C.p3.r1] peak=224% mean=180% samples=204 rc=0
+# WALL [C.p3.r1] 54.11
+# [D.p3.r1] tree=omp_on env=OMP_NUM_THREADS=4 WORKERS=1
+P3  [D.p3.r1]       60s  obj=4659659     Z1=163.0    Z2=6932   Z3=7632.0    feas=y   ran 52s  py3.12
+# CPU [D.p3.r1] peak=216% mean=106% samples=197 rc=0
+# WALL [D.p3.r1] 52.43
+# [A.p5.r1] tree=omp_off env=OMP_NUM_THREADS=1
+P5  [A.p5.r1]       60s  obj=7877646     Z1=2051.0   Z2=807    Z3=2586.0    feas=y   ran 45s  py3.12
+# CPU [A.p5.r1] peak=348% mean=270% samples=172 rc=0
+# WALL [A.p5.r1] 45.96
+# [B.p5.r1] tree=omp_on env=OGC_DUMMY=0
+P5  [B.p5.r1]       60s  obj=7877646     Z1=2051.0   Z2=807    Z3=2586.0    feas=y   ran 48s  py3.12
+# CPU [B.p5.r1] peak=332% mean=263% samples=182 rc=0
+# WALL [B.p5.r1] 48.60
+# [C.p5.r1] tree=omp_on env=OMP_NUM_THREADS=2 WORKERS=2
+P5  [C.p5.r1]       60s  obj=7970627     Z1=2069.0   Z2=650    Z3=2672.0    feas=y   ran 44s  py3.12
+# CPU [C.p5.r1] peak=220% mean=185% samples=166 rc=0
+# WALL [C.p5.r1] 44.05
+# [D.p5.r1] tree=omp_on env=OMP_NUM_THREADS=4 WORKERS=1
+P5  [D.p5.r1]       60s  obj=8073615     Z1=2038.0   Z2=1529   Z3=3168.0    feas=y   ran 43s  py3.12
+# CPU [D.p5.r1] peak=220% mean=106% samples=164 rc=0
+# WALL [D.p5.r1] 43.44
+# [A.p20.r1] tree=omp_off env=OMP_NUM_THREADS=1
+P20 [A.p20.r1]      60s  obj=10653656    Z1=1372.0   Z2=1304   Z3=9974.0    feas=y   ran 40s  py3.12
+# CPU [A.p20.r1] peak=336% mean=282% samples=150 rc=0
+# WALL [A.p20.r1] 40.06
+# [B.p20.r1] tree=omp_on env=OGC_DUMMY=0
+P20 [B.p20.r1]      60s  obj=10686538    Z1=1382.0   Z2=718    Z3=9780.0    feas=y   ran 39s  py3.12
+# CPU [B.p20.r1] peak=328% mean=280% samples=150 rc=0
+# WALL [B.p20.r1] 39.93
+# [C.p20.r1] tree=omp_on env=OMP_NUM_THREADS=2 WORKERS=2
+P20 [C.p20.r1]      60s  obj=10686538    Z1=1382.0   Z2=718    Z3=9780.0    feas=y   ran 39s  py3.12
+# CPU [C.p20.r1] peak=244% mean=193% samples=151 rc=0
+# WALL [C.p20.r1] 40.07
+# [D.p20.r1] tree=omp_on env=OMP_NUM_THREADS=4 WORKERS=1
+P20 [D.p20.r1]      60s  obj=12870515    Z1=1699.0   Z2=629    Z3=10255.0   feas=y   ran 39s  py3.12
+# CPU [D.p20.r1] peak=216% mean=106% samples=147 rc=0
+# WALL [D.p20.r1] 39.00
+# [A.p16.r1] tree=omp_off env=OMP_NUM_THREADS=1
+P16 [A.p16.r1]      60s  obj=3273584     Z1=152.0    Z2=906    Z3=4977.0    feas=y   ran 52s  py3.12
+# CPU [A.p16.r1] peak=340% mean=259% samples=196 rc=0
+# WALL [A.p16.r1] 52.37
+# [B.p16.r1] tree=omp_on env=OGC_DUMMY=0
+P16 [B.p16.r1]      60s  obj=3301626     Z1=156.0    Z2=1726   Z3=4866.0    feas=y   ran 53s  py3.12
+# CPU [B.p16.r1] peak=336% mean=261% samples=199 rc=0
+# WALL [B.p16.r1] 53.08
+# [C.p16.r1] tree=omp_on env=OMP_NUM_THREADS=2 WORKERS=2
+P16 [C.p16.r1]      60s  obj=3355125     Z1=159.0    Z2=1726   Z3=4920.0    feas=y   ran 52s  py3.12
+# CPU [C.p16.r1] peak=248% mean=183% samples=198 rc=0
+# WALL [C.p16.r1] 52.71
+# [D.p16.r1] tree=omp_on env=OMP_NUM_THREADS=4 WORKERS=1
+P16 [D.p16.r1]      60s  obj=3119187     Z1=132.0    Z2=577    Z3=5430.0    feas=y   ran 52s  py3.12
+# CPU [D.p16.r1] peak=216% mean=106% samples=197 rc=0
+# WALL [D.p16.r1] 52.36
+# [A.p1.r1] tree=omp_off env=OMP_NUM_THREADS=1
+P1  [A.p1.r1]       60s  obj=662634      Z1=18.0     Z2=3276   Z3=888.0     feas=y   ran 50s  py3.12
+# CPU [A.p1.r1] peak=364% mean=282% samples=188 rc=0
+# WALL [A.p1.r1] 50.07
+# [B.p1.r1] tree=omp_on env=OGC_DUMMY=0
+P1  [B.p1.r1]       60s  obj=665025      Z1=21.0     Z2=4006   Z3=855.0     feas=y   ran 49s  py3.12
+# CPU [B.p1.r1] peak=332% mean=281% samples=187 rc=0
+# WALL [B.p1.r1] 49.85
+# [C.p1.r1] tree=omp_on env=OMP_NUM_THREADS=2 WORKERS=2
+P1  [C.p1.r1]       60s  obj=662634      Z1=18.0     Z2=3276   Z3=888.0     feas=y   ran 50s  py3.12
+# CPU [C.p1.r1] peak=236% mean=191% samples=188 rc=0
+# WALL [C.p1.r1] 49.94
+# [D.p1.r1] tree=omp_on env=OMP_NUM_THREADS=4 WORKERS=1
+P1  [D.p1.r1]       60s  obj=716245      Z1=28.0     Z2=3723   Z3=864.0     feas=y   ran 51s  py3.12
+# CPU [D.p1.r1] peak=224% mean=106% samples=194 rc=0
+# WALL [D.p1.r1] 51.58
+# [A.p3.r2] tree=omp_off env=OMP_NUM_THREADS=1
+P3  [A.p3.r2]       60s  obj=4745843     Z1=190.0    Z2=6845   Z3=7626.0    feas=y   ran 52s  py3.12
+# CPU [A.p3.r2] peak=348% mean=257% samples=198 rc=0
+# VERDICT: REJECTED.  Replicate 1, five instances, four arms.
+#   arm means vs A:  B +0.37%   C +0.77%   D +5.29%      -- every arm loses
+#   CPU  (peak/mean averaged over the five):
+#       A 345/269    B 333/268    C 234/186    D 218/106
+# The decisive cell is P5, where A and B return 7,877,646 BYTE-IDENTICALLY: the threaded build
+# executes the same search as the serial one.  D holds mean 106% on all five instances -- one
+# worker with four OpenMP threads uses one core's worth, so the parallel regions carry
+# essentially none of the runtime.  The -6.8% that opened this branch was two-sample noise: the
+# same threaded build that produced 9,543,933 and 9,988,749 on P20 produces 10,686,538 here.
+# Stopped after replicate 1 because the byte-identical cell settles the mechanism question and
+# the pre-registered adoption clause (a SHIPPABLE arm beating A without losing on P3 or P5) is
+# already unreachable -- C loses on P5 by 1.18%.
+#
+# CORRECTION TO THE IN-FLIGHT NOTE ON IDLE CPU.  I wrote that roughly 150 points sit idle against
+# the 400% allowance.  That mis-stated it: with nw=3 the ceiling is 300%, not 400%, so mean 269%
+# is 90% per-worker utilisation -- the workers are nearly saturated.  The genuinely unrequested
+# headroom is the 100% we never ask for, because nw = cpu_count - 1 leaves one core unused.

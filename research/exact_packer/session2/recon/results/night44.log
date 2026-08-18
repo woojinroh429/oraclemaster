@@ -1,0 +1,15 @@
+baseline verified dk-free: {'Bmul': 1.0, 'K': 4, 'pos_lam': 0.12, 'order': 'defer_big', 'fut_beta': 1.0, 'prefw': 0.0, 'w3mul': 3.0, 'cohort': 0.3}
+arms verified: shadow 0.0 vs 1.5, dk off in both
+=== P3 shadow=0.0 (240s)  11:13:32
+P3  clean sh=0.0   240s  obj=96990       Z1=0.0      Z2=3108   Z3=543.0     ran 239s
+=== P3 shadow=1.5 (240s)  11:17:31
+P3  clean sh=1.5   240s  obj=96990       Z1=0.0      Z2=3108   Z3=543.0     ran 239s
+=== P5 shadow=0.0 (600s)  11:21:31
+P5  clean sh=0.0   600s  obj=9044458     Z1=639.0    Z2=2487   Z3=3814.0    ran 599s
+=== P5 shadow=1.5 (600s)  11:31:30
+P5  clean sh=1.5   600s  obj=8970984     Z1=640.0    Z2=954    Z3=3242.0    ran 600s
+=== P4 shadow=0.0 (480s)  11:41:31
+P4  clean sh=0.0   480s  obj=1981906     Z1=99.0     Z2=1627   Z3=4337.0    ran 455s
+=== P4 shadow=1.5 (480s)  11:49:06
+P4  clean sh=1.5   480s  obj=1922405     Z1=105.0    Z2=2720   Z3=3356.0    ran 450s
+done  11:56:36

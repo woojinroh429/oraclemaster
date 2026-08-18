@@ -1,0 +1,80 @@
+# [w.p13.3]
+P13 [w.p13.3]       30s  obj=87874924    Z1=12157.0  Z2=3405   Z3=8526.0    feas=y   ran 30s  py3.12
+# [w.p25.3]
+P25 [w.p25.3]       30s  obj=4255755887  Z1=638329.0 Z2=4111   Z3=0.0       feas=y   ran 29s  py3.12
+# [w.p13.7]
+P13 [w.p13.7]       30s  obj=4027473504  Z1=604088.0 Z2=18808  Z3=0.0       feas=y   ran 29s  py3.12
+# [w.p25.7]
+P25 [w.p25.7]       30s  obj=4255755887  Z1=638329.0 Z2=4111   Z3=0.0       feas=y   ran 29s  py3.12
+# [w.p13.4]
+P13 [w.p13.4]       30s  obj=67982224    Z1=9249.0   Z2=2341   Z3=7896.0    feas=y   ran 30s  py3.12
+# [w.p25.4]
+P25 [w.p25.4]       30s  obj=4255755887  Z1=638329.0 Z2=4111   Z3=0.0       feas=y   ran 29s  py3.12
+# [w.p13.1]
+P13 [w.p13.1]       30s  obj=87984880    Z1=12278.0  Z2=4254   Z3=7654.0    feas=y   ran 24s  py3.12
+# [w.p25.1]
+P25 [w.p25.1]       30s  obj=90954876    Z1=13408.0  Z2=335    Z3=7812.0    feas=y   ran 34s  py3.12
+# [c.p13.30]
+P13 [c.p13.30]      30s  obj=87874924    Z1=12157.0  Z2=3405   Z3=8526.0    feas=y   ran 30s  py3.12
+# [c.p23.30]
+P23 [c.p23.30]      30s  obj=15941348    Z1=1774.0   Z2=6530   Z3=8189.0    feas=y   ran 30s  py3.12
+# [c.p25.30]
+P25 [c.p25.30]      30s  obj=4255755887  Z1=638329.0 Z2=4111   Z3=0.0       feas=y   ran 29s  py3.12
+# [c.p13.45]
+P13 [c.p13.45]      45s  obj=73381927    Z1=9946.0   Z2=1545   Z3=8838.0    feas=y   ran 40s  py3.12
+# [c.p23.45]
+P23 [c.p23.45]      45s  obj=13958798    Z1=1525.0   Z2=5541   Z3=7550.0    feas=y   ran 45s  py3.12
+# [c.p25.45]
+P25 [c.p25.45]      45s  obj=91117042    Z1=13414.0  Z2=1976   Z3=8390.0    feas=y   ran 45s  py3.12
+# [c.p13.60]
+P13 [c.p13.60]      60s  obj=71323007    Z1=9751.0   Z2=1090   Z3=7890.0    feas=y   ran 50s  py3.12
+# [c.p23.60]
+P23 [c.p23.60]      60s  obj=13836310    Z1=1562.0   Z2=4652   Z3=6817.0    feas=y   ran 60s  py3.12
+# [c.p25.60]
+P25 [c.p25.60]      60s  obj=79249846    Z1=11630.0  Z2=1359   Z3=8536.0    feas=y   ran 59s  py3.12
+# [c.p13.90]
+P13 [c.p13.90]      90s  obj=77913112    Z1=10740.0  Z2=2332   Z3=7884.0    feas=y   ran 73s  py3.12
+# [c.p23.90]
+P23 [c.p23.90]      90s  obj=14130776    Z1=1526.0   Z2=2978   Z3=7896.0    feas=y   ran 79s  py3.12
+# [c.p25.90]
+P25 [c.p25.90]      90s  obj=81888275    Z1=12041.0  Z2=3932   Z3=7976.0    feas=y   ran 71s  py3.12
+CLIFFDONE
+
+VERDICT -- cliff
+================
+THE FLOOR FALLBACK IS A WORKER-COUNT PROBLEM, NOT A BUDGET PROBLEM.
+
+ARM 2 -- worker count at 30 s, the decisive result:
+
+      P13 (peak_util 4.09)   nw=1  87,984,880   nw=3  87,874,924   nw=4  67,982,224   nw=7  FLOOR
+      P25 (peak_util 6.26)   nw=1  90,954,876   nw=3     FLOOR     nw=4     FLOOR     nw=7  FLOOR
+
+  Seven workers floor P13; three, four and seven all floor P25.  The optimum moves with instance
+  size and in opposite directions: P13 wants four, P25 wants one.
+
+ARM 1 -- the cliff at the shipped nw=3:
+
+              20 s        30 s        45 s        60 s        90 s
+      P13    FLOOR   87,874,924  73,381,927  71,323,007  77,913,112
+      P23    FLOOR   15,941,348  13,958,798  13,836,310  14,130,776
+      P25    FLOOR       FLOOR   91,117,042  79,249,846  81,888,275
+
+  All three clear by 45 s.  P25 needs 45 s at nw=3 and reaches the same value in 30 s at nw=1
+  (90,954,876 against 91,117,042) -- the budget was never the binding constraint.
+
+  P13 at 30 s with nw=4 returns 67,982,224, better than nw=3 gets at 45 s, 60 s or 90 s.  The right
+  worker count is worth more than tripling the clock.
+
+AND THE BUDGET RESPONSE IS NOT MONOTONE HERE EITHER.  P13 is worse at 90 s (77.9M) than at 60 s
+(71.3M) or 45 s (73.4M); P23 is worse at 90 s than at 60 s; P25 is worse at 60 s than at 45 s.
+prob_1 and prob_2 showed the same shape earlier.  More time is not reliably better anywhere in this
+pipeline.
+
+WHY THIS MATTERS MORE THAN ANYTHING ELSE MEASURED TODAY.  Every other arm moved the band by single
+digits.  A floor answer is 4,255,755,887 against 90,954,876 -- a factor of 47 on one instance, in a
+finals set of eight scored together.  And it is invisible: feas=y, no warning, no crash.
+
+THE CPU CAP IS VINDICATED AND IS NOT SUFFICIENT.  If the grader shows all its cores, the shipped
+build runs nw=7 and P13-class instances return the floor there; the cap prevents that.  But the cap
+lands on nw=3, and nw=3 still floors P25 at 30 s.  What the evidence asks for is a worker count
+chosen from the instance, which nwsize.log measures next.

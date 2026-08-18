@@ -1,0 +1,104 @@
+# [b480.r1.p1.w4]
+WSTAT round=0 n=4 458512 800215 442451 808843  spread=82.81%
+PARFILL round=1 parity=even even=442451 odd=800215 wids=[16, 18, 20, 22]
+FILL round=1 budget=158 moved=0 best=442451
+P1  [b480.r1.p1.w4]   480s  obj=442451      Z1=17.0     Z2=7704   Z3=510.0     feas=y   ran 480s  py3.12
+# [b480.r1.p1.w3]
+WSTAT round=0 n=3 458512 837397 496052  spread=82.63%
+PARFILL round=1 parity=even even=458512 odd=837397 wids=[12, 14, 16]
+FILL round=1 budget=137 moved=1 best=392626
+P1  [b480.r1.p1.w3]   480s  obj=392626      Z1=7.0      Z2=6719   Z3=543.0     feas=y   ran 475s  py3.12
+# [b480.r2.p1.w4]
+WSTAT round=0 n=4 422629 706975 405381 735791  spread=81.51%
+PARFILL round=1 parity=even even=405381 odd=706975 wids=[16, 18, 20, 22]
+FILL round=1 budget=156 moved=0 best=405381
+P1  [b480.r2.p1.w4]   480s  obj=405381      Z1=12.0     Z2=4459   Z3=520.0     feas=y   ran 473s  py3.12
+# [b480.r2.p1.w3]
+WSTAT round=0 n=3 458512 853778 496052  spread=86.21%
+PARFILL round=1 parity=even even=458512 odd=853778 wids=[12, 14, 16]
+FILL round=1 budget=157 moved=1 best=406271
+P1  [b480.r2.p1.w3]   480s  obj=402890      Z1=17.0     Z2=8317   Z3=441.0     feas=y   ran 473s  py3.12
+# [b480.r3.p1.w4]
+WSTAT round=0 n=4 426604 725127 496052 740964  spread=73.69%
+PARFILL round=1 parity=even even=426604 odd=725127 wids=[16, 18, 20, 22]
+FILL round=1 budget=158 moved=0 best=426604
+P1  [b480.r3.p1.w4]   480s  obj=426604      Z1=4.0      Z2=2712   Z3=653.0     feas=y   ran 474s  py3.12
+# [b480.r3.p1.w3]
+WSTAT round=0 n=3 487067 627295 496052  spread=28.79%
+PARFILL round=1 parity=even even=487067 odd=627295 wids=[12, 14, 16]
+FILL round=1 budget=158 moved=1 best=456249
+P1  [b480.r3.p1.w3]   480s  obj=456249      Z1=15.0     Z2=7748   Z3=555.0     feas=y   ran 477s  py3.12
+== NW480 prob_1 done ==
+# [b480.r1.p16.w4]
+WSTAT round=0 n=4 2518775 4091675 2925139 3505248  spread=62.45%
+PARFILL round=1 parity=even even=2518775 odd=3505248 wids=[16, 18, 20, 22]
+FILL round=1 budget=150 moved=0 best=2486135
+P16 [b480.r1.p16.w4]   480s  obj=2486135     Z1=99.0     Z2=1556   Z3=4646.0    feas=y   ran 480s  py3.12
+# [b480.r1.p16.w3]
+WSTAT round=0 n=3 2258850 4177313 3095195  spread=84.93%
+PARFILL round=1 parity=even even=2258850 odd=4177313 wids=[12, 14, 16]
+FILL round=1 budget=151 moved=0 best=2239646
+P16 [b480.r1.p16.w3]   480s  obj=2239646     Z1=79.0     Z2=1363   Z3=4729.0    feas=y   ran 479s  py3.12
+# [b480.r2.p16.w4]
+WSTAT round=0 n=4 2682520 4331587 2842429 3877140  spread=61.47%
+PARFILL round=1 parity=even even=2682520 odd=3877140 wids=[16, 18, 20, 22]
+FILL round=1 budget=147 moved=0 best=2676674
+P16 [b480.r2.p16.w4]   480s  obj=2676674     Z1=107.0    Z2=931    Z3=4989.0    feas=y   ran 478s  py3.12
+# [b480.r2.p16.w3]
+WSTAT round=0 n=3 2959672 3091086 2829720  spread=9.24%
+PARFILL round=1 parity=even even=2829720 odd=3091086 wids=[12, 14, 16]
+FILL round=1 budget=149 moved=0 best=2776607
+P16 [b480.r2.p16.w3]   480s  obj=2776607     Z1=123.0    Z2=1216   Z3=4532.0    feas=y   ran 480s  py3.12
+NW480DONE
+# [b480.r3.p16.w4]
+WSTAT round=0 n=4 2451552 3453627 3202618 3526905  spread=43.86%
+PARFILL round=1 parity=even even=2451552 odd=3453627 wids=[16, 18, 20, 22]
+FILL round=1 budget=146 moved=0 best=2419096
+P16 [b480.r3.p16.w4]   480s  obj=2419096     Z1=93.0     Z2=1209   Z3=4702.0    feas=y   ran 479s  py3.12
+# [b480.r3.p16.w3]
+WSTAT round=0 n=3 2916536 4177313 2978612  spread=43.23%
+PARFILL round=1 parity=even even=2916536 odd=4177313 wids=[12, 14, 16]
+FILL round=1 budget=150 moved=1 best=2907308
+P16 [b480.r3.p16.w3]   480s  obj=2907308     Z1=129.0    Z2=867    Z3=4739.0    feas=y   ran 477s  py3.12
+# [b480.r4.p16.w4]
+WSTAT round=0 n=4 2518775 4331587 2829720 3505248  spread=71.97%
+PARFILL round=1 parity=even even=2518775 odd=3505248 wids=[16, 18, 20, 22]
+FILL round=1 budget=150 moved=0 best=2486135
+P16 [b480.r4.p16.w4]   480s  obj=2486135     Z1=99.0     Z2=1556   Z3=4646.0    feas=y   ran 477s  py3.12
+# [b480.r4.p16.w3]
+WSTAT round=0 n=3 2857964 4177313 2600802  spread=60.62%
+PARFILL round=1 parity=even even=2600802 odd=4177313 wids=[12, 14, 16]
+FILL round=1 budget=146 moved=0 best=2592530
+P16 [b480.r4.p16.w3]   480s  obj=2592530     Z1=105.0    Z2=1855   Z3=4748.0    feas=y   ran 478s  py3.12
+# [b480.r5.p16.w4]
+WSTAT round=0 n=4 2518775 3763858 3101896 3216436  spread=49.43%
+PARFILL round=1 parity=even even=2518775 odd=3216436 wids=[16, 18, 20, 22]
+FILL round=1 budget=147 moved=0 best=2486135
+P16 [b480.r5.p16.w4]   480s  obj=2486135     Z1=99.0     Z2=1556   Z3=4646.0    feas=y   ran 483s  py3.12
+# [b480.r5.p16.w3]
+WSTAT round=0 n=3 2251075 3802489 2914047  spread=68.92%
+PARFILL round=1 parity=even even=2251075 odd=3802489 wids=[12, 14, 16]
+FILL round=1 budget=153 moved=0 best=2239646
+P16 [b480.r5.p16.w3]   480s  obj=2239646     Z1=79.0     Z2=1363   Z3=4729.0    feas=y   ran 480s  py3.12
+== NW480D prob_16 done ==
+# [b480.r4.p1.w4]
+WSTAT round=0 n=4 458512 706975 501837 740964  spread=61.60%
+PARFILL round=1 parity=even even=458512 odd=706975 wids=[16, 18, 20, 22]
+FILL round=1 budget=155 moved=0 best=458512
+P1  [b480.r4.p1.w4]   480s  obj=458512      Z1=1.0      Z2=2415   Z3=741.0     feas=y   ran 474s  py3.12
+# [b480.r4.p1.w3]
+WSTAT round=0 n=3 458512 717316 496052  spread=56.44%
+PARFILL round=1 parity=even even=458512 odd=717316 wids=[12, 14, 16]
+FILL round=1 budget=157 moved=1 best=437697
+P1  [b480.r4.p1.w3]   480s  obj=437697      Z1=15.0     Z2=4364   Z3=541.0     feas=y   ran 474s  py3.12
+# [b480.r5.p1.w4]
+WSTAT round=0 n=4 422629 722009 496052 693845  spread=70.84%
+PARFILL round=1 parity=even even=422629 odd=693845 wids=[16, 18, 20, 22]
+FILL round=1 budget=157 moved=0 best=422629
+P1  [b480.r5.p1.w4]   480s  obj=422629      Z1=7.0      Z2=3720   Z3=608.0     feas=y   ran 473s  py3.12
+# [b480.r5.p1.w3]
+WSTAT round=0 n=3 483050 740964 504490  spread=53.39%
+PARFILL round=1 parity=even even=483050 odd=740964 wids=[12, 14, 16]
+FILL round=1 budget=158 moved=1 best=426313
+P1  [b480.r5.p1.w3]   480s  obj=415231      Z1=16.0     Z2=8253   Z3=473.0     feas=y   ran 477s  py3.12
+NW480DDONE

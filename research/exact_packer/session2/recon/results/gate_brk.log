@@ -1,0 +1,6 @@
+gate arms verified: brk vs control, contact at full on both
+=== gbrk_p4_on_r1.log  (P4 brk on r1)  11:16:21
+P4  P4 brk on r1   480s  obj=1981906     Z1=99.0     Z2=1627   Z3=4337.0    feas=y   ran 720s
+=== gbrk_p4_off_r1.log  (P4 brk off r1)  11:28:22
+P4  P4 brk off r1   480s  obj=1780253     Z1=88.0     Z2=2707   Z3=3920.0    feas=y   ran 468s
+=== gbrk_p4_on_r2.log  (P4 brk on r2)  11:36:11

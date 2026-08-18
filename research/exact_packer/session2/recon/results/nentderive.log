@@ -1,0 +1,10 @@
+derivation verified: P3 reproduces 6/3/2/1, P6 gives 14/7/5/2
+=== nd_p3.log (nentderive P3) 07:21:24
+P3  nentderive P3   240s  obj=80795       Z1=0.0      Z2=3469   Z3=423.0     feas=y   ran 239s
+=== nd_p6.log (nentderive P6) 07:25:24
+P6  nentderive P6   900s  obj=29651637    Z1=4319.0   Z2=1883   Z3=5612.0    feas=y   ran 900s
+=== nd_p5.log (nentderive P5) 07:40:24
+P5  nentderive P5   600s  obj=9044458     Z1=639.0    Z2=2487   Z3=3814.0    feas=y   ran 599s
+=== nd_p3_r2.log (nentderive P3 r2) 07:50:24
+P3  nentderive P3 r2   240s  obj=84990       Z1=0.0      Z2=3048   Z3=465.0     feas=y   ran 239s
+nentderive done 07:54:23

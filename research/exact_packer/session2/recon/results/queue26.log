@@ -1,0 +1,8 @@
+pool-rotation arms verified: incumbent-only / rotate 2 / rotate 3
+=== q26_p0_r1.log  (pool0 r1)  07:46:52
+P3  pool0 r1       240s  obj=86665       Z1=0.0      Z2=3023   Z3=477.0     feas=y   ran 239s
+=== q26_p2_r1.log  (pool rot2 r1)  07:50:51
+P3  pool rot2 r1   240s  obj=86665       Z1=0.0      Z2=3023   Z3=477.0     feas=y   ran 239s
+=== q26_p3_r1.log  (pool rot3 r1)  07:54:51
+P3  pool rot3 r1   240s  obj=86635       Z1=0.0      Z2=2507   Z3=494.0     feas=y   ran 239s
+=== q26_p0_r2.log  (pool0 r2)  07:58:50

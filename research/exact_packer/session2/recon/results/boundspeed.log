@@ -1,0 +1,15 @@
+
+P3  one contact_beam call, deadline lifted, identical arguments
+  no bound     103.52 s   200 placements   digest -7940690209427479999
+  bound         55.99 s   200 placements   digest -7940690209427479999
+  IDENTICAL ASSIGNMENT   1.85x
+
+P6  one contact_beam call, deadline lifted, identical arguments
+  no bound     102.72 s   250 placements   digest 815610089296662168
+  bound         94.61 s   250 placements   digest 815610089296662168
+  IDENTICAL ASSIGNMENT   1.09x
+
+P4  one contact_beam call, deadline lifted, identical arguments
+  no bound      27.43 s   150 placements   digest 815244608396831058
+  bound         16.55 s   150 placements   digest 815244608396831058
+  IDENTICAL ASSIGNMENT   1.66x

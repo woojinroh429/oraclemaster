@@ -1,0 +1,21 @@
+# [da.stock.r1]
+WSTAT round=0 n=4 515188 729996 489878 681240  spread=49.02%
+P1  [da.stock.r1]   120s  obj=489878      Z1=20.0     Z2=6646   Z3=561.0     feas=y   ran 79s  py3.12
+# [da.all.r1]
+WSTAT round=0 n=4 535189 729996 499210 638566  spread=46.23%
+P1  [da.all.r1]    120s  obj=499210      Z1=19.0     Z2=7579   Z3=583.0     feas=y   ran 79s  py3.12
+# [da.none.r1]
+WSTAT round=0 n=4 584609 828138 544247 681240  spread=52.16%
+P1  [da.none.r1]   120s  obj=544247      Z1=23.0     Z2=7502   Z3=614.0     feas=y   ran 82s  py3.12
+# [da.stock.r2]
+WSTAT round=0 n=4 515188 750048 499210 766439  spread=53.53%
+P1  [da.stock.r2]   120s  obj=499210      Z1=19.0     Z2=7579   Z3=583.0     feas=y   ran 79s  py3.12
+# [da.all.r2]
+WSTAT round=0 n=4 473725 636883 596959 688041  spread=45.24%
+P1  [da.all.r2]    120s  obj=473725      Z1=13.0     Z2=7218   Z3=609.0     feas=y   ran 79s  py3.12
+# [da.none.r2]
+WSTAT round=0 n=4 503500 729517 544247 743665  spread=47.70%
+P1  [da.none.r2]   120s  obj=503500      Z1=19.0     Z2=7609   Z3=590.0     feas=y   ran 79s  py3.12
+# [da.stock.r3]
+WSTAT round=0 n=4 473725 660593 499210 743665  spread=56.98%
+P1  [da.stock.r3]   120s  obj=473725      Z1=13.0     Z2=7218   Z3=609.0     feas=y   ran 79s  py3.12

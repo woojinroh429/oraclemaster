@@ -1,0 +1,24 @@
+    brk calib: 860:6.55e-08 1696:2.34e-08 -> rate 2.34e-08 at 1696 cols, growth n^0.000
+    brk tier: room=265s rate=2.34e-08 -> tier 2 (step 4 nout 20 nent 5) ncol~100774 pred=237.1s  [hard=311 slice=112s]
+    brk: build refused at tier 2 (9.2s) -- stepping down to tier 3
+    brk calib: 838:2.13e-07 1624:1.73e-08 -> rate 1.73e-08 at 1624 cols, growth n^0.000
+    brk tier: room=248s rate=1.73e-08 -> tier 3 (step 6 nout 10 nent 2) ncol~27130 pred=12.7s  [hard=292 slice=112s]
+    brk calib: 728:4.07e-07 1548:2.53e-08 -> rate 2.53e-08 at 1548 cols, growth n^0.000
+    brk tier: room=242s rate=2.53e-08 -> tier 3 (step 6 nout 10 nent 2) ncol~21824 pred=12.1s  [hard=285 slice=112s]
+    brk calib: 852:3.6e-07 1668:1.68e-08 -> rate 1.68e-08 at 1668 cols, growth n^0.000
+    brk tier: room=234s rate=1.68e-08 -> tier 2 (step 4 nout 20 nent 5) ncol~102968 pred=178.4s  [hard=276 slice=112s]
+    brk: build refused at tier 2 (1.2s) -- stepping down to tier 3
+    brk cost: ncol~23226 real_ncol=23819 build=6.6s ask=111.8s total=120.5s
+    brk cost: tier 3 ncol~23226 real_ncol=23819 build=6.6s total=120.5s  -> rate 1.232e-08 s/col^2
+    brk[pressure] tgt=0 res=52 outs=10 displaced b10 could not be rehomed in any other bay
+    brk cost: ncol~27130 real_ncol=27435 build=10.3s ask=111.8s total=122.5s
+    brk cost: tier 3 ncol~27130 real_ncol=27435 build=10.3s total=122.5s  -> rate 1.401e-08 s/col^2
+    brk[pressure] tgt=0 res=56 outs=10 displaced b28 could not be rehomed in any other bay
+    brk cost: ncol~21824 real_ncol=21988 build=9.8s ask=111.8s total=121.9s
+    brk cost: tier 3 ncol~21824 real_ncol=21988 build=9.8s total=121.9s  -> rate 2.065e-08 s/col^2
+    brk[pressure] tgt=1 res=47 outs=10 displaced b3 could not be rehomed in any other bay
+    brk cost: ncol~24040 real_ncol=24672 build=8.4s ask=111.8s total=120.4s
+    brk cost: tier 3 ncol~24040 real_ncol=24672 build=8.4s total=120.4s  -> rate 1.452e-08 s/col^2
+    brk[pressure] tgt=0 res=56 outs=10 displaced b22 could not be rehomed in any other bay
+    brk: declined, smallest tier predicts 9s of 8s
+P5  P5 repeat r2   600s  obj=9136770     Z1=648.0    Z2=2636   Z3=3598.0    feas=y   ran 600s

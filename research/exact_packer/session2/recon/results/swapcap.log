@@ -1,0 +1,6 @@
+incumbent obj=86665   bay 0 holds 55   bay counts [55, 74, 71]
+
+  cap    model obj   wants    stayers  incomers SEATED by cranepack
+  55     59709       55       48       7        47 of 55   (incomers seated 3 of 7)  [139s]
+  56     57080       56       49       7        48 of 56   (incomers seated 2 of 7)  [142s]
+  60     47210       60       51       9        51 of 60   (incomers seated 3 of 9)  [152s]

@@ -1,0 +1,9 @@
+=== prob_1 | blocks 0..99 | bays=2 SX=5 SY=4 MAXWAIT=4 EN_STEP=1 THETA=0.0 ===
+[raster] theta=0.0 avg L1 footprint cells=43.4
+[place] 43490 spatial placements (434/block), Kmax=2, build 15.1s
+  round 0: LP obj=0 cols=899 cells=122599 added=99
+  round 1: LP status 4 (계속)
+  round 1: LP obj=0 cols=899 cells=122599 added=0
+[cg] LP 최적 (음의 감축비용 없음) at round 1, LP obj=0
+[int] status=INFEASIBLE obj/1000=0.0 time=1.9s
+EXIT=0

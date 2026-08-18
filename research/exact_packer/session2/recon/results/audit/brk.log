@@ -1,0 +1,1458 @@
+# [r1.p1.off]
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        7      94.6   61.4%    979056715 10352698.1
+  opstat  grow        1      26.3   17.0%            0        0.0
+  opstat  bal         2       0.0    0.0%            0        0.0
+  opstat  pref        2       6.5    4.2%        83909    12966.7
+  opstat  bay         1      26.3   17.0%            0        0.0
+  opstat  TOTAL      13     153.6   99.7%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        6      78.0   50.7%    978919663 12546974.8
+  opstat  grow        1      26.9   17.5%       124143     4609.0
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        2      17.8   11.5%        64981     3655.5
+  opstat  bay         1      30.5   19.8%            0        0.0
+  opstat  TOTAL      11     153.3   99.5%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam       12      79.9   51.9%    978737712 12245101.5
+  opstat  grow        2      13.1    8.5%        76663     5851.9
+  opstat  bal         2       0.1    0.1%          213     1976.4
+  opstat  pref        4      35.4   23.0%        76861     2169.7
+  opstat  bay         1      24.5   15.9%            0        0.0
+  opstat  TOTAL      21     153.1   99.3%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam       10      77.4   50.2%    978661153 12639606.9
+  opstat  grow        1       8.5    5.5%        52611     6202.3
+  opstat  bal         2       0.1    0.1%          213     2393.8
+  opstat  pref        3      40.2   26.0%        76430     1902.7
+  opstat  bay         1      25.5   16.5%            0        0.0
+  opstat  TOTAL      17     151.6   98.3%                        
+WSTAT round=0 n=4 492458 741633 524295 842675  spread=71.12%
+PARFILL round=1 parity=even even=492458 odd=741633 wids=[16, 18, 20, 22]
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        5      26.0   36.1%    978672462 37623915.6
+  opstat  grow        1       8.3   11.6%       103262    12388.0
+  opstat  bal         2       0.1    0.1%         1182    17018.2
+  opstat  pref        2       7.4   10.3%        90552    12198.0
+  opstat  bay         2      29.4   40.8%            0        0.0
+  opstat  TOTAL      12      71.2   99.0%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        7      36.5   50.8%    978672462 26784025.3
+  opstat  grow        1       8.3   11.5%       103262    12480.9
+  opstat  bal         1       0.1    0.1%         1182    20550.7
+  opstat  pref        3      12.9   17.9%        90552     7009.3
+  opstat  bay         1      13.5   18.7%            0        0.0
+  opstat  TOTAL      13      71.3   99.0%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        8      39.0   54.2%    978685170 25086120.3
+  opstat  grow        1       8.4   11.7%            0        0.0
+  opstat  bal         2       0.0    0.0%            0        0.0
+  opstat  pref        2      10.1   14.0%       185677    18411.7
+  opstat  bay         1      14.0   19.4%            0        0.0
+  opstat  TOTAL      14      71.6   99.4%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        7      32.0   44.3%    978688834 30614576.1
+  opstat  grow        2      13.2   18.2%        75405     5727.1
+  opstat  bal         2       0.0    0.0%            0        0.0
+  opstat  pref        2      10.2   14.1%       163964    16086.3
+  opstat  bay         1      15.6   21.6%           54        3.5
+  opstat  TOTAL      14      70.9   98.3%                        
+FILL round=1 budget=73 moved=0 best=492458
+P1  [r1.p1.off]    240s  obj=492458      Z1=2.0      Z2=2708   Z3=785.0     feas=y   ran 234s  py3.12
+# [r1.p1.brk]
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam       10      65.2   42.6%    978656390 15011855.3
+  opstat  grow        1       7.4    4.9%            0        0.0
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        2      15.8   10.3%        76014     4799.8
+  opstat  bay         1      28.5   18.6%        72673     2551.4
+  opstat  brk         1      34.7   22.7%        72919     2098.7
+  opstat  TOTAL      16     151.7   99.1%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        5      55.9   36.3%    979091983 17519544.4
+  opstat  grow        1      26.6   17.2%            0        0.0
+  opstat  bal         2       0.0    0.0%         2796    87392.3
+  opstat  pref        2       4.4    2.8%       100606    23079.3
+  opstat  bay         1      20.9   13.6%          213       10.2
+  opstat  brk         1      45.4   29.5%         8675      191.1
+  opstat  TOTAL      12     153.1   99.4%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        4      48.4   31.4%    979056715 20235242.7
+  opstat  grow        1      26.5   17.2%            0        0.0
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        3       7.6    4.9%       101549    13403.8
+  opstat  bay         1      28.3   18.4%            0        0.0
+  opstat  brk         1      42.4   27.5%         5391      127.3
+  opstat  TOTAL      11     153.1   99.4%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        9      57.8   37.5%    978737712 16927217.6
+  opstat  grow        2      13.7    8.9%        76663     5612.0
+  opstat  bal         1       0.1    0.1%          213     2227.4
+  opstat  pref        2      16.1   10.5%        89377     5540.2
+  opstat  bay         1      23.0   14.9%            0        0.0
+  opstat  brk         2      41.2   26.7%        36186      877.8
+  opstat  TOTAL      17     151.9   98.5%                        
+WSTAT round=0 n=4 469427 692931 428809 755086  spread=76.09%
+PARFILL round=1 parity=even even=428809 odd=692931 wids=[16, 18, 20, 22]
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        8      39.9   54.7%    978675573 24529057.7
+  opstat  grow        1       8.5   11.7%            0        0.0
+  opstat  bal         2       0.0    0.0%            0        0.0
+  opstat  pref        2       7.6   10.4%       147766    19420.8
+  opstat  bay         1      13.4   18.4%            0        0.0
+  opstat  brk         1       3.1    4.3%            0        0.0
+  opstat  TOTAL      15      72.6   99.5%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        3      18.2   25.0%    978672462 53675992.1
+  opstat  grow        1       8.5   11.6%       103262    12186.1
+  opstat  bal         2       0.1    0.1%         1182    17006.8
+  opstat  pref        2       7.9   10.9%        90552    11412.4
+  opstat  bay         2      18.0   24.6%            0        0.0
+  opstat  brk         1      19.5   26.7%            0        0.0
+  opstat  TOTAL      11      72.2   98.9%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        3      17.7   24.2%    978640922 55236112.3
+  opstat  grow        1       8.3   11.3%        75405     9102.3
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        2      10.2   14.0%        87033     8510.8
+  opstat  bay         1      14.4   19.7%           54        3.7
+  opstat  brk         2      21.1   28.8%        23288     1106.1
+  opstat  TOTAL      10      71.7   98.1%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        4      22.3   30.4%    978672462 43981481.0
+  opstat  grow        1       8.9   12.1%       185324    20853.4
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        2       9.3   12.8%        73444     7856.3
+  opstat  bay         1      13.2   18.0%            0        0.0
+  opstat  brk         1      18.6   25.4%        57381     3079.9
+  opstat  TOTAL      10      72.3   98.8%                        
+FILL round=1 budget=74 moved=0 best=428809
+P1  [r1.p1.brk]    240s  obj=428809      Z1=22.0     Z2=5045   Z3=445.0     feas=y   ran 233s  py3.12
+# [r1.p3.off]
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        4      83.3   54.1%   1218896027 14633219.2
+  opstat  grow        1      21.4   13.9%            0        0.0
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        2      16.7   10.9%       379802    22690.8
+  opstat  bay         1      31.4   20.4%        39166     1247.1
+  opstat  TOTAL       9     152.8   99.2%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        5      68.6   44.2%   1218924175 17769207.3
+  opstat  grow        1      28.0   18.0%       487858    17450.1
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        1      15.7   10.1%       118256     7550.2
+  opstat  bay         1      42.0   27.1%            0        0.0
+  opstat  TOTAL       9     154.3   99.4%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        5      72.9   46.4%   1218628806 16713941.9
+  opstat  grow        1      27.8   17.7%       711952    25601.2
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        1      15.6    9.9%       184417    11856.8
+  opstat  bay         2      40.0   25.4%            0        0.0
+  opstat  TOTAL      10     156.3   99.4%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        4      78.3   48.8%   1218814324 15567776.2
+  opstat  grow        1      22.4   13.9%            0        0.0
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        1      15.6    9.7%        96316     6177.6
+  opstat  bay         1      42.7   26.6%         3024       70.8
+  opstat  TOTAL       8     159.0   99.0%                        
+WSTAT round=0 n=4 4363763 4579057 4368877 4980388  spread=14.13%
+PARFILL round=1 parity=even even=4363763 odd=4579057 wids=[16, 18, 20, 22]
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        2      25.9   41.6%   1218490364 47056261.4
+  opstat  grow        1      13.6   21.9%            0        0.0
+  opstat  bal         1       0.1    0.1%        10863   163683.2
+  opstat  pref        1       6.6   10.7%       284208    42821.6
+  opstat  bay         1      15.0   24.1%            0        0.0
+  opstat  TOTAL       6      61.3   98.4%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        2      24.4   38.8%   1218969146 49948631.2
+  opstat  grow        1      13.9   22.2%            0        0.0
+  opstat  bal         2       0.0    0.0%            0        0.0
+  opstat  pref        2       8.3   13.2%       218254    26235.6
+  opstat  bay         1      15.3   24.3%        51127     3342.6
+  opstat  TOTAL       8      62.0   98.6%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        2      27.2   43.3%   1218743250 44842867.5
+  opstat  grow        1      12.9   20.5%            0        0.0
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        2       8.6   13.6%       158973    18577.8
+  opstat  bay         1      13.1   20.9%        70309     5365.0
+  opstat  TOTAL       7      61.7   98.2%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        2      26.2   41.6%   1218490364 46548202.7
+  opstat  grow        1      13.7   21.9%            0        0.0
+  opstat  bal         2       0.1    0.1%        10863   133436.1
+  opstat  pref        2       8.2   13.0%       284208    34788.2
+  opstat  bay         1      13.7   21.8%            0        0.0
+  opstat  TOTAL       8      61.9   98.4%                        
+FILL round=1 budget=64 moved=0 best=4363763
+P3  [r1.p3.off]    240s  obj=4363763     Z1=112.0    Z2=5239   Z3=7418.0    feas=y   ran 236s  py3.12
+# [r1.p3.brk]
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        2      41.9   27.0%   1218814324 29054380.9
+  opstat  grow        1      20.6   13.2%            0        0.0
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        1      13.0    8.3%        96316     7423.6
+  opstat  bay         1      42.6   27.4%         3024       71.0
+  opstat  brk         1      36.1   23.3%            0        0.0
+  opstat  TOTAL       7     154.3   99.3%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        4      48.4   30.6%   1218704054 25158907.2
+  opstat  grow        1      27.9   17.6%       636704    22786.7
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        1      13.1    8.3%       184417    14046.3
+  opstat  bay         1      29.9   18.9%            0        0.0
+  opstat  brk         1      37.6   23.7%        12565      334.1
+  opstat  TOTAL       9     157.0   99.1%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        3      56.2   35.2%   1218896027 21686995.8
+  opstat  grow        1      23.9   15.0%            0        0.0
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        1      13.0    8.1%       359486    27658.8
+  opstat  bay         1      29.5   18.5%        59482     2015.4
+  opstat  brk         1      36.1   22.6%            0        0.0
+  opstat  TOTAL       8     158.7   99.3%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        5      77.1   48.0%   1218861266 15804709.4
+  opstat  grow        1      27.9   17.4%       456551    16365.0
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        1      12.9    8.1%       136378    10550.2
+  opstat  bay         1      41.1   25.6%         1767       43.0
+  opstat  brk         1       0.4    0.2%            0        0.0
+  opstat  TOTAL      10     159.4   99.3%                        
+WSTAT round=0 n=4 4438090 4579057 4356312 4980388  spread=14.33%
+PARFILL round=1 parity=even even=4356312 odd=4579057 wids=[16, 18, 20, 22]
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        2      25.8   40.9%   1218514773 47232232.4
+  opstat  grow        1      13.6   21.5%            0        0.0
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        2       8.4   13.4%       247468    29292.0
+  opstat  bay         1      14.1   22.3%            0        0.0
+  opstat  brk         1       0.6    0.9%            0        0.0
+  opstat  TOTAL       8      62.5   99.1%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        2      27.2   43.2%   1218833168 44735860.9
+  opstat  grow        1      13.0   20.6%            0        0.0
+  opstat  bal         2       0.1    0.1%            0        0.0
+  opstat  pref        2       7.6   12.1%       119527    15640.5
+  opstat  bay         1      13.7   21.7%            0        0.0
+  opstat  brk         1       0.6    0.9%            0        0.0
+  opstat  TOTAL       9      62.2   98.5%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        2      26.4   40.6%   1218596594 46124947.0
+  opstat  grow        1      12.4   19.0%       166447    13459.2
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        1       5.4    8.2%       222500    41584.1
+  opstat  bay         1      12.7   19.5%        18325     1447.1
+  opstat  brk         1       6.9   10.7%            0        0.0
+  opstat  TOTAL       7      63.8   98.0%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        2      25.2   38.0%   1218520785 48432103.5
+  opstat  grow        1      13.8   20.8%            0        0.0
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        1       5.6    8.4%       248655    44553.6
+  opstat  bay         1      14.4   21.7%            0        0.0
+  opstat  brk         1       6.3    9.6%            0        0.0
+  opstat  TOTAL       7      65.2   98.6%                        
+FILL round=1 budget=64 moved=0 best=4356312
+P3  [r1.p3.brk]    240s  obj=4356312     Z1=144.0    Z2=5994   Z3=7194.0    feas=y   ran 239s  py3.12
+# [r2.p1.off]
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        7      92.4   60.1%    979056715 10597651.5
+  opstat  grow        1      26.9   17.5%            0        0.0
+  opstat  bal         2       0.0    0.0%            0        0.0
+  opstat  pref        2       6.2    4.0%        83909    13499.9
+  opstat  bay         1      27.9   18.1%            0        0.0
+  opstat  TOTAL      13     153.4   99.8%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        7      94.7   61.5%    979011595 10335614.2
+  opstat  grow        1      26.6   17.3%        64855     2438.1
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        2       5.2    3.3%        84398    16379.9
+  opstat  bay         1      27.0   17.6%            0        0.0
+  opstat  TOTAL      12     153.5   99.7%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam       13      94.0   60.9%    978750149 10413749.7
+  opstat  grow        1       8.5    5.5%            0        0.0
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        3      21.4   13.9%       144395     6756.7
+  opstat  bay         1      29.3   19.0%            0        0.0
+  opstat  TOTAL      19     153.2   99.3%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        9      62.7   40.6%    978575330 15618973.5
+  opstat  grow        2      15.4   10.0%       244119    15839.9
+  opstat  bal         2       0.1    0.1%            0        0.0
+  opstat  pref        3      47.6   30.8%       120112     2521.9
+  opstat  bay         1      27.3   17.6%         1365       50.1
+  opstat  TOTAL      17     153.1   99.1%                        
+WSTAT round=0 n=4 492458 692156 472234 738538  spread=56.39%
+PARFILL round=1 parity=even even=472234 odd=692156 wids=[16, 18, 20, 22]
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        7      35.2   48.8%    978672462 27800771.2
+  opstat  grow        1       8.3   11.5%       103262    12466.8
+  opstat  bal         1       0.1    0.1%         1182    20561.7
+  opstat  pref        2      10.5   14.5%        90552     8631.7
+  opstat  bay         2      17.3   24.0%            0        0.0
+  opstat  TOTAL      13      71.4   99.0%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        5      26.4   36.5%    978672462 37123841.7
+  opstat  grow        1       8.4   11.6%       103262    12271.1
+  opstat  bal         2       0.1    0.1%         1182    16800.3
+  opstat  pref        2       7.8   10.7%        90552    11676.0
+  opstat  bay         2      28.9   40.0%            0        0.0
+  opstat  TOTAL      12      71.5   99.0%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        8      38.9   53.7%    978675573 25146827.2
+  opstat  grow        1       8.5   11.7%            0        0.0
+  opstat  bal         2       0.0    0.0%            0        0.0
+  opstat  pref        2      10.9   15.0%       147766    13615.3
+  opstat  bay         1      13.8   19.0%            0        0.0
+  opstat  TOTAL      14      72.0   99.5%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        7      32.3   44.5%    978695604 30344392.1
+  opstat  grow        2      13.1   18.0%        75405     5765.6
+  opstat  bal         2       0.0    0.0%            0        0.0
+  opstat  pref        2      10.7   14.7%       157194    14724.8
+  opstat  bay         1      15.0   20.7%           54        3.6
+  opstat  TOTAL      14      71.0   98.0%                        
+FILL round=1 budget=73 moved=0 best=472234
+P1  [r2.p1.off]    240s  obj=472234      Z1=16.0     Z2=7054   Z3=574.0     feas=y   ran 233s  py3.12
+# [r2.p1.brk]
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        5      52.6   34.3%    979091983 18605788.2
+  opstat  grow        1      26.6   17.4%            0        0.0
+  opstat  bal         1       0.0    0.0%         2796    66338.5
+  opstat  pref        1       2.7    1.8%       100606    36773.2
+  opstat  bay         1      22.2   14.5%          213        9.6
+  opstat  brk         1      48.4   31.6%            0        0.0
+  opstat  TOTAL      10     152.6   99.5%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        7      90.0   58.5%    979039037 10874239.2
+  opstat  grow        1      26.2   17.0%            0        0.0
+  opstat  bal         2       0.1    0.1%        13161   117246.1
+  opstat  pref        2       5.2    3.4%        61767    11924.7
+  opstat  bay         1      31.1   20.2%           54        1.7
+  opstat  brk         1       0.4    0.3%            0        0.0
+  opstat  TOTAL      14     153.1   99.4%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        6      43.6   28.3%    978737712 22445039.5
+  opstat  grow        2      16.2   10.5%            0        0.0
+  opstat  bal         1       0.0    0.0%          213     5537.9
+  opstat  pref        2      10.2    6.6%       177085    17410.4
+  opstat  bay         2      32.3   21.0%            0        0.0
+  opstat  brk         1      50.5   32.8%         7459      147.8
+  opstat  TOTAL      14     152.8   99.2%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        8      54.2   35.2%    978661153 18048810.0
+  opstat  grow        1       7.9    5.1%            0        0.0
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        3      24.0   15.6%       176667     7365.7
+  opstat  bay         1      29.9   19.4%            0        0.0
+  opstat  brk         1      36.8   23.9%         6770      183.8
+  opstat  TOTAL      15     152.9   99.2%                        
+WSTAT round=0 n=4 519063 710613 437484 788492  spread=80.23%
+PARFILL round=1 parity=even even=437484 odd=710613 wids=[16, 18, 20, 22]
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        5      25.9   36.1%    978672462 37743276.8
+  opstat  grow        1       8.6   12.0%       140666    16373.2
+  opstat  bal         1       0.0    0.0%          216     7144.7
+  opstat  pref        1       5.2    7.2%        59441    11431.5
+  opstat  bay         1      12.9   17.9%            0        0.0
+  opstat  brk         1      18.3   25.5%         5037      274.7
+  opstat  TOTAL      10      71.0   98.7%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        8      39.2   53.9%    978640922 24952915.4
+  opstat  grow        1       8.3   11.4%        75405     9072.1
+  opstat  bal         2       0.0    0.0%            0        0.0
+  opstat  pref        2       9.1   12.6%        76134     8320.7
+  opstat  bay         1      14.8   20.3%           54        3.7
+  opstat  brk         2       0.3    0.4%            0        0.0
+  opstat  TOTAL      16      71.8   98.6%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        3      18.4   25.2%    978672462 53180637.3
+  opstat  grow        1       8.7   12.0%       185324    21254.5
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        2       8.5   11.7%        62362     7316.5
+  opstat  bay         2      17.4   23.9%        11082      635.3
+  opstat  brk         1      18.7   25.6%        57381     3075.5
+  opstat  TOTAL      10      71.8   98.4%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        4      21.2   29.1%    978685170 46122653.0
+  opstat  grow        1       8.1   11.1%            0        0.0
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        2       8.2   11.2%       232096    28280.1
+  opstat  bay         1      13.9   19.1%            0        0.0
+  opstat  brk         1      20.5   28.1%        11062      539.0
+  opstat  TOTAL      10      72.0   98.7%                        
+FILL round=1 budget=74 moved=0 best=437484
+P1  [r2.p1.brk]    240s  obj=437484      Z1=15.0     Z2=4293   Z3=541.0     feas=y   ran 233s  py3.12
+# [r2.p3.off]
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        4      79.6   51.7%   1219023747 15314670.4
+  opstat  grow        1      24.6   16.0%            0        0.0
+  opstat  bal         2       0.1    0.0%            0        0.0
+  opstat  pref        2      19.6   12.7%       182479     9316.3
+  opstat  bay         1      29.4   19.1%            0        0.0
+  opstat  TOTAL      10     153.2   99.5%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        4      80.6   52.3%   1218896027 15129909.4
+  opstat  grow        1      22.7   14.7%            0        0.0
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        1      15.6   10.1%       379802    24380.3
+  opstat  bay         1      33.9   22.0%        39166     1157.0
+  opstat  TOTAL       8     152.7   99.1%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        5      69.1   44.8%   1218881336 17649591.4
+  opstat  grow        1      27.9   18.1%       530697    18990.4
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        1      15.6   10.1%       126325     8106.3
+  opstat  bay         1      40.8   26.4%            0        0.0
+  opstat  TOTAL       9     153.4   99.4%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        5      71.9   45.9%   1218965821 16957645.9
+  opstat  grow        1      28.1   17.9%       374937    13351.2
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        1      15.9   10.1%       184417    11632.0
+  opstat  bay         2      39.7   25.4%            0        0.0
+  opstat  TOTAL      10     155.6   99.4%                        
+WSTAT round=0 n=4 4355694 4579057 4368877 4687826  spread=7.63%
+PARFILL round=1 parity=even even=4355694 odd=4579057 wids=[16, 18, 20, 22]
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        2      26.6   39.7%   1218735722 45800235.4
+  opstat  grow        1      12.8   19.1%            0        0.0
+  opstat  bal         2       0.0    0.0%            0        0.0
+  opstat  pref        2      10.8   16.2%       117813    10867.5
+  opstat  bay         1      15.7   23.5%       113203     7188.0
+  opstat  TOTAL       8      66.0   98.5%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        3      38.5   53.3%   1218317541 31607489.4
+  opstat  grow        1      12.8   17.7%       445500    34868.4
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        1       6.9    9.5%       239082    34882.4
+  opstat  bay         1      13.2   18.2%            0        0.0
+  opstat  TOTAL       7      71.4   98.7%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        3      37.6   51.9%   1218368632 32368041.5
+  opstat  grow        1      13.8   19.1%            0        0.0
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        1       6.8    9.4%       217459    31959.6
+  opstat  bay         1      13.7   18.8%            0        0.0
+  opstat  TOTAL       7      72.0   99.2%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        3      37.7   50.4%   1218496013 32339361.6
+  opstat  grow        1      14.1   18.9%            0        0.0
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        1       6.8    9.1%       229046    33529.8
+  opstat  bay         1      15.2   20.3%            0        0.0
+  opstat  TOTAL       7      73.9   98.9%                        
+FILL round=1 budget=68 moved=0 best=4355694
+P3  [r2.p3.off]    240s  obj=4355694     Z1=112.0    Z2=5000   Z3=7406.0    feas=y   ran 239s  py3.12
+# [r2.p3.brk]
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        3      44.2   28.6%   1218704054 27601804.7
+  opstat  grow        1      27.9   18.1%       636704    22858.6
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        2      15.0    9.7%       184417    12277.1
+  opstat  bay         1      30.0   19.4%            0        0.0
+  opstat  brk         1      36.0   23.3%        12565      349.2
+  opstat  TOTAL       9     153.0   99.2%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        3      37.3   24.0%   1218928869 32682579.9
+  opstat  grow        1      27.9   18.0%       483164    17295.2
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        1      13.0    8.3%       118256     9119.3
+  opstat  bay         1      41.3   26.6%            0        0.0
+  opstat  brk         1      35.1   22.6%            0        0.0
+  opstat  TOTAL       8     154.6   99.5%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        2      42.0   27.0%   1218814324 29008820.1
+  opstat  grow        1      21.0   13.5%            0        0.0
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        1      13.1    8.4%        96316     7363.3
+  opstat  bay         1      39.6   25.4%         3024       76.3
+  opstat  brk         1      38.8   24.9%            0        0.0
+  opstat  TOTAL       7     154.6   99.2%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        3      55.0   34.1%   1218896027 22170474.2
+  opstat  grow        1      22.5   14.0%            0        0.0
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        1      13.0    8.1%       359486    27630.3
+  opstat  bay         1      31.3   19.4%        59482     1898.8
+  opstat  brk         1      37.9   23.5%            0        0.0
+  opstat  TOTAL       8     159.7   99.1%                        
+WSTAT round=0 n=4 4363763 4579057 4356312 4980388  spread=14.33%
+PARFILL round=1 parity=even even=4356312 odd=4579057 wids=[16, 18, 20, 22]
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        2      27.4   44.0%   1218824137 44501227.7
+  opstat  grow        1      12.9   20.8%            0        0.0
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        1       5.4    8.6%       121365    22660.0
+  opstat  bay         1      14.7   23.5%         2680      182.8
+  opstat  brk         1       0.6    0.9%            0        0.0
+  opstat  TOTAL       7      60.9   97.8%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        2      27.5   44.0%   1218612178 44318937.0
+  opstat  grow        1      13.2   21.1%            0        0.0
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        2       7.1   11.4%       210628    29521.7
+  opstat  bay         1      13.6   21.7%            0        0.0
+  opstat  brk         1       0.5    0.8%            0        0.0
+  opstat  TOTAL       8      61.9   99.0%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        2      26.3   41.6%   1218737281 46274267.4
+  opstat  grow        1      11.6   18.3%        25760     2224.1
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        1       5.3    8.4%       222500    41924.6
+  opstat  bay         1      12.8   20.2%        18325     1429.1
+  opstat  brk         1       5.8    9.1%            0        0.0
+  opstat  TOTAL       7      61.9   97.6%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        2      25.8   39.6%   1218488262 47285553.4
+  opstat  grow        1      13.0   20.0%        62320     4794.3
+  opstat  bal         1       0.1    0.1%          427     4515.9
+  opstat  pref        1       5.3    8.2%       230443    43408.0
+  opstat  bay         1      14.0   21.5%         2351      168.3
+  opstat  brk         1       5.3    8.2%            0        0.0
+  opstat  TOTAL       7      63.5   97.6%                        
+FILL round=1 budget=63 moved=0 best=4356312
+P3  [r2.p3.brk]    240s  obj=4356312     Z1=144.0    Z2=5994   Z3=7194.0    feas=y   ran 239s  py3.12
+# [r3.p1.off]
+# [r3.p1.brk]
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        6      37.5   24.4%    978737712 26094628.9
+  opstat  grow        2      13.9    9.0%          161       11.6
+  opstat  bal         1       0.1    0.1%            0        0.0
+  opstat  pref        1      13.0    8.5%        48947     3757.4
+  opstat  bay         1      29.8   19.3%         1365       45.9
+  opstat  brk         2      57.9   37.6%        33009      570.5
+  opstat  TOTAL      13     152.2   98.9%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        5      35.0   22.7%    978656390 27975189.3
+  opstat  grow        1       8.7    5.6%        32446     3742.7
+  opstat  bal         2       0.0    0.0%          213     5120.5
+  opstat  pref        3      26.8   17.4%        53634     2003.6
+  opstat  bay         1      27.0   17.5%            0        0.0
+  opstat  brk         1      53.8   34.9%        85785     1595.0
+  opstat  TOTAL      13     151.3   98.2%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        5      64.0   41.5%    979091983 15303622.7
+  opstat  grow        1      27.0   17.5%            0        0.0
+  opstat  bal         2       0.0    0.0%         2796    84562.8
+  opstat  pref        3       6.3    4.1%       100606    16026.9
+  opstat  bay         1      21.1   13.7%          213       10.1
+  opstat  brk         1      35.1   22.8%            0        0.0
+  opstat  TOTAL      13     153.4   99.6%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        5      56.0   36.3%    979056715 17475898.1
+  opstat  grow        1      26.7   17.3%            0        0.0
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        2       5.0    3.2%       101549    20377.6
+  opstat  bay         1      27.4   17.8%            0        0.0
+  opstat  brk         1      38.3   24.9%         5391      140.7
+  opstat  TOTAL      11     153.5   99.6%                        
+WSTAT round=0 n=4 469427 811888 437484 804614  spread=85.58%
+PARFILL round=1 parity=even even=437484 odd=804614 wids=[16, 18, 20, 22]
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        8      37.8   52.7%    978698111 25872049.3
+  opstat  grow        1       8.3   11.5%            0        0.0
+  opstat  bal         2       0.0    0.0%            0        0.0
+  opstat  pref        1       6.1    8.6%       147766    24045.0
+  opstat  bay         1      13.1   18.2%            0        0.0
+  opstat  brk         1       5.9    8.2%            0        0.0
+  opstat  TOTAL      14      71.3   99.3%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        4      22.3   30.7%    978672462 43869953.4
+  opstat  grow        1       8.4   11.5%       103262    12355.3
+  opstat  bal         2       0.1    0.1%         1182    17026.2
+  opstat  pref        2       9.4   12.9%        90552     9649.8
+  opstat  bay         1      13.8   19.0%            0        0.0
+  opstat  brk         1      18.0   24.8%            0        0.0
+  opstat  TOTAL      11      72.0   98.9%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        3      17.9   24.6%    978672462 54604993.8
+  opstat  grow        1       8.5   11.6%       140666    16596.8
+  opstat  bal         1       0.0    0.0%          216     7161.1
+  opstat  pref        2       8.0   10.9%        59441     7472.7
+  opstat  bay         2      18.9   26.0%            0        0.0
+  opstat  brk         1      18.6   25.5%         5037      271.5
+  opstat  TOTAL      10      71.8   98.7%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        4      21.0   28.9%    978640922 46496525.2
+  opstat  grow        1       8.2   11.3%        75405     9156.6
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        2       7.9   10.8%        87033    11040.9
+  opstat  bay         1      14.9   20.4%           54        3.6
+  opstat  brk         2      19.7   27.0%        23288     1181.3
+  opstat  TOTAL      11      71.7   98.4%                        
+FILL round=1 budget=74 moved=0 best=437484
+P1  [r3.p1.brk]    240s  obj=437484      Z1=15.0     Z2=4293   Z3=541.0     feas=y   ran 233s  py3.12
+# [r3.p3.off]
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        5      69.8   44.8%   1218720372 17460348.8
+  opstat  grow        1      27.9   17.9%       620386    22224.9
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        1      15.6   10.0%       184417    11855.0
+  opstat  bay         2      41.5   26.7%            0        0.0
+  opstat  TOTAL      10     154.8   99.4%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        4      81.9   52.5%   1218874158 14889867.4
+  opstat  grow        1      22.9   14.7%            0        0.0
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        1      15.8   10.2%       301791    19043.1
+  opstat  bay         1      33.7   21.6%        19721      585.5
+  opstat  TOTAL       8     154.3   99.0%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        4      87.1   55.9%   1218896027 13994503.4
+  opstat  grow        1      20.8   13.3%            0        0.0
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        1      15.6   10.0%       379802    24378.0
+  opstat  bay         1      31.0   19.9%        39166     1263.6
+  opstat  TOTAL       8     154.5   99.1%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        6      81.8   51.1%   1218861266 14895537.5
+  opstat  grow        1      27.9   17.4%       565227    20231.5
+  opstat  bal         1       0.0    0.0%          420    10375.4
+  opstat  pref        1      15.5    9.7%       162540    10463.9
+  opstat  bay         1      33.5   21.0%            0        0.0
+  opstat  TOTAL      10     158.9   99.2%                        
+WSTAT round=0 n=4 4304599 4579057 4368877 4698382  spread=9.15%
+PARFILL round=1 parity=even even=4304599 odd=4579057 wids=[16, 18, 20, 22]
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        2      24.5   38.6%   1218487250 49683898.4
+  opstat  grow        1      14.2   22.4%            0        0.0
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        2       8.6   13.6%       261522    30241.5
+  opstat  bay         1      15.2   24.0%         1645      108.2
+  opstat  TOTAL       7      62.6   98.7%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        2      27.0   42.5%   1218447572 45158980.7
+  opstat  grow        1      12.9   20.2%       265808    20673.5
+  opstat  bal         1       0.0    0.1%            0        0.0
+  opstat  pref        2       9.2   14.5%       281046    30412.5
+  opstat  bay         1      12.9   20.3%         2441      188.9
+  opstat  TOTAL       7      62.0   97.6%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        2      26.1   41.0%   1218411527 46727178.4
+  opstat  grow        1      14.5   22.7%        26804     1853.8
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        2       9.3   14.6%       231546    24886.4
+  opstat  bay         1      12.7   19.9%            0        0.0
+  opstat  TOTAL       7      62.6   98.3%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        3      37.3   52.9%   1218708338 32631534.9
+  opstat  grow        1      13.1   18.6%            0        0.0
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        1       6.4    9.1%       163548    25362.8
+  opstat  bay         1      12.8   18.2%            0        0.0
+  opstat  TOTAL       7      69.8   98.9%                        
+FILL round=1 budget=64 moved=0 best=4304599
+P3  [r3.p3.off]    240s  obj=4304599     Z1=141.0    Z2=5441   Z3=7123.0    feas=y   ran 238s  py3.12
+# [r3.p3.brk]
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        3      44.4   28.8%   1218965821 27425584.3
+  opstat  grow        1      27.8   18.0%       374937    13484.6
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        2      15.8   10.3%       184417    11641.9
+  opstat  bay         1      29.0   18.9%            0        0.0
+  opstat  brk         1      35.7   23.2%        12565      351.6
+  opstat  TOTAL       9     152.9   99.2%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        3      43.4   28.2%   1218617052 28057098.8
+  opstat  grow        1      27.9   18.1%       794981    28452.3
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        2      15.3    9.9%       118256     7729.2
+  opstat  bay         1      29.9   19.4%            0        0.0
+  opstat  brk         1      36.6   23.7%            0        0.0
+  opstat  TOTAL       9     153.2   99.4%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        2      41.6   27.0%   1218633236 29294949.0
+  opstat  grow        1      23.2   15.1%       220334     9477.2
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        2      15.5   10.1%       231680    14940.6
+  opstat  bay         1      33.7   21.9%            0        0.0
+  opstat  brk         1      37.9   24.6%        28825      760.9
+  opstat  TOTAL       8     152.0   98.5%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        5      85.0   53.0%   1218901399 14347464.9
+  opstat  grow        1      20.1   12.6%            0        0.0
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        1      13.0    8.1%        96316     7435.8
+  opstat  bay         1      40.5   25.3%         3024       74.7
+  opstat  brk         1       0.3    0.2%            0        0.0
+  opstat  TOTAL      10     158.9   99.1%                        
+WSTAT round=0 n=4 4363763 4779977 4356312 4893313  spread=12.33%
+PARFILL round=1 parity=even even=4356312 odd=4779977 wids=[16, 18, 20, 22]
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        2      29.0   45.9%   1218743250 42014011.0
+  opstat  grow        1      11.8   18.7%        74911     6339.2
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        2       7.5   11.9%       118985    15796.6
+  opstat  bay         1      13.1   20.7%            0        0.0
+  opstat  brk         1       0.5    0.8%            0        0.0
+  opstat  TOTAL       8      61.9   98.0%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        2      24.8   39.1%   1218514773 49229278.4
+  opstat  grow        1      14.0   22.2%            0        0.0
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        2       8.7   13.7%       248655    28703.3
+  opstat  bay         1      14.5   22.9%            0        0.0
+  opstat  brk         1       0.7    1.1%            0        0.0
+  opstat  TOTAL       8      62.6   99.0%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        2      26.4   41.6%   1218538792 46212930.3
+  opstat  grow        1      13.9   21.9%            0        0.0
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        2       7.4   11.6%       393710    53432.4
+  opstat  bay         1      14.2   22.3%            0        0.0
+  opstat  brk         1       0.5    0.9%            0        0.0
+  opstat  TOTAL       8      62.3   98.2%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        2      26.1   37.9%   1218833168 46753527.4
+  opstat  grow        1      13.1   19.1%            0        0.0
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        1       5.4    7.9%       119527    22081.4
+  opstat  bay         2      22.7   33.0%          714       31.4
+  opstat  brk         1       0.4    0.6%            0        0.0
+  opstat  TOTAL       8      67.8   98.4%                        
+FILL round=1 budget=64 moved=0 best=4356312
+P3  [r3.p3.brk]    240s  obj=4356312     Z1=144.0    Z2=5994   Z3=7194.0    feas=y   ran 237s  py3.12
+== BRK priority done ==
+# [r1.p16.off]
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        3      79.6   51.7%   8400165837 105490137.2
+  opstat  grow        1      21.5   14.0%            0        0.0
+  opstat  bal         1       0.1    0.0%            0        0.0
+  opstat  pref        2      19.1   12.4%        31069     1624.3
+  opstat  bay         1      32.5   21.1%            0        0.0
+  opstat  TOTAL       8     152.8   99.2%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        5      78.7   50.8%   8400405636 106711617.6
+  opstat  grow        1      27.6   17.8%            0        0.0
+  opstat  bal         1       0.2    0.1%            0        0.0
+  opstat  pref        1      15.9   10.2%        19254     1212.6
+  opstat  bay         1      31.2   20.1%            0        0.0
+  opstat  TOTAL       9     153.6   99.1%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        4      59.1   36.7%   8400672614 142084554.8
+  opstat  grow        2      52.0   32.3%            0        0.0
+  opstat  bal         1       0.1    0.1%            0        0.0
+  opstat  pref        1      15.7    9.7%        40242     2565.9
+  opstat  bay         1      32.7   20.3%            0        0.0
+  opstat  TOTAL       9     159.6   99.1%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        4      92.4   57.2%   8400189629 90935991.7
+  opstat  grow        1      22.2   13.8%            0        0.0
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        1      15.5    9.6%        30598     1973.5
+  opstat  bay         1      29.9   18.5%            0        0.0
+  opstat  TOTAL       8     160.1   99.2%                        
+WSTAT round=0 n=4 2979886 3495836 3267852 3472515  spread=17.31%
+PARFILL round=1 parity=even even=2979886 odd=3472515 wids=[16, 18, 20, 22]
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        1      17.3   28.0%   8399319580 486143108.9
+  opstat  grow        1      16.6   27.0%            0        0.0
+  opstat  bal         1       0.1    0.1%            0        0.0
+  opstat  pref        2      10.0   16.2%        28175     2820.9
+  opstat  bay         1      16.2   26.2%         6858      424.0
+  opstat  TOTAL       6      60.2   97.5%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        1      16.3   24.5%   8399594286 513953262.8
+  opstat  grow        2      28.8   43.1%            0        0.0
+  opstat  bal         1       0.1    0.1%            0        0.0
+  opstat  pref        1       6.8   10.2%        44471     6531.0
+  opstat  bay         1      13.9   20.8%            0        0.0
+  opstat  TOTAL       6      65.9   98.7%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        2      28.5   41.2%   8399798873 294387885.0
+  opstat  grow        1      18.0   25.9%            0        0.0
+  opstat  bal         1       0.1    0.1%            0        0.0
+  opstat  pref        1       6.4    9.2%        30121     4703.4
+  opstat  bay         1      15.1   21.7%            0        0.0
+  opstat  TOTAL       6      68.0   98.2%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        2      31.1   44.1%   8399322033 269860569.6
+  opstat  grow        1      16.5   23.3%            0        0.0
+  opstat  bal         1       0.1    0.1%            0        0.0
+  opstat  pref        1       6.3    8.8%        64336    10291.7
+  opstat  bay         1      14.8   20.9%        13959      945.8
+  opstat  TOTAL       6      68.7   97.2%                        
+FILL round=1 budget=62 moved=0 best=2969521
+P16 [r1.p16.off]   240s  obj=2969521     Z1=138.0    Z2=1939   Z3=4495.0    feas=y   ran 241s  py3.12
+# [r1.p16.brk]
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        3      50.1   32.4%   8400713193 167787070.7
+  opstat  grow        2      48.9   31.7%            0        0.0
+  opstat  bal         1       0.1    0.1%            0        0.0
+  opstat  pref        2      17.2   11.1%        84412     4914.9
+  opstat  bay         1      31.4   20.3%            0        0.0
+  opstat  brk         1       4.6    3.0%            0        0.0
+  opstat  TOTAL      10     152.2   98.6%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        2      48.9   31.6%   8399107394 171931763.7
+  opstat  grow        1      20.8   13.4%            0        0.0
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        2      16.8   10.8%        23205     1384.2
+  opstat  bay         1      29.1   18.8%         9000      309.6
+  opstat  brk         1      37.0   23.9%            0        0.0
+  opstat  TOTAL       8     152.5   98.5%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        2      44.2   28.5%   8400459141 190028492.5
+  opstat  grow        1      22.8   14.7%            0        0.0
+  opstat  bal         1       0.1    0.1%            0        0.0
+  opstat  pref        1      13.2    8.5%        40955     3098.7
+  opstat  bay         1      33.4   21.6%            0        0.0
+  opstat  brk         1      40.1   25.9%            0        0.0
+  opstat  TOTAL       7     153.8   99.3%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        3      47.4   30.1%   8400284149 177187325.9
+  opstat  grow        1      27.8   17.6%            0        0.0
+  opstat  bal         1       0.2    0.1%            0        0.0
+  opstat  pref        1      13.3    8.5%        10552      792.1
+  opstat  bay         1      31.5   20.0%            0        0.0
+  opstat  brk         1      35.7   22.7%            0        0.0
+  opstat  TOTAL       8     155.9   99.0%                        
+WSTAT round=0 n=4 2895137 3192646 3398041 4553143  spread=57.27%
+PARFILL round=1 parity=even even=2895137 odd=3192646 wids=[16, 18, 20, 22]
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        1      17.4   25.4%   8399505362 482321338.1
+  opstat  grow        1      17.2   25.1%            0        0.0
+  opstat  bal         1       0.0    0.1%            0        0.0
+  opstat  pref        1       5.6    8.2%        18139     3213.4
+  opstat  bay         1      13.1   19.1%        14012     1070.7
+  opstat  brk         1      13.6   19.9%            0        0.0
+  opstat  TOTAL       6      67.0   97.8%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        1      17.0   24.8%   8399594286 494324875.5
+  opstat  grow        1      16.1   23.5%            0        0.0
+  opstat  bal         1       0.1    0.1%            0        0.0
+  opstat  pref        1       5.7    8.3%        44471     7788.4
+  opstat  bay         1      14.0   20.5%            0        0.0
+  opstat  brk         1      14.6   21.2%            0        0.0
+  opstat  TOTAL       6      67.5   98.3%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        2      30.2   42.2%   8399783521 278580168.8
+  opstat  grow        1      18.0   25.2%            0        0.0
+  opstat  bal         1       0.1    0.1%            0        0.0
+  opstat  pref        1       5.6    7.9%        24023     4256.5
+  opstat  bay         1      15.8   22.1%            0        0.0
+  opstat  brk         1       0.6    0.8%            0        0.0
+  opstat  TOTAL       7      70.3   98.3%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        2      31.4   43.9%   8399653354 267727655.8
+  opstat  grow        1      17.7   24.7%            0        0.0
+  opstat  bal         1       0.1    0.1%            0        0.0
+  opstat  pref        1       5.8    8.2%        12401     2120.6
+  opstat  bay         1      14.5   20.3%          186       12.8
+  opstat  brk         0       0.0    0.0%            0        0.0
+  opstat  TOTAL       6      69.6   97.2%                        
+FILL round=1 budget=66 moved=0 best=2895137
+P16 [r1.p16.brk]   240s  obj=2895137     Z1=118.0    Z2=1531   Z3=5269.0    feas=y   ran 238s  py3.12
+# [r1.p20.off]
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        4      78.6   51.0%   1848970358 23518794.7
+  opstat  grow        1      19.2   12.4%            0        0.0
+  opstat  bal         1       0.0    0.0%         4674   106685.8
+  opstat  pref        2      16.9   11.0%        23870     1409.6
+  opstat  bay         1      37.7   24.4%         4682      124.3
+  opstat  TOTAL       9     152.4   98.8%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        5      75.5   48.9%   1848234849 24476023.5
+  opstat  grow        1      28.0   18.2%       592448    21156.6
+  opstat  bal         1       0.1    0.0%            0        0.0
+  opstat  pref        2      16.9   11.0%        12534      740.5
+  opstat  bay         1      32.3   20.9%            0        0.0
+  opstat  TOTAL      10     152.8   99.0%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        4      73.5   46.1%   1849614983 25157325.7
+  opstat  grow        2      39.9   25.0%            0        0.0
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        1      15.7    9.9%        21519     1369.3
+  opstat  bay         1      29.5   18.5%            0        0.0
+  opstat  TOTAL       9     158.6   99.5%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        5      60.1   37.6%   1846367666 30716902.1
+  opstat  grow        1      28.0   17.5%        88315     3150.6
+  opstat  bal         2       0.4    0.2%         2740     7799.2
+  opstat  pref        2      36.7   23.0%        57488     1566.1
+  opstat  bay         1      32.9   20.6%            0        0.0
+  opstat  TOTAL      11     158.1   98.9%                        
+WSTAT round=0 n=4 11889798 9402423 9566176 8769505  spread=35.58%
+PARFILL round=1 parity=odd even=9566176 odd=8769505 wids=[17, 19, 21, 23]
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        2      32.8   50.9%   1848644460 56390328.0
+  opstat  grow        1      11.6   18.0%       205848    17775.6
+  opstat  bal         1       0.0    0.1%            0        0.0
+  opstat  pref        1       6.8   10.6%          180       26.4
+  opstat  bay         1      12.3   19.0%            0        0.0
+  opstat  TOTAL       6      63.5   98.5%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        2      26.5   40.9%   1849555655 69723390.5
+  opstat  grow        1      17.3   26.7%            0        0.0
+  opstat  bal         1       0.1    0.2%            0        0.0
+  opstat  pref        1       7.0   10.7%            0        0.0
+  opstat  bay         1      13.6   21.0%            0        0.0
+  opstat  TOTAL       6      64.6   99.5%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        2      26.7   40.5%   1849241061 69152095.4
+  opstat  grow        1      15.4   23.4%            0        0.0
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        1       7.1   10.7%            0        0.0
+  opstat  bay         1      16.3   24.8%            0        0.0
+  opstat  TOTAL       6      65.6   99.4%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        3      39.4   55.1%   1848719882 46955400.6
+  opstat  grow        1      11.9   16.6%       466100    39261.7
+  opstat  bal         1       0.0    0.1%            0        0.0
+  opstat  pref        1       6.6    9.3%         2510      377.7
+  opstat  bay         1      12.4   17.3%            0        0.0
+  opstat  TOTAL       7      70.3   98.4%                        
+FILL round=1 budget=64 moved=0 best=8769505
+P20 [r1.p20.off]   240s  obj=8769505     Z1=1105.0   Z2=1065   Z3=9293.0    feas=y   ran 239s  py3.12
+# [r1.p20.brk]
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        3      58.5   37.7%   1849203063 31597392.9
+  opstat  grow        2      39.7   25.6%            0        0.0
+  opstat  bal         1       0.2    0.1%            0        0.0
+  opstat  pref        1      13.1    8.4%         7111      544.5
+  opstat  bay         1      42.1   27.1%            0        0.0
+  opstat  brk         1       0.8    0.5%            0        0.0
+  opstat  TOTAL       9     154.4   99.4%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        4      58.9   37.3%   1846302663 31330520.1
+  opstat  grow        1      27.7   17.5%            0        0.0
+  opstat  bal         1       0.2    0.1%            0        0.0
+  opstat  pref        2      30.1   19.1%         4030      134.0
+  opstat  bay         1      37.2   23.6%            0        0.0
+  opstat  brk         1       3.0    1.9%            0        0.0
+  opstat  TOTAL      10     157.0   99.5%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        4      78.4   48.0%   1849119404 23573103.5
+  opstat  grow        1      21.4   13.1%            0        0.0
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        1      13.5    8.3%         4044      298.8
+  opstat  bay         1      39.9   24.4%            0        0.0
+  opstat  brk         1       8.6    5.3%            0        0.0
+  opstat  TOTAL       9     162.0   99.1%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        5      83.7   51.0%   1848142241 22089874.1
+  opstat  grow        1      28.0   17.1%       592448    21133.9
+  opstat  bal         1       0.2    0.1%            0        0.0
+  opstat  pref        1      13.0    7.9%          386       29.6
+  opstat  bay         1      32.6   19.9%            0        0.0
+  opstat  brk         1       4.7    2.9%            0        0.0
+  opstat  TOTAL      10     162.2   98.9%                        
+WSTAT round=0 n=4 12099314 9282559 9670932 9195833  spread=31.57%
+PARFILL round=1 parity=odd even=9670932 odd=9195833 wids=[17, 19, 21, 23]
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        1      14.9   23.9%   1848800390 123795275.7
+  opstat  grow        1      15.0   24.0%            0        0.0
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        1       5.2    8.4%          866      166.1
+  opstat  bay         2      24.8   39.7%            0        0.0
+  opstat  brk         1       1.8    2.9%            0        0.0
+  opstat  TOTAL       7      61.7   98.9%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        2      28.0   44.7%   1849158223 66114004.5
+  opstat  grow        1      12.3   19.7%            0        0.0
+  opstat  bal         1       0.0    0.1%            0        0.0
+  opstat  pref        1       5.5    8.8%        15713     2838.1
+  opstat  bay         1      15.0   24.0%        14556      969.5
+  opstat  brk         1       0.6    0.9%            0        0.0
+  opstat  TOTAL       7      61.5   98.1%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        2      29.0   46.0%   1848800390 63857630.5
+  opstat  grow        1      12.1   19.2%            0        0.0
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        1       5.3    8.4%          866      164.3
+  opstat  bay         1      14.6   23.2%            0        0.0
+  opstat  brk         1       1.4    2.2%            0        0.0
+  opstat  TOTAL       7      62.3   99.0%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        2      24.7   39.0%   1849288183 74918492.6
+  opstat  grow        1      16.9   26.7%            0        0.0
+  opstat  bal         1       0.2    0.3%            0        0.0
+  opstat  pref        1       5.2    8.2%            0        0.0
+  opstat  bay         1      13.3   21.0%            0        0.0
+  opstat  brk         1       2.8    4.4%            0        0.0
+  opstat  TOTAL       7      63.0   99.5%                        
+FILL round=1 budget=60 moved=1 best=9117824
+P20 [r1.p20.brk]   240s  obj=9117824     Z1=1148.0   Z2=1251   Z3=9694.0    feas=y   ran 240s  py3.12
+# [r1.p24.off]
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        8      86.5   56.3%    644663087  7453034.0
+  opstat  grow        1      14.3    9.3%            0        0.0
+  opstat  bal         1       0.3    0.2%          161      606.8
+  opstat  pref        2      30.7   20.0%       237207     7729.5
+  opstat  bay         1      20.8   13.5%           63        3.0
+  opstat  TOTAL      13     152.6   99.3%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        9      80.1   52.1%    644694811  8047789.1
+  opstat  grow        2      25.8   16.8%            0        0.0
+  opstat  bal         2       0.1    0.0%            0        0.0
+  opstat  pref        1      15.6   10.1%       145551     9329.6
+  opstat  bay         1      31.9   20.8%            0        0.0
+  opstat  TOTAL      15     153.5   99.8%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        7      78.6   51.0%    644734521  8198281.7
+  opstat  grow        2      25.1   16.2%       278201    11100.3
+  opstat  bal         2       0.1    0.1%            0        0.0
+  opstat  pref        2      23.6   15.3%       204446     8671.0
+  opstat  bay         1      25.5   16.5%            0        0.0
+  opstat  TOTAL      14     152.9   99.1%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        9      97.5   62.4%    644835358  6613631.1
+  opstat  grow        1      17.0   10.9%            0        0.0
+  opstat  bal         1       0.1    0.1%         8540    98159.1
+  opstat  pref        1      15.5    9.9%       227845    14678.6
+  opstat  bay         1      24.9   15.9%            0        0.0
+  opstat  TOTAL      13     155.0   99.2%                        
+WSTAT round=0 n=4 3082552 2705746 2851171 3022396  spread=13.93%
+PARFILL round=1 parity=odd even=2851171 odd=2705746 wids=[17, 19, 21, 23]
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        5      35.3   52.5%    644674845 18243576.7
+  opstat  grow        1       6.4    9.4%       381502    60067.1
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        1       7.1   10.5%       140131    19870.6
+  opstat  bay         2      17.6   26.2%            0        0.0
+  opstat  TOTAL      10      66.4   98.7%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        4      27.4   40.3%    644997695 23530721.2
+  opstat  grow        2      14.5   21.4%            0        0.0
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        2       9.3   13.7%        65883     7052.9
+  opstat  bay         1      16.4   24.0%            0        0.0
+  opstat  TOTAL      10      67.7   99.5%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        5      34.9   50.2%    644791084 18470978.5
+  opstat  grow        2      13.9   19.9%            0        0.0
+  opstat  bal         2       0.1    0.2%         2563    21314.5
+  opstat  pref        1       7.0   10.0%       114912    16480.3
+  opstat  bay         1      13.1   18.8%            0        0.0
+  opstat  TOTAL      11      69.0   99.2%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        5      35.0   50.0%    645060687 18423613.6
+  opstat  grow        2      14.3   20.4%        16972     1188.4
+  opstat  bal         2       0.1    0.1%            0        0.0
+  opstat  pref        1       6.9    9.9%       118819    17127.0
+  opstat  bay         1      12.7   18.2%            0        0.0
+  opstat  TOTAL      11      69.1   98.7%                        
+FILL round=1 budget=69 moved=0 best=2705746
+P24 [r1.p24.off]   240s  obj=2705746     Z1=622.0    Z2=2860   Z3=1021.0    feas=y   ran 238s  py3.12
+# [r3.p1.off]
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        7      93.5   60.7%    979011595 10473948.1
+  opstat  grow        1      26.7   17.4%        64855     2424.7
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        2       4.8    3.1%        84398    17714.5
+  opstat  bay         1      28.5   18.5%            0        0.0
+  opstat  TOTAL      12     153.5   99.6%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        7      92.1   59.8%    979056715 10629072.1
+  opstat  grow        1      26.7   17.4%            0        0.0
+  opstat  bal         2       0.0    0.0%            0        0.0
+  opstat  pref        2       5.3    3.4%        83909    15837.3
+  opstat  bay         1      29.4   19.1%            0        0.0
+  opstat  TOTAL      13     153.6   99.7%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam       13      87.2   56.6%    978737712 11217807.5
+  opstat  grow        2      13.0    8.4%            0        0.0
+  opstat  bal         2       0.1    0.1%          213     2137.4
+  opstat  pref        4      23.4   15.2%       177085     7555.0
+  opstat  bay         1      29.2   19.0%            0        0.0
+  opstat  TOTAL      22     153.0   99.3%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam       14      96.8   62.8%    978656390 10109153.7
+  opstat  grow        1       7.5    4.9%            0        0.0
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        3      19.3   12.5%        66984     3476.7
+  opstat  bay         1      29.6   19.2%        72673     2453.2
+  opstat  TOTAL      20     153.3   99.5%                        
+WSTAT round=0 n=4 492458 718072 472234 837035  spread=77.25%
+PARFILL round=1 parity=even even=472234 odd=718072 wids=[16, 18, 20, 22]
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        6      29.6   40.8%    978672462 33073577.0
+  opstat  grow        1       8.5   11.7%       140666    16557.7
+  opstat  bal         1       0.0    0.0%          216     6372.6
+  opstat  pref        2       6.7    9.2%        59441     8895.9
+  opstat  bay         2      26.8   37.0%            0        0.0
+  opstat  TOTAL      12      71.6   98.7%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        7      35.8   49.3%    978672462 27331385.3
+  opstat  grow        1       8.6   11.8%       191991    22379.6
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        2      12.3   17.0%        71277     5778.3
+  opstat  bay         1      15.2   20.9%            0        0.0
+  opstat  TOTAL      12      71.9   99.1%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        8      38.9   53.4%    978692661 25177491.0
+  opstat  grow        1       8.3   11.5%            0        0.0
+  opstat  bal         2       0.0    0.0%            0        0.0
+  opstat  pref        2      10.7   14.7%       235596    21952.4
+  opstat  bay         1      14.1   19.4%            0        0.0
+  opstat  TOTAL      14      72.1   99.0%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        7      33.1   45.4%    978688834 29577297.3
+  opstat  grow        2      13.0   17.9%        49365     3789.5
+  opstat  bal         2       0.1    0.1%          162     3003.4
+  opstat  pref        2      10.6   14.6%       189896    17862.4
+  opstat  bay         1      14.6   20.0%            0        0.0
+  opstat  TOTAL      14      71.4   98.0%                        
+FILL round=1 budget=74 moved=0 best=472234
+P1  [r3.p1.off]    240s  obj=472234      Z1=16.0     Z2=7054   Z3=574.0     feas=y   ran 234s  py3.12
+== BRK priority done ==
+# [r1.p24.brk]
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        8      77.1   50.0%    644724131  8363538.3
+  opstat  grow        1      14.0    9.1%            0        0.0
+  opstat  bal         1       0.1    0.1%            0        0.0
+  opstat  pref        2      30.1   19.5%       183529     6106.1
+  opstat  bay         1      30.9   20.1%            0        0.0
+  opstat  brk         1       1.2    0.8%            0        0.0
+  opstat  TOTAL      14     153.3   99.5%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        8      89.6   58.1%    644888963  7195155.1
+  opstat  grow        1      17.8   11.5%            0        0.0
+  opstat  bal         3       0.1    0.1%           63      446.6
+  opstat  pref        2      16.0   10.4%       205684    12863.9
+  opstat  bay         1      28.2   18.3%           56        2.0
+  opstat  brk         1       0.6    0.4%            0        0.0
+  opstat  TOTAL      16     152.3   98.8%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        9      95.2   61.6%    644507982  6771344.5
+  opstat  grow        1      16.7   10.8%            0        0.0
+  opstat  bal         2       0.1    0.0%            0        0.0
+  opstat  pref        2      15.2    9.9%       412151    27054.1
+  opstat  bay         1      26.1   16.9%            0        0.0
+  opstat  brk         1       0.3    0.2%            0        0.0
+  opstat  TOTAL      16     153.6   99.5%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        8      84.2   54.4%    644734521  7656992.8
+  opstat  grow        2      27.8   18.0%            0        0.0
+  opstat  bal         1       0.4    0.3%          161      363.2
+  opstat  pref        1      13.0    8.4%       256233    19754.2
+  opstat  bay         1      27.9   18.0%        10011      358.7
+  opstat  brk         2       0.4    0.2%            0        0.0
+  opstat  TOTAL      15     153.7   99.3%                        
+WSTAT round=0 n=4 2828148 2921988 3002781 3015254  spread=6.62%
+PARFILL round=1 parity=even even=2828148 odd=2921988 wids=[16, 18, 20, 22]
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        4      37.1   54.0%    644306487 17387422.1
+  opstat  grow        1       9.1   13.3%            0        0.0
+  opstat  bal         1       0.4    0.5%          154      436.3
+  opstat  pref        1       5.9    8.5%       285884    48754.6
+  opstat  bay         1      13.5   19.6%        44206     3285.8
+  opstat  brk         1       0.9    1.3%            0        0.0
+  opstat  TOTAL       9      66.7   97.2%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        4      42.4   61.6%    644207498 15209179.1
+  opstat  grow        1       6.6    9.6%       244892    36999.3
+  opstat  bal         1       0.1    0.1%          217     3680.2
+  opstat  pref        1       5.9    8.5%       188291    32166.8
+  opstat  bay         1      11.9   17.2%           56        4.7
+  opstat  brk         2       0.9    1.3%            0        0.0
+  opstat  TOTAL      10      67.6   98.4%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        4      35.6   51.2%    644649684 18083348.4
+  opstat  grow        1      11.0   15.8%        66608     6067.3
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        2       8.8   12.6%       246875    28162.9
+  opstat  bay         1      12.4   17.8%            0        0.0
+  opstat  brk         1       0.3    0.5%            0        0.0
+  opstat  TOTAL      10      68.2   97.8%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        3      28.3   39.8%    644628879 22749633.7
+  opstat  grow        1      11.1   15.6%            0        0.0
+  opstat  bal         1       0.0    0.1%          217     5506.8
+  opstat  pref        1       5.9    8.3%       220421    37511.0
+  opstat  bay         2      24.3   34.2%        61925     2544.7
+  opstat  brk         1       0.4    0.6%            0        0.0
+  opstat  TOTAL       9      70.1   98.6%                        
+FILL round=1 budget=70 moved=0 best=2755628
+P24 [r1.p24.brk]   240s  obj=2755628     Z1=577.0    Z2=4241   Z3=1338.0    feas=y   ran 238s  py3.12
+# [r2.p16.off]
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        5      76.7   50.0%   8400657787 109588458.2
+  opstat  grow        1      27.9   18.2%            0        0.0
+  opstat  bal         1       0.2    0.1%            0        0.0
+  opstat  pref        1      15.6   10.1%        17956     1153.6
+  opstat  bay         1      31.1   20.3%            0        0.0
+  opstat  TOTAL       9     151.4   98.7%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        3      77.8   50.4%   8399109885 107962193.0
+  opstat  grow        1      21.7   14.0%            0        0.0
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        2      19.4   12.6%        58088     2998.2
+  opstat  bay         1      33.5   21.7%            0        0.0
+  opstat  TOTAL       8     152.4   98.7%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        4      88.6   55.7%   8400158926 94844199.5
+  opstat  grow        1      23.7   14.9%            0        0.0
+  opstat  bal         1       0.1    0.0%            0        0.0
+  opstat  pref        1      15.5    9.8%        46938     3025.5
+  opstat  bay         1      29.2   18.4%        12036      411.7
+  opstat  TOTAL       8     157.1   98.8%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        4      58.6   36.3%   8400485723 143363309.5
+  opstat  grow        2      52.4   32.5%            0        0.0
+  opstat  bal         1       0.2    0.1%          333     1469.4
+  opstat  pref        1      15.6    9.7%        43245     2776.0
+  opstat  bay         1      31.9   19.7%         6703      210.4
+  opstat  TOTAL       9     158.7   98.3%                        
+WSTAT round=0 n=4 3156738 3474842 3016999 4524769  spread=49.98%
+PARFILL round=1 parity=even even=3016999 odd=3474842 wids=[16, 18, 20, 22]
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        1      17.1   25.4%   8399318713 491176437.5
+  opstat  grow        2      28.8   42.8%            0        0.0
+  opstat  bal         1       0.1    0.1%            0        0.0
+  opstat  pref        1       6.4    9.5%        30121     4702.8
+  opstat  bay         1      13.6   20.3%            0        0.0
+  opstat  TOTAL       6      66.0   98.1%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        2      30.4   45.1%   8399721038 276632141.5
+  opstat  grow        1      16.2   24.0%            0        0.0
+  opstat  bal         1       0.1    0.1%            0        0.0
+  opstat  pref        1       6.3    9.4%        18139     2857.7
+  opstat  bay         1      13.1   19.4%            0        0.0
+  opstat  TOTAL       6      66.1   98.0%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        2      28.9   42.5%   8399783521 290393638.1
+  opstat  grow        1      17.1   25.1%            0        0.0
+  opstat  bal         1       0.1    0.1%            0        0.0
+  opstat  pref        1       6.4    9.5%        24023     3725.0
+  opstat  bay         1      14.4   21.2%            0        0.0
+  opstat  TOTAL       6      67.0   98.4%                        
+FILL round=1 budget=62 moved=0 best=3007524
+P16 [r2.p16.off]   240s  obj=3007524     Z1=129.0    Z2=1439   Z3=5133.0    feas=y   ran 240s  py3.12
+# [r2.p16.brk]
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        2      49.4   32.1%   8399084017 170160541.2
+  opstat  grow        1      20.2   13.1%            0        0.0
+  opstat  bal         1       0.1    0.0%            0        0.0
+  opstat  pref        2      14.1    9.2%        26347     1867.5
+  opstat  bay         1      32.1   20.8%          207        6.4
+  opstat  brk         1      36.5   23.7%            0        0.0
+  opstat  TOTAL       8     152.3   98.9%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        4      86.6   56.1%   8400158926 96970628.7
+  opstat  grow        1      23.0   14.9%            0        0.0
+  opstat  bal         1       0.1    0.0%            0        0.0
+  opstat  pref        1      13.0    8.4%        46938     3617.3
+  opstat  bay         1      29.6   19.2%        12036      407.0
+  opstat  brk         1       0.3    0.2%            0        0.0
+  opstat  TOTAL       9     152.6   98.8%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        3      46.0   29.4%   8400067097 182447167.0
+  opstat  grow        1      27.1   17.3%            0        0.0
+  opstat  bal         1       0.1    0.1%            0        0.0
+  opstat  pref        1      13.3    8.5%        10552      794.6
+  opstat  bay         1      32.0   20.5%            0        0.0
+  opstat  brk         1      37.2   23.8%            0        0.0
+  opstat  TOTAL       8     155.8   99.5%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        4      60.6   37.3%   8400404306 138595998.4
+  opstat  grow        2      51.4   31.6%            0        0.0
+  opstat  bal         1       0.1    0.1%            0        0.0
+  opstat  pref        1      13.0    8.0%        30458     2349.9
+  opstat  bay         1      30.8   18.9%        14939      485.7
+  opstat  brk         1       4.7    2.9%            0        0.0
+  opstat  TOTAL      10     160.5   98.9%                        
+WSTAT round=0 n=4 3243039 3474842 3615093 4582171  spread=41.29%
+PARFILL round=1 parity=even even=3243039 odd=3474842 wids=[16, 18, 20, 22]
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        1      16.7   25.7%   8399318713 503790307.4
+  opstat  grow        2      28.7   44.3%            0        0.0
+  opstat  bal         1       0.1    0.1%            0        0.0
+  opstat  pref        1       5.6    8.7%        30121     5341.4
+  opstat  bay         1      12.9   19.8%            0        0.0
+  opstat  brk         0       0.0    0.0%            0        0.0
+  opstat  TOTAL       6      63.9   98.6%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        2      30.8   46.1%   8399565797 273078429.6
+  opstat  grow        1      16.2   24.3%            0        0.0
+  opstat  bal         1       0.1    0.1%            0        0.0
+  opstat  pref        1       5.3    8.0%        30121     5663.3
+  opstat  bay         1      12.9   19.4%            0        0.0
+  opstat  brk         0       0.0    0.0%            0        0.0
+  opstat  TOTAL       6      65.3   97.9%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        2      29.5   43.4%   8399873458 285024391.7
+  opstat  grow        1      17.1   25.1%            0        0.0
+  opstat  bal         1       0.0    0.1%            0        0.0
+  opstat  pref        1       5.5    8.1%        21448     3918.7
+  opstat  bay         1      14.1   20.8%            2        0.1
+  opstat  brk         0       0.0    0.0%            0        0.0
+  opstat  TOTAL       6      66.2   97.4%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        2      28.8   42.3%   8399924955 292058725.8
+  opstat  grow        1      17.4   25.6%            0        0.0
+  opstat  bal         1       0.1    0.2%            0        0.0
+  opstat  pref        1       5.5    8.1%        31293     5694.5
+  opstat  bay         1      15.0   22.1%         7250      482.3
+  opstat  brk         0       0.0    0.0%            0        0.0
+  opstat  TOTAL       6      66.8   98.2%                        
+FILL round=1 budget=61 moved=0 best=3209981
+P16 [r2.p16.brk]   240s  obj=3209981     Z1=147.0    Z2=1010   Z3=4988.0    feas=y   ran 240s  py3.12
+# [r2.p20.off]
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        5      71.6   46.5%   1845617060 25765732.8
+  opstat  grow        1      28.8   18.7%       572102    19864.6
+  opstat  bal         1       0.1    0.1%            0        0.0
+  opstat  pref        2      18.6   12.1%         4730      254.5
+  opstat  bay         1      33.8   21.9%            0        0.0
+  opstat  TOTAL      10     152.9   99.3%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        3      63.7   41.3%   1849614983 29015844.3
+  opstat  grow        2      40.7   26.4%            0        0.0
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        2      19.6   12.7%        21519     1098.8
+  opstat  bay         1      29.3   19.0%            0        0.0
+  opstat  TOTAL       9     153.4   99.4%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        4      57.3   35.9%   1846302663 32205298.2
+  opstat  grow        1      27.8   17.4%        39384     1418.5
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        2      36.1   22.6%        14999      414.9
+  opstat  bay         1      37.3   23.4%            0        0.0
+  opstat  TOTAL       9     158.6   99.4%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        4      82.4   50.6%   1849289708 22432257.6
+  opstat  grow        1      22.3   13.7%            0        0.0
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        1      15.5    9.5%         4044      260.1
+  opstat  bay         1      41.6   25.5%            0        0.0
+  opstat  TOTAL       8     162.0   99.3%                        
+WSTAT round=0 n=4 12048961 9112255 12212115 8769505  spread=39.26%
+PARFILL round=1 parity=odd even=12048961 odd=8769505 wids=[17, 19, 21, 23]
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        2      27.8   46.3%   1848800390 66404960.2
+  opstat  grow        1      11.7   19.4%       259871    22273.7
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        2       7.4   12.3%            0        0.0
+  opstat  bay         1      12.4   20.6%            0        0.0
+  opstat  TOTAL       7      59.3   98.7%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        2      27.3   45.4%   1848649474 67814392.4
+  opstat  grow        1      11.6   19.3%       328422    28359.4
+  opstat  bal         2       0.2    0.3%            0        0.0
+  opstat  pref        2       7.3   12.1%            0        0.0
+  opstat  bay         1      12.8   21.3%            0        0.0
+  opstat  TOTAL       8      59.1   98.3%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        2      24.5   39.6%   1849574344 75395538.4
+  opstat  grow        1      15.0   24.2%            0        0.0
+  opstat  bal         1       0.1    0.1%            0        0.0
+  opstat  pref        1       6.2   10.0%          397       64.0
+  opstat  bay         1      15.5   25.1%            0        0.0
+  opstat  TOTAL       6      61.3   99.1%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        2      28.1   45.2%   1848800390 65677155.8
+  opstat  grow        1      12.9   20.7%       799709    62039.5
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        1       6.4   10.2%            0        0.0
+  opstat  bay         1      14.3   22.9%            0        0.0
+  opstat  TOTAL       6      61.7   99.0%                        
+FILL round=1 budget=61 moved=0 best=8769505
+P20 [r2.p20.off]   240s  obj=8769505     Z1=1105.0   Z2=1065   Z3=9293.0    feas=y   ran 239s  py3.12
+# [r2.p20.brk]
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        2      32.9   21.4%   1846401591 56099182.5
+  opstat  grow        1      30.0   19.5%            0        0.0
+  opstat  bal         1       0.3    0.2%            0        0.0
+  opstat  pref        2      15.4   10.0%         6539      425.4
+  opstat  bay         1      34.5   22.4%            0        0.0
+  opstat  brk         1      40.0   26.0%            0        0.0
+  opstat  TOTAL       8     153.2   99.5%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        5      62.6   40.6%   1845283229 29484347.5
+  opstat  grow        1      31.6   20.5%       950106    30060.3
+  opstat  bal         1       0.1    0.1%            0        0.0
+  opstat  pref        2      15.7   10.2%         5796      368.9
+  opstat  bay         1      33.1   21.5%            0        0.0
+  opstat  brk         1       9.6    6.2%            0        0.0
+  opstat  TOTAL      11     152.7   99.2%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        3      71.9   46.2%   1849172807 25706946.0
+  opstat  grow        1      23.9   15.4%       273356    11418.3
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        1      12.9    8.3%        25019     1932.0
+  opstat  bay         1      36.9   23.7%            0        0.0
+  opstat  brk         1       7.7    4.9%            0        0.0
+  opstat  TOTAL       8     153.4   98.6%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        3      60.3   37.9%   1849203063 30665035.8
+  opstat  grow        2      42.2   26.5%            0        0.0
+  opstat  bal         1       0.1    0.1%            0        0.0
+  opstat  pref        1      13.0    8.2%         7111      545.6
+  opstat  bay         1      41.3   26.0%            0        0.0
+  opstat  brk         1       0.6    0.4%            0        0.0
+  opstat  TOTAL       9     157.6   99.0%                        
+WSTAT round=0 n=4 11997877 8934825 12166876 9195833  spread=36.17%
+PARFILL round=1 parity=odd even=11997877 odd=8934825 wids=[17, 19, 21, 23]
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        2      25.3   39.6%   1849675858 72984250.4
+  opstat  grow        1      15.7   24.5%            0        0.0
+  opstat  bal         1       0.2    0.3%            0        0.0
+  opstat  pref        1       5.7    8.9%         7517     1318.1
+  opstat  bay         1      16.1   25.2%            0        0.0
+  opstat  brk         1       0.4    0.6%            0        0.0
+  opstat  TOTAL       7      63.4   99.1%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        2      28.3   44.0%   1848579026 65383232.4
+  opstat  grow        1      11.5   17.9%       702270    61075.4
+  opstat  bal         2       0.1    0.2%            0        0.0
+  opstat  pref        2       8.4   13.0%            0        0.0
+  opstat  bay         1      13.5   21.0%            0        0.0
+  opstat  brk         1       1.5    2.3%            0        0.0
+  opstat  TOTAL       9      63.3   98.6%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        1      14.6   22.0%   1848013363 126752561.8
+  opstat  grow        1      13.4   20.3%        76981     5737.0
+  opstat  bal         1       0.1    0.1%            0        0.0
+  opstat  pref        1       5.6    8.4%        15107     2719.7
+  opstat  bay         2      29.4   44.4%            0        0.0
+  opstat  brk         1       2.3    3.5%            0        0.0
+  opstat  TOTAL       7      65.3   98.6%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        2      28.6   42.5%   1849241061 64577526.0
+  opstat  grow        1      13.7   20.3%            0        0.0
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        1       5.5    8.1%            0        0.0
+  opstat  bay         1      16.9   25.2%            0        0.0
+  opstat  brk         1       2.2    3.3%            0        0.0
+  opstat  TOTAL       7      67.0   99.4%                        
+FILL round=1 budget=65 moved=1 best=8722632
+P20 [r2.p20.brk]   240s  obj=8722632     Z1=1094.0   Z2=173    Z3=9517.0    feas=y   ran 239s  py3.12
+== BRK priority done ==
+# [r2.p24.off]
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam       10      73.1   47.4%    644636569  8822794.4
+  opstat  grow        2      26.0   16.9%        48700     1870.9
+  opstat  bal         2       0.1    0.1%         6642    62354.6
+  opstat  pref        2      19.6   12.7%       261861    13334.6
+  opstat  bay         1      34.3   22.3%            0        0.0
+  opstat  TOTAL      17     153.2   99.3%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        7      77.5   50.2%    644734521  8320080.7
+  opstat  grow        2      27.4   17.7%            0        0.0
+  opstat  bal         2       0.6    0.4%          161      281.6
+  opstat  pref        2      18.1   11.7%       315641    17427.6
+  opstat  bay         1      29.1   18.8%         7353      252.9
+  opstat  TOTAL      14     152.6   98.9%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        6      68.2   44.2%    644800177  9448009.4
+  opstat  grow        1      15.0    9.7%            0        0.0
+  opstat  bal         1       0.1    0.0%            0        0.0
+  opstat  pref        3      41.1   26.7%       241791     5876.2
+  opstat  bay         1      28.9   18.7%            0        0.0
+  opstat  TOTAL      12     153.3   99.3%                        
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        8      90.1   58.1%    644689686  7152887.3
+  opstat  grow        1      17.0   11.0%            0        0.0
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        1      16.2   10.5%       287220    17682.3
+  opstat  bay         1      30.7   19.8%            0        0.0
+  opstat  TOTAL      12     154.2   99.4%                        
+WSTAT round=0 n=4 2969142 2865238 2946008 2880946  spread=3.63%
+PARFILL round=1 parity=odd even=2946008 odd=2865238 wids=[17, 19, 21, 23]

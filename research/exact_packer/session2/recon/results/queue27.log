@@ -1,0 +1,6 @@
+cut arm and control verified
+=== q27_cut_r1.log  (cranecut r1)  08:03:33
+P3  cranecut r1    240s  obj=86635       Z1=0.0      Z2=2507   Z3=494.0     feas=y   ran 239s
+=== q27_area_r1.log  (areacut r1)  08:07:33
+P3  areacut r1     240s  obj=86635       Z1=0.0      Z2=2507   Z3=494.0     feas=y   ran 239s
+=== q27_cut_r2.log  (cranecut r2)  08:11:32

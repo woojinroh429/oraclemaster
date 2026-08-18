@@ -1,0 +1,101 @@
+# [all.p1]
+P1  [all.p1]        20s  obj=683809      Z1=22.0     Z2=6645   Z3=862.0     feas=y   ran 16s  py3.12
+# [all.p2]
+P2  [all.p2]        20s  obj=60199338    Z1=4426.0   Z2=2045   Z3=7862.0    feas=y   ran 18s  py3.12
+# [all.p3]
+P3  [all.p3]        20s  obj=4697406     Z1=145.0    Z2=7037   Z3=7814.0    feas=y   ran 16s  py3.12
+# [all.p4]
+P4  [all.p4]        20s  obj=2851605     Z1=333.0    Z2=3279   Z3=3237.0    feas=y   ran 17s  py3.12
+# [all.p5]
+P5  [all.p5]        20s  obj=7837933     Z1=2043.0   Z2=1046   Z3=2548.0    feas=y   ran 19s  py3.12
+# [all.p6]
+P6  [all.p6]        20s  obj=5842370     Z1=375.0    Z2=3313   Z3=6210.0    feas=y   ran 17s  py3.12
+# [all.p7]
+P7  [all.p7]        20s  obj=763997      Z1=31.0     Z2=232    Z3=2327.0    feas=y   ran 16s  py3.12
+# [all.p8]
+P8  [all.p8]        20s  obj=141432      Z1=230.0    Z2=4119   Z3=2249.0    feas=y   ran 17s  py3.12
+# [all.p9]
+P9  [all.p9]        20s  obj=5868919     Z1=289.0    Z2=6078   Z3=6550.0    feas=y   ran 17s  py3.12
+# [all.p10]
+P10 [all.p10]       20s  obj=4301753     Z1=293.0    Z2=3696   Z3=1902.0    feas=y   ran 16s  py3.12
+# [all.p11]
+P11 [all.p11]       20s  obj=8022077     Z1=440.0    Z2=7765   Z3=7986.0    feas=y   ran 20s  py3.12
+# [all.p12]
+P12 [all.p12]       20s  obj=147112      Z1=16.0     Z2=6759   Z3=5401.0    feas=y   ran 17s  py3.12
+# [all.p13]
+P13 [all.p13]       20s  obj=4027473504  Z1=604088.0 Z2=18808  Z3=0.0       feas=y   ran 19s  py3.12
+# [all.p14]
+P14 [all.p14]       20s  obj=693487      Z1=1656.0   Z2=1369   Z3=5210.0    feas=y   ran 19s  py3.12
+# [all.p15]
+P15 [all.p15]       20s  obj=12485987    Z1=1309.0   Z2=5342   Z3=6247.0    feas=y   ran 19s  py3.12
+# [all.p16]
+P16 [all.p16]       20s  obj=3161094     Z1=134.0    Z2=1074   Z3=5485.0    feas=y   ran 17s  py3.12
+# [all.p17]
+P17 [all.p17]       20s  obj=5562411     Z1=999.0    Z2=1068   Z3=7414.0    feas=y   ran 17s  py3.12
+# [all.p18]
+P18 [all.p18]       20s  obj=11003775    Z1=2418.0   Z2=2031   Z3=4661.0    feas=y   ran 19s  py3.12
+# [all.p19]
+P19 [all.p19]       20s  obj=19241199    Z1=1237.0   Z2=4939   Z3=9128.0    feas=y   ran 18s  py3.12
+# [all.p20]
+P20 [all.p20]       20s  obj=9627564     Z1=1216.0   Z2=2299   Z3=10014.0   feas=y   ran 17s  py3.12
+# [all.p21]
+P21 [all.p21]       20s  obj=1130401     Z1=13.0     Z2=4536   Z3=2370.0    feas=y   ran 17s  py3.12
+# [all.p22]
+P22 [all.p22]       20s  obj=10332       Z1=0.0      Z2=942    Z3=313.0     feas=y   ran 16s  py3.12
+# [all.p23]
+P23 [all.p23]       20s  obj=4109379277  Z1=616369.0 Z2=15718  Z3=0.0       feas=y   ran 19s  py3.12
+# [all.p24]
+P24 [all.p24]       20s  obj=2824841     Z1=568.0    Z2=3671   Z3=1510.0    feas=y   ran 17s  py3.12
+# [all.p25]
+P25 [all.p25]       20s  obj=4255755887  Z1=638329.0 Z2=4111   Z3=0.0       feas=y   ran 19s  py3.12
+# [all.p26]
+P26 [all.p26]       20s  obj=26289470    Z1=2517.0   Z2=7831   Z3=11876.0   feas=y   ran 17s  py3.12
+# [all.p27]
+P27 [all.p27]       20s  obj=832063      Z1=60.0     Z2=982    Z3=1173.0    feas=y   ran 16s  py3.12
+# [all.p28]
+P28 [all.p28]       20s  obj=15894337    Z1=1111.0   Z2=2863   Z3=8023.0    feas=y   ran 20s  py3.12
+# [all.p29]
+P29 [all.p29]       20s  obj=236579      Z1=278.0    Z2=1607   Z3=3576.0    feas=y   ran 17s  py3.12
+# [all.p30]
+P30 [all.p30]       20s  obj=2091227     Z1=130.0    Z2=2427   Z3=2747.0    feas=y   ran 17s  py3.12
+# [all.p31]
+P31 [all.p31]       20s  obj=3579612     Z1=446.0    Z2=3418   Z3=3813.0    feas=y   ran 19s  py3.12
+# [all.p32]
+P32 [all.p32]       20s  obj=710856      Z1=979.0    Z2=988    Z3=4375.0    feas=y   ran 19s  py3.12
+# [all.p33]
+P33 [all.p33]       20s  obj=1167098     Z1=101.0    Z2=459    Z3=2448.0    feas=y   ran 17s  py3.12
+# [all.p34]
+P34 [all.p34]       20s  obj=282199      Z1=4.0      Z2=5707   Z3=1557.0    feas=y   ran 17s  py3.12
+# [all.p35]
+P35 [all.p35]       20s  obj=242330      Z1=360.0    Z2=1787   Z3=4469.0    feas=y   ran 20s  py3.12
+# [all.p36]
+P36 [all.p36]       20s  obj=99481957    Z1=14046.0  Z2=475    Z3=7296.0    feas=y   ran 20s  py3.12
+# [all.p37]
+P37 [all.p37]       20s  obj=16678689    Z1=2396.0   Z2=1173   Z3=3470.0    feas=y   ran 17s  py3.12
+# [all.p38]
+P38 [all.p38]       20s  obj=8815781     Z1=508.0    Z2=5274   Z3=7161.0    feas=y   ran 18s  py3.12
+# [all.p39]
+P39 [all.p39]       20s  obj=58420491    Z1=4251.0   Z2=554    Z3=4352.0    feas=y   ran 17s  py3.12
+# [all.p40]
+P40 [all.p40]       20s  obj=10917675    Z1=2323.0   Z2=1158   Z3=3966.0    feas=y   ran 19s  py3.12
+# [tl.p1.5]
+P1  [tl.p1.5]        5s  obj=979633082   Z1=146933.0 Z2=10257  Z3=0.0       feas=y   ran 2s  py3.12
+# [tl.p2.5]
+P2  [tl.p2.5]        5s  obj=7248604580  Z1=543654.0 Z2=16262  Z3=5.0       feas=y   ran 2s  py3.12
+# [tl.p1.10]
+P1  [tl.p1.10]      10s  obj=738865      Z1=28.0     Z2=3463   Z3=903.0     feas=y   ran 6s  py3.12
+# [tl.p2.10]
+P2  [tl.p2.10]      10s  obj=7248605822  Z1=543654.0 Z2=16760  Z3=0.0       feas=y   ran 9s  py3.12
+# [tl.p1.30]
+P1  [tl.p1.30]      30s  obj=647835      Z1=21.0     Z2=6876   Z3=812.0     feas=y   ran 27s  py3.12
+# [tl.p2.30]
+P2  [tl.p2.30]      30s  obj=59827893    Z1=4403.0   Z2=1111   Z3=7455.0    feas=y   ran 25s  py3.12
+# [tl.p1.120]
+P1  [tl.p1.120]    120s  obj=489878      Z1=20.0     Z2=6646   Z3=561.0     feas=y   ran 78s  py3.12
+# [tl.p2.120]
+P2  [tl.p2.120]    120s  obj=64795184    Z1=4784.0   Z2=1653   Z3=6690.0    feas=y   ran 83s  py3.12
+# [tl.p1.300]
+P1  [tl.p1.300]    300s  obj=428809      Z1=22.0     Z2=5045   Z3=445.0     feas=y   ran 292s  py3.12
+# [tl.p2.300]
+P2  [tl.p2.300]    300s  obj=60464388    Z1=4454.0   Z2=739    Z3=7175.0    feas=y   ran 299s  py3.12
+BUGCHECKDONE

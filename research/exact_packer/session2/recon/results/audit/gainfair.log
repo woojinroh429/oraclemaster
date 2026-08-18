@@ -1,0 +1,72 @@
+# [J.p1.r1]
+P1  [J.p1.r1]       60s  obj=571668      Z1=18.0     Z2=5954   Z3=723.0     feas=y   ran 58s  py3.12
+# [K.p1.r1]
+P1  [K.p1.r1]       60s  obj=543874      Z1=19.0     Z2=6867   Z3=661.0     feas=y   ran 57s  py3.12
+# [J.p7.r1]
+P7  [J.p7.r1]       60s  obj=747511      Z1=38.0     Z2=1451   Z3=1538.0    feas=y   ran 59s  py3.12
+# [K.p7.r1]
+P7  [K.p7.r1]       60s  obj=877593      Z1=45.0     Z2=1194   Z3=1795.0    feas=y   ran 59s  py3.12
+# [J.p16.r1]
+P16 [J.p16.r1]      60s  obj=3186941     Z1=142.0    Z2=1385   Z3=5158.0    feas=y   ran 56s  py3.12
+# [K.p16.r1]
+P16 [K.p16.r1]      60s  obj=2956901     Z1=132.0    Z2=815    Z3=4778.0    feas=y   ran 56s  py3.12
+# [J.p33.r1]
+P33 [J.p33.r1]      60s  obj=952955      Z1=86.0     Z2=577    Z3=1872.0    feas=y   ran 59s  py3.12
+# [K.p33.r1]
+P33 [K.p33.r1]      60s  obj=1058311     Z1=91.0     Z2=46     Z3=2256.0    feas=y   ran 59s  py3.12
+# [J.p3.r1]
+P3  [J.p3.r1]       60s  obj=4468072     Z1=135.0    Z2=7057   Z3=7446.0    feas=y   ran 59s  py3.12
+# [K.p3.r1]
+P3  [K.p3.r1]       60s  obj=4791019     Z1=169.0    Z2=7993   Z3=7827.0    feas=y   ran 60s  py3.12
+# [J.p27.r1]
+P27 [J.p27.r1]      60s  obj=865776      Z1=43.0     Z2=796    Z3=1345.0    feas=y   ran 59s  py3.12
+# [K.p27.r1]
+P27 [K.p27.r1]      60s  obj=854533      Z1=116.0    Z2=980    Z3=865.0     feas=y   ran 59s  py3.12
+# [J.p1.r2]
+
+VERDICT -- gainfair
+===================
+BOTH ARMS LOSE.  STOPPED AFTER REPLICATE 1; NEITHER SIGN WAS CLOSE.
+
+        B med       J = +GAINFAIR   J vs B  |  K = +GAINFAIR+PROBE   K vs B
+  P1      571,668       571,668      0.0%   |        543,874        - 4.9%
+  P3    4,468,072     4,468,072      0.0%   |      4,791,019        + 7.2%
+  P7      749,573       747,511      -0.3%  |        877,593        +17.1%
+  P16   3,022,891     3,186,941      +5.4%  |      2,956,901        - 2.2%
+  P27     692,860       865,776     +25.0%  |        854,533        +23.3%
+  P33     933,974       952,955      +2.0%  |      1,058,311        +13.3%
+  sum  10,439,038    10,792,923     +3.39%  |     11,082,231        +6.16%
+
+THE DIAGNOSIS WAS RIGHT AND THE REPAIR IS WORTHLESS.  The floor-escape credit really does decide
+selection -- with it dropped, OPSTAT shows pref going from 3 tries on 11.1% of the budget to 7 tries
+on 28.0%, and beam from 29.4% to 11.4%.  The budget genuinely moves.  The ANSWER does not: prob_1
+and prob_3 return B's value to the digit and prob_7 to within 0.3%.
+
+THE PAIRING HYPOTHESIS WAS ALSO RIGHT, AND ALSO NOT ENOUGH.  probe.log lost 32.8-37.5% on prob_16
+and 48.1-59.3% on prob_7; with the gain fix underneath, prob_16 becomes a 2.2% WIN and prob_7's loss
+shrinks to 17.1%.  So the probe cap was dangerous only because the race decided everything.
+Defusing it still leaves K 6.16% behind B.
+
+WHAT THIS CLOSES.  Six routes have now been tried against prob_1's unused clock and its 571,668
+attractor: a longer round (B itself), two rounds, three rounds, deleting the zero-paying operator,
+capping the opening probe, and repairing the selection signal that governs all of them.  Every
+reallocation lands on the same value.  The scheduler is not what holds this instance; what would
+move it is a better SEARCH, not a better division of the budget among the searches there are.
+
+OGC_PROBE and OGC_GAINFAIR both stay in the file at default off, byte-identical.  They are the
+instruments that established the above and each is one env away.
+
+SHIPPING DECISION UNCHANGED: B, delivered as OGC2026_capfix.zip.
+
+CORRECTION -- THE K ARM IS VOID
+===============================
+K was "0.05 + GAINFAIR + OGC_PROBE=2", and OGC_PROBE collided with a pre-existing variable meaning
+the repair passes' opening slice as a fraction of the budget.  K therefore also opened every repair
+operator at 50% of the clock.  Its numbers -- prob_16 -2.2%, prob_7 +17.1%, sum +6.16% -- measure
+that, not the first-try cap, and the claim that the gain fix "defuses" the probe cap is withdrawn.
+
+THE J ARM STANDS.  It sets only OGC_GAINFAIR=1 and touches no colliding name: +3.39% over the band,
+with prob_1 and prob_3 returning B's value to the digit and prob_27 losing 25.0%.  The finding it
+supports is unchanged and is the one that mattered: dropping the floor-escape credit really does
+reallocate the budget (pref 11.1% -> 28.0% of the clock, beam 29.4% -> 11.4%) and the answers do
+not move.

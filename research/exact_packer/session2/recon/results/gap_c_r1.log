@@ -1,0 +1,9 @@
+    brk cost: ncol~0 real_ncol=30360 build=62.7s ask=39.8s total=102.7s
+    brk[pressure] tgt=0 res=54 outs=16 admitted 3, displaced 1, obj 89300 vs base 99910 -> KEEP
+    brk cost: ncol~0 real_ncol=30462 build=62.7s ask=39.8s total=102.7s
+    brk cost: ncol~0 real_ncol=30374 build=62.7s ask=39.8s total=102.7s
+    brk[pressure] tgt=0 res=53 outs=17 displaced b187 could not be rehomed in any other bay
+    brk[pressure] tgt=0 res=54 outs=16 admitted 6, displaced 4, obj 83095 vs base 107195 -> KEEP
+    brk cost: ncol~0 real_ncol=30357 build=68.5s ask=39.8s total=108.5s
+    brk[pressure] tgt=0 res=55 outs=15 displaced b164 could not be rehomed in any other bay
+P3  gap C forced r1   240s  obj=80795       Z1=0.0      Z2=3469   Z3=423.0     feas=y   ran 239s

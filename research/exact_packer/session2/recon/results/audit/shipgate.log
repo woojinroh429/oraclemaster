@@ -1,0 +1,31 @@
+== compiling 5 engine modules ==
+  - ogc_fast
+  - ogc_geom
+  - ogc_state
+  - cranepack
+  - st3dtcs
+== copying python ==
+== packaging ==
+== done: /home/user/oraclemaster/research/exact_packer/session2/recon/submit_build/submit_recon.zip ==
+Archive:  submit_recon.zip
+  Length      Date    Time    Name
+---------  ---------- -----   ----
+   258901  2026-08-10 18:11   myalgorithm.py
+    93217  2026-08-10 18:11   bayrepack.py
+    64425  2026-08-10 18:11   utils.py
+   435944  2026-08-10 18:10   cranepack.cpython-312-x86_64-linux-gnu.so
+   915120  2026-08-10 18:10   ogc_fast.cpython-312-x86_64-linux-gnu.so
+   265560  2026-08-10 18:10   ogc_geom.cpython-312-x86_64-linux-gnu.so
+   364904  2026-08-10 18:10   ogc_state.cpython-312-x86_64-linux-gnu.so
+   317480  2026-08-10 18:11   st3dtcs.cpython-312-x86_64-linux-gnu.so
+---------                     -------
+  2715551                     8 files
+
+== smoke test (import + one solve) ==
+SMOKE: import OK (no local instance to solve)
+== gate verify (60s -> expect n=3) ==
+WSTAT round=0 n=3 855906 852220 775590  spread=10.36%
+P1  [gate.v60]      60s  obj=775590      Z1=21.0     Z2=1661   Z3=1051.0    feas=y   ran 43s  py3.12
+== gate verify (480s path, 20s probe -> expect n=3; 300s -> expect n=4) ==
+cpu 4
+SHIPGATEDONE

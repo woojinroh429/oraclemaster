@@ -1,0 +1,118 @@
+# [m8.p13.r1]
+MGATE fired: peak_util=4.089 >= 2.00, MSET=8
+WSTAT round=0 n=3 71491212 68921195 71286054  spread=3.73%
+P13 [m8.p13.r1]     60s  obj=68921195    Z1=9489.0   Z2=432    Z3=7072.0    feas=y   ran 59s  py3.12
+# WALL [m8.p13.r1] 60.07
+# [m81.p13.r1]
+WSTAT round=0 n=1 71491212 - -  spread=0.00%
+P13 [m81.p13.r1]    60s  obj=71491212    Z1=9644.0   Z2=2664   Z3=8990.0    feas=y   ran 60s  py3.12
+# WALL [m81.p13.r1] 60.55
+# [m1.p13.r1]
+WSTAT round=0 n=3 87242171 70253487 85408203  spread=24.18%
+P13 [m1.p13.r1]     60s  obj=70253487    Z1=9570.0   Z2=697    Z3=8062.0    feas=y   ran 58s  py3.12
+# WALL [m1.p13.r1] 58.72
+# [m8.p2.r1]
+MGATE fired: peak_util=3.289 >= 2.00, MSET=8
+WSTAT round=0 n=1 - 60324179 -  spread=0.00%
+P2  [m8.p2.r1]      60s  obj=60324179    Z1=4443.0   Z2=2915   Z3=7160.0    feas=y   ran 60s  py3.12
+# WALL [m8.p2.r1] 60.21
+# [m81.p2.r1]
+WSTAT round=0 n=2 - 73416067 61573990  spread=19.23%
+P2  [m81.p2.r1]     60s  obj=61573990    Z1=4534.0   Z2=2667   Z3=7410.0    feas=y   ran 61s  py3.12
+# WALL [m81.p2.r1] 62.12
+# [m1.p2.r1]
+WSTAT round=0 n=3 79754681 62062493 81286723  spread=30.98%
+P2  [m1.p2.r1]      60s  obj=62062493    Z1=4567.0   Z2=4483   Z3=7685.0    feas=y   ran 56s  py3.12
+# WALL [m1.p2.r1] 57.11
+# [m8.p36.r1]
+MGATE fired: peak_util=4.664 >= 2.00, MSET=8
+WSTAT round=0 n=2 80413879 77501027 -  spread=3.76%
+P36 [m8.p36.r1]     60s  obj=77501027    Z1=10702.0  Z2=393    Z3=7688.0    feas=y   ran 60s  py3.12
+# WALL [m8.p36.r1] 60.93
+# [m81.p36.r1]
+WSTAT round=0 n=3 84191198 92702240 80171708  spread=15.63%
+P36 [m81.p36.r1]    60s  obj=80171708    Z1=11144.0  Z2=1060   Z3=7342.0    feas=y   ran 58s  py3.12
+# WALL [m81.p36.r1] 59.06
+# [m1.p36.r1]
+WSTAT round=0 n=3 94311450 87398320 96492114  spread=10.40%
+P36 [m1.p36.r1]     60s  obj=87398320    Z1=12189.0  Z2=1457   Z3=7666.0    feas=y   ran 58s  py3.12
+# WALL [m1.p36.r1] 58.26
+# [m8.p13.r2]
+MGATE fired: peak_util=4.089 >= 2.00, MSET=8
+WSTAT round=0 n=2 71491212 68921195 -  spread=3.73%
+P13 [m8.p13.r2]     60s  obj=68921195    Z1=9489.0   Z2=432    Z3=7072.0    feas=y   ran 60s  py3.12
+# WALL [m8.p13.r2] 60.76
+# [m81.p13.r2]
+WSTAT round=0 n=1 - - 71877576  spread=0.00%
+P13 [m81.p13.r2]    60s  obj=71877576    Z1=9800.0   Z2=176    Z3=8176.0    feas=y   ran 60s  py3.12
+# WALL [m81.p13.r2] 60.21
+# [m1.p13.r2]
+WSTAT round=0 n=3 86125260 71172392 85794778  spread=21.01%
+P13 [m1.p13.r2]     60s  obj=71172392    Z1=9668.0   Z2=636    Z3=8394.0    feas=y   ran 59s  py3.12
+# WALL [m1.p13.r2] 59.96
+# [m8.p2.r2]
+MGATE fired: peak_util=3.289 >= 2.00, MSET=8
+WSTAT round=0 n=1 - - 66309469  spread=0.00%
+P2  [m8.p2.r2]      60s  obj=66309469    Z1=4889.0   Z2=1883   Z3=7446.0    feas=y   ran 60s  py3.12
+# WALL [m8.p2.r2] 60.35
+# [m81.p2.r2]
+WSTAT round=0 n=2 - 72217617 67634913  spread=6.78%
+P2  [m81.p2.r2]     60s  obj=67634913    Z1=4993.0   Z2=2636   Z3=7018.0    feas=y   ran 60s  py3.12
+# WALL [m81.p2.r2] 60.45
+# [m1.p2.r2]
+WSTAT round=0 n=2 80164977 - 78481720  spread=2.14%
+P2  [m1.p2.r2]      60s  obj=78481720    Z1=5792.0   Z2=3371   Z3=8290.0    feas=y   ran 60s  py3.12
+# WALL [m1.p2.r2] 60.50
+# [m8.p36.r2]
+MGATE fired: peak_util=4.664 >= 2.00, MSET=8
+WSTAT round=0 n=3 80802505 80178385 81575792  spread=1.74%
+P36 [m8.p36.r2]     60s  obj=80178385    Z1=11045.0  Z2=570    Z3=8176.0    feas=y   ran 60s  py3.12
+# WALL [m8.p36.r2] 60.95
+# [m81.p36.r2]
+WSTAT round=0 n=2 81647119 - 80171708  spread=1.84%
+P36 [m81.p36.r2]    60s  obj=80171708    Z1=11144.0  Z2=1060   Z3=7342.0    feas=y   ran 60s  py3.12
+# WALL [m81.p36.r2] 60.45
+# [m1.p36.r2]
+WSTAT round=0 n=2 94311450 - 97465037  spread=3.34%
+P36 [m1.p36.r2]     60s  obj=94311450    Z1=13439.0  Z2=6437   Z3=5884.0    feas=y   ran 60s  py3.12
+# WALL [m1.p36.r2] 60.93
+# [m8.p13.r3]
+MGATE fired: peak_util=4.089 >= 2.00, MSET=8
+WSTAT round=0 n=2 71491212 68921195 -  spread=3.73%
+P13 [m8.p13.r3]     60s  obj=68921195    Z1=9489.0   Z2=432    Z3=7072.0    feas=y   ran 60s  py3.12
+# WALL [m8.p13.r3] 60.65
+# [m81.p13.r3]
+WSTAT round=0 n=2 71491212 75731407 -  spread=5.93%
+P13 [m81.p13.r3]    60s  obj=71491212    Z1=9644.0   Z2=2664   Z3=8990.0    feas=y   ran 60s  py3.12
+# WALL [m81.p13.r3] 60.48
+# [m1.p13.r3]
+WSTAT round=0 n=3 86125260 71172392 85975410  spread=21.01%
+P13 [m1.p13.r3]     60s  obj=71172392    Z1=9668.0   Z2=636    Z3=8394.0    feas=y   ran 59s  py3.12
+# WALL [m1.p13.r3] 59.14
+# [m8.p2.r3]
+MGATE fired: peak_util=3.289 >= 2.00, MSET=8
+WSTAT round=0 n=2 - 60324179 61573990  spread=2.07%
+P2  [m8.p2.r3]      60s  obj=60324179    Z1=4443.0   Z2=2915   Z3=7160.0    feas=y   ran 60s  py3.12
+# WALL [m8.p2.r3] 60.66
+# [m81.p2.r3]
+WSTAT round=0 n=2 - 72217617 67634913  spread=6.78%
+P2  [m81.p2.r3]     60s  obj=67634913    Z1=4993.0   Z2=2636   Z3=7018.0    feas=y   ran 60s  py3.12
+# WALL [m81.p2.r3] 60.45
+# [m1.p2.r3]
+WSTAT round=0 n=3 80164977 66307229 81522907  spread=22.95%
+P2  [m1.p2.r3]      60s  obj=66307229    Z1=4891.0   Z2=1744   Z3=7257.0    feas=y   ran 59s  py3.12
+# WALL [m1.p2.r3] 59.17
+# [m8.p36.r3]
+MGATE fired: peak_util=4.664 >= 2.00, MSET=8
+WSTAT round=0 n=3 84191198 79177571 79127737  spread=6.40%
+P36 [m8.p36.r3]     60s  obj=79127737    Z1=11039.0  Z2=2724   Z3=6910.0    feas=y   ran 57s  py3.12
+# WALL [m8.p36.r3] 58.11
+# [m81.p36.r3]
+WSTAT round=0 n=3 80478651 96613644 80171708  spread=20.51%
+P36 [m81.p36.r3]    60s  obj=80171708    Z1=11144.0  Z2=1060   Z3=7342.0    feas=y   ran 57s  py3.12
+# WALL [m81.p36.r3] 58.03
+# [m1.p36.r3]
+WSTAT round=0 n=3 95411448 87398320 95956376  spread=9.79%
+P36 [m1.p36.r3]     60s  obj=87398320    Z1=12189.0  Z2=1457   Z3=7666.0    feas=y   ran 58s  py3.12
+# WALL [m1.p36.r3] 58.67
+MINSDONE

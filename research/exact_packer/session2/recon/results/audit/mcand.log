@@ -1,0 +1,140 @@
+# [r1.m1.24]
+WSTAT round=0 n=4 2949426 3005187 2838115 2911319  spread=5.89%
+P24 [r1.m1.24]     240s  obj=2838115     Z1=668.0    Z2=1753   Z3=999.0     feas=y   ran 206s  py3.12
+# [r1.m2.24]
+WSTAT round=0 n=4 3039182 2802875 3077589 2712545  spread=13.46%
+P24 [r1.m2.24]     240s  obj=2427040     Z1=550.0    Z2=4270   Z3=940.0     feas=y   ran 215s  py3.12
+# [r1.m3.24]
+WSTAT round=0 n=4 3025641 2923290 3168465 2933588  spread=8.39%
+P24 [r1.m3.24]     240s  obj=2905816     Z1=700.0    Z2=3388   Z3=915.0     feas=y   ran 225s  py3.12
+# [r1.m3nd.24]
+WSTAT round=0 n=4 3093517 2857312 3001572 2914347  spread=8.27%
+P24 [r1.m3nd.24]   240s  obj=2857312     Z1=556.0    Z2=1252   Z3=1659.0    feas=y   ran 206s  py3.12
+# [r1.m1.4]
+WSTAT round=0 n=4 2789140 2976328 2551983 3049492  spread=19.49%
+P4  [r1.m1.4]      240s  obj=2551983     Z1=369.0    Z2=1439   Z3=2467.0    feas=y   ran 220s  py3.12
+# [r1.m2.4]
+WSTAT round=0 n=4 2460292 2755325 2816136 3097749  spread=25.91%
+P4  [r1.m2.4]      240s  obj=2456693     Z1=342.0    Z2=2298   Z3=2449.0    feas=y   ran 239s  py3.12
+# [r1.m3.4]
+WSTAT round=0 n=4 2928686 2829562 3090777 2987730  spread=9.23%
+P4  [r1.m3.4]      240s  obj=2829562     Z1=321.0    Z2=2499   Z3=3278.0    feas=y   ran 239s  py3.12
+# [r1.m3nd.4]
+WSTAT round=0 n=4 3279436 2616382 3043377 2978164  spread=25.34%
+P4  [r1.m3nd.4]    240s  obj=2577614     Z1=320.0    Z2=1279   Z3=2823.0    feas=y   ran 239s  py3.12
+# [r1.m1.20]
+# [r1.m2w.24]
+WSTAT round=0 n=4 2869331 2774152 2925416 2706978  spread=8.07%
+P24 [r1.m2w.24]    240s  obj=2706978     Z1=592.0    Z2=3006   Z3=1188.0    feas=y   ran 208s  py3.12
+# [r1.m3w.24]
+WSTAT round=0 n=4 3058740 2693684 3068949 2654683  spread=15.61%
+P24 [r1.m3w.24]    240s  obj=2654683     Z1=536.0    Z2=3685   Z3=1404.0    feas=y   ran 239s  py3.12
+# [r1.m2w.4]
+WSTAT round=0 n=4 2571024 2755325 2873796 3146838  spread=22.40%
+P4  [r1.m2w.4]     240s  obj=2571024     Z1=357.0    Z2=2693   Z3=2566.0    feas=y   ran 219s  py3.12
+# [r1.m3w.4]
+# [m240.p24.m1]
+P24 [m240.p24.m1]   240s  obj=2695530     Z1=587.0    Z2=3837   Z3=1187.0    feas=y   ran 239s  py3.12
+# [m240.p24.m2]
+P24 [m240.p24.m2]   240s  obj=2454698     Z1=625.0    Z2=4139   Z3=571.0     feas=y   ran 203s  py3.12
+# [m240.p4.m1]
+P4  [m240.p4.m1]   240s  obj=2679086     Z1=363.0    Z2=2397   Z3=2734.0    feas=y   ran 228s  py3.12
+# [m240.p4.m2]
+P4  [m240.p4.m2]   240s  obj=2840189     Z1=340.0    Z2=2086   Z3=3183.0    feas=y   ran 240s  py3.12
+# [m240.p1.m1]
+P1  [m240.p1.m1]   240s  obj=544247      Z1=23.0     Z2=7502   Z3=614.0     feas=y   ran 236s  py3.12
+# [m240.p1.m2]
+P1  [m240.p1.m2]   240s  obj=693845      Z1=20.0     Z2=4235   Z3=913.0     feas=y   ran 201s  py3.12
+# [m240.p20.m1]
+P20 [m240.p20.m1]   240s  obj=9459219     Z1=1209.0   Z2=1977   Z3=9220.0    feas=y   ran 240s  py3.12
+# [m240.p20.m2]
+P20 [m240.p20.m2]   240s  obj=8868533     Z1=1123.0   Z2=374    Z3=9190.0    feas=y   ran 229s  py3.12
+# [m240.p16.m1]
+P16 [m240.p16.m1]   240s  obj=3271186     Z1=162.0    Z2=1080   Z3=4432.0    feas=y   ran 239s  py3.12
+# [m240.p16.m2]
+# [m.p1.m1]
+P1  [m.p1.m1]       60s  obj=492458      Z1=2.0      Z2=2708   Z3=785.0     feas=y   ran 65s  py3.12
+# [m.p1.m2]
+P1  [m.p1.m2]       60s  obj=702341      Z1=53.0     Z2=4130   Z3=561.0     feas=y   ran 70s  py3.12
+# [m.p1.m3]
+P1  [m.p1.m3]       60s  obj=768242      Z1=47.0     Z2=2231   Z3=747.0     feas=y   ran 69s  py3.12
+# [m.p1.m4]
+P1  [m.p1.m4]       60s  obj=890205      Z1=42.0     Z2=4197   Z3=996.0     feas=y   ran 69s  py3.12
+# [m.p1.m6]
+P1  [m.p1.m6]       60s  obj=852593      Z1=47.0     Z2=3148   Z3=883.0     feas=y   ran 71s  py3.12
+# [m.p1.m8]
+P1  [m.p1.m8]       60s  obj=762556      Z1=52.0     Z2=4024   Z3=673.0     feas=y   ran 65s  py3.12
+# [m.p3.m1]
+P3  [m.p3.m1]       60s  obj=4367826     Z1=147.0    Z2=4916   Z3=7211.0    feas=y   ran 59s  py3.12
+# [m.p3.m2]
+P3  [m.p3.m2]       60s  obj=4574041     Z1=118.0    Z2=5315   Z3=7774.0    feas=y   ran 59s  py3.12
+# [m.p3.m3]
+P3  [m.p3.m3]       60s  obj=5065478     Z1=155.0    Z2=5136   Z3=8467.0    feas=y   ran 59s  py3.12
+# [m.p3.m4]
+P3  [m.p3.m4]       60s  obj=4847103     Z1=264.0    Z2=4122   Z3=7389.0    feas=y   ran 59s  py3.12
+# [m.p3.m6]
+P3  [m.p3.m6]       60s  obj=4750802     Z1=209.0    Z2=5588   Z3=7533.0    feas=y   ran 59s  py3.12
+# [m.p3.m8]
+P3  [m.p3.m8]       60s  obj=5026103     Z1=183.0    Z2=4834   Z3=8222.0    feas=y   ran 59s  py3.12
+# [m.p16.m1]
+P16 [m.p16.m1]      60s  obj=3097236     Z1=141.0    Z2=1261   Z3=4854.0    feas=y   ran 59s  py3.12
+# [m.p16.m2]
+P16 [m.p16.m2]      60s  obj=3136360     Z1=151.0    Z2=1359   Z3=4476.0    feas=y   ran 59s  py3.12
+# [m.p16.m3]
+P16 [m.p16.m3]      60s  obj=3522448     Z1=180.0    Z2=1836   Z3=4468.0    feas=y   ran 59s  py3.12
+# [m.p16.m4]
+P16 [m.p16.m4]      60s  obj=3934752     Z1=213.0    Z2=941    Z3=4368.0    feas=y   ran 59s  py3.12
+# [m.p16.m6]
+P16 [m.p16.m6]      60s  obj=4373674     Z1=247.0    Z2=1141   Z3=4308.0    feas=y   ran 59s  py3.12
+# [m.p16.m8]
+P16 [m.p16.m8]      60s  obj=4882036     Z1=282.0    Z2=2210   Z3=4462.0    feas=y   ran 57s  py3.12
+# [m.p13.m1]
+P13 [m.p13.m1]      60s  obj=88534512    Z1=12327.0  Z2=3      Z3=7938.0    feas=y   ran 56s  py3.12
+# [m.p13.m2]
+P13 [m.p13.m2]      60s  obj=89298335    Z1=12432.0  Z2=2991   Z3=8014.0    feas=y   ran 48s  py3.12
+# [m.p13.m3]
+P13 [m.p13.m3]      60s  obj=88606513    Z1=12281.0  Z2=2686   Z3=8408.0    feas=y   ran 47s  py3.12
+# [m.p13.m4]
+P13 [m.p13.m4]      60s  obj=88126619    Z1=12278.0  Z2=1993   Z3=7834.0    feas=y   ran 54s  py3.12
+# [m.p13.m6]
+P13 [m.p13.m6]      60s  obj=85280770    Z1=11762.0  Z2=1116   Z3=8578.0    feas=y   ran 57s  py3.12
+# [m.p13.m8]
+P13 [m.p13.m8]      60s  obj=80099113    Z1=11013.0  Z2=1842   Z3=8342.0    feas=y   ran 59s  py3.12
+MCANDDONE
+
+VERDICT -- mcand (phase 1, equal work)
+======================================
+BRANCHING'S SIGN FLIPS WITH INSTANCE SHAPE, AND THE SHIPPED DEFAULT IGNORES SHAPE.
+
+All cells OGC_WORKCAP=5000, WORKERS=1 -- deterministic, one draw per cell is exact.
+
+                        M=1          M=2      M=3      M=4      M=6      M=8
+  P1  150 blk / 3 bay      492,458   +42.6%   +56.0%   +80.8%   +73.1%   +54.8%
+  P3  200 blk / 4 bay    4,367,826   + 4.7%   +16.0%   +11.0%   + 8.8%   +15.1%
+  P16 300 blk / 5 bay    3,097,236   + 1.3%   +13.7%   +27.0%   +41.2%   +57.6%
+  P13 300 blk / 2 bay   88,534,512   + 0.9%   + 0.1%   - 0.5%   - 3.7%   - 9.5%
+
+P13 is the only instance where opening the permutation dimension pays, and there it pays
+monotonically to -9.5% at M=8.  It is also the only one with 300 blocks in 2 bays -- peak_util 4.09
+against 1.02 / 1.18 / 1.23 for the other three.  Where the yard is that crowded, WHICH block goes
+next decides the layout; where it is not, depth decides it and branching just costs levels.
+
+THE SHIPPED DEFAULT IS OGC_MSET="1,2" INDEXED BY wid%2.  That is a portfolio axis: one worker in
+three runs M=2 regardless of the instance.  The measurements say M is not a portfolio question --
+M=2 costs prob_1 42.6% and M=8 buys prob_13 9.5%, so a constant is wrong in both directions at once.
+
+AND UNLIKE THE NINE GATES THAT FAILED TODAY, A SEPARATING FEATURE ALREADY EXISTS.  peak_util puts
+the branching-friendly instance at 4.09 and the branching-hostile ones at 1.02-1.23, with nothing in
+between; blocks-per-bay says the same (150 at 4.09 vs 30-60).  The gap is an order of magnitude
+wider than the P33/P7 boundary that was rejected earlier today.
+
+WHAT THIS CANNOT DECIDE YET.  Equal work is the right control for "does branching search better per
+unit of compute", not for what to ship.  The competition budget is wall clock, and `work +=
+nbeam*M` means a larger M spends its budget faster -- fewer beam draws per run.  ogc_fast.cpp
+prescribes the two-part evaluation and this is part one; part two is throughput at wall clock, and
+quality-at-work = throughput x budget is what a shipping value has to be chosen on.
+
+METHOD NOTE.  OGC_WORKCAP made every cell here exact -- three verification runs of prob_1 returned
+568,924 to the digit.  Every wall-clock experiment earlier today fought 17-35% run-to-run spread
+while chasing 5% effects, and two of them (probe, gainfair-K) were void for unrelated reasons.  This
+sweep cost 24 cells and settled a question that would have needed hundreds of noisy ones.

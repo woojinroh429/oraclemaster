@@ -1,0 +1,21 @@
+=== q12_smoke  00:58:50
+myalg_base on P3: obj=94000  Z1=0.0 Z2=2420 Z3=546.0  feasible=True
+      60s slice: obj 94000 -> 91830  (-2.31%)  Z1=0.0 Z2=2976 Z3=513.0  feasible=True  in 115.5s
+     120s slice: repack returned None after 0.0s
+
+   repeated application from its own output is where the real gain would be, so the
+   second line above is the one that says whether this is a one-shot or an operator.
+brk arm and its control verified
+=== q12_brk_r1.log  (brk on r1)  01:04:46
+P3  brk on r1      240s  obj=82180       Z1=0.0      Z2=3146   Z3=443.0     feas=y   ran 239s
+=== q12_ctl_r1.log  (brk off r1)  01:08:45
+P3  brk off r1     240s  obj=96990       Z1=0.0      Z2=3108   Z3=543.0     feas=y   ran 239s
+=== q12_brk_r2.log  (brk on r2)  01:12:45
+P3  brk on r2      240s  obj=86550       Z1=0.0      Z2=3360   Z3=465.0     feas=y   ran 239s
+=== q12_ctl_r2.log  (brk off r2)  01:16:45
+P3  brk off r2     240s  obj=106700      Z1=0.0      Z2=2680   Z3=622.0     feas=y   ran 239s
+=== q12_brk_r3.log  (brk on r3)  01:20:44
+P3  brk on r3      240s  obj=86550       Z1=0.0      Z2=3360   Z3=465.0     feas=y   ran 239s
+=== q12_ctl_r3.log  (brk off r3)  01:24:44
+P3  brk off r3     240s  obj=106700      Z1=0.0      Z2=2680   Z3=622.0     feas=y   ran 239s
+queue12done  01:28:44

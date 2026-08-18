@@ -1,0 +1,22 @@
+    brk calib: 352:4.14e-07 910:3.83e-08 -> rate 3.83e-08 at 910 cols, growth n^0.000
+    brk tier: room=95s rate=3.83e-08 -> tier 0 (step 4 nout 40 nent 6) ncol~30466 pred=35.6s  [hard=112 slice=40s]
+    brk calib: 364:4.36e-07 934:3.48e-08 -> rate 3.48e-08 at 934 cols, growth n^0.000
+    brk tier: room=94s rate=3.48e-08 -> tier 0 (step 4 nout 40 nent 6) ncol~30782 pred=32.9s  [hard=110 slice=40s]
+    brk calib: 762:1.27e-07 2510:3.06e-09 -> rate 3.06e-09 at 2510 cols, growth n^0.000
+    brk tier: room=93s rate=3.06e-09 -> tier 0 (step 4 nout 40 nent 6) ncol~99902 pred=30.5s  [hard=110 slice=40s]
+    brk calib: 348:4.94e-07 908:3.64e-08 -> rate 3.64e-08 at 908 cols, growth n^0.000
+    brk tier: room=93s rate=3.64e-08 -> tier 0 (step 4 nout 40 nent 6) ncol~30782 pred=34.5s  [hard=110 slice=40s]
+    brk cost: ncol~99902 real_ncol=98384 build=24.7s ask=39.8s total=29.5s
+    brk cost: tier 0 ncol~99902 real_ncol=98384 build=24.7s total=29.5s  -> rate 2.476e-09 s/col^2
+    brk[pressure] tgt=1 res=60 outs=3 admitted 3, displaced 0, obj 1727228509 vs base 2488362823 -> KEEP
+    brk cost: ncol~30466 real_ncol=30161 build=6.7s ask=39.8s total=47.2s
+    brk cost: tier 0 ncol~30466 real_ncol=30161 build=6.7s total=47.2s  -> rate 7.258e-09 s/col^2
+    brk[pressure] tgt=0 res=51 outs=19 displaced b42 could not be rehomed in any other bay
+    brk cost: ncol~30782 real_ncol=30342 build=7.0s ask=39.8s total=47.6s
+    brk cost: tier 0 ncol~30782 real_ncol=30342 build=7.0s total=47.6s  -> rate 7.437e-09 s/col^2
+    brk[pressure] tgt=0 res=53 outs=17 admitted 5, displaced 2, obj 87410 vs base 96990 -> KEEP
+    brk cost: ncol~30782 real_ncol=30462 build=7.5s ask=39.8s total=47.8s
+    brk cost: tier 0 ncol~30782 real_ncol=30462 build=7.5s total=47.8s  -> rate 7.886e-09 s/col^2
+    brk[pressure] tgt=0 res=54 outs=16 admitted 6, displaced 4, obj 83095 vs base 107195 -> KEEP
+    brk: declined, smallest tier predicts 5s of 9s
+P3  brkpool 0.34 r1   240s  obj=80795       Z1=0.0      Z2=3469   Z3=423.0     feas=y   ran 239s

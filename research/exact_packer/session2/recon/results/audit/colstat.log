@@ -1,0 +1,56 @@
+# [p3]
+P3  [p3]            60s  obj=4713353     Z1=176.0    Z2=10164  Z3=7609.0    feas=y   ran 55s  py3.12
+# [p16]
+P16 [p16]           60s  obj=3219407     Z1=149.0    Z2=2180   Z3=4905.0    feas=y   ran 53s  py3.12
+# [p13]
+P13 [p13]           60s  obj=67433655    Z1=9230.0   Z2=2845   Z3=7368.0    feas=y   ran 47s  py3.12
+# [p2]
+P2  [p2]            60s  obj=59787460    Z1=4410.0   Z2=2170   Z3=6535.0    feas=y   ran 55s  py3.12
+# [p1]
+COLSTAT ncol=462 geom_slots=462 ratio=1.00 blocks=24 entries_per_block avg=1.00 max=1
+COLSTAT ncol=1400 geom_slots=1400 ratio=1.00 blocks=24 entries_per_block avg=1.00 max=1
+COLSTAT ncol=3948 geom_slots=3948 ratio=1.00 blocks=24 entries_per_block avg=1.00 max=1
+COLSTAT ncol=13732 geom_slots=13732 ratio=1.00 blocks=24 entries_per_block avg=1.00 max=1
+COLSTAT ncol=572 geom_slots=572 ratio=1.00 blocks=24 entries_per_block avg=1.00 max=1
+COLSTAT ncol=1034 geom_slots=1034 ratio=1.00 blocks=24 entries_per_block avg=1.00 max=1
+COLSTAT ncol=3318 geom_slots=3318 ratio=1.00 blocks=24 entries_per_block avg=1.00 max=1
+COLSTAT ncol=530 geom_slots=530 ratio=1.00 blocks=24 entries_per_block avg=1.00 max=1
+COLSTAT ncol=11014 geom_slots=11014 ratio=1.00 blocks=24 entries_per_block avg=1.00 max=1
+COLSTAT ncol=572 geom_slots=572 ratio=1.00 blocks=24 entries_per_block avg=1.00 max=1
+COLSTAT ncol=1034 geom_slots=1034 ratio=1.00 blocks=24 entries_per_block avg=1.00 max=1
+COLSTAT ncol=3318 geom_slots=3318 ratio=1.00 blocks=24 entries_per_block avg=1.00 max=1
+COLSTAT ncol=11014 geom_slots=11014 ratio=1.00 blocks=24 entries_per_block avg=1.00 max=1
+COLSTAT ncol=530 geom_slots=530 ratio=1.00 blocks=24 entries_per_block avg=1.00 max=1
+COLSTAT ncol=998 geom_slots=998 ratio=1.00 blocks=24 entries_per_block avg=1.00 max=1
+COLSTAT ncol=3116 geom_slots=3116 ratio=1.00 blocks=24 entries_per_block avg=1.00 max=1
+COLSTAT ncol=10302 geom_slots=10302 ratio=1.00 blocks=24 entries_per_block avg=1.00 max=1
+P1  [p1]            60s  obj=605585      Z1=8.0      Z2=4083   Z3=900.0     feas=y   ran 50s  py3.12
+# [p20]
+COLSTAT ncol=802 geom_slots=802 ratio=1.00 blocks=24 entries_per_block avg=1.00 max=1
+COLSTAT ncol=2214 geom_slots=2214 ratio=1.00 blocks=24 entries_per_block avg=1.00 max=1
+COLSTAT ncol=6628 geom_slots=6628 ratio=1.00 blocks=24 entries_per_block avg=1.00 max=1
+COLSTAT ncol=23100 geom_slots=23100 ratio=1.00 blocks=24 entries_per_block avg=1.00 max=1
+COLSTAT ncol=812 geom_slots=812 ratio=1.00 blocks=24 entries_per_block avg=1.00 max=1
+P20 [p20]           60s  obj=10607755    Z1=1373.0   Z2=1558   Z3=9610.0    feas=y   ran 40s  py3.12
+COLSTATDONE
+# VERDICT: THE FACTORISATION IS DEAD.  r = 1.00 on all 23 cranepack calls that printed, across
+# both instances where the operator ran (prob_1 17 calls, prob_20 6), with ncol from 462 to 23,100.
+#
+# ITS PREMISE IS FALSE, not merely unprofitable.  conflictfactor.md models columns as
+# (block, orient, x, y) x (entry window) and rests the whole r^2 saving on r columns sharing one
+# (R,U,V).  COLSTAT reports `entries_per_block avg=1.00 max=1` on every call: each block carries
+# exactly ONE entry window, so ncol == geom_slots identically and the second factor of the product
+# does not exist.  The pre-registered reading was "r < 1.5 -> the factorisation is dead"; measured
+# r is 1.00, so the saving is r^2 = 1x.
+#
+# AND A SECOND, INDEPENDENT REASON.  No COLSTAT line printed at all for prob_3, prob_16, prob_13 or
+# prob_2 -- cranepack is never reached on those at a 60 s budget, including prob_3, where brk is
+# recorded as paying (80,795 against 96,990 with it off).  Every cost figure this task was built on
+# is a 240 s measurement (brk 34-36 s, 22-23% of a worker; ncol 24,318 at 39.1 s).  Either reason
+# closes it alone: a 25x speedup of an operator that does not run is worth nothing, and where it
+# does run the speedup is 1x.
+#
+# WHAT SURVIVES.  The note's SECOND lever -- a uniform grid replacing the all-pairs scan within a
+# time window, O(N^2) -> O(G x k^2) -- does not depend on r and is untouched by this result.  It is
+# new C++ whose gain lands only on the instances where cranepack runs, observed here as 2 of 6.
+# Not started: that is a sizing judgement about the remaining time, not a measurement.

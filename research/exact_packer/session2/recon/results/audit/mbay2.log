@@ -1,0 +1,25 @@
+P9   solved 30s  obj=6197200  (bays=3 blocks=200)
+P9   nbay=1  1 application(s) in 61s  obj=6196702  -0.01%
+P9   nbay=2  0 application(s) in 52s  obj=6197200  +0.00%
+P26  solved 30s  obj=27758428  (bays=2 blocks=300)
+P26  nbay=1  1 application(s) in 72s  obj=27752126  -0.02%
+P26  nbay=2  0 application(s) in 51s  obj=27758428  +0.00%
+P3   solved 30s  obj=4756051  (bays=4 blocks=200)
+P3   nbay=1  1 application(s) in 56s  obj=4747304  -0.18%
+P3   nbay=2  0 application(s) in 68s  obj=4756051  +0.00%
+P1   solved 30s  obj=682223  (bays=3 blocks=150)
+P1   nbay=1  1 application(s) in 64s  obj=678750  -0.51%
+P1   nbay=2  0 application(s) in 53s  obj=682223  +0.00%
+P16  solved 30s  obj=3713306  (bays=5 blocks=300)
+P16  nbay=1  1 application(s) in 61s  obj=3641292  -1.94%
+P16  nbay=2  0 application(s) in 53s  obj=3713306  +0.00%
+P12  solved 30s  obj=147583  (bays=5 blocks=300)
+P12  nbay=1  1 application(s) in 72s  obj=144412  -2.15%
+P12  nbay=2  0 application(s) in 54s  obj=147583  +0.00%
+P20  solved 30s  obj=9809205  (bays=3 blocks=250)
+P20  nbay=1  0 application(s) in 57s  obj=9809205  +0.00%
+P20  nbay=2  0 application(s) in 84s  obj=9809205  +0.00%
+P6   solved 30s  obj=5293546  (bays=4 blocks=250)
+P6   nbay=1  1 application(s) in 58s  obj=5290368  -0.06%
+P6   nbay=2  0 application(s) in 54s  obj=5293546  +0.00%
+MBAY2DONE

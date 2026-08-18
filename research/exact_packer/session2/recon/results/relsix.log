@@ -1,0 +1,14 @@
+verified: offset-relative geometry + exact conflict memo
+=== rl_p6.log (rel P6) 14:12:14
+P6  rel P6         900s  obj=29583182    Z1=4298.0   Z2=3177   Z3=6020.0    feas=y   ran 900s
+=== rl_p4.log (rel P4) 14:27:15
+P4  rel P4         480s  obj=1981906     Z1=99.0     Z2=1627   Z3=4337.0    feas=y   ran 491s
+=== rl_p5.log (rel P5) 14:35:27
+P5  rel P5         600s  obj=9526639     Z1=681.0    Z2=1423   Z3=3285.0    feas=y   ran 599s
+=== rl_p1.log (rel P1) 14:45:27
+P1  rel P1          60s  obj=11280       Z1=0.0      Z2=33     Z3=73.0      feas=y   ran 45s
+=== rl_p2.log (rel P2) 14:46:13
+P2  rel P2         120s  obj=31368       Z1=0.0      Z2=3342   Z3=90.0      feas=y   ran 119s
+=== rl_p3_r2.log (rel P3 r2) 14:48:13
+P3  rel P3 r2      240s  obj=90225       Z1=0.0      Z2=3105   Z3=498.0     feas=y   ran 240s
+relsix done 14:52:13

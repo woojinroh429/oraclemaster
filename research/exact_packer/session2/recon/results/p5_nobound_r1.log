@@ -1,0 +1,25 @@
+    brk calib: 934:6.94e-08 1824:1.7e-08 -> rate 1.7e-08 at 1824 cols, growth n^0.000
+    brk tier: room=264s rate=1.7e-08 -> tier 2 (step 4 nout 20 nent 5) ncol~109644 pred=204.8s  [hard=311 slice=112s]
+    brk calib: 738:1.59e-07 1532:2.48e-08 -> rate 2.48e-08 at 1532 cols, growth n^0.000
+    brk tier: room=245s rate=2.48e-08 -> tier 2 (step 4 nout 20 nent 5) ncol~91928 pred=209.6s  [hard=289 slice=112s]
+    brk: build refused at tier 2 (1.0s) -- stepping down to tier 3
+    brk: build refused at tier 2 (23.2s) -- stepping down to tier 3
+    brk calib: 876:6.56e-07 1688:1.5e-08 -> rate 1.5e-08 at 1688 cols, growth n^0.000
+    brk tier: room=239s rate=1.5e-08 -> tier 2 (step 4 nout 20 nent 5) ncol~122060 pred=223.3s  [hard=281 slice=112s]
+    brk: build refused at tier 2 (1.9s) -- stepping down to tier 3
+    brk calib: 922:3.32e-07 1798:1.48e-08 -> rate 1.48e-08 at 1798 cols, growth n^0.000
+    brk tier: room=237s rate=1.48e-08 -> tier 2 (step 4 nout 20 nent 5) ncol~108858 pred=175.1s  [hard=279 slice=112s]
+    brk: build refused at tier 2 (1.7s) -- stepping down to tier 3
+    brk cost: ncol~24818 real_ncol=25619 build=6.6s ask=111.8s total=119.3s
+    brk cost: tier 3 ncol~24818 real_ncol=25619 build=6.6s total=119.3s  -> rate 1.074e-08 s/col^2
+    brk[pressure] tgt=0 res=55 outs=10 displaced b5 could not be rehomed in any other bay
+    brk cost: ncol~20196 real_ncol=20291 build=9.2s ask=111.8s total=121.2s
+    brk cost: tier 3 ncol~20196 real_ncol=20291 build=9.2s total=121.2s  -> rate 2.249e-08 s/col^2
+    brk[pressure] tgt=1 res=44 outs=10 displaced b3 could not be rehomed in any other bay
+    brk cost: ncol~26572 real_ncol=27095 build=12.3s ask=111.8s total=124.4s
+    brk cost: tier 3 ncol~26572 real_ncol=27095 build=12.3s total=124.4s  -> rate 1.742e-08 s/col^2
+    brk[pressure] tgt=0 res=57 outs=10 displaced b5 could not be rehomed in any other bay
+    brk cost: ncol~27604 real_ncol=28391 build=14.8s ask=111.8s total=127.3s
+    brk cost: tier 3 ncol~27604 real_ncol=28391 build=14.8s total=127.3s  -> rate 1.939e-08 s/col^2
+    brk[pressure] tgt=0 res=59 outs=10 displaced b3 could not be rehomed in any other bay
+P5  P5 nobound r1   600s  obj=9481647     Z1=679.0    Z2=1959   Z3=3119.0    feas=y   ran 598s

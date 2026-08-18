@@ -1,0 +1,22 @@
+# ============================================================================
+# VOID -- CONTENDED BOX.  Every cell in this file was taken with at least one
+# other solver running.  Timeline from the in-flight commits:
+#   01:43-01:58:49  m120 live (believed cut, was not)
+#   01:45:05-02:04  rf7 live
+#   01:59-02:04:30  idle60 (first incarnation) live
+# m120's exit wrote 'idle' over a lock rf7 held -- the old protocol named no owner,
+# so any script's exit freed it for everyone.  Fixed in harness/lock.sh.
+# Nothing below is evidence.  The P1 ratio-mean of -3.77% reported from rf7 is
+# RETRACTED.  Re-run is harness/idle60.sh, whose arms are a superset of rf7's.
+# ============================================================================
+# [A.p1.r1]
+P1  [A.p1.r1]       60s  obj=691810      Z1=22.0     Z2=6512   Z3=876.0     feas=y   ran 37s  py3.12
+# [B.p1.r1]
+P1  [B.p1.r1]       60s  obj=719071      Z1=19.0     Z2=6666   Z3=954.0     feas=y   ran 59s  py3.12
+# [C.p1.r1]
+P1  [C.p1.r1]       60s  obj=667228      Z1=22.0     Z2=3518   Z3=850.0     feas=y   ran 59s  py3.12
+# [D.p1.r1]
+P1  [D.p1.r1]       60s  obj=688041      Z1=27.0     Z2=7144   Z3=811.0     feas=y   ran 60s  py3.12
+# [A.p1.r2]
+P1  [A.p1.r2]       60s  obj=686289      Z1=12.0     Z2=5495   Z3=983.0     feas=y   ran 35s  py3.12
+# [B.p1.r2]

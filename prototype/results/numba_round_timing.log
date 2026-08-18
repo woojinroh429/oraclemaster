@@ -1,0 +1,5 @@
+[place] 43490 spatial placements (434/block), Kmax=2, build 15.2s
+[numba] pack 1.6s, CELLMAX=1020 WORDS=16 NDAYS=77
+[greedy] 시드 100블록 배치 성공, greedy 총지연 Z1=32, 0.3s
+  round 0: LP obj=0 cols=1628 cells=184282 added=728 | LP 2.0s price 2.8s
+  (round 1 LP: >120s 정지 → LP가 새 병목)

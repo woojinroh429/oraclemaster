@@ -1,0 +1,149 @@
+# [p16.w1500.a0]
+P16  [p16.w1500.a0] work=1500      B=96   K=4 axis=0  obj=6667234      feas=y     7.1s  digest=525d95449b825f60
+# [p16.w1500.a1]
+P16  [p16.w1500.a1] work=1500      B=96   K=4 axis=1  obj=6357993      feas=y     7.5s  digest=c2798d6abcc0eef5
+# [p16.w1500.a2]
+P16  [p16.w1500.a2] work=1500      B=96   K=4 axis=2  obj=3247623      feas=y     5.3s  digest=d39778533c72f5b4
+# [p16.w1500.a3]
+P16  [p16.w1500.a3] work=1500      B=96   K=4 axis=3  obj=4984622      feas=y     6.9s  digest=a63cb5a79cff7241
+# [p16.w1500.a4]
+P16  [p16.w1500.a4] work=1500      B=96   K=4 axis=4  obj=9255020      feas=y     7.5s  digest=a3f637d8f8cfb2f1
+# [p16.w1500.a5]
+P16  [p16.w1500.a5] work=1500      B=96   K=4 axis=5  obj=6555177      feas=y     6.7s  digest=bd16ec722a112594
+# [p4.w1500.a0]
+P4   [p4.w1500.a0] work=1500      B=96   K=4 axis=0  obj=3513389      feas=y    10.4s  digest=ef3a4c9da3c770b4
+# [p4.w1500.a1]
+P4   [p4.w1500.a1] work=1500      B=96   K=4 axis=1  obj=3733242      feas=y    10.4s  digest=51ee0b451cec97d1
+# [p4.w1500.a2]
+P4   [p4.w1500.a2] work=1500      B=96   K=4 axis=2  obj=2916374      feas=y     7.4s  digest=6357325f8cd2bac6
+# [p4.w1500.a3]
+P4   [p4.w1500.a3] work=1500      B=96   K=4 axis=3  obj=3574300      feas=y     8.7s  digest=9dcfd62e4f6dd2d0
+# [p4.w1500.a4]
+P4   [p4.w1500.a4] work=1500      B=96   K=4 axis=4  obj=4231372      feas=y    10.7s  digest=bfa4ffa92bba02e5
+# [p4.w1500.a5]
+P4   [p4.w1500.a5] work=1500      B=96   K=4 axis=5  obj=3437421      feas=y     9.3s  digest=5351389541f26704
+# [p24.w1500.a0]
+P24  [p24.w1500.a0] work=1500      B=96   K=4 axis=0  obj=3462529      feas=y     6.3s  digest=6f7d5b2e2b53aa6a
+# [p24.w1500.a1]
+P24  [p24.w1500.a1] work=1500      B=96   K=4 axis=1  obj=3242086      feas=y     6.3s  digest=58f3ff249eb968f4
+# [p24.w1500.a2]
+P24  [p24.w1500.a2] work=1500      B=96   K=4 axis=2  obj=3900130      feas=y     6.2s  digest=82d8d76596116249
+# [p24.w1500.a3]
+P24  [p24.w1500.a3] work=1500      B=96   K=4 axis=3  obj=3637538      feas=y     7.0s  digest=4b380afc89ebe57b
+# [p24.w1500.a4]
+P24  [p24.w1500.a4] work=1500      B=96   K=4 axis=4  obj=3736218      feas=y     6.7s  digest=a82a27fa7199248a
+# [p24.w1500.a5]
+P24  [p24.w1500.a5] work=1500      B=96   K=4 axis=5  obj=3168404      feas=y     6.1s  digest=4e9c71a53c03d384
+WORKDONE 1500
+# [p16.w3000.a0]
+P16  [p16.w3000.a0] work=3000      B=96   K=4 axis=0  obj=6671345      feas=y    14.1s  digest=c6e4496f9a52c7c2
+# [p16.w3000.a1]
+P16  [p16.w3000.a1] work=3000      B=96   K=4 axis=1  obj=6720274      feas=y    14.6s  digest=459948e87a8c5cb7
+# [p16.w3000.a2]
+P16  [p16.w3000.a2] work=3000      B=96   K=4 axis=2  obj=3159373      feas=y    10.1s  digest=f33aa8672e39c1b5
+# [p16.w3000.a3]
+P16  [p16.w3000.a3] work=3000      B=96   K=4 axis=3  obj=4799778      feas=y    14.1s  digest=0cd7b689344ab6d1
+# [p16.w3000.a4]
+P16  [p16.w3000.a4] work=3000      B=96   K=4 axis=4  obj=9382627      feas=y    14.5s  digest=5ce46fff6a141012
+# [p16.w3000.a5]
+P16  [p16.w3000.a5] work=3000      B=96   K=4 axis=5  obj=6610637      feas=y    13.4s  digest=39ab1924a6bed342
+# [p4.w3000.a0]
+P4   [p4.w3000.a0] work=3000      B=96   K=4 axis=0  obj=3408101      feas=y    19.5s  digest=06f3cbf8714cf2ff
+# [p4.w3000.a1]
+P4   [p4.w3000.a1] work=3000      B=96   K=4 axis=1  obj=3194487      feas=y    20.0s  digest=7a2a175b7a3b59c9
+# [p4.w3000.a2]
+P4   [p4.w3000.a2] work=3000      B=96   K=4 axis=2  obj=3028676      feas=y    13.9s  digest=d9368aaa7b7c23dc
+# [p4.w3000.a3]
+P4   [p4.w3000.a3] work=3000      B=96   K=4 axis=3  obj=3189844      feas=y    18.0s  digest=d2379d37cd122821
+# [p4.w3000.a4]
+P4   [p4.w3000.a4] work=3000      B=96   K=4 axis=4  obj=4343640      feas=y    20.6s  digest=86411afd9fed757e
+# [p4.w3000.a5]
+P4   [p4.w3000.a5] work=3000      B=96   K=4 axis=5  obj=3487284      feas=y    18.3s  digest=9c814bc58b2dcf69
+# [p24.w3000.a0]
+P24  [p24.w3000.a0] work=3000      B=96   K=4 axis=0  obj=3080029      feas=y    12.3s  digest=3868ad810c8df23d
+# [p24.w3000.a1]
+P24  [p24.w3000.a1] work=3000      B=96   K=4 axis=1  obj=3196119      feas=y    12.2s  digest=bfa76ed4664cc06e
+# [p24.w3000.a2]
+P24  [p24.w3000.a2] work=3000      B=96   K=4 axis=2  obj=3326701      feas=y    11.5s  digest=fb0f96e047c6dac9
+# [p24.w3000.a3]
+P24  [p24.w3000.a3] work=3000      B=96   K=4 axis=3  obj=3637538      feas=y    13.9s  digest=4b380afc89ebe57b
+# [p24.w3000.a4]
+P24  [p24.w3000.a4] work=3000      B=96   K=4 axis=4  obj=3275633      feas=y    12.0s  digest=f78d0f3b87fb36b3
+# [p24.w3000.a5]
+P24  [p24.w3000.a5] work=3000      B=96   K=4 axis=5  obj=3236366      feas=y    11.6s  digest=12b2b725df077bf5
+WORKDONE 3000
+# [p16.w6000.a0]
+P16  [p16.w6000.a0] work=6000      B=96   K=4 axis=0  obj=6408684      feas=y    26.4s  digest=72acee549a274a62
+# [p16.w6000.a1]
+P16  [p16.w6000.a1] work=6000      B=96   K=4 axis=1  obj=6214513      feas=y    27.9s  digest=f94e0d1d04fa8358
+# [p16.w6000.a2]
+P16  [p16.w6000.a2] work=6000      B=96   K=4 axis=2  obj=2477998      feas=y    19.9s  digest=973cef52e3c7c256
+# [p16.w6000.a3]
+P16  [p16.w6000.a3] work=6000      B=96   K=4 axis=3  obj=4876883      feas=y    27.3s  digest=d390889cceb4a278
+# [p16.w6000.a4]
+P16  [p16.w6000.a4] work=6000      B=96   K=4 axis=4  obj=9543435      feas=y    29.7s  digest=3745e9d0787eb0ec
+# [p16.w6000.a5]
+P16  [p16.w6000.a5] work=6000      B=96   K=4 axis=5  obj=6275935      feas=y    27.0s  digest=50301540579b5d9e
+# [p4.w6000.a0]
+P4   [p4.w6000.a0] work=6000      B=96   K=4 axis=0  obj=3205130      feas=y    40.9s  digest=1e6e294d2c7006a1
+# [p4.w6000.a1]
+P4   [p4.w6000.a1] work=6000      B=96   K=4 axis=1  obj=3057550      feas=y    38.0s  digest=69b51b27d0ace5d3
+# [p4.w6000.a2]
+P4   [p4.w6000.a2] work=6000      B=96   K=4 axis=2  obj=2945225      feas=y    26.0s  digest=7be9afc2e3f6ac9a
+# [p4.w6000.a3]
+P4   [p4.w6000.a3] work=6000      B=96   K=4 axis=3  obj=3072805      feas=y    35.1s  digest=66e57024f655134d
+# [p4.w6000.a4]
+P4   [p4.w6000.a4] work=6000      B=96   K=4 axis=4  obj=4270310      feas=y    43.2s  digest=7e402a49005b9659
+# [p4.w6000.a5]
+P4   [p4.w6000.a5] work=6000      B=96   K=4 axis=5  obj=3433064      feas=y    38.0s  digest=6031e6a44e9a8a31
+# [p24.w6000.a0]
+P24  [p24.w6000.a0] work=6000      B=96   K=4 axis=0  obj=2949426      feas=y    23.9s  digest=69c5b8cdb0774dc3
+# [p24.w6000.a1]
+P24  [p24.w6000.a1] work=6000      B=96   K=4 axis=1  obj=3196119      feas=y    23.3s  digest=bfa76ed4664cc06e
+# [p24.w6000.a2]
+P24  [p24.w6000.a2] work=6000      B=96   K=4 axis=2  obj=3446775      feas=y    23.7s  digest=7f52bd092148cd43
+# [p24.w6000.a3]
+P24  [p24.w6000.a3] work=6000      B=96   K=4 axis=3  obj=3706135      feas=y    26.4s  digest=f019eb6cc80d0160
+# [p24.w6000.a4]
+P24  [p24.w6000.a4] work=6000      B=96   K=4 axis=4  obj=3438906      feas=y    25.5s  digest=11ef27384e5037f5
+# [p24.w6000.a5]
+P24  [p24.w6000.a5] work=6000      B=96   K=4 axis=5  obj=3273771      feas=y    23.5s  digest=bc5b2790c9da3415
+WORKDONE 6000
+# [p16.w12000.a0]
+P16  [p16.w12000.a0] work=12000     B=96   K=4 axis=0  obj=6713700      feas=y    54.2s  digest=4cfc745a6b374815
+# [p16.w12000.a1]
+P16  [p16.w12000.a1] work=12000     B=96   K=4 axis=1  obj=6265165      feas=y    53.1s  digest=1251086aa36763b5
+# [p16.w12000.a2]
+P16  [p16.w12000.a2] work=12000     B=96   K=4 axis=2  obj=2816901      feas=y    38.2s  digest=c7234f82007161de
+# [p16.w12000.a3]
+P16  [p16.w12000.a3] work=12000     B=96   K=4 axis=3  obj=4834176      feas=y    53.7s  digest=3de54f06e40748c7
+# [p16.w12000.a4]
+P16  [p16.w12000.a4] work=12000     B=96   K=4 axis=4  obj=9420695      feas=y    60.8s  digest=18bd8ef8c017ff5b
+# [p16.w12000.a5]
+P16  [p16.w12000.a5] work=12000     B=96   K=4 axis=5  obj=6261286      feas=y    53.5s  digest=f2fec5c04e7e2366
+# [p4.w12000.a0]
+P4   [p4.w12000.a0] work=12000     B=96   K=4 axis=0  obj=3341993      feas=y    79.0s  digest=d4f86ec0059e1857
+# [p4.w12000.a1]
+P4   [p4.w12000.a1] work=12000     B=96   K=4 axis=1  obj=2953661      feas=y    77.2s  digest=304a35a257ca8a05
+# [p4.w12000.a2]
+P4   [p4.w12000.a2] work=12000     B=96   K=4 axis=2  obj=3040249      feas=y    54.3s  digest=10bdb8d96ed98f40
+# [p4.w12000.a3]
+P4   [p4.w12000.a3] work=12000     B=96   K=4 axis=3  obj=3014170      feas=y    68.6s  digest=53dc511eab53776b
+# [p4.w12000.a4]
+P4   [p4.w12000.a4] work=12000     B=96   K=4 axis=4  obj=4176281      feas=y    83.1s  digest=1d5930b52585bbcd
+# [p4.w12000.a5]
+P4   [p4.w12000.a5] work=12000     B=96   K=4 axis=5  obj=3253535      feas=y    71.6s  digest=ff05a419d784c1ae
+# [p24.w12000.a0]
+P24  [p24.w12000.a0] work=12000     B=96   K=4 axis=0  obj=2881916      feas=y    47.8s  digest=e92f569ba1888f91
+# [p24.w12000.a1]
+P24  [p24.w12000.a1] work=12000     B=96   K=4 axis=1  obj=3176320      feas=y    50.4s  digest=970b0a4195eaa7ea
+# [p24.w12000.a2]
+P24  [p24.w12000.a2] work=12000     B=96   K=4 axis=2  obj=3304118      feas=y    45.9s  digest=773ddc83b6320dcd
+# [p24.w12000.a3]
+P24  [p24.w12000.a3] work=12000     B=96   K=4 axis=3  obj=3598463      feas=y    55.6s  digest=2f97c7a507e97b62
+# [p24.w12000.a4]
+P24  [p24.w12000.a4] work=12000     B=96   K=4 axis=4  obj=3150336      feas=y    49.6s  digest=6e38f3b22685f00b
+# [p24.w12000.a5]
+P24  [p24.w12000.a5] work=12000     B=96   K=4 axis=5  obj=2856697      feas=y    47.5s  digest=b5aeaf2794abebef
+WORKDONE 12000
+AXWORKDONE

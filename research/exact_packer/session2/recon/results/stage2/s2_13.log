@@ -1,0 +1,13 @@
+    brk calib: 552:1.74e-07 1626:1.26e-08 -> rate 1.26e-08 at 1626 cols, growth n^0.000
+    brk tier: room=105s rate=1.26e-08 -> tier 3 (step 6 nout 10 nent 2) ncol~42492 pred=22.8s  [hard=123 slice=52s]
+    brk calib: 532:1.63e-07 1554:1.33e-08 -> rate 1.33e-08 at 1554 cols, growth n^0.000
+    brk tier: room=99s rate=1.33e-08 -> tier 3 (step 6 nout 10 nent 2) ncol~45488 pred=27.5s  [hard=117 slice=52s]
+    brk calib: 524:2.36e-07 1530:1.22e-08 -> rate 1.22e-08 at 1530 cols, growth n^0.000
+    brk tier: room=99s rate=1.22e-08 -> tier 3 (step 6 nout 10 nent 2) ncol~49424 pred=29.9s  [hard=117 slice=52s]
+    brk calib: 550:5.5e-07 1602:1.11e-08 -> rate 1.11e-08 at 1602 cols, growth n^0.000
+    brk tier: room=93s rate=1.11e-08 -> tier 3 (step 6 nout 10 nent 2) ncol~50412 pred=28.2s  [hard=109 slice=52s]
+    brk cost: BUILD ABORTED at 21.5s of a 104.7s cap (tier 3 ncol~42492)
+    brk cost: BUILD ABORTED at 15.4s of a 99.3s cap (tier 3 ncol~49424)
+    brk cost: BUILD ABORTED at 21.1s of a 99.3s cap (tier 3 ncol~45488)
+    brk cost: BUILD ABORTED at 17.5s of a 93.1s cap (tier 3 ncol~50412)
+P13 stage2 13      300s  obj=74996317    Z1=10376.0  Z2=1925   Z3=7272.0    feas=y   ran 281s

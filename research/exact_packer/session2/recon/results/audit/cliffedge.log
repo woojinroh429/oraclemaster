@@ -1,0 +1,112 @@
+# [L0.p25.r1] burners=0 OGC_DUMMY=0
+py3.12  obj=4255755887  feas=True  Z1=638329.0 Z2=4111 Z3=0.0  wall=55.13
+# [L2.p25.r1] burners=2 OGC_DUMMY=0
+py3.12  obj=4255755887  feas=True  Z1=638329.0 Z2=4111 Z3=0.0  wall=55.13
+# [L4.p25.r1] burners=4 OGC_DUMMY=0
+py3.12  obj=4255755887  feas=True  Z1=638329.0 Z2=4111 Z3=0.0  wall=55.19
+# [N4.p25.r1] burners=4 OGC_MGATE=0
+py3.12  obj=4255755887  feas=True  Z1=638329.0 Z2=4111 Z3=0.0  wall=55.23
+# [L0.p36.r1] burners=0 OGC_DUMMY=0
+py3.12  obj=76324079  feas=True  Z1=10610.0 Z2=9 Z3=6984.0  wall=46.21
+# [L2.p36.r1] burners=2 OGC_DUMMY=0
+py3.12  obj=77676046  feas=True  Z1=10723.0 Z2=1805 Z3=7730.0  wall=53.69
+# [L4.p36.r1] burners=4 OGC_DUMMY=0
+py3.12  obj=4023023953  feas=True  Z1=603423.0 Z2=2812 Z3=0.0  wall=55.15
+# [N4.p36.r1] burners=4 OGC_MGATE=0
+py3.12  obj=96962397  feas=True  Z1=13601.0 Z2=2930 Z3=7852.0  wall=56.09
+# [L0.p13.r1] burners=0 OGC_DUMMY=0
+py3.12  obj=67433655  feas=True  Z1=9230.0 Z2=2845 Z3=7368.0  wall=48.70
+# [L2.p13.r1] burners=2 OGC_DUMMY=0
+py3.12  obj=68921195  feas=True  Z1=9489.0 Z2=432 Z3=7072.0  wall=55.23
+# [L4.p13.r1] burners=4 OGC_DUMMY=0
+py3.12  obj=4027473504  feas=True  Z1=604088.0 Z2=18808 Z3=0.0  wall=55.20
+# [N4.p13.r1] burners=4 OGC_MGATE=0
+py3.12  obj=86309865  feas=True  Z1=11983.0 Z2=3204 Z3=8020.0  wall=55.65
+# [L0.p39.r1] burners=0 OGC_DUMMY=0
+py3.12  obj=54556684  feas=True  Z1=3974.0 Z2=4071 Z3=3908.0  wall=39.44
+# [L2.p39.r1] burners=2 OGC_DUMMY=0
+py3.12  obj=52308158  feas=True  Z1=3814.0 Z2=3648 Z3=3622.0  wall=39.42
+# [L4.p39.r1] burners=4 OGC_DUMMY=0
+py3.12  obj=53066629  feas=True  Z1=3865.0 Z2=2492 Z3=3824.0  wall=41.54
+# [N4.p39.r1] burners=4 OGC_MGATE=0
+py3.12  obj=57532930  feas=True  Z1=4194.0 Z2=364 Z3=4034.0  wall=40.62
+# [L0.p2.r1] burners=0 OGC_DUMMY=0
+py3.12  obj=59783816  feas=True  Z1=4410.0 Z2=2609 Z3=6499.0  wall=53.42
+# [L2.p2.r1] burners=2 OGC_DUMMY=0
+py3.12  obj=58444637  feas=True  Z1=4295.0 Z2=2913 Z3=7785.0  wall=54.79
+# [L4.p2.r1] burners=4 OGC_DUMMY=0
+py3.12  obj=60953789  feas=True  Z1=4487.0 Z2=3417 Z3=7433.0  wall=45.75
+# [N4.p2.r1] burners=4 OGC_MGATE=0
+py3.12  obj=62051061  feas=True  Z1=4567.0 Z2=4400 Z3=7611.0  wall=43.06
+# [L0.p25.r2] burners=0 OGC_DUMMY=0
+py3.12  obj=4255755887  feas=True  Z1=638329.0 Z2=4111 Z3=0.0  wall=55.23
+# [L2.p25.r2] burners=2 OGC_DUMMY=0
+py3.12  obj=4255755887  feas=True  Z1=638329.0 Z2=4111 Z3=0.0  wall=55.14
+# [L4.p25.r2] burners=4 OGC_DUMMY=0
+py3.12  obj=4255755887  feas=True  Z1=638329.0 Z2=4111 Z3=0.0  wall=55.16
+# [N4.p25.r2] burners=4 OGC_MGATE=0
+py3.12  obj=4255755887  feas=True  Z1=638329.0 Z2=4111 Z3=0.0  wall=55.16
+# [L0.p36.r2] burners=0 OGC_DUMMY=0
+py3.12  obj=75872841  feas=True  Z1=10633.0 Z2=5030 Z3=6222.0  wall=46.33
+# [L2.p36.r2] burners=2 OGC_DUMMY=0
+py3.12  obj=76324079  feas=True  Z1=10610.0 Z2=9 Z3=6984.0  wall=54.00
+# [L4.p36.r2] burners=4 OGC_DUMMY=0
+py3.12  obj=4023023953  feas=True  Z1=603423.0 Z2=2812 Z3=0.0  wall=55.21
+# [N4.p36.r2] burners=4 OGC_MGATE=0
+py3.12  obj=96651480  feas=True  Z1=13555.0 Z2=1895 Z3=7848.0  wall=55.59
+# [L0.p13.r2] burners=0 OGC_DUMMY=0
+py3.12  obj=67433655  feas=True  Z1=9230.0 Z2=2845 Z3=7368.0  wall=47.06
+# [L2.p13.r2] burners=2 OGC_DUMMY=0
+py3.12  obj=68921195  feas=True  Z1=9489.0 Z2=432 Z3=7072.0  wall=53.36
+# [L4.p13.r2] burners=4 OGC_DUMMY=0
+py3.12  obj=4027473504  feas=True  Z1=604088.0 Z2=18808 Z3=0.0  wall=55.21
+# [N4.p13.r2] burners=4 OGC_MGATE=0
+py3.12  obj=67333435  feas=True  Z1=9074.0 Z2=277 Z3=8546.0  wall=53.13
+# [L0.p39.r2] burners=0 OGC_DUMMY=0
+py3.12  obj=54556684  feas=True  Z1=3974.0 Z2=4071 Z3=3908.0  wall=42.38
+# [L2.p39.r2] burners=2 OGC_DUMMY=0
+py3.12  obj=53066629  feas=True  Z1=3865.0 Z2=2492 Z3=3824.0  wall=40.38
+# [L4.p39.r2] burners=4 OGC_DUMMY=0
+py3.12  obj=53712653  feas=True  Z1=3919.0 Z2=1913 Z3=3642.0  wall=41.87
+# [N4.p39.r2] burners=4 OGC_MGATE=0
+py3.12  obj=57532930  feas=True  Z1=4194.0 Z2=364 Z3=4034.0  wall=40.24
+# [L0.p2.r2] burners=0 OGC_DUMMY=0
+py3.12  obj=60116544  feas=True  Z1=4426.0 Z2=3659 Z3=7267.0  wall=52.38
+# [L2.p2.r2] burners=2 OGC_DUMMY=0
+py3.12  obj=59504906  feas=True  Z1=4386.0 Z2=2192 Z3=6784.0  wall=55.46
+# [L4.p2.r2] burners=4 OGC_DUMMY=0
+py3.12  obj=63126658  feas=True  Z1=4654.0 Z2=2394 Z3=7102.0  wall=46.38
+# [N4.p2.r2] burners=4 OGC_MGATE=0
+py3.12  obj=66840534  feas=True  Z1=4930.0 Z2=3161 Z3=7308.0  wall=53.99
+CLIFFEDGEDONE
+# RESULT, and the budget makes it moot for this competition: the user confirms the finals budget
+# is not 60 s, so nothing below needs acting on before the deadline.  Recorded because it is a
+# real, reproducible property of the shipped build.
+#
+#     inst  L0(quiet)        L2            L4(4 burners)      N4(4 burners, MGATE=0)
+#     P25   4,255,755,887   4,255,755,887  4,255,755,887      4,255,755,887
+#     P36      76,324,079      77,676,046  4,023,023,953 +5171%   96,962,397 +27%
+#     P13      67,433,655      68,921,195  4,027,473,504 +5872%   86,309,865 +28%
+#     P39      54,556,684      52,308,158     53,066,629  -2.7%   57,532,930  +5.5%
+#     P2       59,783,816      58,444,637     60,953,789  +2.0%   62,051,061  +3.8%
+#
+# TWO SEPARATE THINGS.
+#
+# 1. prob_25 floors at 60 s WITH NO LOAD, and identically with MGATE off, so the gate is not the
+#    cause there.  The fingerprint is Z3 = 0.0 exactly with Z1 = 638,329: _safe_sequential places
+#    every block in its most-preferred bay, so Z3 collapses to zero and tardiness explodes.  It
+#    exits feas=True at wall 55.13 with no signal.  prob_25 has the highest peak_util of the 40
+#    (6.26), and at 60 s no worker completes.
+#
+# 2. prob_36 and prob_13 floor only under 4-way contention, and OGC_MGATE=0 prevents it (+27-28%
+#    instead of +5000%).  That is exactly the pre-registered "floor in L4 but not N4 makes
+#    OGC_MGATET the fix" branch.
+#
+# WHAT THIS DOES NOT OVERTURN.  The user's objection stands and is now precisely bounded: three
+# graded entries have carried MGATE with zero floors, so on the hidden set at its real budget this
+# does not fire.  What changed is that the floor is demonstrably REACHABLE rather than
+# hypothetical -- "we were fine" and "it is safe" are different claims, and only the first is
+# supported.
+#
+# Stopped at 30 of 40 cells; the remaining cells are P39/P2 replicate 2, which showed no floor in
+# replicate 1.

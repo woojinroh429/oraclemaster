@@ -1,0 +1,5 @@
+  case                       ncol     edges        old build new build speedup  verdict
+  prob_3 s6 n10 e1           11580    4004000      11.8      8.6       1.37x    SAME GRAPH
+  prob_3 s4 n20 e2           24318    18789635     56.9      40.8      1.40x    SAME GRAPH
+  prob_3 s4 n40 e6           30017    31858161     89.6      68.2      1.31x    SAME GRAPH
+  prob_6 s6 n10 e1           no incumbent

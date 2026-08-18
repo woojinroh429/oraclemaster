@@ -1,0 +1,31 @@
+   draw 1   obj=28261134     at 14s
+   draw 33  obj=28194724     at 458s
+P6  GRASP k=3  42 draws in 585s   best obj=28194724    Z1=4016.0  Z2=2569  Z3=9330.0
+P6  GRASP k=3  polished     obj=28136957    Z1=4017.0  Z2=1921  Z3=8935.0  feasible=True
+   -> -0.00% vs the fixed-order 28,138,113
+   draw 1   obj=28261134     at 14s
+   draw 2   obj=28248683     at 27s
+   draw 16  obj=28145428     at 215s
+   draw 20  obj=28110759     at 269s
+   draw 34  obj=27887068     at 466s
+P6  GRASP k=6  43 draws in 590s   best obj=27887068    Z1=3944.0  Z2=5290  Z3=10334.0
+P6  GRASP k=6  polished     obj=27786975    Z1=3945.0  Z2=4845  Z3=9646.0  feasible=True
+   -> -1.25% vs the fixed-order 28,138,113
+   draw 1   obj=28436084     at 14s
+   draw 25  obj=28316848     at 341s
+   draw 33  obj=28259320     at 446s
+   draw 42  obj=28111254     at 571s
+P6  GRASP k=3  43 draws in 585s   best obj=28111254    Z1=3988.0  Z2=1351  Z3=10083.0
+P6  GRASP k=3  polished     obj=28021824    Z1=3988.0  Z2=1441  Z3=9482.0  feasible=True
+   -> -0.41% vs the fixed-order 28,138,113
+GRASP-DONE
+   draw 1   obj=12121880     at 5s
+   draw 2   obj=11901455     at 10s
+   draw 3   obj=11446792     at 15s
+   draw 4   obj=11315517     at 20s
+   draw 5   obj=10832316     at 25s
+   draw 43  obj=10631125     at 213s
+P5  GRASP k=3  77 draws in 381s   best obj=10631125    Z1=731.0   Z2=3627  Z3=6461.0
+P5  GRASP k=3  polished     obj=10537682    Z1=731.0   Z2=3160  Z3=5783.0  feasible=True
+   -> -62.55% vs the fixed-order 28,138,113
+GRASP5-DONE

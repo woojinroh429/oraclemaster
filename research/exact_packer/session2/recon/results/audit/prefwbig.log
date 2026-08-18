@@ -1,0 +1,13 @@
+# [pb.0.0.r1]
+WSTAT round=0 n=4 809743 837175 856554 745782  spread=14.85%
+P1  [pb.0.0.r1]    120s  obj=745782      Z1=42.0     Z2=7456   Z3=739.0     feas=y   ran 79s  py3.12
+# [pb.1e2.r1]
+WSTAT round=0 n=4 832124 793042 809570 735645  spread=13.11%
+P1  [pb.1e2.r1]    120s  obj=735645      Z1=42.0     Z2=6677   Z3=726.0     feas=y   ran 80s  py3.12
+# [pb.1e3.r1]
+WSTAT round=0 n=4 689522 845645 898554 914067  spread=32.57%
+P1  [pb.1e3.r1]    120s  obj=689522      Z1=32.0     Z2=4526   Z3=771.0     feas=y   ran 79s  py3.12
+# [pb.1e4.r1]
+WSTAT round=0 n=4 769702 820906 814162 914067  spread=18.76%
+P1  [pb.1e4.r1]    120s  obj=764551      Z1=43.0     Z2=5690   Z3=768.0     feas=y   ran 82s  py3.12
+# [pb.1e5.r1]

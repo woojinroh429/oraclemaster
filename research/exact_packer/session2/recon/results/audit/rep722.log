@@ -1,0 +1,5 @@
+P7  [ctl.7.r1]     180s  obj=815390      Z1=43.0     Z2=703    Z3=1581.0    feas=y   ran 159s  py3.12
+P7  [mix.7.r1]     180s  obj=953242      Z1=58.0     Z2=1554   Z3=1127.0    feas=y   ran 152s  py3.12
+P22 [ctl.22.r1]    180s  obj=4929        Z1=4.0      Z2=1053   Z3=84.0      feas=y   ran 179s  py3.12
+P22 [mix.22.r1]    180s  obj=4929        Z1=4.0      Z2=1053   Z3=84.0      feas=y   ran 179s  py3.12
+P7  [ctl.7.r2]     180s  obj=831362      Z1=45.0     Z2=1511   Z3=1472.0    feas=y   ran 179s  py3.12

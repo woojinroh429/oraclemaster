@@ -1,0 +1,54 @@
+Traceback (most recent call last):
+  File "<string>", line 4, in <module>
+AssertionError: the nent=6 tier is not in the table
+Traceback (most recent call last):
+  File "<string>", line 4, in <module>
+AssertionError: the nent=6 tier is not in the table
+Traceback (most recent call last):
+  File "<string>", line 4, in <module>
+AssertionError: the nent=6 tier is not in the table
+Traceback (most recent call last):
+  File "<string>", line 4, in <module>
+AssertionError: the nent=6 tier is not in the table
+Traceback (most recent call last):
+  File "<string>", line 4, in <module>
+AssertionError: the nent=6 tier is not in the table
+Traceback (most recent call last):
+  File "<string>", line 4, in <module>
+AssertionError: the nent=6 tier is not in the table
+Traceback (most recent call last):
+  File "<string>", line 4, in <module>
+AssertionError: the nent=6 tier is not in the table
+Traceback (most recent call last):
+  File "<string>", line 4, in <module>
+AssertionError: the nent=6 tier is not in the table
+Traceback (most recent call last):
+  File "<string>", line 4, in <module>
+AssertionError: the nent=6 tier is not in the table
+Traceback (most recent call last):
+  File "<string>", line 4, in <module>
+AssertionError: the nent=6 tier is not in the table
+Traceback (most recent call last):
+  File "<string>", line 4, in <module>
+AssertionError: the nent=6 tier is not in the table
+Traceback (most recent call last):
+  File "<string>", line 4, in <module>
+AssertionError: the nent=6 tier is not in the table
+Traceback (most recent call last):
+  File "<string>", line 4, in <module>
+AssertionError: the nent=6 tier is not in the table
+Traceback (most recent call last):
+  File "<string>", line 4, in <module>
+AssertionError: the nent=6 tier is not in the table
+Traceback (most recent call last):
+  File "<string>", line 4, in <module>
+AssertionError: the nent=6 tier is not in the table
+Traceback (most recent call last):
+  File "<string>", line 4, in <module>
+AssertionError: the nent=6 tier is not in the table
+Traceback (most recent call last):
+  File "<string>", line 4, in <module>
+AssertionError: the nent=6 tier is not in the table
+# The SessionStart keepalive hook kept relaunching this finished queue; each relaunch appended the
+# same AssertionError. RESUME set to idle so it stops. Competition work is done -- the submitted
+# artifact is OGC2026_gate_endpad.zip (69,827,705) and the box is not needed.

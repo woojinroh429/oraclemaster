@@ -1,0 +1,14 @@
+arms built: slice rule present, default off; swx arm carries the worker override
+=== sf2_on_p6.log (slice on P6) 10:02:09
+P6  slice on P6    900s  obj=30056673    Z1=4383.0   Z2=2589   Z3=5430.0    feas=y   ran 900s
+=== sf2_off_p6.log (slice off P6) 10:17:10
+P6  slice off P6   900s  obj=29763890    Z1=4334.0   Z2=3264   Z3=5620.0    feas=y   ran 900s
+=== sf2_sx_p6.log (slice+swx P6) 10:32:11
+P6  slice+swx P6   900s  obj=29690916    Z1=4320.0   Z2=972    Z3=5878.0    feas=y   ran 902s
+=== sf2_on_p3.log (slice on P3) 10:47:13
+P3  slice on P3    240s  obj=80795       Z1=0.0      Z2=3469   Z3=423.0     feas=y   ran 239s
+=== sf2_on_p4.log (slice on P4) 10:51:12
+P4  slice on P4    480s  obj=1781181     Z1=88.0     Z2=2561   Z3=3933.0    feas=y   ran 455s
+=== sf2_on_p5.log (slice on P5) 10:58:47
+P5  slice on P5    600s  obj=9044458     Z1=639.0    Z2=2487   Z3=3814.0    feas=y   ran 599s
+slicefix done 11:08:47

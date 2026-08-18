@@ -1,0 +1,24 @@
+# [r1.p16.off]
+WSTAT round=0 n=4 3072065 3495836 3011457 4554750  spread=51.25%
+PARFILL round=1 parity=even even=3011457 odd=3495836 wids=[16, 18, 20, 22]
+FILL round=1 budget=61 moved=0 best=2971117
+P16 [r1.p16.off]   240s  obj=2971117     Z1=125.0    Z2=1164   Z3=5204.0    feas=y   ran 240s  py3.12
+# [r1.p16.dir]
+WSTAT round=0 n=4 3005700 3233601 2754882 4330375  spread=57.19%
+PARFILL round=1 parity=even even=2754882 odd=3233601 wids=[16, 18, 20, 22]
+FILL round=1 budget=65 moved=0 best=2744131
+P16 [r1.p16.dir]   240s  obj=2744131     Z1=119.0    Z2=1918   Z3=4607.0    feas=y   ran 239s  py3.12
+# [r2.p16.off]
+WSTAT round=0 n=4 3333973 3469962 3274915 4554750  spread=39.08%
+PARFILL round=1 parity=even even=3274915 odd=3469962 wids=[16, 18, 20, 22]
+FILL round=1 budget=63 moved=0 best=3271810
+P16 [r2.p16.off]   240s  obj=3271810     Z1=154.0    Z2=1676   Z3=4854.0    feas=y   ran 240s  py3.12
+# [r2.p16.dir]
+WSTAT round=0 n=4 2863044 3233601 3060578 4330375  spread=51.25%
+PARFILL round=1 parity=even even=2863044 odd=3233601 wids=[16, 18, 20, 22]
+FILL round=1 budget=61 moved=0 best=2852017
+P16 [r2.p16.dir]   240s  obj=2852017     Z1=128.0    Z2=1131   Z3=4568.0    feas=y   ran 240s  py3.12
+# [r1.p16s.off]
+WSTAT round=0 n=4 4225783 3848784 4469268 4413229  spread=16.12%
+P16 [r1.p16s.off]    60s  obj=3848784     Z1=205.0    Z2=1173   Z3=4448.0    feas=y   ran 48s  py3.12
+# [r1.p16s.dir]

@@ -1,0 +1,28 @@
+# [c.p1.ctl.r1]
+P1  [c.p1.ctl.r1]   120s  obj=515621      Z1=23.0     Z2=5760   Z3=575.0     feas=y   ran 79s  py3.12
+# [c.p1.rt.r1]
+P1  [c.p1.rt.r1]   120s  obj=530906      Z1=23.0     Z2=6655   Z3=596.0     feas=y   ran 79s  py3.12
+# [c.p1.ctl.r2]
+P1  [c.p1.ctl.r2]   120s  obj=515621      Z1=23.0     Z2=5760   Z3=575.0     feas=y   ran 79s  py3.12
+# [c.p1.rt.r2]
+P1  [c.p1.rt.r2]   120s  obj=490037      Z1=20.0     Z2=6899   Z3=560.0     feas=y   ran 80s  py3.12
+# [c.p1.ctl.r3]
+P1  [c.p1.ctl.r3]   120s  obj=515621      Z1=23.0     Z2=5760   Z3=575.0     feas=y   ran 79s  py3.12
+# [c.p1.rt.r3]
+P1  [c.p1.rt.r3]   120s  obj=534661      Z1=22.0     Z2=6129   Z3=616.0     feas=y   ran 85s  py3.12
+# [c.p1.ctl.r4]
+P1  [c.p1.ctl.r4]   120s  obj=515621      Z1=23.0     Z2=5760   Z3=575.0     feas=y   ran 79s  py3.12
+# [c.p1.rt.r4]
+P1  [c.p1.rt.r4]   120s  obj=489608      Z1=8.0      Z2=5824   Z3=698.0     feas=y   ran 79s  py3.12
+# [c.p1.ctl.r5]
+P1  [c.p1.ctl.r5]   120s  obj=515621      Z1=23.0     Z2=5760   Z3=575.0     feas=y   ran 79s  py3.12
+# [c.p1.rt.r5]
+P1  [c.p1.rt.r5]   120s  obj=530906      Z1=23.0     Z2=6655   Z3=596.0     feas=y   ran 79s  py3.12
+# [c.p1.ctl.r6]
+P1  [c.p1.ctl.r6]   120s  obj=515621      Z1=23.0     Z2=5760   Z3=575.0     feas=y   ran 79s  py3.12
+# [c.p1.rt.r6]
+P1  [c.p1.rt.r6]   120s  obj=534661      Z1=22.0     Z2=6129   Z3=616.0     feas=y   ran 82s  py3.12
+# [c.p3.ctl.r1]
+P3  [c.p3.ctl.r1]   120s  obj=4421578     Z1=158.0    Z2=7205   Z3=7213.0    feas=y   ran 87s  py3.12
+# [c.p3.rt.r1]
+P3  [c.p3.rt.r1]   120s  obj=18590727    Z1=4756.0   Z2=16203  Z3=4926.0    feas=y   ran 82s  py3.12

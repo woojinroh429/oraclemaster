@@ -1,0 +1,17 @@
+    brk tier: room=48s rate=6.4e-08 -> tier 3 (step 6 nout 10 nent 1) ncol~12574 pred=10.1s  [hard=56 slice=19s]
+    brk tier: room=48s rate=6.4e-08 -> tier 3 (step 6 nout 10 nent 1) ncol~12574 pred=10.1s  [hard=56 slice=19s]
+    brk tier: room=47s rate=6.4e-08 -> tier 3 (step 6 nout 10 nent 1) ncol~12574 pred=10.1s  [hard=56 slice=19s]
+    brk tier: room=47s rate=6.4e-08 -> tier 3 (step 6 nout 10 nent 1) ncol~12574 pred=10.1s  [hard=56 slice=19s]
+    brk cost: ncol~12574 real_ncol=12596 build=3.0s ask=47.7s total=47.8s
+    brk cost: tier 3 ncol~12574 real_ncol=12596 build=3.0s total=47.8s  -> rate 1.868e-08 s/col^2
+    brk[pressure] tgt=0 res=65 outs=1 packer admitted NO outsider (seated 65 of 66 columns offered)
+    brk cost: ncol~12574 real_ncol=12582 build=3.0s ask=47.5s total=47.5s
+    brk cost: tier 3 ncol~12574 real_ncol=12582 build=3.0s total=47.5s  -> rate 1.868e-08 s/col^2
+    brk[pressure] tgt=0 res=65 outs=1 packer admitted NO outsider (seated 65 of 66 columns offered)
+    brk cost: ncol~12574 real_ncol=12599 build=3.1s ask=47.4s total=47.5s
+    brk cost: tier 3 ncol~12574 real_ncol=12599 build=3.1s total=47.5s  -> rate 1.961e-08 s/col^2
+    brk[pressure] tgt=0 res=65 outs=1 packer admitted NO outsider (seated 65 of 66 columns offered)
+    brk cost: ncol~12574 real_ncol=12548 build=3.2s ask=47.2s total=47.2s
+    brk cost: tier 3 ncol~12574 real_ncol=12548 build=3.2s total=47.2s  -> rate 2.037e-08 s/col^2
+    brk[pressure] tgt=0 res=65 outs=1 packer admitted NO outsider (seated 65 of 66 columns offered)
+P2  sixfix P2      120s  obj=31368       Z1=0.0      Z2=3342   Z3=90.0      feas=y   ran 119s

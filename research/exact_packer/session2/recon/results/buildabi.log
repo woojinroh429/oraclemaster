@@ -1,0 +1,17 @@
+  make ogc_fast.cpython-310-x86_64-linux-gnu.so  <- ogc_fast.cpp @ 60ace76cd6fb
+  make ogc_fast.cpython-311-x86_64-linux-gnu.so  <- ogc_fast.cpp @ 60ace76cd6fb
+  make ogc_fast.cpython-312-x86_64-linux-gnu.so  <- ogc_fast.cpp @ 60ace76cd6fb
+  make ogc_fast.cpython-313-x86_64-linux-gnu.so  <- ogc_fast.cpp @ 60ace76cd6fb
+  make cranepack.cpython-310-x86_64-linux-gnu.so  <- cranepack.cpp @ fa2b658b6bae
+  make cranepack.cpython-311-x86_64-linux-gnu.so  <- cranepack.cpp @ fa2b658b6bae
+  ok   cranepack.cpython-312-x86_64-linux-gnu.so  already at fa2b658b6bae
+  make cranepack.cpython-313-x86_64-linux-gnu.so  <- cranepack.cpp @ fa2b658b6bae
+== stamps ==
+  OK    ogc_fast.cpython-310-x86_64-linux-gnu.so  60ace76cd6fb
+  OK    ogc_fast.cpython-311-x86_64-linux-gnu.so  60ace76cd6fb
+  OK    ogc_fast.cpython-312-x86_64-linux-gnu.so  60ace76cd6fb
+  OK    ogc_fast.cpython-313-x86_64-linux-gnu.so  60ace76cd6fb
+  OK    cranepack.cpython-310-x86_64-linux-gnu.so  fa2b658b6bae
+  OK    cranepack.cpython-311-x86_64-linux-gnu.so  fa2b658b6bae
+  OK    cranepack.cpython-312-x86_64-linux-gnu.so  fa2b658b6bae
+  OK    cranepack.cpython-313-x86_64-linux-gnu.so  fa2b658b6bae

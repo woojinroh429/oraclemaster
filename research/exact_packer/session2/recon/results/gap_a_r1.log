@@ -1,0 +1,17 @@
+    brk tier: room=98s rate=6.4e-08 -> tier 0 (step 4 nout 40 nent 6) ncol~30782 pred=60.6s  [hard=115 slice=40s]
+    brk tier: room=97s rate=6.4e-08 -> tier 0 (step 4 nout 40 nent 6) ncol~31142 pred=62.1s  [hard=114 slice=40s]
+    brk tier: room=95s rate=6.4e-08 -> tier 0 (step 4 nout 40 nent 6) ncol~30782 pred=60.6s  [hard=112 slice=40s]
+    brk tier: room=95s rate=6.4e-08 -> tier 0 (step 4 nout 40 nent 6) ncol~30782 pred=60.6s  [hard=112 slice=40s]
+    brk cost: ncol~30782 real_ncol=30356 build=61.9s ask=97.7s total=98.6s
+    brk cost: tier 0 ncol~30782 real_ncol=30356 build=61.9s total=98.6s  -> rate 6.536e-08 s/col^2
+    brk cost: ncol~31142 real_ncol=30632 build=63.1s ask=96.7s total=97.6s
+    brk cost: tier 0 ncol~31142 real_ncol=30632 build=63.1s total=97.6s  -> rate 6.509e-08 s/col^2
+    brk cost: ncol~30782 real_ncol=30462 build=63.2s ask=95.2s total=95.8s
+    brk cost: tier 0 ncol~30782 real_ncol=30462 build=63.2s total=95.8s  -> rate 6.671e-08 s/col^2
+    brk cost: ncol~30782 real_ncol=30342 build=63.5s ask=95.4s total=96.1s
+    brk cost: tier 0 ncol~30782 real_ncol=30342 build=63.5s total=96.1s  -> rate 6.703e-08 s/col^2
+    brk[pressure] tgt=0 res=53 outs=17 admitted 6, displaced 3, obj 84990 vs base 100935 -> KEEP
+    brk[pressure] tgt=0 res=54 outs=16 admitted 6, displaced 4, obj 83095 vs base 107195 -> KEEP
+    brk[pressure] tgt=0 res=53 outs=17 admitted 5, displaced 2, obj 87410 vs base 96990 -> KEEP
+    brk[pressure] tgt=0 res=54 outs=17 admitted 1, displaced 1, obj 100110 vs base 106700 -> KEEP
+P3  gap A nosub r1   240s  obj=80795       Z1=0.0      Z2=3469   Z3=423.0     feas=y   ran 239s

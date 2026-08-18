@@ -1,0 +1,39 @@
+BUILD INSTRUCTIONS
+==================
+
+The .so files in this zip are ALREADY COMPILED and no build step is required to run the
+algorithm.  The rules state that server-side compilation is not performed.
+
+WHY FOUR COPIES OF EACH EXTENSION.  A CPython extension carries the interpreter's ABI tag in its
+filename, so ogc_fast.cpython-312-....so is invisible to Python 3.11.  myalgorithm catches the
+ImportError and falls back to a pure-Python path that still returns a legal solution -- roughly
+45x worse, with no error anywhere.  Shipping 3.10 / 3.11 / 3.12 / 3.13 removes that failure mode
+whatever the evaluation image turns out to be; the four files coexist and Python picks its own.
+
+CONTENTS
+--------
+    myalgorithm.py    entry point.  algorithm(prob_info, timelimit) -> solution dict
+    bayrepack.py      the exact bay-repacking operator (pure Python; calls cranepack)
+    utils.py          unmodified copy of the provided module
+    ogc_fast.cpython-3{10,11,12,13}-x86_64-linux-gnu.so    construction engine
+    cranepack.cpython-3{10,11,12,13}-x86_64-linux-gnu.so   set-packing solver
+    ogc_fast.cpp / cranepack.cpp                           sources for the above
+
+REBUILDING (only if the binaries need to be regenerated)
+-------------------------------------------------------
+Requires g++ with C++17 and OpenMP, and pybind11 (pip install pybind11).  Run beside the sources;
+the .so files must end up next to myalgorithm.py, which imports them by name.
+
+    g++ -O3 -shared -std=c++17 -fPIC -fopenmp $(python3 -m pybind11 --includes) \
+        ogc_fast.cpp  -o ogc_fast$(python3-config --extension-suffix)
+    g++ -O3 -shared -std=c++17 -fPIC -fopenmp $(python3 -m pybind11 --includes) \
+        cranepack.cpp -o cranepack$(python3-config --extension-suffix)
+
+Without OpenMP, drop -fopenmp: the pragmas become no-ops.  cranepack's conflict-graph build is
+parallel and falls back to the serial path with one thread; CRANEPACK_SERIAL=1 forces it, and
+both produce the same graph (verified by edge count, 133,863,098 on a 43,320-column build).
+
+DEPENDENCIES
+------------
+numpy and ortools are used.  pyclipper and scipy are optional -- absent, the code takes an
+equivalent path that does not need them.

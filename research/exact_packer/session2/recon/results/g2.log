@@ -1,0 +1,16 @@
+   draw 1   k=3 obj=28261134     at 14s
+   draw 8   k=3 obj=28255886     at 110s
+P6  GRASP2 43 draws in 592s   k weights 3:2.25 4:2.60 6:1.04 8:1.27   best build=28255886
+   finalist build=28255886    short-polish=28138953   
+   finalist build=28261134    short-polish=28162286   
+   finalist build=28426895    short-polish=28384120   
+   finalist build=28429893    short-polish=28387261   
+P6  GRASP2 final  obj=28129619    Z1=4019.0  Z2=1062  Z3=8843.0  feasible=True
+   draw 1   k=8 obj=28261134     at 14s
+   draw 20  k=8 obj=28115767     at 273s
+P6  GRASP2 43 draws in 591s   k weights 3:5.43 4:4.89 6:2.00 8:1.44   best build=28115767
+   finalist build=28115767    short-polish=28079547   
+   finalist build=28261134    short-polish=28162286   
+   finalist build=28405766    short-polish=28369244   
+   finalist build=28464345    short-polish=28362749   
+P6  GRASP2 final  obj=28064353    Z1=3995.0  Z2=2086  Z3=9420.0  feasible=True

@@ -1,0 +1,83 @@
+# [H.p1.r1]
+P1  [H.p1.r1]       60s  obj=531403      Z1=16.0     Z2=7377   Z3=671.0     feas=y   ran 57s  py3.12
+# [H.p3.r1]
+P3  [H.p3.r1]       60s  obj=4517165     Z1=132.0    Z2=8189   Z3=7542.0    feas=y   ran 57s  py3.12
+# [H.p27.r1]
+P27 [H.p27.r1]      60s  obj=766645      Z1=102.0    Z2=649    Z3=792.0     feas=y   ran 57s  py3.12
+# [H.p16.r1]
+P16 [H.p16.r1]      60s  obj=4014357     Z1=217.0    Z2=782    Z3=4475.0    feas=y   ran 59s  py3.12
+# [H.p7.r1]
+P7  [H.p7.r1]       60s  obj=1109926     Z1=69.0     Z2=1657   Z3=1189.0    feas=y   ran 59s  py3.12
+# [H.p33.r1]
+P33 [H.p33.r1]      60s  obj=1254886     Z1=101.0    Z2=391    Z3=2890.0    feas=y   ran 59s  py3.12
+# [H.p1.r2]
+P1  [H.p1.r2]       60s  obj=531403      Z1=16.0     Z2=7377   Z3=671.0     feas=y   ran 57s  py3.12
+# [H.p3.r2]
+P3  [H.p3.r2]       60s  obj=4517165     Z1=132.0    Z2=8189   Z3=7542.0    feas=y   ran 56s  py3.12
+# [H.p27.r2]
+P27 [H.p27.r2]      60s  obj=625047      Z1=85.0     Z2=1231   Z3=625.0     feas=y   ran 59s  py3.12
+# [H.p16.r2]
+P16 [H.p16.r2]      60s  obj=4155999     Z1=246.0    Z2=3277   Z3=3465.0    feas=y   ran 57s  py3.12
+# [H.p7.r2]
+P7  [H.p7.r2]       60s  obj=1193854     Z1=74.0     Z2=266    Z3=1369.0    feas=y   ran 59s  py3.12
+# [H.p33.r2]
+
+VERDICT -- probe
+================
+CAPPING THE FIRST TRY WINS prob_1 AND LOSES THE BAND.  STOPPED EARLY; THE SIGN WAS NOT IN DOUBT.
+
+        B (0.05)     H (0.05 + PROBE=2)         delta
+  P1      571,668    531,403 / 531,403         - 7.0%   deterministic, both draws
+  P3    4,468,072  4,517,165 / 4,517,165       + 1.1%
+  P27     692,860    766,645 /   625,047       +10.6% / -9.8%
+  P16   3,022,891  4,014,357 / 4,155,999       +32.8% / +37.5%
+  P7      749,573  1,109,926 / 1,193,854       +48.1% / +59.3%
+  P33     933,974  1,254,886                   +34.4%
+
+THE PRE-REGISTERED FAILURE MODE IS EXACTLY WHAT HAPPENED, and the smoke had already shown it: with
+cheap probes the OPSTAT profile came back with grow holding 90.7% of the budget and beam at 0.0 s.
+Selection is `max(gain[i]/spent[i])`, and whichever operator first escapes the floor books the whole
+floor-to-solution jump -- 978,969,222 on prob_1, against a final objective near 500,000 and against
+pref's 155,451.  The winner of that race outranks every other operator by four orders of magnitude
+for the rest of the run.
+
+So a cheaper probe does not redistribute budget toward what pays; it changes WHO WINS THE RACE, and
+the winner then takes everything.  On prob_1 the new winner was better by 7%.  On prob_7 it was
+worse by 59%.
+
+WHAT THIS ESTABLISHES FOR THE NEXT ARM.  A 30-60% swing from a two-second change to the opening
+slice is not a tuning result; it is evidence that operator selection is decided by one accounting
+artefact.  Not crediting the floor escape is what makes gain/spent mean marginal payoff again --
+pref returns 36,262/s and grow 268/s on prob_1, numbers that currently have no influence at all
+because both are invisible beside 978,969,222.
+
+OGC_PROBE stays in the file at default 0 (off, byte-identical).  It is the instrument that found
+this and is one env away if the gain fix changes its sign.
+
+RETRACTION -- probe.log IS VOID
+===============================
+OGC_PROBE WAS ALREADY TAKEN.  It is the repair passes' opening slice, a FRACTION of the budget
+clamped to [0.005, 0.50], defaulting to 1/(2n):
+
+    _pf = min(0.50, max(0.005, float(_pv)))
+    _rep = (1.0 / (2.0 * len(ops))) if _pf is None else _pf
+    slot = [budget * (0.20 if o[3] else _rep) for o in ops]
+
+The knob added today read the same name.  So every cell in this file ran with OGC_PROBE=2 meaning
+BOTH "cap the first try at 2 s" AND "open every repair operator at 50% of the budget" -- six times
+the 1/12 default.  The 30-60% losses on prob_7, prob_16 and prob_33 cannot be attributed to the
+first-try cap, and the conclusion drawn from them -- that cheap probes change who wins the
+floor-escape race -- has no support from this data.
+
+THE IDEA WAS ALSO NOT NEW.  The pre-existing note at the same site records a previous session
+running OGC_OPSTAT on prob_1 at 240 s, finding bay and z1 taking 21.3% of the worker for nothing,
+and adding exactly this smaller-first-look for repair passes.  It also records why SEARCH operators
+are deliberately exempt: "a beam either finishes or returns nothing, so a probe-sized slice starves
+it rather than pricing it."  That is the design decision today's arm was unknowingly reversing.
+
+The knob is renamed OGC_FIRSTCAP.  Re-running is possible but the prior is now poor: the exemption
+it fights is documented and reasoned, and gainfair.log's J arm -- the clean half, with no
+OGC_PROBE set -- lost 3.39% on its own.
+
+NOT SHIPPED, AND THE SUBMISSION IS UNAFFECTED.  OGC2026_capfix.zip was built at 13:31, before any
+of this was written; its three OGC_PROBE matches are the pre-existing implementation.

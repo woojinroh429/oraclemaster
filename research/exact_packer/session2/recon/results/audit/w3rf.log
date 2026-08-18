@@ -1,0 +1,67 @@
+# [w.p27.1.0]
+P27 [w.p27.1.0]     60s  obj=765263      Z1=104.0    Z2=1479   Z3=766.0     feas=y   ran 58s  py3.12
+# [w.p27.0.75]
+P27 [w.p27.0.75]    60s  obj=863676      Z1=168.0    Z2=1664   Z3=548.0     feas=y   ran 57s  py3.12
+# [w.p27.1.5]
+P27 [w.p27.1.5]     60s  obj=872422      Z1=136.0    Z2=1094   Z3=772.0     feas=y   ran 56s  py3.12
+# [w.p1.1.0]
+P1  [w.p1.1.0]      60s  obj=578411      Z1=17.0     Z2=6024   Z3=745.0     feas=y   ran 59s  py3.12
+# [w.p1.0.75]
+P1  [w.p1.0.75]     60s  obj=610597      Z1=1.0      Z2=3910   Z3=987.0     feas=y   ran 59s  py3.12
+# [w.p1.1.5]
+P1  [w.p1.1.5]      60s  obj=578411      Z1=17.0     Z2=6024   Z3=745.0     feas=y   ran 59s  py3.12
+# [w.p3.1.0]
+P3  [w.p3.1.0]      60s  obj=4700568     Z1=193.0    Z2=4964   Z3=7547.0    feas=y   ran 59s  py3.12
+# [w.p16.1.0]
+P16 [w.p16.1.0]     60s  obj=3379142     Z1=172.0    Z2=1872   Z3=4321.0    feas=y   ran 56s  py3.12
+# [w.p33.1.0]
+P33 [w.p33.1.0]     60s  obj=1238836     Z1=140.0    Z2=784    Z3=1492.0    feas=y   ran 59s  py3.12
+# [w.p7.1.0]
+P7  [w.p7.1.0]      60s  obj=898793      Z1=48.0     Z2=887    Z3=1684.0    feas=y   ran 59s  py3.12
+# [w.p3.0.75]
+P3  [w.p3.0.75]     60s  obj=4778668     Z1=184.0    Z2=4188   Z3=7760.0    feas=y   ran 56s  py3.12
+# [w.p16.0.75]
+P16 [w.p16.0.75]    60s  obj=3051577     Z1=146.0    Z2=1903   Z3=4397.0    feas=y   ran 56s  py3.12
+# [w.p33.0.75]
+P33 [w.p33.0.75]    60s  obj=1193612     Z1=98.0     Z2=694    Z3=2670.0    feas=y   ran 59s  py3.12
+# [w.p7.0.75]
+P7  [w.p7.0.75]     60s  obj=869489      Z1=48.0     Z2=515    Z3=1506.0    feas=y   ran 59s  py3.12
+W3RFDONE
+
+VERDICT -- w3rf
+===============
+THE ARM FAILS ITS OWN BAR AND THE GATE'S w3mul=0.5 STANDS.  Bar was: replace 0.5 only if the
+band's absolute sum improves AND no current winner flips.  Both arms fail the first clause.
+
+All cells at RESFRAC=0.05, against rfship's 0.05 three-draw medians as reference.
+
+                 ref (0.5)      1.0              0.75             1.5
+   P1              537,403    578,411  + 7.6%   610,597  +13.6%   578,411  +7.6%
+   P3            4,721,428  4,700,568  - 0.4% 4,778,668  + 1.2%        -
+   P7              943,405    898,793  - 4.7%   869,489  - 7.8%        -
+   P16           3,051,577  3,379,142  +10.7% 3,051,577    0.0%        -
+   P27             953,406    765,263  -19.7%   863,676  - 9.4%   872,422  -8.5%
+   P33           1,098,454  1,238,836  +12.8% 1,193,612  + 8.7%        -
+   ---------------------------------------------------------------------------
+   absolute sum 11,305,673 11,561,013 +255,340  11,367,619 +61,946
+
+THE HYPOTHESIS WAS HALF RIGHT AND THAT IS NOT ENOUGH.  It predicted that halving w3 during search
+is what the extra worker seconds dig into, and on P27 that is what the numbers say -- 765,263 at
+w3mul=1.0 is 19.7% below its 0.05 figure and below its 853,896 control median too, which would turn
+the band's one loser into a winner.  P7 agrees mildly at -4.7%.  But P16, P33 and P1 all move the
+other way by 7.6 to 12.8%, and they carry the sum.  Restoring w3 buys one instance and sells three.
+
+A P27-ONLY CARVE-OUT IS THE WRONG LESSON TO DRAW.  peak_util separates P27 (1.132) from P1 (1.016),
+but P7 at 1.271 sits on P27's side of the effect while P16 at 1.231 and P33 at 1.236 straddle it,
+so no single peak_util cut sorts these six.  Fitting a boundary to one instance measured on one
+draw is precisely what produced P27's phantom +30.6% this morning.
+
+THE ATTRACTORS ARE THE MORE USEFUL RESULT.  Three cells returned digit-identical answers with
+identical components across DIFFERENT settings:
+    P16   3,051,577 (Z1 146, Z2 1903, Z3 4397) at w3mul 0.5 twice and at 0.75
+    P3    4,778,668 (Z1 184, Z2 4188, Z3 7760) at w3mul 0.5 and at 0.75
+    P1      578,411 (Z1  17, Z2 6024, Z3  745) at w3mul 1.0 and at 1.5
+The knob moved and the answer did not.  At reserve 0.05 these instances fall into a basin this
+family of knobs cannot steer them out of, which is a direct argument that further single-knob
+sweeps here are spent -- and an argument FOR the draw-count lever rounds05 tests next, since a
+minimum over more draws is the one mechanism that does not depend on steering.

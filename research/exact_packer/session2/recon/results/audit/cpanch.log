@@ -1,0 +1,29 @@
+# [ca.off.r1]
+WSTAT round=0 n=4 515188 697971 537403 681240  spread=35.48%
+P1  [ca.off.r1]    120s  obj=515188      Z1=25.0     Z2=7571   Z3=543.0     feas=y   ran 78s  py3.12
+# [ca.c1.00.t100.r1]
+Traceback (most recent call last):
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 57, in <module>
+    t = time.time(); s = mod.algorithm(d, T); el = time.time() - t
+                         ^^^^^^^^^^^^^^^^^^^
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/myalgorithm.py", line 4279, in algorithm
+    _aw_i = max(_aw, max(_p) - min(_p) + 1.0)   # planned bay must be the maximum
+                                                      ^^^^^^^^^
+IndexError: tuple index out of range
+P1 [ca.c1.00.t100.r1] CRASH rc=1
+# [ca.c1.00.t300.r1]
+WSTAT round=0 n=4 1733013 1873741 1754204 2009992  spread=15.98%
+P1  [ca.c1.00.t300.r1]   120s  obj=1614813     Z1=192.0    Z2=6783   Z3=524.0     feas=y   ran 82s  py3.12
+# [ca.c0.85.t100.r1]
+WSTAT round=0 n=4 792965 482486 863143 994415  spread=106.10%
+P1  [ca.c0.85.t100.r1]   120s  obj=899486      Z1=32.0     Z2=5114   Z3=1118.0    feas=y   ran 77s  py3.12
+# [ca.c0.85.t300.r1]
+WSTAT round=0 n=4 1163588 1163588 1272656 1346782  spread=15.74%
+P1  [ca.c0.85.t300.r1]   120s  obj=1580588     Z1=137.0    Z2=5403   Z3=1085.0    feas=y   ran 77s  py3.12
+# [ca.c0.70.t100.r1]
+WSTAT round=0 n=4 1781705 1636422 1603795 1660747  spread=11.09%
+P1  [ca.c0.70.t100.r1]   120s  obj=703795      Z1=58.0     Z2=7103   Z3=493.0     feas=y   ran 79s  py3.12
+# [ca.c0.70.t300.r1]
+WSTAT round=0 n=4 2569481 3296167 3779400 3027963  spread=47.09%
+P1  [ca.c0.70.t300.r1]   120s  obj=1849481     Z1=254.0    Z2=9621   Z3=212.0     feas=y   ran 82s  py3.12
+# [ca.off.r2]

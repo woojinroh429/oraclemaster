@@ -1,0 +1,13 @@
+[01:42:00] START base-3-myalg_orig
+P3  myalg_orig    240s  obj=106335       Z1=0.0      Z2=4257   Z3=567.0    feasible=True  ran 239s
+[01:46:01] END   base-3-myalg_orig
+[01:46:01] START base-3-myalg_base
+P3  myalg_base    240s  obj=97570        Z1=0.0      Z2=3134   Z3=546.0    feasible=True  ran 239s
+[01:50:01] END   base-3-myalg_base
+[01:50:01] START base-3-myalgorithm
+P3  myalgorithm   240s  obj=90545        Z1=0.0      Z2=2299   Z3=527.0    feasible=True  ran 240s
+[01:54:13] END   base-3-myalgorithm
+[01:54:13] START base-4-myalg_orig
+P4  myalg_orig    480s  obj=2641820      Z1=156.0    Z2=1496   Z3=3676.0   feasible=True  ran 454s
+[02:01:47] END   base-4-myalg_orig
+[02:01:47] START base-4-myalg_base

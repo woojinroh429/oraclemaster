@@ -1,0 +1,81 @@
+# [A.p13.r1] FILLFLOOR=40
+py3.12  obj=69056997  feas=True  Z1=9425.0 Z2=1322 Z3=7774.0  wall=100.92
+# [B.p13.r1] FILLFLOOR=10
+py3.12  obj=69056997  feas=True  Z1=9425.0 Z2=1322 Z3=7774.0  wall=102.94
+# [C.p13.r1] FILLFLOOR=20
+py3.12  obj=68401219  feas=True  Z1=9278.0 Z2=2393 Z3=8178.0  wall=95.64
+# [A.p2.r1] FILLFLOOR=40
+py3.12  obj=59827452  feas=True  Z1=4404.0 Z2=1230 Z3=7360.0  wall=91.91
+# [B.p2.r1] FILLFLOOR=10
+py3.12  obj=59765580  feas=True  Z1=4404.0 Z2=2562 Z3=6912.0  wall=112.91
+# [C.p2.r1] FILLFLOOR=20
+py3.12  obj=57721013  feas=True  Z1=4247.0 Z2=1578 Z3=7263.0  wall=93.33
+# [A.p36.r1] FILLFLOOR=40
+py3.12  obj=75440326  feas=True  Z1=10536.0 Z2=3214 Z3=6492.0  wall=96.15
+# [B.p36.r1] FILLFLOOR=10
+py3.12  obj=77503872  feas=True  Z1=10839.0 Z2=259 Z3=6550.0  wall=115.25
+# [C.p36.r1] FILLFLOOR=20
+py3.12  obj=78928738  feas=True  Z1=11027.0 Z2=529 Z3=6764.0  wall=94.09
+# [A.p26.r1] FILLFLOOR=40
+# RETRACTION AND VERDICT, both from the control arm.
+#
+# 1. THE 60-vs-120 REGRESSION I REPORTED FROM THE AUDIT IS WITHDRAWN.  Arm A here is the audit's
+#    exact 120 s configuration, and the two runs disagree by more than the effect I claimed:
+#
+#        inst   audit A(120s)      ff120 A(120s)     apart
+#        P13     68,679,956    ->   69,056,997       0.55%
+#        P2      61,457,557    ->   59,827,452       2.65%
+#        P36     79,484,298    ->   75,440,326       5.36%
+#
+#    The claimed regressions were +1.85 / +2.23 / +4.76 / +1.96.  Every one is inside the control's
+#    own spread.  I also called P36 a zero-spread instance: that was measured at 60 s (lnshold,
+#    two identical replicates) and does not transfer to 120 s, where it moves 5.36%.
+#
+#    This is the second time today I built a finding on single cells per side -- the -fopenmp
+#    branch was the first, opened on two lucky cells and closed when the control was replicated.
+#    The rule I already knew and did not apply: measure the control's spread before measuring the
+#    effect.
+#
+# 2. ARM B IS REJECTED, and it is rejected by the pre-registered clause rather than by a mean.
+#    B genuinely spends the time -- wall against arm A is +2.0 s on P13, +21.0 s on P2, +19.1 s on
+#    P36, so the gate does open and the fill round does run -- and the objective does not follow:
+#
+#        P13  +0.00%   (byte-identical)      P2  -0.10%      P36  +2.74%
+#
+#    The clause fixed before the run was "an arm that extends the wall without improving the
+#    objective has proved the time was worthless, which closes this branch".  P36 spends 19 extra
+#    seconds and returns a WORSE answer.  The half of the diagnosis that held is that FILLFLOOR=40
+#    was refusing rounds at 120 s; the half that failed is that those rounds were worth anything.
+#
+# 3. SAFETY NOTE, recorded even though the arm is dead: B reached wall 115.25 s against a 120 s
+#    limit on P36, a 4.75 s margin.  Lowering FILLFLOOR trades wall margin, and overrun is
+#    disqualification-class rather than score-class.
+py3.12  obj=25132011  feas=True  Z1=2500.0 Z2=8511 Z3=10570.0  wall=81.26
+# [B.p26.r1] FILLFLOOR=10
+py3.12  obj=24322950  feas=True  Z1=2392.0 Z2=9086 Z3=10458.0  wall=112.77
+# [C.p26.r1] FILLFLOOR=20
+py3.12  obj=24470117  feas=True  Z1=2380.0 Z2=12257 Z3=10738.0  wall=113.32
+# [A.p3.r1] FILLFLOOR=40
+py3.12  obj=4402196  feas=True  Z1=150.0 Z2=9159 Z3=7201.0  wall=78.24
+# [B.p3.r1] FILLFLOOR=10
+py3.12  obj=4421578  feas=True  Z1=158.0 Z2=7205 Z3=7213.0  wall=115.38
+# [C.p3.r1] FILLFLOOR=20
+py3.12  obj=4561326  feas=True  Z1=196.0 Z2=6106 Z3=7252.0  wall=112.30
+# [A.p16.r1] FILLFLOOR=40
+py3.12  obj=2891641  feas=True  Z1=133.0 Z2=1284 Z3=4458.0  wall=80.47
+# [B.p16.r1] FILLFLOOR=10
+py3.12  obj=2902091  feas=True  Z1=133.0 Z2=1184 Z3=4501.0  wall=112.48
+# [C.p16.r1] FILLFLOOR=20
+py3.12  obj=2885991  feas=True  Z1=132.0 Z2=1595 Z3=4485.0  wall=112.55
+# [A.p20.r1] FILLFLOOR=40
+# VERDICT: REJECTED, and stopped after replicate 1's first six instances.
+#     B (FILLFLOOR 10)  mean +0.04%  2W/3L      C (FILLFLOOR 20)  mean +0.16%  4W/2L
+#     max wall 115.38 against a 120 s limit
+# B spends the time it was meant to reclaim -- wall against the control is +21.0 s on P2, +37.2 s
+# on P3, +32.0 s on P16, +31.5 s on P26 -- and the population mean is +0.04%.  That is the
+# pre-registered "the wall extends and the objective does not follow" outcome: the refused rounds
+# were worth nothing.  The 60-vs-120 regression that opened this queue is separately retracted
+# above, the control arm having moved 0.55-5.36% between identical runs.
+# Stopped early because the box was needed for the direction question, which is a 2.03x effect
+# against this queue's 0.04%.
+py3.12  obj=9260204  feas=True  Z1=1176.0 Z2=364 Z3=9446.0  wall=83.34

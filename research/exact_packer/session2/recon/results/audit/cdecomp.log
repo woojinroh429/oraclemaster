@@ -1,0 +1,41 @@
+P1    150 blocks, 3 bays   beam budget 10s, 5 reps
+  A config   1439327 1508112 634127 839811 1494958 1717853
+  B wallclock 1585990 1585990 1585990 1585990 1585990
+  C orderdraw 1585990 894472 894472 899877 894472
+
+  spread   A config 170.90%   B wallclock 0.00%   C orderdraw 77.31%   (88s total)
+  READ: configs separate the workers beyond the timing noise (170.90% over 0.00%).
+  Better and more diverse dispatch orders is then a bounded, aimed change.
+  order randomisation adds +77.31% over the same config held fixed
+
+P6    250 blocks, 4 bays   beam budget 10s, 5 reps
+  A config   6339868 6474077 5314848 6029856 8685764 6418321
+  B wallclock 7135747 6358226 6352635 6654865 6339868
+  C orderdraw 6358226 6517228 6518385 6518385 6517228
+
+  spread   A config 63.42%   B wallclock 12.55%   C orderdraw 2.52%   (92s total)
+  READ: configs separate the workers beyond the timing noise (50.87% over 12.55%).
+  Better and more diverse dispatch orders is then a bounded, aimed change.
+  order randomisation adds -10.03% over the same config held fixed
+
+P16   300 blocks, 5 bays   beam budget 10s, 5 reps
+  A config   6780396 6582417 3076745 5107097 9536362 6533329
+  B wallclock 7340870 6793482 7274173 7247861 6978224
+  C orderdraw 6929797 5589481 6014238 5520347 5589824
+
+  spread   A config 209.95%   B wallclock 8.06%   C orderdraw 25.53%   (93s total)
+  READ: configs separate the workers beyond the timing noise (201.89% over 8.06%).
+  Better and more diverse dispatch orders is then a bounded, aimed change.
+  order randomisation adds +17.47% over the same config held fixed
+
+P26   300 blocks, 2 bays   beam budget 10s, 5 reps
+  A config   27986302 28025547 36132848 36902749 28928802 28831123
+  B wallclock 28455411 28484778 27986749 28145952 28172444
+  C orderdraw 28455411 36640667 37705891 36768067 36160405
+
+  spread   A config 31.86%   B wallclock 1.78%   C orderdraw 32.51%   (100s total)
+  READ: configs separate the workers beyond the timing noise (30.08% over 1.78%).
+  Better and more diverse dispatch orders is then a bounded, aimed change.
+  order randomisation adds +30.73% over the same config held fixed
+
+CDECOMPDONE

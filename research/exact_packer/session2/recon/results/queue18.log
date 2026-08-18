@@ -1,0 +1,9 @@
+
+[STOPPED -- premise removed by the tier measurement]
+
+queue18's floor-24s and reserve-4% arms both ask "how should the budget be split so brk gets
+more".  brkcost then showed the budget is not what brk was short of: its runtime and its gain
+are both step functions of the PROBLEM SIZE, and the slice only mattered because it selected a
+tier.  The floor question is answered outright by choosing the tier from its measured cost
+against the run's remaining time, and the reserve question was premised on brk wanting more
+seconds, which it does not -- 35s and 100s produce the identical result.

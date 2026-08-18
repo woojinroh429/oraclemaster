@@ -1,0 +1,6 @@
+arm and directed operator verified
+=== q28_wish_r1.log  (wish r1)  10:08:18
+P3  wish r1        240s  obj=86670       Z1=0.0      Z2=2874   Z3=482.0     feas=y   ran 239s
+=== q28_ctl_r1.log  (ctl  r1)  10:12:18
+P3  ctl  r1        240s  obj=86665       Z1=0.0      Z2=3023   Z3=477.0     feas=y   ran 239s
+=== q28_wish_r2.log  (wish r2)  10:16:18

@@ -1,0 +1,3 @@
+  case                   ncol      edges     build     speedup   placement
+  prob_3 step=4 nout=40 nent=3 28275     26924021  60.4      0.9x      IDENTICAL
+       slow: build 55.9s  edges 26924021       fast: build 60.4s  edges 26924021

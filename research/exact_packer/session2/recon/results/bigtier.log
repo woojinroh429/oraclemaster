@@ -1,0 +1,7 @@
+=== step=4 nout=40 nent=3   17:13:19
+P3  bt s4 n40 e3   240s  obj=88695       Z1=0.0      Z2=2679   Z3=502.0     feas=y   ran 239s
+=== step=4 nout=40 nent=6   17:17:19
+P3  bt s4 n40 e6   240s  obj=80795       Z1=0.0      Z2=3469   Z3=423.0     feas=y   ran 239s
+=== step=3 nout=40 nent=3   17:21:19
+P3  bt s3 n40 e3   240s  obj=81085       Z1=0.0      Z2=3107   Z3=437.0     feas=y   ran 279s
+bigtier done 17:25:58

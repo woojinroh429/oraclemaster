@@ -1,0 +1,7 @@
+incumbent  obj=86665
+    brk[pressure] tgt=0 res=55 outs=15 packer admitted NO outsider (seated 55 of 70 columns offered)
+  wish=0 call 1  None            (123s)
+  wish=0 total 123s
+    brk[wish] tgt=0 res=55 outs=15 packer admitted NO outsider (seated 55 of 70 columns offered)
+  wish=1 call 1  None            (101s)
+  wish=1 total 101s

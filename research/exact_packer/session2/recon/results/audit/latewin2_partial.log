@@ -1,0 +1,11 @@
+P40 lw0            180s  obj=9313770     Z1=2296.0   Z2=1001   Z3=2074.0    feas=y   ran 161s  py3.12
+P40 lw1            180s  obj=10439611    Z1=2625.0   Z2=2043   Z3=2108.0    feas=y   ran 150s  py3.12
+P26 lw0            180s  obj=27826928    Z1=3004.0   Z2=12060  Z3=9734.0    feas=y   ran 166s  py3.12
+P26 lw1            180s  obj=27662005    Z1=2973.0   Z2=15414  Z3=9782.0    feas=y   ran 157s  py3.12
+P3  lw0            180s  obj=4453117     Z1=172.0    Z2=7405   Z3=7182.0    feas=y   ran 179s  py3.12
+P3  lw1            180s  obj=4432997     Z1=130.0    Z2=4960   Z3=7439.0    feas=y   ran 179s  py3.12
+P4  lw0            180s  obj=2777706     Z1=378.0    Z2=3061   Z3=2819.0    feas=y   ran 164s  py3.12
+P4  lw1            180s  obj=2805059     Z1=376.0    Z2=2616   Z3=2887.0    feas=y   ran 179s  py3.12
+P13 lw0            180s  obj=84962422    Z1=11810.0  Z2=2752   Z3=7778.0    feas=y   ran 179s  py3.12
+P13 lw1            180s  obj=84743117    Z1=11799.0  Z2=5584   Z3=7592.0    feas=y   ran 165s  py3.12
+P36 lw0            180s  obj=94051323    Z1=13367.0  Z2=2334   Z3=6164.0    feas=y   ran 179s  py3.12

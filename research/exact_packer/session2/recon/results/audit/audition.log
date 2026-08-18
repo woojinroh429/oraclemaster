@@ -1,0 +1,1275 @@
+# [beam.a0.4]
+P4  [beam.a0.4]     60s  obj=3072160     Z1=423.0    Z2=1787   Z3=3102.0    feas=y   ran 59s  py3.12
+# [full.a0.4]
+P4  [full.a0.4]    240s  obj=2768578     Z1=379.0    Z2=2914   Z3=2797.0    feas=y   ran 225s  py3.12
+# [beam.a1.4]
+P4  [beam.a1.4]     60s  obj=2860786     Z1=368.0    Z2=1825   Z3=3049.0    feas=y   ran 59s  py3.12
+# [full.a1.4]
+P4  [full.a1.4]    240s  obj=2678682     Z1=384.0    Z2=3668   Z3=2590.0    feas=y   ran 239s  py3.12
+# [beam.a2.4]
+P4  [beam.a2.4]     60s  obj=2953775     Z1=290.0    Z2=3554   Z3=3695.0    feas=y   ran 60s  py3.12
+# [full.a2.4]
+P4  [full.a2.4]    240s  obj=2587540     Z1=326.0    Z2=2356   Z3=2794.0    feas=y   ran 239s  py3.12
+# [beam.a3.4]
+P4  [beam.a3.4]     60s  obj=3027819     Z1=319.0    Z2=3935   Z3=3649.0    feas=y   ran 59s  py3.12
+# [full.a3.4]
+P4  [full.a3.4]    240s  obj=2670527     Z1=358.0    Z2=1673   Z3=2756.0    feas=y   ran 239s  py3.12
+# [beam.a4.4]
+# [beam.a4.4]
+Traceback (most recent call last):
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
+    mod = importlib.import_module(sys.argv[1])
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 995, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/myalgorithm.py", line 37, in <module>
+    import utils
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
+    from shapely.geometry import Polygon as ShapelyPolygon
+ModuleNotFoundError: No module named 'shapely'
+# [full.a4.4]
+Traceback (most recent call last):
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
+    mod = importlib.import_module(sys.argv[1])
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 995, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/myalgorithm.py", line 37, in <module>
+    import utils
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
+    from shapely.geometry import Polygon as ShapelyPolygon
+ModuleNotFoundError: No module named 'shapely'
+# [beam.a5.4]
+Traceback (most recent call last):
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
+    mod = importlib.import_module(sys.argv[1])
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 995, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/myalgorithm.py", line 37, in <module>
+    import utils
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
+    from shapely.geometry import Polygon as ShapelyPolygon
+ModuleNotFoundError: No module named 'shapely'
+# [full.a5.4]
+Traceback (most recent call last):
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
+    mod = importlib.import_module(sys.argv[1])
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 995, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/myalgorithm.py", line 37, in <module>
+    import utils
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
+    from shapely.geometry import Polygon as ShapelyPolygon
+ModuleNotFoundError: No module named 'shapely'
+INSTDONE 4
+# [beam.a0.26]
+Traceback (most recent call last):
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
+    mod = importlib.import_module(sys.argv[1])
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 995, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/myalgorithm.py", line 37, in <module>
+    import utils
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
+    from shapely.geometry import Polygon as ShapelyPolygon
+ModuleNotFoundError: No module named 'shapely'
+# [full.a0.26]
+Traceback (most recent call last):
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
+    mod = importlib.import_module(sys.argv[1])
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 995, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/myalgorithm.py", line 37, in <module>
+    import utils
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
+    from shapely.geometry import Polygon as ShapelyPolygon
+ModuleNotFoundError: No module named 'shapely'
+# [beam.a1.26]
+Traceback (most recent call last):
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
+    mod = importlib.import_module(sys.argv[1])
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 995, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/myalgorithm.py", line 37, in <module>
+    import utils
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
+    from shapely.geometry import Polygon as ShapelyPolygon
+ModuleNotFoundError: No module named 'shapely'
+# [full.a1.26]
+Traceback (most recent call last):
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
+    mod = importlib.import_module(sys.argv[1])
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 995, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/myalgorithm.py", line 37, in <module>
+    import utils
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
+    from shapely.geometry import Polygon as ShapelyPolygon
+ModuleNotFoundError: No module named 'shapely'
+# [beam.a2.26]
+Traceback (most recent call last):
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
+    mod = importlib.import_module(sys.argv[1])
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 995, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/myalgorithm.py", line 37, in <module>
+    import utils
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
+    from shapely.geometry import Polygon as ShapelyPolygon
+ModuleNotFoundError: No module named 'shapely'
+# [full.a2.26]
+Traceback (most recent call last):
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
+    mod = importlib.import_module(sys.argv[1])
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 995, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/myalgorithm.py", line 37, in <module>
+    import utils
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
+    from shapely.geometry import Polygon as ShapelyPolygon
+ModuleNotFoundError: No module named 'shapely'
+# [beam.a3.26]
+Traceback (most recent call last):
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
+    mod = importlib.import_module(sys.argv[1])
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 995, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/myalgorithm.py", line 37, in <module>
+    import utils
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
+    from shapely.geometry import Polygon as ShapelyPolygon
+ModuleNotFoundError: No module named 'shapely'
+# [full.a3.26]
+Traceback (most recent call last):
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
+    mod = importlib.import_module(sys.argv[1])
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 995, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/myalgorithm.py", line 37, in <module>
+    import utils
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
+    from shapely.geometry import Polygon as ShapelyPolygon
+ModuleNotFoundError: No module named 'shapely'
+# [beam.a4.26]
+Traceback (most recent call last):
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
+    mod = importlib.import_module(sys.argv[1])
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 995, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/myalgorithm.py", line 37, in <module>
+    import utils
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
+    from shapely.geometry import Polygon as ShapelyPolygon
+ModuleNotFoundError: No module named 'shapely'
+# [full.a4.26]
+Traceback (most recent call last):
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
+    mod = importlib.import_module(sys.argv[1])
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 995, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/myalgorithm.py", line 37, in <module>
+    import utils
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
+    from shapely.geometry import Polygon as ShapelyPolygon
+ModuleNotFoundError: No module named 'shapely'
+# [beam.a5.26]
+Traceback (most recent call last):
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
+    mod = importlib.import_module(sys.argv[1])
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 995, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/myalgorithm.py", line 37, in <module>
+    import utils
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
+    from shapely.geometry import Polygon as ShapelyPolygon
+ModuleNotFoundError: No module named 'shapely'
+# [full.a5.26]
+Traceback (most recent call last):
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
+    mod = importlib.import_module(sys.argv[1])
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 995, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/myalgorithm.py", line 37, in <module>
+    import utils
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
+    from shapely.geometry import Polygon as ShapelyPolygon
+ModuleNotFoundError: No module named 'shapely'
+INSTDONE 26
+# [beam.a0.20]
+Traceback (most recent call last):
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
+    mod = importlib.import_module(sys.argv[1])
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 995, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/myalgorithm.py", line 37, in <module>
+    import utils
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
+    from shapely.geometry import Polygon as ShapelyPolygon
+ModuleNotFoundError: No module named 'shapely'
+# [full.a0.20]
+Traceback (most recent call last):
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
+    mod = importlib.import_module(sys.argv[1])
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 995, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/myalgorithm.py", line 37, in <module>
+    import utils
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
+    from shapely.geometry import Polygon as ShapelyPolygon
+ModuleNotFoundError: No module named 'shapely'
+# [beam.a1.20]
+Traceback (most recent call last):
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
+    mod = importlib.import_module(sys.argv[1])
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 995, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/myalgorithm.py", line 37, in <module>
+    import utils
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
+    from shapely.geometry import Polygon as ShapelyPolygon
+ModuleNotFoundError: No module named 'shapely'
+# [full.a1.20]
+Traceback (most recent call last):
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
+    mod = importlib.import_module(sys.argv[1])
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 995, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/myalgorithm.py", line 37, in <module>
+    import utils
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
+    from shapely.geometry import Polygon as ShapelyPolygon
+ModuleNotFoundError: No module named 'shapely'
+# [beam.a2.20]
+Traceback (most recent call last):
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
+    mod = importlib.import_module(sys.argv[1])
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 995, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/myalgorithm.py", line 37, in <module>
+    import utils
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
+    from shapely.geometry import Polygon as ShapelyPolygon
+ModuleNotFoundError: No module named 'shapely'
+# [full.a2.20]
+Traceback (most recent call last):
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
+    mod = importlib.import_module(sys.argv[1])
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 995, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/myalgorithm.py", line 37, in <module>
+    import utils
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
+    from shapely.geometry import Polygon as ShapelyPolygon
+ModuleNotFoundError: No module named 'shapely'
+# [beam.a3.20]
+Traceback (most recent call last):
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
+    mod = importlib.import_module(sys.argv[1])
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 995, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/myalgorithm.py", line 37, in <module>
+    import utils
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
+    from shapely.geometry import Polygon as ShapelyPolygon
+ModuleNotFoundError: No module named 'shapely'
+# [full.a3.20]
+Traceback (most recent call last):
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
+    mod = importlib.import_module(sys.argv[1])
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 995, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/myalgorithm.py", line 37, in <module>
+    import utils
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
+    from shapely.geometry import Polygon as ShapelyPolygon
+ModuleNotFoundError: No module named 'shapely'
+# [beam.a4.20]
+Traceback (most recent call last):
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
+    mod = importlib.import_module(sys.argv[1])
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 995, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/myalgorithm.py", line 37, in <module>
+    import utils
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
+    from shapely.geometry import Polygon as ShapelyPolygon
+ModuleNotFoundError: No module named 'shapely'
+# [full.a4.20]
+Traceback (most recent call last):
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
+    mod = importlib.import_module(sys.argv[1])
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 995, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/myalgorithm.py", line 37, in <module>
+    import utils
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
+    from shapely.geometry import Polygon as ShapelyPolygon
+ModuleNotFoundError: No module named 'shapely'
+# [beam.a5.20]
+Traceback (most recent call last):
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
+    mod = importlib.import_module(sys.argv[1])
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 995, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/myalgorithm.py", line 37, in <module>
+    import utils
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
+    from shapely.geometry import Polygon as ShapelyPolygon
+ModuleNotFoundError: No module named 'shapely'
+# [full.a5.20]
+Traceback (most recent call last):
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
+    mod = importlib.import_module(sys.argv[1])
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 995, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/myalgorithm.py", line 37, in <module>
+    import utils
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
+    from shapely.geometry import Polygon as ShapelyPolygon
+ModuleNotFoundError: No module named 'shapely'
+INSTDONE 20
+# [beam.a0.2]
+Traceback (most recent call last):
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
+    mod = importlib.import_module(sys.argv[1])
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 995, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/myalgorithm.py", line 37, in <module>
+    import utils
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
+    from shapely.geometry import Polygon as ShapelyPolygon
+ModuleNotFoundError: No module named 'shapely'
+# [full.a0.2]
+Traceback (most recent call last):
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
+    mod = importlib.import_module(sys.argv[1])
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 995, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/myalgorithm.py", line 37, in <module>
+    import utils
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
+    from shapely.geometry import Polygon as ShapelyPolygon
+ModuleNotFoundError: No module named 'shapely'
+# [beam.a1.2]
+Traceback (most recent call last):
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
+    mod = importlib.import_module(sys.argv[1])
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 995, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/myalgorithm.py", line 37, in <module>
+    import utils
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
+    from shapely.geometry import Polygon as ShapelyPolygon
+ModuleNotFoundError: No module named 'shapely'
+# [full.a1.2]
+Traceback (most recent call last):
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
+    mod = importlib.import_module(sys.argv[1])
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 995, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/myalgorithm.py", line 37, in <module>
+    import utils
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
+    from shapely.geometry import Polygon as ShapelyPolygon
+ModuleNotFoundError: No module named 'shapely'
+# [beam.a2.2]
+Traceback (most recent call last):
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
+    mod = importlib.import_module(sys.argv[1])
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 995, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/myalgorithm.py", line 37, in <module>
+    import utils
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
+    from shapely.geometry import Polygon as ShapelyPolygon
+ModuleNotFoundError: No module named 'shapely'
+# [full.a2.2]
+Traceback (most recent call last):
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
+    mod = importlib.import_module(sys.argv[1])
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 995, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/myalgorithm.py", line 37, in <module>
+    import utils
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
+    from shapely.geometry import Polygon as ShapelyPolygon
+ModuleNotFoundError: No module named 'shapely'
+# [beam.a3.2]
+Traceback (most recent call last):
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
+    mod = importlib.import_module(sys.argv[1])
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 995, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/myalgorithm.py", line 37, in <module>
+    import utils
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
+    from shapely.geometry import Polygon as ShapelyPolygon
+ModuleNotFoundError: No module named 'shapely'
+# [full.a3.2]
+Traceback (most recent call last):
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
+    mod = importlib.import_module(sys.argv[1])
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 995, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/myalgorithm.py", line 37, in <module>
+    import utils
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
+    from shapely.geometry import Polygon as ShapelyPolygon
+ModuleNotFoundError: No module named 'shapely'
+# [beam.a4.2]
+Traceback (most recent call last):
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
+    mod = importlib.import_module(sys.argv[1])
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 995, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/myalgorithm.py", line 37, in <module>
+    import utils
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
+    from shapely.geometry import Polygon as ShapelyPolygon
+ModuleNotFoundError: No module named 'shapely'
+# [full.a4.2]
+Traceback (most recent call last):
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
+    mod = importlib.import_module(sys.argv[1])
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 995, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/myalgorithm.py", line 37, in <module>
+    import utils
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
+    from shapely.geometry import Polygon as ShapelyPolygon
+ModuleNotFoundError: No module named 'shapely'
+# [beam.a5.2]
+Traceback (most recent call last):
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
+    mod = importlib.import_module(sys.argv[1])
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 995, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/myalgorithm.py", line 37, in <module>
+    import utils
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
+    from shapely.geometry import Polygon as ShapelyPolygon
+ModuleNotFoundError: No module named 'shapely'
+# [full.a5.2]
+Traceback (most recent call last):
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
+    mod = importlib.import_module(sys.argv[1])
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 995, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/myalgorithm.py", line 37, in <module>
+    import utils
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
+    from shapely.geometry import Polygon as ShapelyPolygon
+ModuleNotFoundError: No module named 'shapely'
+INSTDONE 2
+# [beam.a0.6]
+Traceback (most recent call last):
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
+    mod = importlib.import_module(sys.argv[1])
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 995, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/myalgorithm.py", line 37, in <module>
+    import utils
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
+    from shapely.geometry import Polygon as ShapelyPolygon
+ModuleNotFoundError: No module named 'shapely'
+# [full.a0.6]
+Traceback (most recent call last):
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
+    mod = importlib.import_module(sys.argv[1])
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 995, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/myalgorithm.py", line 37, in <module>
+    import utils
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
+    from shapely.geometry import Polygon as ShapelyPolygon
+ModuleNotFoundError: No module named 'shapely'
+# [beam.a1.6]
+Traceback (most recent call last):
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
+    mod = importlib.import_module(sys.argv[1])
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 995, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/myalgorithm.py", line 37, in <module>
+    import utils
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
+    from shapely.geometry import Polygon as ShapelyPolygon
+ModuleNotFoundError: No module named 'shapely'
+# [full.a1.6]
+Traceback (most recent call last):
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
+    mod = importlib.import_module(sys.argv[1])
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 995, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/myalgorithm.py", line 37, in <module>
+    import utils
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
+    from shapely.geometry import Polygon as ShapelyPolygon
+ModuleNotFoundError: No module named 'shapely'
+# [beam.a2.6]
+Traceback (most recent call last):
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
+    mod = importlib.import_module(sys.argv[1])
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 995, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/myalgorithm.py", line 37, in <module>
+    import utils
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
+    from shapely.geometry import Polygon as ShapelyPolygon
+ModuleNotFoundError: No module named 'shapely'
+# [full.a2.6]
+Traceback (most recent call last):
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
+    mod = importlib.import_module(sys.argv[1])
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 995, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/myalgorithm.py", line 37, in <module>
+    import utils
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
+    from shapely.geometry import Polygon as ShapelyPolygon
+ModuleNotFoundError: No module named 'shapely'
+# [beam.a3.6]
+Traceback (most recent call last):
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
+    mod = importlib.import_module(sys.argv[1])
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 995, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/myalgorithm.py", line 37, in <module>
+    import utils
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
+    from shapely.geometry import Polygon as ShapelyPolygon
+ModuleNotFoundError: No module named 'shapely'
+# [full.a3.6]
+Traceback (most recent call last):
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
+    mod = importlib.import_module(sys.argv[1])
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 995, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/myalgorithm.py", line 37, in <module>
+    import utils
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
+    from shapely.geometry import Polygon as ShapelyPolygon
+ModuleNotFoundError: No module named 'shapely'
+# [beam.a4.6]
+Traceback (most recent call last):
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
+    mod = importlib.import_module(sys.argv[1])
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 995, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/myalgorithm.py", line 37, in <module>
+    import utils
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
+    from shapely.geometry import Polygon as ShapelyPolygon
+ModuleNotFoundError: No module named 'shapely'
+# [full.a4.6]
+Traceback (most recent call last):
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
+    mod = importlib.import_module(sys.argv[1])
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 995, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/myalgorithm.py", line 37, in <module>
+    import utils
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
+    from shapely.geometry import Polygon as ShapelyPolygon
+ModuleNotFoundError: No module named 'shapely'
+# [beam.a5.6]
+Traceback (most recent call last):
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
+    mod = importlib.import_module(sys.argv[1])
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 995, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/myalgorithm.py", line 37, in <module>
+    import utils
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
+    from shapely.geometry import Polygon as ShapelyPolygon
+ModuleNotFoundError: No module named 'shapely'
+# [full.a5.6]
+Traceback (most recent call last):
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
+    mod = importlib.import_module(sys.argv[1])
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 995, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/myalgorithm.py", line 37, in <module>
+    import utils
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
+    from shapely.geometry import Polygon as ShapelyPolygon
+ModuleNotFoundError: No module named 'shapely'
+INSTDONE 6
+# [beam.a0.13]
+Traceback (most recent call last):
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
+    mod = importlib.import_module(sys.argv[1])
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 995, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/myalgorithm.py", line 37, in <module>
+    import utils
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
+    from shapely.geometry import Polygon as ShapelyPolygon
+ModuleNotFoundError: No module named 'shapely'
+# [full.a0.13]
+Traceback (most recent call last):
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
+    mod = importlib.import_module(sys.argv[1])
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 995, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/myalgorithm.py", line 37, in <module>
+    import utils
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
+    from shapely.geometry import Polygon as ShapelyPolygon
+ModuleNotFoundError: No module named 'shapely'
+# [beam.a1.13]
+Traceback (most recent call last):
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
+    mod = importlib.import_module(sys.argv[1])
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 995, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/myalgorithm.py", line 37, in <module>
+    import utils
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
+    from shapely.geometry import Polygon as ShapelyPolygon
+ModuleNotFoundError: No module named 'shapely'
+# [full.a1.13]
+Traceback (most recent call last):
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
+    mod = importlib.import_module(sys.argv[1])
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 995, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/myalgorithm.py", line 37, in <module>
+    import utils
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
+    from shapely.geometry import Polygon as ShapelyPolygon
+ModuleNotFoundError: No module named 'shapely'
+# [beam.a2.13]
+Traceback (most recent call last):
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
+    mod = importlib.import_module(sys.argv[1])
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 995, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/myalgorithm.py", line 37, in <module>
+    import utils
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
+    from shapely.geometry import Polygon as ShapelyPolygon
+ModuleNotFoundError: No module named 'shapely'
+# [full.a2.13]
+Traceback (most recent call last):
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
+    mod = importlib.import_module(sys.argv[1])
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 995, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/myalgorithm.py", line 37, in <module>
+    import utils
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
+    from shapely.geometry import Polygon as ShapelyPolygon
+ModuleNotFoundError: No module named 'shapely'
+# [beam.a3.13]
+Traceback (most recent call last):
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
+    mod = importlib.import_module(sys.argv[1])
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 995, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/myalgorithm.py", line 37, in <module>
+    import utils
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
+    from shapely.geometry import Polygon as ShapelyPolygon
+ModuleNotFoundError: No module named 'shapely'
+# [full.a3.13]
+Traceback (most recent call last):
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
+    mod = importlib.import_module(sys.argv[1])
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 995, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/myalgorithm.py", line 37, in <module>
+    import utils
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
+    from shapely.geometry import Polygon as ShapelyPolygon
+ModuleNotFoundError: No module named 'shapely'
+# [beam.a4.13]
+Traceback (most recent call last):
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
+    mod = importlib.import_module(sys.argv[1])
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 995, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/myalgorithm.py", line 37, in <module>
+    import utils
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
+    from shapely.geometry import Polygon as ShapelyPolygon
+ModuleNotFoundError: No module named 'shapely'
+# [full.a4.13]
+Traceback (most recent call last):
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
+    mod = importlib.import_module(sys.argv[1])
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 995, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/myalgorithm.py", line 37, in <module>
+    import utils
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
+    from shapely.geometry import Polygon as ShapelyPolygon
+ModuleNotFoundError: No module named 'shapely'
+# [beam.a5.13]
+Traceback (most recent call last):
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
+    mod = importlib.import_module(sys.argv[1])
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 995, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/myalgorithm.py", line 37, in <module>
+    import utils
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
+    from shapely.geometry import Polygon as ShapelyPolygon
+ModuleNotFoundError: No module named 'shapely'
+# [full.a5.13]
+Traceback (most recent call last):
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/run1.py", line 28, in <module>
+    mod = importlib.import_module(sys.argv[1])
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 995, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/myalgorithm.py", line 37, in <module>
+    import utils
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/utils.py", line 104, in <module>
+    from shapely.geometry import Polygon as ShapelyPolygon
+ModuleNotFoundError: No module named 'shapely'
+INSTDONE 13
+AUDITIONDONE
+# [beam.a4.4]
+P4  [beam.a4.4]     60s  obj=2972892     Z1=372.0    Z2=3671   Z3=3217.0    feas=y   ran 59s  py3.12
+# [full.a4.4]
+P4  [full.a4.4]    240s  obj=2551983     Z1=369.0    Z2=1439   Z3=2467.0    feas=y   ran 220s  py3.12
+# [beam.a5.4]
+P4  [beam.a5.4]     60s  obj=3348151     Z1=421.0    Z2=2993   Z3=3621.0    feas=y   ran 59s  py3.12
+# [full.a5.4]
+P4  [full.a5.4]    240s  obj=3106013     Z1=422.0    Z2=4214   Z3=3149.0    feas=y   ran 228s  py3.12
+INSTDONE 4
+# [beam.a0.26]
+P26 [beam.a0.26]    60s  obj=25502751    Z1=2526.0   Z2=7509   Z3=10818.0   feas=y   ran 59s  py3.12
+# [full.a0.26]
+P26 [full.a0.26]   240s  obj=25660831    Z1=2580.0   Z2=7171   Z3=10566.0   feas=y   ran 226s  py3.12
+# [beam.a1.26]
+P26 [beam.a1.26]    60s  obj=24421654    Z1=2356.0   Z2=8602   Z3=10882.0   feas=y   ran 59s  py3.12
+# [full.a1.26]
+P26 [full.a1.26]   240s  obj=24836775    Z1=2378.0   Z2=6649   Z3=11220.0   feas=y   ran 221s  py3.12
+# [beam.a2.26]
+P26 [beam.a2.26]    60s  obj=24559522    Z1=2475.0   Z2=12297  Z3=10058.0   feas=y   ran 59s  py3.12
+# [full.a2.26]
+P26 [full.a2.26]   240s  obj=24045265    Z1=2252.0   Z2=16781  Z3=11268.0   feas=y   ran 240s  py3.12
+# [beam.a3.26]
+P26 [beam.a3.26]    60s  obj=24847914    Z1=2450.0   Z2=11364  Z3=10628.0   feas=y   ran 59s  py3.12
+# [full.a3.26]
+P26 [full.a3.26]   240s  obj=24649849    Z1=2433.0   Z2=13038  Z3=10520.0   feas=y   ran 232s  py3.12
+# [beam.a4.26]
+P26 [beam.a4.26]    60s  obj=24312418    Z1=2400.0   Z2=12418  Z3=10374.0   feas=y   ran 59s  py3.12
+# [full.a4.26]
+P26 [full.a4.26]   240s  obj=24312418    Z1=2400.0   Z2=12418  Z3=10374.0   feas=y   ran 219s  py3.12
+# [beam.a5.26]
+P26 [beam.a5.26]    60s  obj=25386091    Z1=2557.0   Z2=12172  Z3=10408.0   feas=y   ran 59s  py3.12
+# [full.a5.26]
+P26 [full.a5.26]   240s  obj=26025737    Z1=2544.0   Z2=5689   Z3=11324.0   feas=y   ran 222s  py3.12
+INSTDONE 26
+# [beam.a0.20]

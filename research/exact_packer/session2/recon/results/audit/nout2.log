@@ -1,0 +1,13 @@
+prob_13  tiernout x1  P13 t              180s  obj=78360669    Z1=10880.0  Z2=1309   Z3=7278.0    feas=y   ran 164s
+prob_13  tiernout x2  P13 t              180s  obj=78629243    Z1=10967.0  Z2=254    Z3=6890.0    feas=y   ran 331s
+prob_13  tiernout x3  P13 t              180s  obj=78396476    Z1=10893.0  Z2=45     Z3=7216.0    feas=y   ran 162s
+prob_26  tiernout x1  P26 t              180s  obj=27518692    Z1=2760.0   Z2=7372   Z3=11388.0   feas=y   ran 157s
+prob_26  tiernout x2  P26 t              180s  obj=27414944    Z1=2745.0   Z2=8429   Z3=11382.0   feas=y   ran 153s
+prob_26  tiernout x3  P26 t              180s  obj=27414944    Z1=2745.0   Z2=8429   Z3=11382.0   feas=y   ran 153s
+prob_36  tiernout x1  P36 t              180s  obj=89031657    Z1=12627.0  Z2=4248   Z3=6054.0    feas=y   ran 168s
+prob_36  tiernout x2  P36 t              180s  obj=88426584    Z1=12538.0  Z2=2138   Z3=6042.0    feas=y   ran 167s
+prob_36  tiernout x3  P36 t              180s  obj=87757038    Z1=12401.0  Z2=5971   Z3=6342.0    feas=y   ran 172s
+prob_1  tiernout x1  P1  t              180s  obj=602372      Z1=8.0      Z2=3812   Z3=896.0     feas=y   ran 145s
+prob_1  tiernout x2  P1  t              180s  obj=602372      Z1=8.0      Z2=3812   Z3=896.0     feas=y   ran 145s
+prob_1  tiernout x3  P1  t              180s  obj=529770      Z1=27.0     Z2=7387   Z3=546.0     feas=y   ran 145s
+TIERDONE

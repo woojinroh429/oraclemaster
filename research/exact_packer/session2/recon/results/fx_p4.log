@@ -1,0 +1,23 @@
+    brk calib: 380:1.85e-06 942:4.99e-08 -> rate 4.99e-08 at 942 cols, growth n^0.000
+    brk tier: room=260s rate=4.99e-08 -> tier 2 (step 4 nout 20 nent 4) ncol~45078 pred=101.5s  [hard=306 slice=88s]
+    brk calib: 796:6.96e-07 1740:1.99e-08 -> rate 1.99e-08 at 1740 cols, growth n^0.000
+    brk tier: room=255s rate=1.99e-08 -> tier 2 (step 4 nout 20 nent 4) ncol~88368 pred=155.5s  [hard=300 slice=88s]
+    brk calib: 376:2.27e-06 928:4.69e-08 -> rate 4.69e-08 at 928 cols, growth n^0.000
+    brk tier: room=247s rate=4.69e-08 -> tier 1 (step 4 nout 40 nent 6) ncol~71002 pred=236.5s  [hard=291 slice=88s]
+    brk: build refused at tier 2 (19.2s) -- stepping down to tier 3
+    brk calib: 380:2.57e-06 914:4.93e-08 -> rate 4.93e-08 at 914 cols, growth n^0.000
+    brk tier: room=235s rate=4.93e-08 -> tier 2 (step 4 nout 20 nent 4) ncol~44150 pred=96.2s  [hard=277 slice=88s]
+    brk: build refused at tier 1 (25.0s) -- stepping down to tier 2
+    brk cost: ncol~23102 real_ncol=22990 build=5.6s ask=87.8s total=93.8s
+    brk cost: tier 3 ncol~23102 real_ncol=22990 build=5.6s total=93.8s  -> rate 1.042e-08 s/col^2
+    brk[pressure] tgt=0 res=53 outs=10 displaced b31 could not be rehomed in any other bay
+    brk cost: ncol~45078 real_ncol=43997 build=68.0s ask=87.8s total=190.3s
+    brk cost: tier 2 ncol~45078 real_ncol=43997 build=68.0s total=190.3s  -> rate 3.348e-08 s/col^2
+    brk[pressure] tgt=1 res=43 outs=20 displaced b58 could not be rehomed in any other bay
+    brk cost: ncol~44150 real_ncol=42884 build=85.2s ask=87.8s total=212.9s
+    brk cost: tier 2 ncol~44150 real_ncol=42884 build=85.2s total=212.9s  -> rate 4.369e-08 s/col^2
+    brk[pressure] tgt=1 res=41 outs=20 displaced b39 could not be rehomed in any other bay
+    brk cost: ncol~44074 real_ncol=43190 build=83.1s ask=87.8s total=208.5s
+    brk cost: tier 2 ncol~44074 real_ncol=43190 build=83.1s total=208.5s  -> rate 4.277e-08 s/col^2
+    brk[pressure] tgt=1 res=42 outs=20 displaced b3 could not be rehomed in any other bay
+P4  six P4         480s  obj=1781181     Z1=88.0     Z2=2561   Z3=3933.0    feas=y   ran 470s

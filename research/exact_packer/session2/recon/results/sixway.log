@@ -1,0 +1,16 @@
+both builds verified: shipped vs mkbase arm, neither carrying brk
+=== six_ship_p1.log  (SHIP P1)  14:27:30
+P1  SHIP P1         60s  obj=11280       Z1=0.0      Z2=33     Z3=73.0      feas=y   ran 46s
+=== six_arm_p1.log  (ARM  P1)  14:28:18
+P1  ARM  P1         60s  obj=11280       Z1=0.0      Z2=33     Z3=73.0      feas=y   ran 45s
+=== six_ship_p2.log  (SHIP P2)  14:29:03
+P2  SHIP P2        120s  obj=31368       Z1=0.0      Z2=3342   Z3=90.0      feas=y   ran 119s
+=== six_arm_p2.log  (ARM  P2)  14:31:04
+P2  ARM  P2        120s  obj=31368       Z1=0.0      Z2=3342   Z3=90.0      feas=y   ran 119s
+=== six_ship_p3.log  (SHIP P3)  14:33:04
+P3  SHIP P3        240s  obj=90545       Z1=0.0      Z2=2299   Z3=527.0     feas=y   ran 239s
+=== six_arm_p3.log  (ARM  P3)  14:37:05
+P3  ARM  P3        240s  obj=96990       Z1=0.0      Z2=3108   Z3=543.0     feas=y   ran 239s
+=== six_ship_p4.log  (SHIP P4)  14:41:05
+P4  SHIP P4        480s  obj=3273791     Z1=201.0    Z2=1244   Z3=3901.0    feas=y   ran 385s
+=== six_arm_p4.log  (ARM  P4)  14:47:32

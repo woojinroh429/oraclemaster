@@ -1,0 +1,10 @@
+incumbent built in 239s
+incumbent        obj=86665     Z1=0.0 Z2=3023 Z3=477.0 feas=True
+
+  the model minimises w2*Mv + w3*SC*pref, i.e. SC=1000 times the true P3 objective
+  tl     wrk  status      model obj/SC model bound/SC gap     realised true obj
+  8      1    OPTIMAL     83633        83633        0.0%    151815  (spill 8, Z2 2313 Z3 935.0)  [0s]
+  8      8    OPTIMAL     83633        83633        0.0%    151815  (spill 8, Z2 2313 Z3 935.0)  [0s]
+  30     8    OPTIMAL     83633        83633        0.0%    151815  (spill 8, Z2 2313 Z3 935.0)  [0s]
+  120    8    OPTIMAL     83633        83633        0.0%    151815  (spill 8, Z2 2313 Z3 935.0)  [0s]
+  240    8    OPTIMAL     83633        83633        0.0%    151815  (spill 8, Z2 2313 Z3 935.0)  [0s]

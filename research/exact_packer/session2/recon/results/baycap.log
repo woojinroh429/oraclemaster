@@ -1,0 +1,8 @@
+incumbent obj=86665   bay 0 = 43 x 23   residents 55   wished in 15
+
+  K    offered   seated    outs in   residents dropped
+  0    55        55        0         none  [56s]
+  2    57        55        2         b70,b134  [116s]
+  4    59        55        2         b70,b106  [118s]
+  8    63        56        3         b70,b106  [125s]
+  15   70        56        4         b70,b106,b172  [137s]

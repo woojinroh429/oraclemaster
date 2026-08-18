@@ -1,0 +1,49 @@
+# [r.p36.m1.r1]
+P36 [r.p36.m1.r1]    60s  obj=97533740    Z1=13855.0  Z2=5655   Z3=6446.0    feas=y   ran 43s  py3.12
+# [r.p36.m4.r1]
+P36 [r.p36.m4.r1]    60s  obj=91592264    Z1=12766.0  Z2=1342   Z3=8100.0    feas=y   ran 43s  py3.12
+# [r.p36.m8.r1]
+P36 [r.p36.m8.r1]    60s  obj=82581177    Z1=11641.0  Z2=2630   Z3=6210.0    feas=y   ran 43s  py3.12
+# [r.p25.m1.r1]
+P25 [r.p25.m1.r1]    60s  obj=85556769    Z1=12595.0  Z2=876    Z3=7912.0    feas=y   ran 48s  py3.12
+# [r.p25.m4.r1]
+P25 [r.p25.m4.r1]    60s  obj=82892994    Z1=12202.0  Z2=365    Z3=7704.0    feas=y   ran 59s  py3.12
+# [r.p25.m8.r1]
+P25 [r.p25.m8.r1]    60s  obj=77767509    Z1=11427.0  Z2=4125   Z3=7836.0    feas=y   ran 63s  py3.12
+# [r.p2.m1.r1]
+P2  [r.p2.m1.r1]    60s  obj=77902387    Z1=5761.0   Z2=2706   Z3=7201.0    feas=y   ran 55s  py3.12
+# [r.p2.m4.r1]
+P2  [r.p2.m4.r1]    60s  obj=65498524    Z1=4840.0   Z2=1326   Z3=6410.0    feas=y   ran 48s  py3.12
+# [r.p2.m8.r1]
+P2  [r.p2.m8.r1]    60s  obj=64769652    Z1=4776.0   Z2=4461   Z3=7156.0    feas=y   ran 49s  py3.12
+# [r.p39.m1.r1]
+P39 [r.p39.m1.r1]    60s  obj=62286046    Z1=4534.0   Z2=1112   Z3=4580.0    feas=y   ran 42s  py3.12
+# [r.p39.m4.r1]
+P39 [r.p39.m4.r1]    60s  obj=59727431    Z1=4363.0   Z2=2576   Z3=3876.0    feas=y   ran 42s  py3.12
+# [r.p39.m8.r1]
+P39 [r.p39.m8.r1]    60s  obj=60300569    Z1=4401.0   Z2=2218   Z3=4044.0    feas=y   ran 43s  py3.12
+# [r.p36.m1.r2]
+P36 [r.p36.m1.r2]    60s  obj=97451130    Z1=13799.0  Z2=5197   Z3=6810.0    feas=y   ran 43s  py3.12
+# [r.p36.m4.r2]
+P36 [r.p36.m4.r2]    60s  obj=87743716    Z1=12237.0  Z2=1237   Z3=7698.0    feas=y   ran 66s  py3.12
+# [r.p36.m8.r2]
+P36 [r.p36.m8.r2]    60s  obj=78212349    Z1=10969.0  Z2=3626   Z3=6348.0    feas=y   ran 67s  py3.12
+# [r.p25.m1.r2]
+P25 [r.p25.m1.r2]    60s  obj=86601271    Z1=12761.0  Z2=3121   Z3=7556.0    feas=y   ran 54s  py3.12
+# [r.p25.m4.r2]
+P25 [r.p25.m4.r2]    60s  obj=84049746    Z1=12362.0  Z2=273    Z3=8156.0    feas=y   ran 58s  py3.12
+# [r.p25.m8.r2]
+P25 [r.p25.m8.r2]    60s  obj=78146806    Z1=11458.0  Z2=780    Z3=8766.0    feas=y   ran 64s  py3.12
+# [r.p2.m1.r2]
+P2  [r.p2.m1.r2]    60s  obj=78750626    Z1=5826.0   Z2=992    Z3=7124.0    feas=y   ran 42s  py3.12
+# [r.p2.m4.r2]
+P2  [r.p2.m4.r2]    60s  obj=65757272    Z1=4854.0   Z2=1910   Z3=6875.0    feas=y   ran 48s  py3.12
+# [r.p2.m8.r2]
+P2  [r.p2.m8.r2]    60s  obj=64769652    Z1=4776.0   Z2=4461   Z3=7156.0    feas=y   ran 49s  py3.12
+# [r.p39.m1.r2]
+P39 [r.p39.m1.r2]    60s  obj=62286046    Z1=4534.0   Z2=1112   Z3=4580.0    feas=y   ran 43s  py3.12
+# [r.p39.m4.r2]
+P39 [r.p39.m4.r2]    60s  obj=57875382    Z1=4210.0   Z2=1326   Z3=4352.0    feas=y   ran 43s  py3.12
+# [r.p39.m8.r2]
+P39 [r.p39.m8.r2]    60s  obj=59577435    Z1=4367.0   Z2=1712   Z3=3372.0    feas=y   ran 42s  py3.12
+MRULEDONE

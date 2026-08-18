@@ -1,0 +1,146 @@
+# [s.p25.c.r1]
+P25 [s.p25.c.r1]    60s  obj=78832174    Z1=11582.0  Z2=2445   Z3=8026.0    feas=y   ran 58s  py3.12
+# [s.p25.m.r1]
+P25 [s.p25.m.r1]    60s  obj=71489034    Z1=10482.0  Z2=4285   Z3=7942.0    feas=y   ran 60s  py3.12
+# [s.p39.c.r1]
+P39 [s.p39.c.r1]    60s  obj=60786660    Z1=4434.0   Z2=2069   Z3=4160.0    feas=y   ran 44s  py3.12
+# [s.p39.m.r1]
+P39 [s.p39.m.r1]    60s  obj=53544041    Z1=3889.0   Z2=1602   Z3=4222.0    feas=y   ran 43s  py3.12
+# [s.p37.c.r1]
+P37 [s.p37.c.r1]    60s  obj=17954781    Z1=2599.0   Z2=272    Z3=3124.0    feas=y   ran 49s  py3.12
+# [s.p37.m.r1]
+P37 [s.p37.m.r1]    60s  obj=16603610    Z1=2395.0   Z2=505    Z3=3158.0    feas=y   ran 44s  py3.12
+# [s.p5.c.r1]
+P5  [s.p5.c.r1]     60s  obj=8639183     Z1=2390.0   Z2=857    Z3=1664.0    feas=y   ran 44s  py3.12
+# [s.p5.m.r1]
+P5  [s.p5.m.r1]     60s  obj=7844839     Z1=1978.0   Z2=1085   Z3=3106.0    feas=y   ran 44s  py3.12
+# [s.p18.c.r1]
+P18 [s.p18.c.r1]    60s  obj=11761670    Z1=2669.0   Z2=712    Z3=4517.0    feas=y   ran 52s  py3.12
+# [s.p18.m.r1]
+P18 [s.p18.m.r1]    60s  obj=11052135    Z1=2431.0   Z2=729    Z3=4679.0    feas=y   ran 44s  py3.12
+# [s.p28.c.r1]
+P28 [s.p28.c.r1]    60s  obj=15844426    Z1=1114.0   Z2=3900   Z3=7308.0    feas=y   ran 59s  py3.12
+# [s.p28.m.r1]
+P28 [s.p28.m.r1]    60s  obj=14804414    Z1=1029.0   Z2=3912   Z3=8009.0    feas=y   ran 57s  py3.12
+# [s.p26.c.r1]
+P26 [s.p26.c.r1]    60s  obj=31327993    Z1=3108.0   Z2=8557   Z3=13248.0   feas=y   ran 44s  py3.12
+# [s.p26.m.r1]
+P26 [s.p26.m.r1]    60s  obj=25188208    Z1=2450.0   Z2=12458  Z3=11052.0   feas=y   ran 47s  py3.12
+# [s.p32.c.r1]
+P32 [s.p32.c.r1]    60s  obj=704574      Z1=973.0    Z2=762    Z3=4217.0    feas=y   ran 43s  py3.12
+# [s.p32.m.r1]
+P32 [s.p32.m.r1]    60s  obj=697060      Z1=956.0    Z2=908    Z3=4500.0    feas=y   ran 45s  py3.12
+# [s.p14.c.r1]
+P14 [s.p14.c.r1]    60s  obj=697089      Z1=1697.0   Z2=1875   Z3=4819.0    feas=y   ran 48s  py3.12
+# [s.p14.m.r1]
+P14 [s.p14.m.r1]    60s  obj=699936      Z1=1654.0   Z2=2409   Z3=5435.0    feas=y   ran 45s  py3.12
+# [s.p40.c.r1]
+P40 [s.p40.c.r1]    60s  obj=10183873    Z1=2483.0   Z2=417    Z3=2384.0    feas=y   ran 45s  py3.12
+# [s.p40.m.r1]
+P40 [s.p40.m.r1]    60s  obj=9806898     Z1=2036.0   Z2=55     Z3=3776.0    feas=y   ran 44s  py3.12
+# [s.p6.c.r1]
+P6  [s.p6.c.r1]     60s  obj=5404925     Z1=338.0    Z2=4593   Z3=6582.0    feas=y   ran 45s  py3.12
+# [s.p6.m.r1]
+P6  [s.p6.m.r1]     60s  obj=5556296     Z1=356.0    Z2=2589   Z3=5991.0    feas=y   ran 44s  py3.12
+# [s.p25.c.r2]
+P25 [s.p25.c.r2]    60s  obj=80003877    Z1=11723.0  Z2=5359   Z3=9126.0    feas=y   ran 56s  py3.12
+# [s.p25.m.r2]
+P25 [s.p25.m.r2]    60s  obj=73175563    Z1=10729.0  Z2=1830   Z3=8190.0    feas=y   ran 60s  py3.12
+# [s.p39.c.r2]
+P39 [s.p39.c.r2]    60s  obj=60572309    Z1=4419.0   Z2=491    Z3=4132.0    feas=y   ran 43s  py3.12
+# [s.p39.m.r2]
+P39 [s.p39.m.r2]    60s  obj=54025668    Z1=3932.0   Z2=2556   Z3=3988.0    feas=y   ran 43s  py3.12
+# [s.p37.c.r2]
+P37 [s.p37.c.r2]    60s  obj=17954781    Z1=2599.0   Z2=272    Z3=3124.0    feas=y   ran 49s  py3.12
+# [s.p37.m.r2]
+P37 [s.p37.m.r2]    60s  obj=16924114    Z1=2420.0   Z2=886    Z3=3910.0    feas=y   ran 43s  py3.12
+# [s.p5.c.r2]
+P5  [s.p5.c.r2]     60s  obj=8562396     Z1=2224.0   Z2=556    Z3=2862.0    feas=y   ran 43s  py3.12
+# [s.p5.m.r2]
+P5  [s.p5.m.r2]     60s  obj=7844839     Z1=1978.0   Z2=1085   Z3=3106.0    feas=y   ran 47s  py3.12
+# [s.p18.c.r2]
+P18 [s.p18.c.r2]    60s  obj=12283370    Z1=2752.0   Z2=778    Z3=4917.0    feas=y   ran 52s  py3.12
+# [s.p18.m.r2]
+P18 [s.p18.m.r2]    60s  obj=10760230    Z1=2334.0   Z2=2354   Z3=4727.0    feas=y   ran 46s  py3.12
+# [s.p28.c.r2]
+P28 [s.p28.c.r2]    60s  obj=15086259    Z1=1050.0   Z2=3644   Z3=8033.0    feas=y   ran 54s  py3.12
+# [s.p28.m.r2]
+P28 [s.p28.m.r2]    60s  obj=14804414    Z1=1029.0   Z2=3912   Z3=8009.0    feas=y   ran 57s  py3.12
+# [s.p26.c.r2]
+P26 [s.p26.c.r2]    60s  obj=30732526    Z1=3043.0   Z2=1645   Z3=13054.0   feas=y   ran 45s  py3.12
+# [s.p26.m.r2]
+P26 [s.p26.m.r2]    60s  obj=25190693    Z1=2508.0   Z2=12257  Z3=10572.0   feas=y   ran 47s  py3.12
+# [s.p32.c.r2]
+P32 [s.p32.c.r2]    60s  obj=704574      Z1=973.0    Z2=762    Z3=4217.0    feas=y   ran 43s  py3.12
+# [s.p32.m.r2]
+P32 [s.p32.m.r2]    60s  obj=667052      Z1=918.0    Z2=484    Z3=4174.0    feas=y   ran 45s  py3.12
+# [s.p14.c.r2]
+P14 [s.p14.c.r2]    60s  obj=700738      Z1=1668.0   Z2=1978   Z3=5308.0    feas=y   ran 48s  py3.12
+# [s.p14.m.r2]
+P14 [s.p14.m.r2]    60s  obj=681355      Z1=1687.0   Z2=2512   Z3=4336.0    feas=y   ran 48s  py3.12
+# [s.p40.c.r2]
+P40 [s.p40.c.r2]    60s  obj=10183873    Z1=2483.0   Z2=417    Z3=2384.0    feas=y   ran 46s  py3.12
+# [s.p40.m.r2]
+P40 [s.p40.m.r2]    60s  obj=9601253     Z1=2037.0   Z2=366    Z3=3514.0    feas=y   ran 45s  py3.12
+# [s.p6.c.r2]
+P6  [s.p6.c.r2]     60s  obj=5404925     Z1=338.0    Z2=4593   Z3=6582.0    feas=y   ran 44s  py3.12
+# [s.p6.m.r2]
+P6  [s.p6.m.r2]     60s  obj=5461390     Z1=347.0    Z2=3697   Z3=6138.0    feas=y   ran 45s  py3.12
+MSAFEDONE
+
+VERDICT -- msafe
+================
+NO FLOORS.  TEN OF ELEVEN WIN.  THE RULE SHIPS.
+
+        pu       control        MSET=8       delta    per draw
+  P25   6.26    79,418,025    72,332,298    - 8.9%    -9.3  -8.5
+  P39   3.79    60,679,484    53,784,854    -11.4%   -11.9 -10.8
+  P5    3.15     8,600,789     7,844,839    - 8.8%    -9.2  -8.4
+  P37   3.06    17,954,781    16,763,862    - 6.6%    -7.5  -5.7
+  P18   2.83    12,022,520    10,906,182    - 9.3%    -6.0 -12.4
+  P28   2.38    15,465,342    14,804,414    - 4.3%    -6.6  -1.9
+  P26   2.22    31,030,259    25,189,450    -18.8%   -19.6 -18.0
+  P32   2.16       704,574       682,056    - 3.2%    -1.1  -5.3
+  P14   2.16       698,913       690,645    - 1.2%    +0.4  -2.8
+  P40   2.12    10,183,873     9,704,075    - 4.7%    -3.7  -5.7
+  P6    2.05     5,404,925     5,508,843    + 1.9%    +2.8  +1.0
+  median-sum 242,163,488 -> 218,211,521   -9.89%
+
+THE PRE-REGISTERED KILL CONDITION DID NOT TRIGGER.  Any instance dropping to _safe_sequential
+ended the rule regardless of the band; none did, and Z3 is non-zero in every MSET=8 cell.
+
+WITH mfinal's FIVE, THE FULL FIRING SET IS 16 INSTANCES, 14 WINS AND 2 LOSSES:
+    P36 -20.9%  P26 -18.8%  P39 -11.4%  P2 -10.3%  P18 -9.3%  P25 -8.9%  P5 -8.8%
+    P37 - 6.6%  P40 - 4.7%  P28 -4.3%   P32 -3.2%  P23 -2.0%  P11 -1.9%  P14 -1.2%
+    P13 + 2.0%  P6  + 1.9%
+Both losses are inside 2%, and the only loser in this sweep is P6 at peak_util 2.05 -- immediately
+above the cut, which is where a boundary should fail if it fails at all.
+
+WHAT SHIPS.  peak_util >= 2.0 AND timelimit >= 60 -> OGC_MSET=8 on every worker.  Below either
+condition nothing is touched and the build is byte-identical to OGC2026_capfix.zip.  The budget
+floor is load-bearing: prob_36 with MSET=8 returns 4,023,023,953 at 20 s and 30 s against
+100,393,761 and 97,465,037 at the default, and only starts winning at 45 s.
+
+ADDENDUM -- MGATE REQUIRES THE CPU CAP, MEASURED AT THE UNCAPPED WORKER COUNT
+============================================================================
+The scoreboard rejected OGC2026_capfix.zip (74,330,722 against dirgate's 72,188,856), and the
+per-group split puts the blame on the cap: the reserve change can only reach instances inside the
+direction gate's peak_util band, of which the hidden set holds one or two, yet the other six
+worsened 2.11%.  So the grader very likely does show all its cores and was running seven workers.
+
+That makes "ship MGATE without the cap" a real question, and it is answerable here.  60 s,
+WORKERS=7, default against MSET=8:
+
+    P36   75,942,634  ->  74,129,816     - 2.4%
+    P2    59,677,346  ->  59,909,243     + 0.4%
+    P13   67,639,904  ->  4,027,473,504  FLOOR, 60x
+
+Against the same comparison at nw=3 (mfinal.log): P36 -20.9%, P2 -10.3%, P13 +2.0%.
+
+Seven workers each hold 0.57 of a core and M=8 multiplies what a draw costs, so no worker finishes
+and prob_13 returns _safe_sequential.  The gain collapses too -- prob_36's 20.9% becomes 2.4%.
+MGATE and the cap are one change, not two: without the cap the upside is gone and only the cliff
+remains.
+
+So the choice is dirgate as it stands, or cap + MGATE together.  There is no useful third
+combination.

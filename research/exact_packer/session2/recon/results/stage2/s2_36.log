@@ -1,0 +1,15 @@
+    brk calib: 480:1.02e-07 988:2.33e-08 -> rate 2.33e-08 at 988 cols, growth n^0.000
+    brk tier: room=112s rate=2.33e-08 -> tier 3 (step 6 nout 10 nent 2) ncol~39466 pred=36.3s  [hard=132 slice=52s]
+    brk calib: 350:1.77e-07 1000:2.79e-08 -> rate 2.79e-08 at 1000 cols, growth n^0.000
+    brk tier: room=109s rate=2.79e-08 -> tier 3 (step 6 nout 10 nent 2) ncol~43648 pred=53.2s  [hard=129 slice=52s]
+    brk calib: 364:4.08e-07 1042:2.26e-08 -> rate 2.26e-08 at 1042 cols, growth n^0.000
+    brk tier: room=104s rate=2.26e-08 -> tier 3 (step 6 nout 10 nent 2) ncol~47818 pred=51.7s  [hard=122 slice=52s]
+    brk calib: 356:9.07e-07 1016:3.18e-08 -> rate 3.18e-08 at 1016 cols, growth n^0.000
+    brk tier: room=101s rate=3.18e-08 -> tier 3 (step 6 nout 10 nent 2) ncol~43420 pred=60.0s  [hard=119 slice=52s]
+    brk cost: BUILD ABORTED at 12.4s of a 109.3s cap (tier 3 ncol~43648)
+    brk cost: BUILD ABORTED at 12.1s of a 104.1s cap (tier 3 ncol~47818)
+    brk cost: BUILD ABORTED at 12.6s of a 101.3s cap (tier 3 ncol~43420)
+    brk cost: ncol~39466 real_ncol=39895 build=60.9s ask=51.8s total=112.8s
+    brk cost: tier 3 ncol~39466 real_ncol=39895 build=60.9s total=112.8s  -> rate 3.912e-08 s/col^2
+    brk[pressure] tgt=1 res=150 outs=10 displaced b4 could not be rehomed in any other bay
+P36 stage2 36      300s  obj=86612032    Z1=12265.0  Z2=6077   Z3=6044.0    feas=y   ran 294s

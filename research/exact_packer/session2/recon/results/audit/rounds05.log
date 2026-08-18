@@ -1,0 +1,369 @@
+# [R1.p16.r1]
+DIRGATE fired: peak_util=1.231 in [1.00,1.30], timelimit 60 <= 60
+WSTAT round=0 n=4 3705863 3468540 4050050 4019334  spread=16.77%
+P16 [R1.p16.r1]     60s  obj=3468540     Z1=176.0    Z2=2644   Z3=4456.0    feas=y   ran 60s  py3.12
+# [R2.p16.r1]
+DIRGATE fired: peak_util=1.231 in [1.00,1.30], timelimit 60 <= 60
+WSTAT round=0 n=4 4556606 3857784 4018555 3944448  spread=18.11%
+PARROUND round=1 parity=odd even=4018555 odd=3857784 wids=[9, 11, 13, 14]
+WSTAT round=1 n=4 3944273 4488096 3251960 4146388  spread=38.01%
+P16 [R2.p16.r1]     60s  obj=3251960     Z1=166.0    Z2=1394   Z3=4138.0    feas=y   ran 59s  py3.12
+# [R3.p16.r1]
+DIRGATE fired: peak_util=1.231 in [1.00,1.30], timelimit 60 <= 60
+WSTAT round=0 n=4 3953565 3316185 3794626 4492489  spread=35.47%
+PARROUND round=1 parity=odd even=3794626 odd=3316185 wids=[9, 11, 13, 14]
+WSTAT round=1 n=4 4492489 4106977 3275285 3514466  spread=37.16%
+PARROUND round=2 parity=even even=3275285 odd=3316185 wids=[16, 18, 20, 23]
+WSTAT round=2 n=4 4798870 3952788 3840916 4106977  spread=24.94%
+P16 [R3.p16.r1]     60s  obj=3275285     Z1=166.0    Z2=1419   Z3=4231.0    feas=y   ran 59s  py3.12
+# [R1.p1.r1]
+DIRGATE fired: peak_util=1.016 in [1.00,1.30], timelimit 60 <= 60
+WSTAT round=0 n=4 809743 754716 707039 631046  spread=28.32%
+P1  [R1.p1.r1]      60s  obj=631046      Z1=32.0     Z2=6034   Z3=666.0     feas=y   ran 57s  py3.12
+# [R2.p1.r1]
+DIRGATE fired: peak_util=1.016 in [1.00,1.30], timelimit 60 <= 60
+WSTAT round=0 n=4 679268 603190 854517 682856  spread=41.67%
+PARROUND round=1 parity=odd even=679268 odd=603190 wids=[9, 11, 13, 14]
+WSTAT round=1 n=4 548691 707763 708131 870847  spread=58.71%
+P1  [R2.p1.r1]      60s  obj=548691      Z1=24.0     Z2=7561   Z3=610.0     feas=y   ran 57s  py3.12
+# [R3.p1.r1]
+DIRGATE fired: peak_util=1.016 in [1.00,1.30], timelimit 60 <= 60
+WSTAT round=0 n=4 830112 671556 910379 682856  spread=35.56%
+PARROUND round=1 parity=odd even=830112 odd=671556 wids=[9, 11, 13, 14]
+WSTAT round=1 n=4 682856 636883 671556 757560  spread=18.95%
+PARROUND round=2 parity=odd even=671556 odd=636883 wids=[17, 19, 21, 22]
+WSTAT round=2 n=4 636883 671556 682856 704825  spread=10.67%
+P1  [R3.p1.r1]      60s  obj=636883      Z1=16.0     Z2=7137   Z3=848.0     feas=y   ran 58s  py3.12
+# [R1.p7.r1]
+DIRGATE fired: peak_util=1.271 in [1.00,1.30], timelimit 60 <= 60
+WSTAT round=0 n=4 1017712 1147140 872993 1124164  spread=31.40%
+P7  [R1.p7.r1]      60s  obj=872993      Z1=41.0     Z2=720    Z3=2142.0    feas=y   ran 59s  py3.12
+# [R2.p7.r1]
+DIRGATE fired: peak_util=1.271 in [1.00,1.30], timelimit 60 <= 60
+WSTAT round=0 n=4 1330438 1029766 1380832 1312587  spread=34.09%
+PARROUND round=1 parity=odd even=1330438 odd=1029766 wids=[9, 11, 13, 14]
+WSTAT round=1 n=4 1292897 1332474 1273521 1020092  spread=30.62%
+P7  [R2.p7.r1]      60s  obj=1020092     Z1=54.0     Z2=1430   Z3=1934.0    feas=y   ran 59s  py3.12
+# [R3.p7.r1]
+DIRGATE fired: peak_util=1.271 in [1.00,1.30], timelimit 60 <= 60
+WSTAT round=0 n=4 1111076 1273521 1243305 1278704  spread=15.09%
+PARROUND round=1 parity=even even=1111076 odd=1273521 wids=[8, 10, 12, 15]
+WSTAT round=1 n=4 1226748 1591378 1223510 1278704  spread=30.07%
+PARROUND round=2 parity=even even=1111076 odd=1273521 wids=[16, 18, 20, 23]
+WSTAT round=2 n=4 1434034 1279390 1348944 1378253  spread=12.09%
+P7  [R3.p7.r1]      60s  obj=1096552     Z1=63.0     Z2=889    Z3=1669.0    feas=y   ran 59s  py3.12
+# [R1.p33.r1]
+DIRGATE fired: peak_util=1.236 in [1.00,1.30], timelimit 60 <= 60
+WSTAT round=0 n=4 1326320 1229369 1336240 1238836  spread=8.69%
+P33 [R1.p33.r1]     60s  obj=1229369     Z1=124.0    Z2=429    Z3=1994.0    feas=y   ran 59s  py3.12
+# [R2.p33.r1]
+DIRGATE fired: peak_util=1.236 in [1.00,1.30], timelimit 60 <= 60
+WSTAT round=0 n=4 1349171 1220871 1331287 1515285  spread=24.12%
+PARROUND round=1 parity=odd even=1331287 odd=1220871 wids=[9, 11, 13, 14]
+WSTAT round=1 n=4 1283886 1490890 1365868 1475377  spread=16.12%
+P33 [R2.p33.r1]     60s  obj=1220871     Z1=131.0    Z2=166    Z3=1730.0    feas=y   ran 59s  py3.12
+# [R3.p33.r1]
+DIRGATE fired: peak_util=1.236 in [1.00,1.30], timelimit 60 <= 60
+WSTAT round=0 n=4 1368647 1340471 1507334 1314640  spread=14.66%
+PARROUND round=1 parity=odd even=1368647 odd=1314640 wids=[9, 11, 13, 14]
+WSTAT round=1 n=4 1314640 1549782 1202515 1456608  spread=28.88%
+PARROUND round=2 parity=even even=1202515 odd=1314640 wids=[16, 18, 20, 23]
+WSTAT round=2 n=4 1315922 1368647 1434380 1202515  spread=19.28%
+P33 [R3.p33.r1]     60s  obj=1202515     Z1=124.0    Z2=823    Z3=1842.0    feas=y   ran 58s  py3.12
+# [R1.p3.r1]
+DIRGATE fired: peak_util=1.182 in [1.00,1.30], timelimit 60 <= 60
+WSTAT round=0 n=4 4775834 4778668 4905110 5240039  spread=9.72%
+P3  [R1.p3.r1]      60s  obj=4745895     Z1=170.0    Z2=4497   Z3=7782.0    feas=y   ran 59s  py3.12
+# [R2.p3.r1]
+DIRGATE fired: peak_util=1.182 in [1.00,1.30], timelimit 60 <= 60
+WSTAT round=0 n=4 4976772 4887024 4893117 5095679  spread=4.27%
+PARROUND round=1 parity=odd even=4893117 odd=4887024 wids=[9, 11, 13, 14]
+WSTAT round=1 n=4 4961914 5036093 5148778 4927060  spread=4.50%
+P3  [R2.p3.r1]      60s  obj=4887024     Z1=171.0    Z2=6517   Z3=8014.0    feas=y   ran 58s  py3.12
+# [R3.p3.r1]
+DIRGATE fired: peak_util=1.182 in [1.00,1.30], timelimit 60 <= 60
+WSTAT round=0 n=4 4971497 4800803 5053709 5157286  spread=7.43%
+PARROUND round=1 parity=odd even=4971497 odd=4800803 wids=[9, 11, 13, 14]
+WSTAT round=1 n=4 5187824 5265149 5150474 5006447  spread=5.17%
+PARROUND round=2 parity=odd even=4971497 odd=4800803 wids=[17, 19, 21, 22]
+WSTAT round=2 n=4 5260828 5150474 5270849 5402225  spread=4.89%
+P3  [R3.p3.r1]      60s  obj=4779884     Z1=172.0    Z2=5583   Z3=7819.0    feas=y   ran 59s  py3.12
+# [R1.p27.r1]
+DIRGATE fired: peak_util=1.132 in [1.00,1.30], timelimit 60 <= 60
+WSTAT round=0 n=4 1021474 907800 979812 979994  spread=12.52%
+P27 [R1.p27.r1]     60s  obj=907800      Z1=78.0     Z2=1099   Z3=1201.0    feas=y   ran 57s  py3.12
+# [R2.p27.r1]
+DIRGATE fired: peak_util=1.132 in [1.00,1.30], timelimit 60 <= 60
+WSTAT round=0 n=4 1085880 935455 1060702 860015  spread=26.26%
+PARROUND round=1 parity=odd even=1060702 odd=860015 wids=[9, 11, 13, 14]
+WSTAT round=1 n=4 774713 1013548 891995 899685  spread=30.83%
+P27 [R2.p27.r1]     60s  obj=774713      Z1=90.0     Z2=967    Z3=878.0     feas=y   ran 57s  py3.12
+# [R3.p27.r1]
+DIRGATE fired: peak_util=1.132 in [1.00,1.30], timelimit 60 <= 60
+WSTAT round=0 n=4 1027883 967919 963515 858848  spread=19.68%
+PARROUND round=1 parity=odd even=963515 odd=858848 wids=[9, 11, 13, 14]
+WSTAT round=1 n=4 858848 1070392 967919 676947  spread=58.12%
+PARROUND round=2 parity=odd even=858848 odd=676947 wids=[17, 19, 21, 22]
+WSTAT round=2 n=4 973351 987059 858848 1023707  spread=19.20%
+P27 [R3.p27.r1]     60s  obj=676947      Z1=53.0     Z2=2105   Z3=911.0     feas=y   ran 59s  py3.12
+# [R1.p16.r2]
+DIRGATE fired: peak_util=1.231 in [1.00,1.30], timelimit 60 <= 60
+WSTAT round=0 n=4 3514466 3391521 3902656 3937948  spread=16.11%
+P16 [R1.p16.r2]     60s  obj=3391521     Z1=172.0    Z2=2165   Z3=4367.0    feas=y   ran 58s  py3.12
+# [R2.p16.r2]
+DIRGATE fired: peak_util=1.231 in [1.00,1.30], timelimit 60 <= 60
+WSTAT round=0 n=4 3953113 3258960 4461744 4490182  spread=37.78%
+PARROUND round=1 parity=odd even=3953113 odd=3258960 wids=[9, 11, 13, 14]
+WSTAT round=1 n=4 4337831 4485130 3848784 4346537  spread=16.53%
+P16 [R2.p16.r2]     60s  obj=3258960     Z1=166.0    Z2=1394   Z3=4166.0    feas=y   ran 59s  py3.12
+# [R3.p16.r2]
+DIRGATE fired: peak_util=1.231 in [1.00,1.30], timelimit 60 <= 60
+WSTAT round=0 n=4 3845232 3316185 4353420 4492489  spread=35.47%
+PARROUND round=1 parity=odd even=3845232 odd=3316185 wids=[9, 11, 13, 14]
+WSTAT round=1 n=4 4492489 4106977 3275285 3397840  spread=37.16%
+PARROUND round=2 parity=even even=3275285 odd=3316185 wids=[16, 18, 20, 23]
+WSTAT round=2 n=4 4078640 3715193 3721998 4106977  spread=10.55%
+P16 [R3.p16.r2]     60s  obj=3275285     Z1=166.0    Z2=1419   Z3=4231.0    feas=y   ran 59s  py3.12
+# [R1.p1.r2]
+DIRGATE fired: peak_util=1.016 in [1.00,1.30], timelimit 60 <= 60
+WSTAT round=0 n=4 809743 754716 704825 631046  spread=28.32%
+P1  [R1.p1.r2]      60s  obj=631046      Z1=32.0     Z2=6034   Z3=666.0     feas=y   ran 57s  py3.12
+# [R2.p1.r2]
+DIRGATE fired: peak_util=1.016 in [1.00,1.30], timelimit 60 <= 60
+WSTAT round=0 n=4 673302 843776 759506 556718  spread=51.56%
+PARROUND round=1 parity=odd even=673302 odd=556718 wids=[9, 11, 13, 14]
+WSTAT round=1 n=4 556718 751974 671556 870847  spread=56.43%
+P1  [R2.p1.r2]      60s  obj=556718      Z1=20.0     Z2=6326   Z3=674.0     feas=y   ran 56s  py3.12
+# [R3.p1.r2]
+DIRGATE fired: peak_util=1.016 in [1.00,1.30], timelimit 60 <= 60
+WSTAT round=0 n=4 713781 671556 836840 682856  spread=24.61%
+PARROUND round=1 parity=odd even=713781 odd=671556 wids=[9, 11, 13, 14]
+WSTAT round=1 n=4 682856 751974 738408 808263  spread=18.37%
+PARROUND round=2 parity=odd even=682856 odd=671556 wids=[17, 19, 21, 22]
+WSTAT round=2 n=4 751974 671556 682856 805216  spread=19.90%
+P1  [R3.p1.r2]      60s  obj=671556      Z1=33.0     Z2=6315   Z3=721.0     feas=y   ran 59s  py3.12
+# [R1.p7.r2]
+DIRGATE fired: peak_util=1.271 in [1.00,1.30], timelimit 60 <= 60
+WSTAT round=0 n=4 952110 962025 943405 1302838  spread=38.10%
+P7  [R1.p7.r2]      60s  obj=943405      Z1=48.0     Z2=1453   Z3=1955.0    feas=y   ran 59s  py3.12
+# [R2.p7.r2]
+DIRGATE fired: peak_util=1.271 in [1.00,1.30], timelimit 60 <= 60
+WSTAT round=0 n=4 1397966 1136012 1335211 1312587  spread=23.06%
+PARROUND round=1 parity=odd even=1335211 odd=1136012 wids=[9, 11, 13, 14]
+WSTAT round=1 n=4 1278704 1227328 1273521 971133  spread=31.67%
+P7  [R2.p7.r2]      60s  obj=971133      Z1=51.0     Z2=1350   Z3=1878.0    feas=y   ran 59s  py3.12
+# [R3.p7.r2]
+DIRGATE fired: peak_util=1.271 in [1.00,1.30], timelimit 60 <= 60
+WSTAT round=0 n=4 1385017 1246769 1345766 1278704  spread=11.09%
+PARROUND round=1 parity=odd even=1345766 odd=1246769 wids=[9, 11, 13, 14]
+WSTAT round=1 n=4 1278704 1336574 1262799 1320965  spread=5.84%
+PARROUND round=2 parity=odd even=1262799 odd=1246769 wids=[17, 19, 21, 22]
+WSTAT round=2 n=4 1336574 1262799 1278704 1605355  spread=27.13%
+P7  [R3.p7.r2]      60s  obj=1239940     Z1=73.0     Z2=2283   Z3=1671.0    feas=y   ran 59s  py3.12
+# [R1.p33.r2]
+DIRGATE fired: peak_util=1.236 in [1.00,1.30], timelimit 60 <= 60
+WSTAT round=0 n=4 1299435 1326769 1192334 1283886  spread=11.27%
+P33 [R1.p33.r2]     60s  obj=1192334     Z1=94.0     Z2=4      Z3=2828.0    feas=y   ran 59s  py3.12
+# [R2.p33.r2]
+DIRGATE fired: peak_util=1.236 in [1.00,1.30], timelimit 60 <= 60
+WSTAT round=0 n=4 1435183 1286472 1363166 1283886  spread=11.78%
+PARROUND round=1 parity=odd even=1363166 odd=1283886 wids=[9, 11, 13, 14]
+WSTAT round=1 n=4 1365868 1482564 1365868 1281886  spread=15.65%
+P33 [R2.p33.r2]     60s  obj=1281886     Z1=128.0    Z2=990    Z3=2098.0    feas=y   ran 59s  py3.12
+# [R3.p33.r2]
+DIRGATE fired: peak_util=1.236 in [1.00,1.30], timelimit 60 <= 60
+WSTAT round=0 n=4 1419364 1441541 1507334 1314640  spread=14.66%
+PARROUND round=1 parity=odd even=1419364 odd=1314640 wids=[9, 11, 13, 14]
+WSTAT round=1 n=4 1314640 1549782 1441541 1378303  spread=17.89%
+PARROUND round=2 parity=even even=1314640 odd=1314640 wids=[16, 18, 20, 23]
+WSTAT round=2 n=4 1637870 1368647 1434380 1394551  spread=19.67%
+P33 [R3.p33.r2]     60s  obj=1314640     Z1=139.0    Z2=1103   Z3=1890.0    feas=y   ran 59s  py3.12
+# [R1.p3.r2]
+DIRGATE fired: peak_util=1.182 in [1.00,1.30], timelimit 60 <= 60
+WSTAT round=0 n=4 4672614 4913377 4901701 4985320  spread=6.69%
+P3  [R1.p3.r2]      60s  obj=4672614     Z1=115.0    Z2=3617   Z3=8000.0    feas=y   ran 57s  py3.12
+# [R2.p3.r2]
+DIRGATE fired: peak_util=1.182 in [1.00,1.30], timelimit 60 <= 60
+WSTAT round=0 n=4 4896194 4781383 5121842 5069144  spread=7.12%
+PARROUND round=1 parity=odd even=4896194 odd=4781383 wids=[9, 11, 13, 14]
+WSTAT round=1 n=4 4974166 5201753 5148778 5013790  spread=4.58%
+P3  [R2.p3.r2]      60s  obj=4781383     Z1=172.0    Z2=5721   Z3=7820.0    feas=y   ran 58s  py3.12
+# [R3.p3.r2]
+DIRGATE fired: peak_util=1.182 in [1.00,1.30], timelimit 60 <= 60
+WSTAT round=0 n=4 5019087 4955008 5028305 5157286  spread=4.08%
+PARROUND round=1 parity=odd even=5019087 odd=4955008 wids=[9, 11, 13, 14]
+WSTAT round=1 n=4 5270849 5265149 5150474 5006447  spread=5.28%
+PARROUND round=2 parity=odd even=5019087 odd=4955008 wids=[17, 19, 21, 22]
+WSTAT round=2 n=4 5265149 5150474 5270429 5450673  spread=5.83%
+P3  [R3.p3.r2]      60s  obj=4864445     Z1=196.0    Z2=5322   Z3=7831.0    feas=y   ran 59s  py3.12
+# [R1.p27.r2]
+DIRGATE fired: peak_util=1.132 in [1.00,1.30], timelimit 60 <= 60
+WSTAT round=0 n=4 993121 863676 1015595 1006989  spread=17.59%
+P27 [R1.p27.r2]     60s  obj=863676      Z1=168.0    Z2=1664   Z3=548.0     feas=y   ran 58s  py3.12
+# [R2.p27.r2]
+DIRGATE fired: peak_util=1.132 in [1.00,1.30], timelimit 60 <= 60
+WSTAT round=0 n=4 947592 891995 1087514 860015  spread=26.45%
+PARROUND round=1 parity=odd even=947592 odd=860015 wids=[9, 11, 13, 14]
+WSTAT round=1 n=4 729804 1015164 930727 816227  spread=39.10%
+P27 [R2.p27.r2]     60s  obj=729804      Z1=112.0    Z2=1513   Z3=649.0     feas=y   ran 57s  py3.12
+# [R3.p27.r2]
+DIRGATE fired: peak_util=1.132 in [1.00,1.30], timelimit 60 <= 60
+WSTAT round=0 n=4 1075664 987059 869283 926925  spread=23.74%
+PARROUND round=1 parity=even even=869283 odd=926925 wids=[8, 10, 12, 15]
+WSTAT round=1 n=4 740239 1049466 978460 868311  spread=41.77%
+PARROUND round=2 parity=even even=740239 odd=868311 wids=[16, 18, 20, 23]
+WSTAT round=2 n=4 990297 981828 771118 1151384  spread=49.31%
+P27 [R3.p27.r2]     60s  obj=730112      Z1=75.0     Z2=2499   Z3=868.0     feas=y   ran 59s  py3.12
+# [R1.p16.r3]
+DIRGATE fired: peak_util=1.231 in [1.00,1.30], timelimit 60 <= 60
+WSTAT round=0 n=4 4023034 3468540 3809550 4019334  spread=15.99%
+P16 [R1.p16.r3]     60s  obj=3468540     Z1=176.0    Z2=2644   Z3=4456.0    feas=y   ran 58s  py3.12
+# [R2.p16.r3]
+DIRGATE fired: peak_util=1.231 in [1.00,1.30], timelimit 60 <= 60
+WSTAT round=0 n=4 4556606 3258960 3472619 4490182  spread=39.82%
+PARROUND round=1 parity=odd even=3472619 odd=3258960 wids=[9, 11, 13, 14]
+WSTAT round=1 n=4 3944273 4488096 3258960 4210945  spread=37.72%
+P16 [R2.p16.r3]     60s  obj=3258960     Z1=166.0    Z2=1394   Z3=4166.0    feas=y   ran 59s  py3.12
+# [R3.p16.r3]
+DIRGATE fired: peak_util=1.231 in [1.00,1.30], timelimit 60 <= 60
+WSTAT round=0 n=4 3786139 3316185 3622516 4492489  spread=35.47%
+PARROUND round=1 parity=odd even=3622516 odd=3316185 wids=[9, 11, 13, 14]
+WSTAT round=1 n=4 4492489 4106977 3275285 4050351  spread=37.16%
+PARROUND round=2 parity=even even=3275285 odd=3316185 wids=[16, 18, 20, 23]
+WSTAT round=2 n=4 4798870 3789236 3840916 4106977  spread=26.64%
+P16 [R3.p16.r3]     60s  obj=3275285     Z1=166.0    Z2=1419   Z3=4231.0    feas=y   ran 58s  py3.12
+# [R1.p1.r3]
+DIRGATE fired: peak_util=1.016 in [1.00,1.30], timelimit 60 <= 60
+WSTAT round=0 n=4 584609 729984 834367 631046  spread=42.72%
+P1  [R1.p1.r3]      60s  obj=584609      Z1=20.0     Z2=7223   Z3=716.0     feas=y   ran 57s  py3.12
+# [R2.p1.r3]
+DIRGATE fired: peak_util=1.016 in [1.00,1.30], timelimit 60 <= 60
+WSTAT round=0 n=4 679268 843776 869819 556718  spread=56.24%
+PARROUND round=1 parity=odd even=679268 odd=556718 wids=[9, 11, 13, 14]
+WSTAT round=1 n=4 556718 636883 603190 835641  spread=50.10%
+P1  [R2.p1.r3]      60s  obj=556718      Z1=20.0     Z2=6326   Z3=674.0     feas=y   ran 56s  py3.12
+# [R3.p1.r3]
+DIRGATE fired: peak_util=1.016 in [1.00,1.30], timelimit 60 <= 60
+WSTAT round=0 n=4 830112 671556 794689 682856  spread=23.61%
+PARROUND round=1 parity=odd even=794689 odd=671556 wids=[9, 11, 13, 14]
+WSTAT round=1 n=4 682856 636883 671556 736669  spread=15.67%
+PARROUND round=2 parity=odd even=671556 odd=636883 wids=[17, 19, 21, 22]
+WSTAT round=2 n=4 636883 671556 682856 704825  spread=10.67%
+P1  [R3.p1.r3]      60s  obj=636883      Z1=16.0     Z2=7137   Z3=848.0     feas=y   ran 58s  py3.12
+# [R1.p7.r3]
+DIRGATE fired: peak_util=1.271 in [1.00,1.30], timelimit 60 <= 60
+WSTAT round=0 n=4 959776 1152516 943405 1269200  spread=34.53%
+P7  [R1.p7.r3]      60s  obj=943405      Z1=48.0     Z2=1453   Z3=1955.0    feas=y   ran 59s  py3.12
+# [R2.p7.r3]
+DIRGATE fired: peak_util=1.271 in [1.00,1.30], timelimit 60 <= 60
+WSTAT round=0 n=4 1232214 1064840 1307411 1278704  spread=22.78%
+PARROUND round=1 parity=odd even=1232214 odd=1064840 wids=[9, 11, 13, 14]
+WSTAT round=1 n=4 1258831 1332474 1249037 1184628  spread=12.48%
+P7  [R2.p7.r3]      60s  obj=1059870     Z1=56.0     Z2=946    Z3=2044.0    feas=y   ran 59s  py3.12
+# [R3.p7.r3]
+DIRGATE fired: peak_util=1.271 in [1.00,1.30], timelimit 60 <= 60
+WSTAT round=0 n=4 1017824 1273521 1116007 1278704  spread=25.63%
+PARROUND round=1 parity=even even=1017824 odd=1273521 wids=[8, 10, 12, 15]
+WSTAT round=1 n=4 1302500 1283262 1366023 1278704  spread=6.83%
+PARROUND round=2 parity=even even=1017824 odd=1273521 wids=[16, 18, 20, 23]
+WSTAT round=2 n=4 1685403 1160242 1316323 1122344  spread=50.17%
+P7  [R3.p7.r3]      60s  obj=991113      Z1=55.0     Z2=1364   Z3=1655.0    feas=y   ran 59s  py3.12
+# [R1.p33.r3]
+DIRGATE fired: peak_util=1.236 in [1.00,1.30], timelimit 60 <= 60
+WSTAT round=0 n=4 1300039 1238660 949478 1238836  spread=36.92%
+P33 [R1.p33.r3]     60s  obj=949478      Z1=72.0     Z2=606    Z3=2320.0    feas=y   ran 59s  py3.12
+# [R2.p33.r3]
+DIRGATE fired: peak_util=1.236 in [1.00,1.30], timelimit 60 <= 60
+WSTAT round=0 n=4 1314168 1202515 1541138 1489764  spread=28.16%
+PARROUND round=1 parity=odd even=1314168 odd=1202515 wids=[9, 11, 13, 14]
+WSTAT round=1 n=4 1357435 1229369 1202515 1407805  spread=17.07%
+P33 [R2.p33.r3]     60s  obj=1202515     Z1=124.0    Z2=823    Z3=1842.0    feas=y   ran 59s  py3.12
+# [R3.p33.r3]
+DIRGATE fired: peak_util=1.236 in [1.00,1.30], timelimit 60 <= 60
+WSTAT round=0 n=4 1283994 1202515 1456608 1314640  spread=21.13%
+PARROUND round=1 parity=odd even=1283994 odd=1202515 wids=[9, 11, 13, 14]
+WSTAT round=1 n=4 1314640 1229369 1441541 1378303  spread=17.26%
+PARROUND round=2 parity=odd even=1283994 odd=1202515 wids=[17, 19, 21, 22]
+WSTAT round=2 n=4 1337993 1441541 1489764 1430503  spread=11.34%
+P33 [R3.p33.r3]     60s  obj=1202515     Z1=124.0    Z2=823    Z3=1842.0    feas=y   ran 58s  py3.12
+# [R1.p3.r3]
+DIRGATE fired: peak_util=1.182 in [1.00,1.30], timelimit 60 <= 60
+WSTAT round=0 n=4 4775834 4788770 4905110 4985320  spread=4.39%
+P3  [R1.p3.r3]      60s  obj=4775834     Z1=149.0    Z2=3849   Z3=7978.0    feas=y   ran 57s  py3.12
+# [R2.p3.r3]
+DIRGATE fired: peak_util=1.182 in [1.00,1.30], timelimit 60 <= 60
+WSTAT round=0 n=4 4976772 5083125 4917503 5095679  spread=3.62%
+PARROUND round=1 parity=even even=4917503 odd=5083125 wids=[8, 10, 12, 15]
+WSTAT round=1 n=4 5069801 4974807 4941563 5063493  spread=2.60%
+P3  [R2.p3.r3]      60s  obj=4917503     Z1=197.0    Z2=7857   Z3=7891.0    feas=y   ran 59s  py3.12
+# [R3.p3.r3]
+DIRGATE fired: peak_util=1.182 in [1.00,1.30], timelimit 60 <= 60
+WSTAT round=0 n=4 4961550 4938781 5053709 5157286  spread=4.42%
+PARROUND round=1 parity=odd even=4961550 odd=4938781 wids=[9, 11, 13, 14]
+WSTAT round=1 n=4 5187824 5265149 5150474 5024731  spread=4.78%
+PARROUND round=2 parity=odd even=4961550 odd=4938781 wids=[17, 19, 21, 22]
+WSTAT round=2 n=4 5265149 5150474 4927886 5304862  spread=7.65%
+P3  [R3.p3.r3]      60s  obj=4859009     Z1=199.0    Z2=7381   Z3=7775.0    feas=y   ran 59s  py3.12
+# [R1.p27.r3]
+DIRGATE fired: peak_util=1.132 in [1.00,1.30], timelimit 60 <= 60
+WSTAT round=0 n=4 935266 953406 1015595 979994  spread=8.59%
+P27 [R1.p27.r3]     60s  obj=935266      Z1=40.0     Z2=654    Z3=1496.0    feas=y   ran 57s  py3.12
+# [R2.p27.r3]
+DIRGATE fired: peak_util=1.132 in [1.00,1.30], timelimit 60 <= 60
+WSTAT round=0 n=4 947592 930727 1034519 860015  spread=20.29%
+PARROUND round=1 parity=odd even=947592 odd=860015 wids=[9, 11, 13, 14]
+WSTAT round=1 n=4 729804 917427 930727 792167  spread=27.53%
+P27 [R2.p27.r3]     60s  obj=729804      Z1=112.0    Z2=1513   Z3=649.0     feas=y   ran 59s  py3.12
+# [R3.p27.r3]
+DIRGATE fired: peak_util=1.132 in [1.00,1.30], timelimit 60 <= 60
+WSTAT round=0 n=4 981828 987059 994506 868311  spread=14.53%
+PARROUND round=1 parity=odd even=981828 odd=868311 wids=[9, 11, 13, 14]
+WSTAT round=1 n=4 853896 963829 987059 830721  spread=18.82%
+PARROUND round=2 parity=odd even=853896 odd=830721 wids=[17, 19, 21, 22]
+WSTAT round=2 n=4 1062630 967919 988208 1023707  spread=9.79%
+P27 [R3.p27.r3]     60s  obj=817357      Z1=111.0    Z2=1857   Z3=815.0     feas=y   ran 59s  py3.12
+ROUNDS05DONE
+
+VERDICT -- rounds05
+===================
+R=2 PASSES ITS PRE-REGISTERED BAR; R=3 IS BEATEN BY IT AND DOES NOT SHIP.
+Bar was: median absolute sum beats R=1 at 0.05, and no more than 5% lost on P1.
+
+        R1 med      R2 med      d%      R3 med      d%   | R2 paired            R3 paired
+  P1     631,046     556,718  -11.8%     636,883   +0.9% | -13.1 -11.8  -4.8   +0.9  +6.4  +8.9
+  P3   4,745,895   4,887,024   +3.0%   4,859,009   +2.4% |  +3.0  +2.3  +3.0   +0.7  +4.1  +1.7
+  P7     943,405   1,020,092   +8.1%   1,096,552  +16.2% | +16.8  +2.9 +12.3  +25.6 +31.4  +5.1
+  P16  3,468,540   3,258,960   -6.0%   3,275,285   -5.6% |  -6.2  -3.9  -6.0   -5.6  -3.4  -5.6
+  P27    907,800     729,804  -19.6%     730,112  -19.6% | -14.7 -15.5 -22.0  -25.4 -15.5 -12.6
+  P33  1,192,334   1,220,871   +2.4%   1,202,515   +0.9% |  -0.7  +7.5 +26.7   -2.2 +10.3 +26.7
+  ------------------------------------------------------------------------------------------
+  R2 median-sum 11,673,469 vs R1 11,889,020   -215,551  (-1.81%)
+  R3 median-sum 11,800,356 vs R1 11,889,020    -88,664  (-0.75%)
+
+THE KNOB WAS NEVER SHIPPED AND ITS RETIREMENT WAS INVALID.  `_R = max(1, int(os.environ.get(
+"OGC_ROUNDS", "1")))` and nothing in the module sets it, though the comment at line 3367 asserts
+otherwise.  The module's own note at the round loop records why the retiring measurement could not
+have fired: at 60 s with the old reserve, wbudget ~47, _rb ~23 and reserve ~12, so "R=2 was never
+two rounds there either."  RESFRAC 0.05 is what made a second round affordable -- reserve 3 s,
+wbudget ~56, _rb ~28.
+
+THE WINS ARE CONSISTENT AND THE LOSSES ARE NOT.  P1, P16 and P27 are 3/3 for R=2.  P33's paired
+deltas are -0.7 / +7.5 / +26.7, which is not an effect.  The one real cost is P7 at +8.1%, positive
+in all three replicates -- it wants depth, and at R=3 it loses 16.2%, which is what sinks R=3.
+
+BUT THE BAND-WIDE MARGIN IS NOT RESOLVABLE AT THIS SAMPLE SIZE, AND THIS IS THE MEASUREMENT THAT
+SAYS SO.  The SAME configuration -- P1, RESFRAC 0.05, R=1 -- gave different three-draw medians in
+two experiments run hours apart on the same machine:
+
+    rfship   537,403 / 518,803 / 631,046   median 537,403
+    rounds05 631,046 / 631,046 / 584,609   median 631,046
+
+A 17.4% gap between two medians of three draws each.  R=2's -1.81% median-sum sits well inside
+that, so "R=2 wins across the band" is NOT established by this table.  Three-draw medians are not
+the reliable instrument this study has been treating them as; they were enough to overturn P27's
+single-draw +30.6%, and they are not enough to resolve two per cent.
+
+P1 SURVIVES THE POOLED TEST, WHICH IS THE CLAIM WORTH MAKING.  Pooling all six R=1 draws at 0.05
+from both experiments gives a median of 607,828 against R=2's 556,718 -- -8.4%, with R=2 ahead in
+every rounds05 replicate.  That is the instance the hidden set is being played for, and it is the
+narrow ground on which R=2 is worth shipping.

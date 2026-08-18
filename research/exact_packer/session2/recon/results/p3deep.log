@@ -1,0 +1,82 @@
+
+=== P3 심층 분해 ===
+==============================================================================
+P3   myalgorithm obj=90545 (Z2 2299, Z3 527.0)   |   myalg_base obj=95560 (Z2 3632, Z3 516.0)
+      gap = 5015, of which Z2 carries 6665 and Z3 carries -1650
+
+[1] PER-BAY LEDGER
+   myalgorithm
+      bay   w x h        area      u      blocks   workload    u*load
+      0      43x23         989   2.078      53       3370       7002  <-- MAX
+      1      89x28        2492   0.825      74       6748       5565
+      2     122x22        2684   0.766      73       6142       4703  <-- min
+      Z2 = floor(7002 - 4703) = 2300   worth 11499 of objective
+   myalg_base
+      bay   w x h        area      u      blocks   workload    u*load
+      0      43x23         989   2.078      55       3806       7908  <-- MAX
+      1      89x28        2492   0.825      76       6870       5665
+      2     122x22        2684   0.766      69       5584       4275  <-- min
+      Z2 = floor(7908 - 4275) = 3633   worth 18165 of objective
+
+[2] CLOSING THE Z2 GAP
+   myalgorithm  bay 0 -> bay 2 needs 809 workload moved to level the range
+      0 blocks in bay 0 would not lose preference by moving to 2, carrying 0
+      -> NOT enough; the rest must be paid for in Z3
+   myalg_base   bay 0 -> bay 2 needs 1278 workload moved to level the range
+      0 blocks in bay 0 would not lose preference by moving to 2, carrying 0
+      -> NOT enough; the rest must be paid for in Z3
+
+[3] CONCESSION LEDGER  (blocks that missed their preferred bay)
+   myalgorithm  24 blocks, Z3 = 527, worth 79050 of objective
+      the ten most expensive:
+         blk  paid   area   workload  wanted  got   preferences
+         164     57     183       144      0     1   [78, 21, 1]
+         100     55     141       104      0     1   [72, 17, 11]
+         105     53     171        66      0     2   [69, 15, 16]
+         53      50     172        96      0     2   [66, 18, 16]
+         162     49     139       199      0     2   [69, 11, 20]
+         172     46     119       167      0     2   [63, 20, 17]
+         32      33     186       257      0     1   [65, 32, 3]
+         191     28      77        28      0     1   [59, 31, 10]
+         42      28     109       308      0     1   [63, 35, 2]
+         187     26     192        81      0     2   [63, 0, 37]
+   myalg_base   22 blocks, Z3 = 516, worth 77400 of objective
+      the ten most expensive:
+         blk  paid   area   workload  wanted  got   preferences
+         106     74     197        24      0     1   [82, 8, 10]
+         100     55     141       104      0     1   [72, 17, 11]
+         105     53     171        66      0     2   [69, 15, 16]
+         53      48     172        96      0     1   [66, 18, 16]
+         172     43     119       167      0     1   [63, 20, 17]
+         159     33      57        51      0     1   [58, 25, 17]
+         32      33     186       257      0     1   [65, 32, 3]
+         191     28      77        28      0     1   [59, 31, 10]
+         42      28     109       308      0     1   [63, 35, 2]
+         187     26     192        81      0     2   [63, 0, 37]
+   both concede        :  20 blocks
+   only myalgorithm  :   4 blocks costing 113
+   only myalg_base   :   2 blocks costing 107
+   on the 20 they BOTH concede: myalgorithm pays 414, myalg_base pays 409  (same blocks, different bays)
+
+[4] WHERE THEY DISAGREE
+   8 of 200 blocks placed differently
+   Z3 across them: -11 in myalgorithm's favour (worth -1650)
+   workload each bay gains under myalgorithm: ['-436', '-122', '+558']
+   the twenty biggest disagreements by preference cost:
+      blk   area   workload  wanted   myalgorithm myalg_base   preferences
+      106     197        24      0    bay 0 (+0)   bay 1 (-74)   [82, 8, 10]
+      164     183       144      0    bay 1 (-57)   bay 0 (+0)   [78, 21, 1]
+      162     139       199      0    bay 2 (-49)   bay 0 (+0)   [69, 11, 20]
+      159      57        51      0    bay 0 (+0)   bay 1 (-33)   [58, 25, 17]
+      123      79        72      0    bay 1 (-5)   bay 0 (+0)   [48, 43, 9]
+      172     119       167      0    bay 2 (-46)   bay 1 (-43)   [63, 20, 17]
+      53      172        96      0    bay 2 (-50)   bay 1 (-48)   [66, 18, 16]
+      124      22        96      0    bay 2 (-2)   bay 0 (+0)   [48, 6, 46]
+
+[5] DEMAND AGAINST CAPACITY  (peak concurrent footprint area per bay)
+   myalgorithm  peak/capacity per bay: ['533/989 = 54%', '1130/2492 = 45%', '1231/2684 = 46%']
+   myalg_base   peak/capacity per bay: ['549/989 = 56%', '1278/2492 = 51%', '1231/2684 = 46%']
+
+[6] AGREEMENT
+   the two assignments agree on 192 of 200 blocks (96%)
+   -> high agreement: the win is a small set of specific blocks and may be portable

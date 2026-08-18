@@ -1,0 +1,2 @@
+  prune=OFF  obj=96370  feas=True  wall=59.4s
+  prune=ON  obj=96370  feas=True  wall=59.3s

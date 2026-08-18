@@ -1,0 +1,13 @@
+=== prob_1 | blocks 0..19 | bays=2 SX=5 SY=5 MAXWAIT=6 EN_STEP=2 ===
+[place] 6998 spatial placements (349/block), Kmax=2, build 3.0s
+[init] seed columns 160
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+E0000 00:00:1783492685.959745   25431 linear_solver.cc:1878] The model has been changed since the solution was last computed. MPSolverInterface::sync_status_ = 0
+  round 0: LP obj=0 cols=174 cells=53812 added=14
+  round 5: LP obj=0 cols=205 cells=66719 added=0
+[cg] LP 최적 (음의 감축비용 없음) at round 5, LP obj=0
+[int] status=OPTIMAL obj/1000=19432.9 time=0.6s
+[verify] 정확검증 위반 0건 → FEASIBLE
+[objective] {'Z1': 0, 'Z2': 91.09, 'Z3': 94, 'obj': 19437.6}
+[out] colgen_out.json
+EXIT=0

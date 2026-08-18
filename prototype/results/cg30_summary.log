@@ -1,0 +1,7 @@
+=== prob_1 | blocks 0..29 | bays=2 SX=5 SY=5 MAXWAIT=6 EN_STEP=2 ===
+[place] 10482 spatial placements (349/block), Kmax=2, build 4.6s
+  round 0: LP obj=0 cols=266 cells=74387 added=26
+[cg] LP 최적 (음의 감축비용 없음) at round 4, LP obj=0
+[int] status=OPTIMAL obj/1000=1908.3 time=0.9s
+[verify] 정확검증 위반 0건 → FEASIBLE
+[objective] {'Z1': 0, 'Z2': 159.68, 'Z3': 4, 'obj': 1917.8}

@@ -1,0 +1,54 @@
+w3mul arms verified at conw=0.25: 1 .. 24
+=== w3m_1_r1.log  (w3mul=1 r1)  14:42:57
+P3  w3mul=1 r1     240s  obj=96235       Z1=0.0      Z2=3767   Z3=516.0     ran 239s
+=== w3m_3_r1.log  (w3mul=3 r1)  14:46:57
+P3  w3mul=3 r1     240s  obj=92930       Z1=0.0      Z2=3496   Z3=503.0     ran 239s
+=== w3m_6_r1.log  (w3mul=6 r1)  14:50:57
+P3  w3mul=6 r1     240s  obj=90900       Z1=0.0      Z2=3630   Z3=485.0     ran 239s
+=== w3m_12_r1.log  (w3mul=12 r1)  14:54:56
+P3  w3mul=12 r1    240s  obj=90900       Z1=0.0      Z2=3630   Z3=485.0     ran 239s
+=== w3m_24_r1.log  (w3mul=24 r1)  14:58:56
+P3  w3mul=24 r1    240s  obj=90900       Z1=0.0      Z2=3630   Z3=485.0     ran 239s
+=== w3m_1_r2.log  (w3mul=1 r2)  15:02:56
+P3  w3mul=1 r2     240s  obj=94635       Z1=0.0      Z2=3297   Z3=521.0     ran 239s
+=== w3m_3_r2.log  (w3mul=3 r2)  15:06:55
+P3  w3mul=3 r2     240s  obj=102185      Z1=0.0      Z2=2557   Z3=596.0     ran 239s
+=== w3m_6_r2.log  (w3mul=6 r2)  15:10:55
+P3  w3mul=6 r2     240s  obj=90900       Z1=0.0      Z2=3630   Z3=485.0     ran 239s
+=== w3m_12_r2.log  (w3mul=12 r2)  15:14:54
+P3  w3mul=12 r2    240s  obj=90900       Z1=0.0      Z2=3630   Z3=485.0     ran 239s
+=== w3m_24_r2.log  (w3mul=24 r2)  15:18:54
+P3  w3mul=24 r2    240s  obj=90900       Z1=0.0      Z2=3630   Z3=485.0     ran 239s
+=== mum_1.0_r1.log  (mum=1.0 r1)  15:22:54
+P3  mum=1.0 r1     240s  obj=87560       Z1=0.0      Z2=3652   Z3=462.0     ran 239s
+=== mum_0.0_r1.log  (mum=0.0 r1)  15:26:53
+P3  mum=0.0 r1     240s  obj=87560       Z1=0.0      Z2=3652   Z3=462.0     ran 239s
+=== mum_1.0_r2.log  (mum=1.0 r2)  15:30:53
+P3  mum=1.0 r2     240s  obj=87560       Z1=0.0      Z2=3652   Z3=462.0     ran 239s
+=== mum_0.0_r2.log  (mum=0.0 r2)  15:34:53
+P3  mum=0.0 r2     240s  obj=106940      Z1=0.0      Z2=2518   Z3=629.0     ran 239s
+=== bud_120_r1.log  (budget=120 r1)  15:38:52
+P3  budget=120 r1   120s  obj=100685      Z1=0.0      Z2=3157   Z3=566.0     ran 119s
+=== bud_120_r2.log  (budget=120 r2)  15:40:52
+P3  budget=120 r2   120s  obj=102615      Z1=0.0      Z2=2943   Z3=586.0     ran 119s
+=== bud_120_r3.log  (budget=120 r3)  15:42:51
+P3  budget=120 r3   120s  obj=102615      Z1=0.0      Z2=2943   Z3=586.0     ran 119s
+=== bud_480_r1.log  (budget=480 r1)  15:44:51
+P3  budget=480 r1   480s  obj=96860       Z1=0.0      Z2=3112   Z3=542.0     ran 479s
+=== bud_480_r2.log  (budget=480 r2)  15:52:51
+P3  budget=480 r2   480s  obj=97020       Z1=0.0      Z2=3174   Z3=541.0     ran 479s
+=== bud_480_r3.log  (budget=480 r3)  16:00:50
+P3  budget=480 r3   480s  obj=97020       Z1=0.0      Z2=3174   Z3=541.0     ran 479s
+=== gate_p4_1.0.log  (conw=1.0)  16:08:50
+P4  conw=1.0       480s  obj=1780253     Z1=88.0     Z2=2707   Z3=3920.0    ran 454s
+=== gate_p4_0.25.log  (conw=0.25)  16:16:24
+P4  conw=0.25      480s  obj=2241556     Z1=120.0    Z2=4228   Z3=4080.0    ran 448s
+=== gate_p5_1.0.log  (conw=1.0)  16:23:52
+P5  conw=1.0       600s  obj=9044458     Z1=639.0    Z2=2487   Z3=3814.0    ran 599s
+=== gate_p5_0.25.log  (conw=0.25)  16:33:52
+P5  conw=0.25      600s  obj=8929792     Z1=628.0    Z2=2099   Z3=4075.0    ran 599s
+=== gate_p6_1.0.log  (conw=1.0)  16:43:52
+P6  conw=1.0       900s  obj=30471333    Z1=4453.0   Z2=1429   Z3=5145.0    ran 898s
+=== gate_p6_0.25.log  (conw=0.25)  16:58:51
+P6  conw=0.25      900s  obj=30737666    Z1=4498.0   Z2=2450   Z3=4866.0    ran 900s
+queue1done  17:13:51

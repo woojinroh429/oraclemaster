@@ -1,0 +1,43 @@
+# [r1.b60.p1.off]
+P1  [r1.b60.p1.off]    60s  obj=751509      Z1=42.0     Z2=6965   Z3=751.0     feas=y   ran 53s  py3.12
+# [r1.b60.p1.on]
+P1  [r1.b60.p1.on]    60s  obj=679647      Z1=3.0      Z2=6082   Z3=1069.0    feas=y   ran 53s  py3.12
+# [r1.b60.p20.off]
+P20 [r1.b60.p20.off]    60s  obj=9250517     Z1=1177.0   Z2=476    Z3=9331.0    feas=y   ran 59s  py3.12
+# [r1.b60.p20.on]
+P20 [r1.b60.p20.on]    60s  obj=8924228     Z1=1110.0   Z2=1576   Z3=10075.0   feas=y   ran 59s  py3.12
+# [r1.b60.p6.off]
+P6  [r1.b60.p6.off]    60s  obj=5428374     Z1=341.0    Z2=3810   Z3=6487.0    feas=y   ran 59s  py3.12
+# [r1.b60.p6.on]
+P6  [r1.b60.p6.on]    60s  obj=5097026     Z1=312.0    Z2=4950   Z3=6860.0    feas=y   ran 59s  py3.12
+# [r1.b60.p4.off]
+P4  [r1.b60.p4.off]    60s  obj=2871452     Z1=301.0    Z2=3422   Z3=3473.0    feas=y   ran 59s  py3.12
+# [r1.b60.p4.on]
+P4  [r1.b60.p4.on]    60s  obj=2753842     Z1=309.0    Z2=1004   Z3=3225.0    feas=y   ran 59s  py3.12
+# [r1.b60.p24.off]
+P24 [r1.b60.p24.off]    60s  obj=2816137     Z1=654.0    Z2=3565   Z3=1019.0    feas=y   ran 57s  py3.12
+# [r1.b60.p24.on]
+P24 [r1.b60.p24.on]    60s  obj=2731342     Z1=603.0    Z2=4249   Z3=1153.0    feas=y   ran 59s  py3.12
+== BUDGET 60 rep 1 done ==
+# [r1.b120.p1.off]
+P1  [r1.b120.p1.off]   120s  obj=524295      Z1=21.0     Z2=6496   Z3=608.0     feas=y   ran 119s  py3.12
+== BUDGET 60 rep 1 done ==
+# [r1.b120.p1.on]
+P1  [r1.b120.p1.on]   120s  obj=675186      Z1=18.0     Z2=3060   Z3=910.0     feas=y   ran 119s  py3.12
+# [r1.b120.p20.off]
+P20 [r1.b120.p20.off]   120s  obj=8962507     Z1=1127.0   Z2=181    Z3=9649.0    feas=y   ran 98s  py3.12
+# [r1.b120.p20.on]
+P20 [r1.b120.p20.on]   120s  obj=8997894     Z1=1140.0   Z2=2133   Z3=9203.0    feas=y   ran 119s  py3.12
+== BUDGET 60 rep 1 done ==
+# [r1.b120.p6.off]
+P6  [r1.b120.p6.off]   120s  obj=5429672     Z1=341.0    Z2=3777   Z3=6498.0    feas=y   ran 119s  py3.12
+# [r1.b120.p6.on]
+P6  [r1.b120.p6.on]   120s  obj=5553434     Z1=351.0    Z2=5348   Z3=6367.0    feas=y   ran 119s  py3.12
+# [r1.b120.p4.off]
+P4  [r1.b120.p4.off]   120s  obj=2773534     Z1=329.0    Z2=3443   Z3=3114.0    feas=y   ran 119s  py3.12
+# [r1.b120.p4.on]
+P4  [r1.b120.p4.on]   120s  obj=2756945     Z1=372.0    Z2=3015   Z3=2818.0    feas=y   ran 119s  py3.12
+# [r1.b120.p24.off]
+P24 [r1.b120.p24.off]   120s  obj=2873427     Z1=565.0    Z2=4326   Z3=1600.0    feas=y   ran 114s  py3.12
+# [r1.b120.p24.on]
+P24 [r1.b120.p24.on]   120s  obj=2917080     Z1=523.0    Z2=3903   Z3=1911.0    feas=y   ran 119s  py3.12

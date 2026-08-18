@@ -1,0 +1,74 @@
+# THE WHOLE PIPELINE IS WORTH 0.4% OVER ONE 32-SECOND CONSTRUCTION, AND THE AXIS IS WORTH 2.6x
+
+## The deterministic harness reproduces across sessions and builds, digest included
+
+    work_mode.md, an earlier session        this run, a different build
+    prob_16 axis 0 w6000   6,408,684        6,408,684
+    prob_16 axis 1 w6000   6,214,513        6,214,513
+    prob_16 axis 2 w6000   2,477,998        2,477,998  digest 973cef52e3c7c256 both times
+
+So the famous single-draw number is real.  Only the baseline it was compared against was stale.
+
+## THE COMPARISON THAT MATTERS
+
+    one construction, axis 2, work 6,000, 32.2 s, ONE core        2,477,998
+    the full run, 240 s x 4 workers = 960 core-seconds            2,469,078
+                                                                  -----------
+    what the entire pipeline buys over one good seed                   0.4%
+
+Thirty times the compute for four tenths of a percent.  And at the same work, choosing the axis is
+worth this instead:
+
+    axis 2  (B 67, K 5)   2,477,998
+    axis 1  (B 96, K 4)   6,214,513
+    axis 0  (B 96, K 4)   6,408,684        2.6x
+
+## WHAT THAT SAYS ABOUT EVERYTHING MEASURED TONIGHT
+
+brk, round count, RESFRAC, POLCAP, PARFILL, PARROUND, BRKPAR, axis pinning -- every one of them
+moves seconds around INSIDE that 0.4%.  That is why they all landed inside the noise: the noise
+was not unusually large, the space those arms operate in is unusually small.
+
+The (B, K) structure operates outside it, at 2.6x on prob_16 and 2.3x on prob_1, on two instances
+from two objective families, reproducible to the digit.
+
+## THE CAVEAT THAT STOPS THIS BEING A CONCLUSION
+
+All of that is the SEED space.  Seed quality has already failed to reach the score once tonight:
+pinned axis 2 -- which is 67/5 -- finished at 515,465 on prob_1, sixth of seven, while the
+rotation finished at 461,233.  The operators appear to wash out a large part of the seed
+difference.
+
+If a 2.6x seed advantage is worth nothing at the finish, that is the single most important fact
+about this algorithm and it deserves to be stated plainly rather than worked around.  bk67 is the
+test: same six orders and weights, one width and one K, portfolio intact.
+
+
+## CORRECTION: THE 0.4% WAS THE WRONG COMPARISON
+
+I compared production's final against a seed production NEVER GENERATES -- axis 2 at work 6,000,
+which costs 32 s where production gives a draw 7-8 s.  Against the seeds production actually makes:
+
+    prob_16, axis 2 at work 3,000 (roughly what a production draw gets)   3,190,472
+    prob_16, production final                                             2,469,078
+                                                                          -----------
+    what the back half actually delivers                                      22.6%
+
+So the operators are worth about 22%, not 0.4%, and the claim that "the back half dominates its
+front half by flattening it" was built on a mis-specified baseline.  Withdrawn in that form.
+
+## WHAT REPLACES IT IS MORE INTERESTING
+
+Three routes that share almost nothing land within 1% of each other on prob_16:
+
+    the full pipeline, 960 core-seconds                       2,469,078
+    ONE beam draw, axis 2, work 6,000, 32 core-seconds        2,477,998
+    the best value ever recorded, from another configuration  2,454,368
+
+Thirty times the compute, a completely different algorithm shape, and a third setting altogether,
+all inside 1%.  That looks like a floor rather than a coincidence -- and if it is one, it explains
+why every arm tonight failed without any of them being bad: they were pushing on something already
+against a wall.
+
+STATED AS A HYPOTHESIS.  Three points, and no exact lower bound for prob_16 is known, so "floor"
+is a shape in the data and not a proof.  The way to test it is a bound, not another arm.

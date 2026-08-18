@@ -1,0 +1,41 @@
+===== prob_1 =====
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        7      76.9   54.1%    978250776 12724472.7
+  opstat  grow        1       8.5    6.0%       791889    93206.6
+  opstat  bal         3       0.0    0.0%            0        0.0
+  opstat  pref        3       6.1    4.3%        73840    12060.6
+  opstat  bay         1      13.5    9.5%            0        0.0
+  opstat  brk         1      36.5   25.7%            0        0.0
+  opstat  TOTAL      16     141.5   99.7%                        
+P1  hi.1           180s  obj=516577      Z1=13.0     Z2=4102   Z3=696.0     feas=y   ran 144s  py3.12
+===== prob_4 =====
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        2      31.6   22.2%   1384909913 43827950.3
+  opstat  grow        1      22.1   15.5%       319530    14479.0
+  opstat  bal         2       0.1    0.1%          883    10250.9
+  opstat  pref        3      28.9   20.4%       122791     4241.9
+  opstat  bay         1      29.7   20.9%            0        0.0
+  opstat  brk         1      28.8   20.3%            0        0.0
+  opstat  TOTAL      10     141.2   99.4%                        
+P4  hi.4           180s  obj=2709780     Z1=360.0    Z2=1901   Z3=2815.0    feas=y   ran 161s  py3.12
+===== prob_27 =====
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        6      74.1   52.2%    909973993 12275180.3
+  opstat  grow        1      23.0   16.2%       149440     6507.0
+  opstat  bal         1       0.0    0.0%            0        0.0
+  opstat  pref        2      15.3   10.8%       155792    10154.6
+  opstat  bay         1      28.5   20.1%            0        0.0
+  opstat  brk         1       0.7    0.5%            0        0.0
+  opstat  TOTAL      12     141.7   99.7%                        
+P27 hi.27          180s  obj=791164      Z1=125.0    Z2=967    Z3=690.0     feas=y   ran 150s  py3.12
+===== prob_35 =====
+  opstat  op      tried   seconds %budget         gain     gain/s
+  opstat  beam        5      53.7   37.8%    138340409  2575307.8
+  opstat  grow        1      25.8   18.1%            0        0.0
+  opstat  bal         2       0.2    0.1%            0        0.0
+  opstat  pref        3      29.9   21.1%         6044      201.8
+  opstat  bay         1      29.5   20.8%            0        0.0
+  opstat  brk         1       2.3    1.6%            0        0.0
+  opstat  TOTAL      13     141.4   99.5%                        
+P35 hi.35          180s  obj=237958      Z1=538.0    Z2=1267   Z3=2131.0    feas=y   ran 173s  py3.12
+OPSTATHIDONE

@@ -1,0 +1,46 @@
+# [g120.p3.off.r1]
+P3  [g120.p3.off.r1]   120s  obj=4514632     Z1=151.0    Z2=5481   Z3=7454.0    feas=y   ran 85s  py3.12
+# [g120.p3.on.r1]
+P3  [g120.p3.on.r1]   120s  obj=4577064     Z1=142.0    Z2=6350   Z3=7616.0    feas=y   ran 116s  py3.12
+# [g120.p27.off.r1]
+P27 [g120.p27.off.r1]   120s  obj=754918      Z1=149.0    Z2=580    Z3=477.0     feas=y   ran 82s  py3.12
+# [g120.p27.on.r1]
+P27 [g120.p27.on.r1]   120s  obj=802124      Z1=78.0     Z2=1231   Z3=1001.0    feas=y   ran 116s  py3.12
+# [g120.p33.off.r1]
+P33 [g120.p33.off.r1]   120s  obj=1101010     Z1=93.0     Z2=731    Z3=2372.0    feas=y   ran 82s  py3.12
+# [g120.p33.on.r1]
+P33 [g120.p33.on.r1]   120s  obj=1065571     Z1=104.0    Z2=867    Z3=1822.0    feas=y   ran 115s  py3.12
+# [g120.p16.off.r1]
+P16 [g120.p16.off.r1]   120s  obj=3199896     Z1=145.0    Z2=2287   Z3=5039.0    feas=y   ran 85s  py3.12
+# [g120.p16.on.r1]
+P16 [g120.p16.on.r1]   120s  obj=3051577     Z1=146.0    Z2=1903   Z3=4397.0    feas=y   ran 117s  py3.12
+# [g120.p7.off.r1]
+P7  [g120.p7.off.r1]   120s  obj=695296      Z1=35.0     Z2=563    Z3=1498.0    feas=y   ran 82s  py3.12
+# [g120.p7.on.r1]
+P7  [g120.p7.on.r1]   120s  obj=930323      Z1=55.0     Z2=994    Z3=1267.0    feas=y   ran 116s  py3.12
+# [g120.p3.off.r2]
+# VERDICT -- the budget condition stays.  Paired at 120 s, gate forced open with
+# OGC_DIRGATET=999 against OGC_DIRGATE=0, one replicate each:
+#
+#                60 s      120 s      120 s off -> on
+#   prob_1     -15.5%     +4.2%       492,989 -> 513,703     reverses
+#   P27        -15.4%     +6.25%      754,918 -> 802,124     reverses
+#   P3          +0.26%    +1.38%    4,514,632 -> 4,577,064   wash at both
+#   P33         -9.7%     -3.22%   1,101,010 -> 1,065,571    holds
+#   P16        -13.7%     -4.64%   3,199,896 -> 3,051,577    holds
+#   P7          -6.9%    +33.80%     695,296 -> 930,323      reverses hard
+#
+# Two hold at about half their 60 s margin, three reverse, one is a wash.  The rule
+# fixed before the run was 4 of 5 agreeing; the count is 2-3.  timelimit <= 60 stays.
+#
+# Control budget response, which is the clearest structure here:
+#   P7 -38.9%, prob_1 -30.0%, P33 -17.3%, P16 -16.7%, P27 -13.7%, P3 -4.6%
+# P7 reverses hardest and has the largest control response; P3 barely moves with
+# budget and is a wash at both.  But P33 and P16 respond 17% and still hold, so
+# "the gate only helps where the control has not converged" does not survive either.
+P3  [g120.p3.off.r2]   120s  obj=4600617     Z1=174.0    Z2=7194   Z3=7449.0    feas=y   ran 83s  py3.12
+# [g120.p3.on.r2]
+P3  [g120.p3.on.r2]   120s  obj=4697953     Z1=156.0    Z2=6903   Z3=7748.0    feas=y   ran 116s  py3.12
+# [g120.p27.off.r2]
+P27 [g120.p27.off.r2]   120s  obj=758256      Z1=149.0    Z2=600    Z3=483.0     feas=y   ran 84s  py3.12
+# [g120.p27.on.r2]

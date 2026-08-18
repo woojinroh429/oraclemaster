@@ -1,0 +1,77 @@
+# [a60.p1.base]
+P1  [a60.p1.base]    60s  obj=610313      Z1=17.0     Z2=5858   Z3=799.0     feas=y   ran 49s  py3.12
+# [a60.p1.p1a]
+P1  [a60.p1.p1a]    60s  obj=594521      Z1=11.0     Z2=3928   Z3=849.0     feas=y   ran 52s  py3.12
+# [a60.p1.p1b]
+P1  [a60.p1.p1b]    60s  obj=610313      Z1=17.0     Z2=5858   Z3=799.0     feas=y   ran 49s  py3.12
+# [a60.p1.p1c]
+# [a60.p1.p1c]
+P1  [a60.p1.p1c]    60s  obj=682223      Z1=17.0     Z2=4628   Z3=925.0     feas=y   ran 50s  py3.12
+# [a60.p20.base]
+P20 [a60.p20.base]    60s  obj=9162795     Z1=1169.0   Z2=2984   Z3=8968.0    feas=y   ran 59s  py3.12
+# [a60.p20.p1a]
+P20 [a60.p20.p1a]    60s  obj=9162795     Z1=1169.0   Z2=2984   Z3=8968.0    feas=y   ran 59s  py3.12
+# [a60.p20.p1b]
+P20 [a60.p20.p1b]    60s  obj=8876985     Z1=1125.0   Z2=2220   Z3=9059.0    feas=y   ran 59s  py3.12
+# [a60.p20.p1c]
+P20 [a60.p20.p1c]    60s  obj=8973323     Z1=1127.0   Z2=183    Z3=9721.0    feas=y   ran 60s  py3.12
+# [a60.p6.base]
+P6  [a60.p6.base]    60s  obj=5553657     Z1=354.0    Z2=3963   Z3=6120.0    feas=y   ran 60s  py3.12
+# [a60.p6.p1a]
+P6  [a60.p6.p1a]    60s  obj=5712436     Z1=364.0    Z2=4052   Z3=6308.0    feas=y   ran 60s  py3.12
+# [a60.p6.p1b]
+# [a60.p6.p1b]
+P6  [a60.p6.p1b]    60s  obj=5712436     Z1=364.0    Z2=4052   Z3=6308.0    feas=y   ran 59s  py3.12
+# [a60.p6.p1c]
+P6  [a60.p6.p1c]    60s  obj=5404871     Z1=345.0    Z2=4802   Z3=5872.0    feas=y   ran 59s  py3.12
+# [a60.p4.base]
+P4  [a60.p4.base]    60s  obj=3023148     Z1=392.0    Z2=2309   Z3=3199.0    feas=y   ran 59s  py3.12
+# [a60.p4.p1a]
+# [a60.p4.p1a]
+P4  [a60.p4.p1a]    60s  obj=3046098     Z1=389.0    Z2=2183   Z3=3262.0    feas=y   ran 60s  py3.12
+# [a60.p4.p1b]
+P4  [a60.p4.p1b]    60s  obj=2774178     Z1=377.0    Z2=3022   Z3=2819.0    feas=y   ran 60s  py3.12
+# [a60.p4.p1c]
+P4  [a60.p4.p1c]    60s  obj=2957435     Z1=326.0    Z2=2248   Z3=3489.0    feas=y   ran 59s  py3.12
+# [a60.p24.base]
+P24 [a60.p24.base]    60s  obj=2631837     Z1=538.0    Z2=2469   Z3=1369.0    feas=y   ran 59s  py3.12
+# [a60.p24.p1a]
+P24 [a60.p24.p1a]    60s  obj=2676628     Z1=610.0    Z2=3814   Z3=1028.0    feas=y   ran 60s  py3.12
+# [a60.p24.p1b]
+P24 [a60.p24.p1b]    60s  obj=2762386     Z1=515.0    Z2=4213   Z3=1694.0    feas=y   ran 59s  py3.12
+# [a60.p24.p1c]
+P24 [a60.p24.p1c]    60s  obj=2631837     Z1=538.0    Z2=2469   Z3=1369.0    feas=y   ran 59s  py3.12
+== AXSET 60 done ==
+# [d60.p1.base]
+P1  [d60.p1.base]    60s  obj=650596      Z1=25.0     Z2=3307   Z3=790.0     feas=y   ran 53s  py3.12
+# [d60.p1.dir]
+== AXSET 60 done ==
+# [c120.p16.base]
+P16 [c120.p16.base]   120s  obj=3933854     Z1=210.0    Z2=1058   Z3=4523.0    feas=y   ran 119s  py3.12
+# [c120.p16.rf35]
+P16 [c120.p16.rf35]   120s  obj=3748158     Z1=194.0    Z2=2602   Z3=4615.0    feas=y   ran 120s  py3.12
+# [c120.p16.rf50]
+== AXSET 60 done ==
+# [c120.p16.rf50]
+P16 [c120.p16.rf50]   120s  obj=3472568     Z1=185.0    Z2=2321   Z3=3996.0    feas=y   ran 120s  py3.12
+# [c240.p16.base]
+P16 [c240.p16.base]   240s  obj=3281165     Z1=168.0    Z2=2407   Z3=4136.0    feas=y   ran 240s  py3.12
+== AXSET 60 done ==
+# [c240.p16.rf35]
+P16 [c240.p16.rf35]   240s  obj=3760629     Z1=199.0    Z2=4204   Z3=4379.0    feas=y   ran 239s  py3.12
+# [c240.p16.rf50]
+P16 [c240.p16.rf50]   240s  obj=3552573     Z1=180.0    Z2=2461   Z3=4581.0    feas=y   ran 239s  py3.12
+# [c120.p36.base]
+P36 [c120.p36.base]   120s  obj=76060831    Z1=10587.0  Z2=2102   Z3=6844.0    feas=y   ran 117s  py3.12
+# [c120.p36.rf35]
+P36 [c120.p36.rf35]   120s  obj=73394543    Z1=10180.0  Z2=1283   Z3=6904.0    feas=y   ran 119s  py3.12
+# [c120.p36.rf50]
+P36 [c120.p36.rf50]   120s  obj=77081419    Z1=10656.0  Z2=5867   Z3=7540.0    feas=y   ran 119s  py3.12
+== AXSET 60 done ==
+# [c240.p36.base]
+P36 [c240.p36.base]   240s  obj=76875827    Z1=10619.0  Z2=5354   Z3=7592.0    feas=y   ran 239s  py3.12
+# [c240.p36.rf35]
+P36 [c240.p36.rf35]   240s  obj=78263904    Z1=10748.0  Z2=2188   Z3=8256.0    feas=y   ran 239s  py3.12
+# [c240.p36.rf50]
+P36 [c240.p36.rf50]   240s  obj=77594861    Z1=10785.0  Z2=66     Z3=7114.0    feas=y   ran 236s  py3.12
+== CLIFF done ==

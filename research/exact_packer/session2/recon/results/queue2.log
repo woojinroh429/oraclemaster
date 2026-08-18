@@ -1,0 +1,6 @@
+conw=0 arms verified: w3mul default vs 6
+=== q0w6_r1.log  (conw=0 w3mul=6 r1)  17:14:10
+harness/queue2.sh: line 37: 23940 Killed                  python3.12 harness/run1.py "$1" 3 240 "$2" > "results/$3" 2>&1
+=== q0w6_r2.log  (conw=0 w3mul=6 r2)  17:15:22
+P3  conw=0 w3mul=6 r2   240s  obj=2488352313  Z1=139966.0 Z2=6633   Z3=24.0      ran 197s
+=== q0w6_r3.log  (conw=0 w3mul=6 r3)  17:18:40

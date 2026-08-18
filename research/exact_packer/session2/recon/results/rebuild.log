@@ -1,0 +1,9 @@
+== build 02:52:29 ==
+-- python3.12 -> ogc_fast.cpython-312-x86_64-linux-gnu.so
+-- python3.10 -> ogc_fast.cpython-310-x86_64-linux-gnu.so
+-- python3.11 -> ogc_fast.cpython-311-x86_64-linux-gnu.so
+-- python3.13 -> ogc_fast.cpython-313-x86_64-linux-gnu.so
+== import check ==
+ogc_fast   /home/user/oraclemaster/research/exact_packer/session2/recon/build_new/ogc_fast.cpython-312-x86_64-linux-gnu.so
+cranepack  /home/user/oraclemaster/research/exact_packer/session2/recon/cranepack.cpython-312-x86_64-linux-gnu.so
+== paired old vs new, same instances and budget ==

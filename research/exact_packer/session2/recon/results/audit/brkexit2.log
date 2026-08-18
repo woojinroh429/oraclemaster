@@ -1,0 +1,25 @@
+P16   3295373 ->  3295373 (+0.00%)   reject reject reject reject
+P9    6154181 ->  6154181 (+0.00%)   no-move no-move no-move no-move
+P26  27405270 -> 27405270 (+0.00%)   no-move no-move no-move no-move
+P3    4738310 ->  4688944 (-1.04%)   KEEP no-move no-move no-move
+Traceback (most recent call last):
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/bayrepack.py", line 1396, in repack
+    % (len(admitted), len(moved), len(displaced), int(o), int(base),
+                                                  ^^^^^^
+OverflowError: cannot convert float infinity to integer
+P12    150877 ->   144536 (-4.20%)   other KEEP no-move KEEP
+P20   9748532 ->  9748532 (+0.00%)   declined declined declined declined
+P6    5553062 ->  5553062 (+0.00%)   aborted aborted aborted aborted
+    brk: declined, smallest tier predicts 3s of 10s
+    brk: declined, smallest tier predicts 4s of 8s
+    brk: declined, smallest tier predicts 2s of 8s
+P1     725958 ->   716001 (-1.37%)   KEEP no-move no-move no-move
+
+--- exits over 32 calls ---
+  declined       4
+  aborted        4
+  no-move       15
+  reject         4
+  KEEP           4
+  other          1
+  displaced blocks: 43 seen, 0 in calls that were then discarded (0%)

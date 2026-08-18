@@ -1,0 +1,21 @@
+    brk tier: room=88s rate=6.4e-08 -> tier 2 (step 4 nout 20 nent 2) ncol~25710 pred=42.3s  [hard=345 slice=88s]
+    brk tier: room=88s rate=6.4e-08 -> tier 3 (step 6 nout 10 nent 1) ncol~23102 pred=34.2s  [hard=345 slice=88s]
+    brk tier: room=88s rate=6.4e-08 -> tier 2 (step 4 nout 20 nent 2) ncol~27112 pred=47.0s  [hard=338 slice=88s]
+    brk tier: room=88s rate=6.4e-08 -> tier 2 (step 4 nout 20 nent 2) ncol~25200 pred=40.6s  [hard=329 slice=88s]
+    brk cost: ncol~23102 real_ncol=22990 build=22.0s ask=53.6s total=76.0s
+    brk cost: tier 3 ncol~23102 real_ncol=22990 build=22.0s total=76.0s  -> rate 4.117e-08 s/col^2
+    brk[pressure] tgt=0 res=53 outs=10 displaced b31 could not be rehomed in any other bay
+    brk cost: ncol~25710 real_ncol=25059 build=46.3s ask=45.5s total=92.2s
+    brk cost: tier 2 ncol~25710 real_ncol=25059 build=46.3s total=92.2s  -> rate 7.011e-08 s/col^2
+    brk[pressure] tgt=1 res=42 outs=20 displaced b79 could not be rehomed in any other bay
+    brk cost: ncol~27112 real_ncol=26679 build=54.6s ask=40.8s total=95.6s
+    brk cost: tier 2 ncol~27112 real_ncol=26679 build=54.6s total=95.6s  -> rate 7.421e-08 s/col^2
+    brk[pressure] tgt=1 res=44 outs=20 displaced b0 could not be rehomed in any other bay
+    brk cost: ncol~25200 real_ncol=24434 build=43.0s ask=47.2s total=90.5s
+    brk cost: tier 2 ncol~25200 real_ncol=24434 build=43.0s total=90.5s  -> rate 6.776e-08 s/col^2
+    brk[pressure] tgt=1 res=40 outs=20 displaced b36 could not be rehomed in any other bay
+    brk tier: room=63s rate=5.26e-08 -> tier 3 (step 6 nout 10 nent 1) ncol~23102 pred=28.1s  [hard=74 slice=73s]
+    brk cost: ncol~23102 real_ncol=22990 build=21.3s ask=35.0s total=56.5s
+    brk cost: tier 3 ncol~23102 real_ncol=22990 build=21.3s total=56.5s  -> rate 3.996e-08 s/col^2
+    brk[pressure] tgt=0 res=53 outs=10 displaced b11 could not be rehomed in any other bay
+P4  askfix P4      480s  obj=1780253     Z1=88.0     Z2=2707   Z3=3920.0    feas=y   ran 452s

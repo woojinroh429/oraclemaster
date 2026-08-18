@@ -1,0 +1,21 @@
+P3: the SAME order evaluated 6 times, 10s beam, nothing changed between runs
+
+   order        values
+   edd         [191128, 165295, 165295, 165295, 165295, 165295]
+               min 165295  max 191128  SPREAD 25833  (15.63% of the min)
+   lst         [148650, 148650, 148650, 160775, 157315, 166500]
+               min 148650  max 166500  SPREAD 17850  (12.01% of the min)
+   big_first   [188260, 188260, 188260, 166605, 188260, 188260]
+               min 166605  max 188260  SPREAD 21655  (13.00% of the min)
+   defer_big   [164970, 164970, 164970, 164970, 164970, 164970]
+               min 164970  max 164970  SPREAD 0  (0.00% of the min)
+
+[NOISE FLOOR]
+   median spread across the four orders: 21655
+   worst: 25833 (edd)
+
+   brklocal's best perturbation gains, for comparison:
+      edd  8 swaps   -12,045
+      edd 32 swaps   -15,085
+
+   -> those gains are INSIDE the noise floor, so brklocal measured the beam's own variability and not the effect of reordering.  The perturbation test has to be rebuilt around repeated evaluation before it can decide anything.

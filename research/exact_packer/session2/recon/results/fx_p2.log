@@ -1,0 +1,23 @@
+    brk calib: 504:1.67e-06 886:4.53e-08 -> rate 4.53e-08 at 886 cols, growth n^0.000
+    brk tier: room=43s rate=4.53e-08 -> tier 2 (step 4 nout 20 nent 2) ncol~25078 pred=28.5s  [hard=51 slice=19s]
+    brk calib: 504:1.89e-06 886:4.33e-08 -> rate 4.33e-08 at 886 cols, growth n^0.000
+    brk tier: room=43s rate=4.33e-08 -> tier 2 (step 4 nout 20 nent 2) ncol~25078 pred=27.2s  [hard=51 slice=19s]
+    brk calib: 504:2.66e-06 886:4.67e-08 -> rate 4.67e-08 at 886 cols, growth n^0.000
+    brk calib: 504:2.19e-06 886:4.59e-08 -> rate 4.59e-08 at 886 cols, growth n^0.000
+    brk tier: room=43s rate=4.67e-08 -> tier 2 (step 4 nout 20 nent 2) ncol~25078 pred=29.3s  [hard=50 slice=19s]
+    brk tier: room=43s rate=4.59e-08 -> tier 2 (step 4 nout 20 nent 2) ncol~25078 pred=28.9s  [hard=50 slice=19s]
+    brk: build refused at tier 2 (0.7s) -- stepping down to tier 3
+    brk: build refused at tier 2 (0.7s) -- stepping down to tier 3
+    brk cost: ncol~12574 real_ncol=12599 build=0.6s ask=19.0s total=19.8s
+    brk cost: tier 3 ncol~12574 real_ncol=12599 build=0.6s total=19.8s  -> rate 3.903e-09 s/col^2
+    brk[pressure] tgt=0 res=65 outs=1 packer admitted NO outsider (seated 65 of 66 columns offered)
+    brk cost: ncol~12574 real_ncol=12582 build=0.8s ask=19.0s total=19.8s
+    brk cost: tier 3 ncol~12574 real_ncol=12582 build=0.8s total=19.8s  -> rate 4.974e-09 s/col^2
+    brk[pressure] tgt=0 res=65 outs=1 packer admitted NO outsider (seated 65 of 66 columns offered)
+    brk cost: ncol~25078 real_ncol=24375 build=3.0s ask=19.0s total=22.0s
+    brk cost: tier 2 ncol~25078 real_ncol=24375 build=3.0s total=22.0s  -> rate 4.751e-09 s/col^2
+    brk[pressure] tgt=0 res=65 outs=1 packer admitted NO outsider (seated 65 of 66 columns offered)
+    brk cost: ncol~25078 real_ncol=24402 build=3.0s ask=19.0s total=22.0s
+    brk cost: tier 2 ncol~25078 real_ncol=24402 build=3.0s total=22.0s  -> rate 4.75e-09 s/col^2
+    brk[pressure] tgt=0 res=65 outs=1 packer admitted NO outsider (seated 65 of 66 columns offered)
+P2  six P2         120s  obj=31368       Z1=0.0      Z2=3342   Z3=90.0      feas=y   ran 119s

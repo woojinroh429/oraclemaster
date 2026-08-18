@@ -1,0 +1,21 @@
+
+P3  240s, ONE worker   obj=91325  feas=True  wall=239.4s   beam wall=109.1s over 7 calls
+  phase              seconds   % wall
+  cb_t_scan            108.4    45.3%
+  cb_t_exact            38.1    15.9%
+  cb_t_retry             0.3     0.1%
+  cb_t_rebuild           0.1     0.0%
+  cb_t_roll              0.0     0.0%
+  accounted            146.9    61.4%   (beam wall 109.1 s -- the rest is the loop itself)
+
+  count                     value
+  cb_n_cell             106794282
+  cb_n_bitmap           174080707
+  cb_n_exact             14543477
+  cb_n_retry                  199
+  cb_n_hard              39168456
+  cb_n_arskip                   0
+  cb_n_arbad                    0
+  cb_n_badrej                   0
+
+  exact tests per cell visited: 0.1362   (bitmap resolved: 1.6301)

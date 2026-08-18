@@ -1,0 +1,4 @@
+two distinct lineages verified, neither carrying brk
+=== lin_orig_p4_r1.log  (ORIG P4 r1)  13:04:40
+P4  ORIG P4 r1     480s  obj=2939598     Z1=182.0    Z2=2806   Z3=3289.0    feas=y   ran 451s
+=== lin_ship_p4_r2.log  (SHIPPED P4 r2)  13:12:12

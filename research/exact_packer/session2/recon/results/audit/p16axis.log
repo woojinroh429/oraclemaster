@@ -1,0 +1,11 @@
+# [ax2]
+WSTAT round=0 n=4 3140731 3139601 2547188 3233601  spread=26.95%
+PARFILL round=1 parity=even even=2547188 odd=3139601 wids=[16, 18, 20, 22]
+FILL round=1 budget=67 moved=0 best=2521495
+P16 [ax2]          240s  obj=2521495     Z1=100.0    Z2=1315   Z3=4737.0    feas=y   ran 237s  py3.12
+# [rot]
+WSTAT round=0 n=4 2692923 3199896 3458593 4811796  spread=78.68%
+PARFILL round=1 parity=even even=2692923 odd=3199896 wids=[16, 18, 20, 22]
+FILL round=1 budget=58 moved=0 best=2674298
+P16 [rot]          240s  obj=2674298     Z1=114.0    Z2=1612   Z3=4598.0    feas=y   ran 239s  py3.12
+# [ax3]

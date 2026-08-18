@@ -1,0 +1,9 @@
+prob_24  latewin=0  P24 lw             180s  obj=2603485     Z1=637.0    Z2=2452   Z3=772.0     feas=y   ran 152s
+prob_24  latewin=1  P24 lw             180s  obj=2477775     Z1=655.0    Z2=3780   Z3=447.0     feas=y   ran 146s
+prob_1  latewin=0  P1  lw             180s  obj=542341      Z1=19.0     Z2=4156   Z3=672.0     feas=y   ran 144s
+prob_1  latewin=1  P1  lw             180s  obj=542341      Z1=19.0     Z2=4156   Z3=672.0     feas=y   ran 144s
+prob_34  latewin=0  P34 lw             180s  obj=225946      Z1=0.0      Z2=2616   Z3=1682.0    feas=y   ran 179s
+prob_34  latewin=1  P34 lw             180s  obj=208624      Z1=0.0      Z2=2604   Z3=1544.0    feas=y   ran 179s
+prob_31  latewin=0  P31 lw             180s  obj=3851543     Z1=509.0    Z2=1194   Z3=2974.0    feas=y   ran 179s
+prob_31  latewin=1  P31 lw             180s  obj=3851543     Z1=509.0    Z2=1194   Z3=2974.0    feas=y   ran 179s
+LWDONE

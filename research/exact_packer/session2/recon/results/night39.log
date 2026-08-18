@@ -1,0 +1,5 @@
+=== P5 crane (600s)  08:21:30
+P5  myalg_base     600s  obj=9044458     Z1=639.0    Z2=2487   Z3=3814.0    ran 599s
+=== P5 nocrane (600s)  08:31:29
+P5  myalg_base     600s  obj=5553747817  Z1=416541.0 Z2=78     Z3=46.0      ran 558s
+=== P4 crane (480s)  08:40:47

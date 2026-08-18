@@ -1,0 +1,8 @@
+waiting for the experiment lock 07:57:36
+lock acquired 08:46:48
+=== nx_grasp_p6.log (GRASP P6 600+300) 08:46:48
+P6  GRASP k=6  polished     obj=27239655    Z1=3877.0  Z2=1987  Z3=9172.0  feasible=True
+   base=sac3 mode=flatbl  (P6 fixed-order reference is 28,138,113)
+Traceback (most recent call last):
+  File "<stdin>", line 7, in <module>
+AssertionError: ('slice-growth site not found -- refusing to guess', 0)

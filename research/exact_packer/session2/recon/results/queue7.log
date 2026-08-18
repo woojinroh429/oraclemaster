@@ -1,0 +1,23 @@
+per-worker conw arms verified: half / three / four
+=== q7_half_r1.log  (wconw=half r1)  01:28:44
+P3  wconw=half r1   240s  obj=100535      Z1=0.0      Z2=3187   Z3=564.0     feas=y   ran 239s
+=== q7_three_r1.log  (wconw=three r1)  01:32:44
+P3  wconw=three r1   240s  obj=106335      Z1=0.0      Z2=4257   Z3=567.0     feas=y   ran 239s
+=== q7_four_r1.log  (wconw=four r1)  01:36:44
+P3  wconw=four r1   240s  obj=92930       Z1=0.0      Z2=3496   Z3=503.0     feas=y   ran 239s
+=== q7_half_r2.log  (wconw=half r2)  01:40:43
+
+[STOPPED after one rep of each setting -- the question is answered]
+
+    per-worker conw       obj        vs base band 96,990-106,700
+    half   (2 of 4 flat)  100,535    inside
+    three  (3 of 4 flat)  106,335    inside
+    four   (0/.25/1/4)     92,930    the conw=0.25 solution, already known
+
+None is competitive with conw=0.0 held everywhere (87,560), let alone with brk (82,180).
+Workers were the last unit that could hold a regime steady -- each keeps its own pool for the
+whole budget and they meet only at the closing best-of -- so this closes the question: conw=0.0
+needs the entire pool and cannot be made safe for a saturated instance by splitting it.
+
+The remaining reps would spend twelve minutes confirming a settled negative while queue14 (push
+under 80,000) and queue15 (is brk starved?) wait behind the same lock.

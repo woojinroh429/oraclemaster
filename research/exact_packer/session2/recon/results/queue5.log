@@ -1,0 +1,18 @@
+arms verified: divc / divcs / c0s1
+=== q5_divc_r1.log  (div conw r1)  17:54:09
+P3  div conw r1    240s  obj=96235       Z1=0.0      Z2=3767   Z3=516.0     ran 239s
+=== q5_divcs_r1.log  (div conw+span2 r1)  17:58:08
+P3  div conw+span2 r1   240s  obj=92930       Z1=0.0      Z2=3496   Z3=503.0     ran 239s
+=== q5_c0s1_r1.log  (conw0 span2=1 r1)  18:02:08
+P3  conw0 span2=1 r1   240s  obj=103795      Z1=0.0      Z2=3419   Z3=578.0     ran 239s
+=== q5_divc_r2.log  (div conw r2)  18:06:07
+P3  div conw r2    240s  obj=96235       Z1=0.0      Z2=3767   Z3=516.0     ran 239s
+=== q5_divcs_r2.log  (div conw+span2 r2)  18:10:07
+P3  div conw+span2 r2   240s  obj=100535      Z1=0.0      Z2=3187   Z3=564.0     ran 239s
+=== q5_c0s1_r2.log  (conw0 span2=1 r2)  18:14:07
+P3  conw0 span2=1 r2   240s  obj=103795      Z1=0.0      Z2=3419   Z3=578.0     ran 239s
+=== q5_divc_r3.log  (div conw r3)  18:18:06
+P3  div conw r3    240s  obj=92930       Z1=0.0      Z2=3496   Z3=503.0     ran 239s
+=== q5_divcs_r3.log  (div conw+span2 r3)  18:22:06
+P3  div conw+span2 r3   240s  obj=92930       Z1=0.0      Z2=3496   Z3=503.0     feas=y   ran 239s
+=== q5_c0s1_r3.log  (conw0 span2=1 r3)  18:26:05

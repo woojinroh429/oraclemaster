@@ -1,0 +1,27 @@
+Traceback (most recent call last):
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/grasp.py", line 38, in <module>
+    SEED = int(sys.argv[6]) if len(sys.argv) > 6 else 12345
+           ^^^^^^^^^^^^^^^^
+ValueError: invalid literal for int() with base 10: 'rank'
+Traceback (most recent call last):
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/grasp.py", line 38, in <module>
+    SEED = int(sys.argv[6]) if len(sys.argv) > 6 else 12345
+           ^^^^^^^^^^^^^^^^
+ValueError: invalid literal for int() with base 10: 'rank'
+Traceback (most recent call last):
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/grasp.py", line 38, in <module>
+    SEED = int(sys.argv[6]) if len(sys.argv) > 6 else 12345
+           ^^^^^^^^^^^^^^^^
+ValueError: invalid literal for int() with base 10: 'rank'
+FAIR5-DONE
+Traceback (most recent call last):
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/grasp.py", line 38, in <module>
+    SEED = int(sys.argv[6]) if len(sys.argv) > 6 else 12345
+           ^^^^^^^^^^^^^^^^
+ValueError: invalid literal for int() with base 10: 'rank'
+Traceback (most recent call last):
+  File "/home/user/oraclemaster/research/exact_packer/session2/recon/harness/grasp.py", line 38, in <module>
+    SEED = int(sys.argv[6]) if len(sys.argv) > 6 else 12345
+           ^^^^^^^^^^^^^^^^
+ValueError: invalid literal for int() with base 10: 'rank'
+FAIR-DONE

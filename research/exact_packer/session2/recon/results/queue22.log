@@ -1,0 +1,18 @@
+myalg_base on P3: obj=101935  Z1=0.0 Z2=2537 Z3=595.0  feasible=True
+
+   sweeping every bay until a full pass improves nothing; 120s per repack, no overall time limit
+
+   round  bay      obj        delta   cumulative     secs
+       1    0       92740        -9195         9195      202
+       1    1          --            --        92740        0
+       1    2          --            --        92740      333
+       2    0          --            --        92740      136
+       2    1          --            --        92740        0
+       2    2          --            --        92740      302
+
+[CEILING]  101935 -> 92740   (-9.02%) in 2 rounds, 973s total
+   brk inside a 240s run averages 87,703, and a control without it averages 103,463.
+   -> brk is ALREADY near the ceiling of free repacking.  More of it will not pay,
+      and 70,000 needs a different mechanism -- this idea is spent.
+
+queue22done  05:39:47

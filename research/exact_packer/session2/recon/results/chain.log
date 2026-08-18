@@ -1,0 +1,5 @@
+== chain: mbay3 02:41:51 ==
+== chain: mbay3b 02:46:53 ==
+== chain: mbaydbg 02:49:15 ==
+== chain: wspread 02:51:49 ==
+wspread.sh: line 33:  9288 Killed                  OGC_WSTAT=1 timeout 300 /usr/bin/python3.12 harness/run1.py myalgorithm $p 60 "[r$rep.p$p]" --data data/stage2 >> $L 2>&1

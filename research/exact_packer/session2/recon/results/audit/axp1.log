@@ -1,0 +1,81 @@
+# [r1.base]
+WSTAT round=0 n=4 516577 678217 544247 762638  spread=47.63%
+P1  [r1.base]      240s  obj=516577      Z1=13.0     Z2=4102   Z3=696.0     feas=y   ran 200s  py3.12
+# [g240.p6.base]
+WSTAT round=0 n=4 5516722 5465474 5302050 5302630  spread=4.05%
+P6  [g240.p6.base]   240s  obj=5302050     Z1=341.0    Z2=2166   Z3=5599.0    feas=y   ran 232s  py3.12
+# [g240.p6.dir2]
+WSTAT round=0 n=4 5535631 5642685 5449984 5365162  spread=5.17%
+P6  [g240.p6.dir2]   240s  obj=5345947     Z1=338.0    Z2=4528   Z3=6141.0    feas=y   ran 240s  py3.12
+# [g240.p20.base]
+WSTAT round=0 n=4 10929379 9537284 9696200 8868533  spread=23.24%
+P20 [g240.p20.base]   240s  obj=8868533     Z1=1123.0   Z2=374    Z3=9190.0    feas=y   ran 231s  py3.12
+# [g240.p20.dir2]
+WSTAT round=0 n=4 12257193 9537284 10173938 9164946  spread=33.74%
+P20 [g240.p20.dir2]   240s  obj=9164502     Z1=1164.0   Z2=3108   Z3=9195.0    feas=y   ran 239s  py3.12
+# [g240.p36.base]
+WSTAT round=0 n=4 80788639 77225665 90363294 76795351  spread=17.67%
+P36 [g240.p36.base]   240s  obj=76795351    Z1=10734.0  Z2=2973   Z3=6536.0    feas=y   ran 240s  py3.12
+# [g240.p36.dir2]
+WSTAT round=0 n=4 91926866 75190266 81417105 75579647  spread=22.26%
+P36 [g240.p36.dir2]   240s  obj=75178259    Z1=10438.0  Z2=2513   Z3=6982.0    feas=y   ran 240s  py3.12
+# [g240.p16.base]
+WSTAT round=0 n=4 4557909 3495836 3936863 3574290  spread=30.38%
+P16 [g240.p16.base]   240s  obj=3495836     Z1=175.0    Z2=2687   Z3=4618.0    feas=y   ran 239s  py3.12
+# [g240.p16.dir2]
+WSTAT round=0 n=4 2676209 3233601 3283454 3657631  spread=36.67%
+P16 [g240.p16.dir2]   240s  obj=2646248     Z1=111.0    Z2=1345   Z3=4649.0    feas=y   ran 239s  py3.12
+# [g240.p24.base]
+WSTAT round=0 n=4 2928256 2739434 3041009 2847445  spread=11.01%
+P24 [g240.p24.base]   240s  obj=2739434     Z1=536.0    Z2=4478   Z3=1536.0    feas=y   ran 218s  py3.12
+# [g240.p24.dir2]
+WSTAT round=0 n=4 3070188 2739434 2942763 2891136  spread=12.07%
+P24 [g240.p24.dir2]   240s  obj=2739434     Z1=536.0    Z2=4478   Z3=1536.0    feas=y   ran 219s  py3.12
+# [g240.p4.base]
+WSTAT round=0 n=4 2979286 2718640 2602038 2986838  spread=14.79%
+P4  [g240.p4.base]   240s  obj=2602038     Z1=353.0    Z2=1222   Z3=2663.0    feas=y   ran 240s  py3.12
+# [g240.p4.dir2]
+WSTAT round=0 n=4 2781836 2718640 2637801 3007549  spread=14.02%
+P4  [g240.p4.dir2]   240s  obj=2637801     Z1=289.0    Z2=3067   Z3=3113.0    feas=y   ran 237s  py3.12
+== DIR2 generalisation done ==
+# [r1.ax0]
+== DIR2 generalisation done ==
+# [r1.ax0]
+WSTAT round=0 n=4 518731 762095 583242 834257  spread=60.83%
+P1  [r1.ax0]       240s  obj=518731      Z1=19.0     Z2=3686   Z3=635.0     feas=y   ran 201s  py3.12
+== DIR2 generalisation done ==
+# [r1.ax1]
+WSTAT round=0 n=4 492458 750300 472330 763697  spread=61.69%
+P1  [r1.ax1]       240s  obj=472330      Z1=1.0      Z2=2221   Z3=765.0     feas=y   ran 201s  py3.12
+# [r1.ax2]
+WSTAT round=0 n=4 516577 779682 516577 772500  spread=50.93%
+P1  [r1.ax2]       240s  obj=516577      Z1=13.0     Z2=4102   Z3=696.0     feas=y   ran 200s  py3.12
+# [r1.ax3]
+WSTAT round=0 n=4 437484 765211 437484 770885  spread=76.21%
+P1  [r1.ax3]       240s  obj=437484      Z1=15.0     Z2=4293   Z3=541.0     feas=y   ran 200s  py3.12
+# [r1.ax4]
+WSTAT round=0 n=4 516037 766710 504490 766710  spread=51.98%
+P1  [r1.ax4]       240s  obj=504490      Z1=19.0     Z2=7339   Z3=593.0     feas=y   ran 200s  py3.12
+# [r1.ax5]
+== DIR2 generalisation done ==
+# [r1.ax5]
+WSTAT round=0 n=4 561136 738538 561136 809606  spread=44.28%
+P1  [r1.ax5]       240s  obj=561136      Z1=10.0     Z2=7222   Z3=788.0     feas=y   ran 203s  py3.12
+# [r1.dir]
+WSTAT round=0 n=4 538303 725211 504490 721435  spread=43.75%
+P1  [r1.dir]       240s  obj=504490      Z1=19.0     Z2=7339   Z3=593.0     feas=y   ran 201s  py3.12
+# [r1.share]
+RESTART wid=1 at 37% mine=765211 lead=472330
+RESTART wid=3 at 43% mine=850750 lead=472330
+WSTAT round=0 n=4 472330 765211 504490 682240  spread=62.01%
+P1  [r1.share]     240s  obj=472330      Z1=1.0      Z2=2221   Z3=765.0     feas=y   ran 201s  py3.12
+# [r1.dir2share]
+RESTART wid=1 at 34% mine=868916 lead=438791
+RESTART wid=3 at 35% mine=857417 lead=438791
+WSTAT round=0 n=4 438791 731452 439374 682240  spread=66.70%
+P1  [r1.dir2share]   240s  obj=438791      Z1=8.0      Z2=4085   Z3=622.0     feas=y   ran 201s  py3.12
+# [r1.dir2]
+WSTAT round=0 n=4 472330 765211 457938 805091  spread=75.81%
+P1  [r1.dir2]      240s  obj=457938      Z1=15.0     Z2=7311   Z3=560.0     feas=y   ran 201s  py3.12
+== AXP1 rep 1 done ==
+AXP1DONE

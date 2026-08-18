@@ -1,0 +1,15 @@
+# [p16.stock.r1]
+WSTAT round=0 n=4 3044339 3495836 3402108 3472515  spread=14.83%
+PARFILL round=1 parity=even even=3044339 odd=3472515 wids=[16, 18, 20, 22]
+FILL round=1 budget=62 moved=0 best=3010278
+P16 [p16.stock.r1]   240s  obj=3010278     Z1=123.0    Z2=1523   Z3=5463.0    feas=y   ran 240s  py3.12
+# [p16.ax2.r1]
+WSTAT round=0 n=4 2943407 3495836 2939957 3495836  spread=18.91%
+PARFILL round=1 parity=even even=2939957 odd=3495836 wids=[16, 18, 20, 22]
+FILL round=1 budget=69 moved=0 best=2932602
+P16 [p16.ax2.r1]   240s  obj=2932602     Z1=131.0    Z2=1493   Z3=4726.0    feas=y   ran 240s  py3.12
+# [p16.stock.r2]
+WSTAT round=0 n=4 3183508 3495836 3615093 4582171  spread=43.93%
+PARFILL round=1 parity=even even=3183508 odd=3495836 wids=[16, 18, 20, 22]
+FILL round=1 budget=66 moved=0 best=3179204
+P16 [p16.stock.r2]   240s  obj=3179204     Z1=142.0    Z2=2056   Z3=5119.0    feas=y   ran 238s  py3.12

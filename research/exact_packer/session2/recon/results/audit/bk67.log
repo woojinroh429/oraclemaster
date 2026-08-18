@@ -1,0 +1,72 @@
+# [r1.p1.base]
+WSTAT round=0 n=4 469427 652268 464757 788492  spread=69.66%
+PARFILL round=1 parity=even even=464757 odd=652268 wids=[16, 18, 20, 22]
+FILL round=1 budget=71 moved=0 best=464757
+P1  [r1.p1.base]   240s  obj=464757      Z1=9.0      Z2=3518   Z3=657.0     feas=y   ran 236s  py3.12
+# [r1.p1.bk67]
+WSTAT round=0 n=4 469427 757894 445311 788492  spread=77.07%
+PARFILL round=1 parity=even even=445311 odd=757894 wids=[16, 18, 20, 22]
+FILL round=1 budget=74 moved=0 best=445311
+P1  [r1.p1.bk67]   240s  obj=445311      Z1=24.0     Z2=6501   Z3=443.0     feas=y   ran 233s  py3.12
+# [r2.p1.base]
+WSTAT round=0 n=4 492458 652268 437484 722186  spread=65.08%
+PARFILL round=1 parity=even even=437484 odd=652268 wids=[16, 18, 20, 22]
+FILL round=1 budget=74 moved=0 best=437484
+P1  [r2.p1.base]   240s  obj=437484      Z1=15.0     Z2=4293   Z3=541.0     feas=y   ran 234s  py3.12
+# [r2.p1.bk67]
+WSTAT round=0 n=4 422629 652268 437484 755086  spread=78.66%
+PARFILL round=1 parity=even even=422629 odd=652268 wids=[16, 18, 20, 22]
+FILL round=1 budget=74 moved=0 best=422629
+P1  [r2.p1.bk67]   240s  obj=422629      Z1=7.0      Z2=3720   Z3=608.0     feas=y   ran 234s  py3.12
+# [r3.p1.base]
+WSTAT round=0 n=4 422629 689187 489878 837035  spread=98.05%
+PARFILL round=1 parity=even even=422629 odd=689187 wids=[16, 18, 20, 22]
+FILL round=1 budget=73 moved=0 best=422629
+P1  [r3.p1.base]   240s  obj=422629      Z1=7.0      Z2=3720   Z3=608.0     feas=y   ran 233s  py3.12
+# [r3.p1.bk67]
+WSTAT round=0 n=4 533181 689187 499210 781046  spread=56.46%
+PARFILL round=1 parity=even even=499210 odd=689187 wids=[16, 18, 20, 22]
+FILL round=1 budget=71 moved=0 best=499210
+P1  [r3.p1.bk67]   240s  obj=499210      Z1=19.0     Z2=7579   Z3=583.0     feas=y   ran 235s  py3.12
+== BK67 prob_1 done ==
+# [r1.p16.base]
+WSTAT round=0 n=4 2971222 3495836 3201701 4582171  spread=54.22%
+PARFILL round=1 parity=even even=2971222 odd=3495836 wids=[16, 18, 20, 22]
+FILL round=1 budget=61 moved=0 best=2962652
+P16 [r1.p16.base]   240s  obj=2962652     Z1=128.0    Z2=1926   Z3=5001.0    feas=y   ran 240s  py3.12
+# [r1.p16.bk67]
+WSTAT round=0 n=4 3147740 3199896 3403915 4582171  spread=45.57%
+PARFILL round=1 parity=even even=3147740 odd=3199896 wids=[16, 18, 20, 22]
+FILL round=1 budget=69 moved=0 best=3125748
+P16 [r1.p16.bk67]   240s  obj=3125748     Z1=147.0    Z2=1849   Z3=4641.0    feas=y   ran 240s  py3.12
+# [r1.p20.base]
+WSTAT round=0 n=4 11574455 9588128 12178833 8769505  spread=38.88%
+PARFILL round=1 parity=odd even=11574455 odd=8769505 wids=[17, 19, 21, 23]
+FILL round=1 budget=64 moved=0 best=8769505
+P20 [r1.p20.base]   240s  obj=8769505     Z1=1105.0   Z2=1065   Z3=9293.0    feas=y   ran 239s  py3.12
+# [r1.p20.bk67]
+WSTAT round=0 n=4 12251576 9282559 11358140 9195833  spread=33.23%
+PARFILL round=1 parity=odd even=11358140 odd=9195833 wids=[17, 19, 21, 23]
+FILL round=1 budget=58 moved=1 best=8730149
+P20 [r1.p20.bk67]   240s  obj=8730149     Z1=1093.0   Z2=71     Z3=9617.0    feas=y   ran 237s  py3.12
+# [r2.p16.base]
+WSTAT round=0 n=4 2905860 3469962 3233225 4534736  spread=56.05%
+PARFILL round=1 parity=even even=2905860 odd=3469962 wids=[16, 18, 20, 22]
+FILL round=1 budget=66 moved=0 best=2902331
+P16 [r2.p16.base]   240s  obj=2902331     Z1=133.0    Z2=1514   Z3=4498.0    feas=y   ran 237s  py3.12
+# [r2.p16.bk67]
+WSTAT round=0 n=4 2755393 3495836 3504405 3091086  spread=27.18%
+PARFILL round=1 parity=even even=2755393 odd=3091086 wids=[16, 18, 20, 22]
+FILL round=1 budget=64 moved=0 best=2755393
+P16 [r2.p16.bk67]   240s  obj=2755393     Z1=125.0    Z2=506    Z3=4349.0    feas=y   ran 238s  py3.12
+# [r2.p20.base]
+WSTAT round=0 n=4 11610914 8868533 11343809 9195833  spread=30.92%
+PARFILL round=1 parity=odd even=11343809 odd=8868533 wids=[17, 19, 21, 23]
+FILL round=1 budget=65 moved=1 best=8850352
+P20 [r2.p20.base]   240s  obj=8850352     Z1=1124.0   Z2=1243   Z3=8978.0    feas=y   ran 240s  py3.12
+# [r2.p20.bk67]
+WSTAT round=0 n=4 11466042 9274648 12178833 9124711  spread=33.47%
+PARFILL round=1 parity=odd even=11466042 odd=9124711 wids=[17, 19, 21, 23]
+FILL round=1 budget=66 moved=1 best=8850352
+P20 [r2.p20.bk67]   240s  obj=8850352     Z1=1124.0   Z2=1243   Z3=8978.0    feas=y   ran 239s  py3.12
+BK67DONE

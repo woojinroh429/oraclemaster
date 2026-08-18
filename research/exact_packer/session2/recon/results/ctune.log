@@ -1,0 +1,11 @@
+P6  flatbl     ord=rank    thr=0.30 obj=30498239    Z1=4341.0   Z2=1399   Z3=10304.0  feasible=True  built in 16s
+P6  flatbl     ord=rank    thr=0.45 obj=29122963    Z1=4139.0   Z2=2650   Z3=10047.0  feasible=True  built in 15s
+P6  flatbl     ord=rank    thr=0.75 obj=28567102    Z1=4046.0   Z2=5290   Z3=10334.0  feasible=True  built in 16s
+P6  flatbl     ord=rank    thr=0.90 obj=30596522    Z1=4370.0   Z2=1854   Z3=9646.0   feasible=True  built in 16s
+P6  flatbl     ord=rank    thr=1.00 obj=30819202    Z1=4400.0   Z2=394    Z3=9875.0   feasible=True  built in 16s
+P6  flatbl     ord=tri2    thr=0.60 obj=29897366    Z1=4260.0   Z2=2737   Z3=9827.0   feasible=True  built in 15s
+P6  flatbl     ord=stdens  thr=0.60 obj=33558111    Z1=4803.0   Z2=1995   Z3=10137.0  feasible=True  built in 14s
+P6  flatbl     ord=stdens_u thr=0.60 obj=31697447    Z1=4553.0   Z2=1737   Z3=8858.0   feasible=True  built in 13s
+P6  flatbl     ord=sac3    thr=0.60 obj=28261134    Z1=4022.0   Z2=2570   Z3=9506.0   feasible=True  built in 15s
+P6  flatbl     ord=prio    thr=0.60 obj=28727196    Z1=4094.0   Z2=806    Z3=9507.0   feasible=True  built in 15s
+CTUNE-DONE

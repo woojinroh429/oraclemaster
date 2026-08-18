@@ -1,0 +1,16 @@
+# [co.off.r1]
+WSTAT round=0 n=4 515188 729996 489878 766439  spread=56.46%
+P1  [co.off.r1]    120s  obj=489878      Z1=20.0     Z2=6646   Z3=561.0     feas=y   ran 79s  py3.12
+# [co.t100.no.r1]
+WSTAT round=0 n=4 1079289 1043662 966053 1288878  spread=33.42%
+P1  [co.t100.no.r1]   120s  obj=667853      Z1=44.0     Z2=6835   Z3=590.0     feas=y   ran 80s  py3.12
+# [co.t100.ord.r1]
+WSTAT round=0 n=4 1079289 999246 966053 1146179  spread=18.65%
+P1  [co.t100.ord.r1]   120s  obj=667853      Z1=44.0     Z2=6835   Z3=590.0     feas=y   ran 80s  py3.12
+# [co.t300.no.r1]
+WSTAT round=0 n=4 1802875 1601575 1754204 2070321  spread=29.27%
+P1  [co.t300.no.r1]   120s  obj=1663375     Z1=202.0    Z2=6947   Z3=493.0     feas=y   ran 77s  py3.12
+# [co.t300.ord.r1]
+WSTAT round=0 n=4 1698852 1601575 1784053 1893896  spread=18.25%
+P1  [co.t300.ord.r1]   120s  obj=1663375     Z1=202.0    Z2=6947   Z3=493.0     feas=y   ran 77s  py3.12
+# [co.off.r2]

@@ -1,0 +1,58 @@
+# ============================================================================
+# VOID -- CONTENDED BOX.  Every cell in this file was taken with at least one
+# other solver running.  Timeline from the in-flight commits:
+#   01:43-01:58:49  m120 live (believed cut, was not)
+#   01:45:05-02:04  rf7 live
+#   01:59-02:04:30  idle60 (first incarnation) live
+# m120's exit wrote 'idle' over a lock rf7 held -- the old protocol named no owner,
+# so any script's exit freed it for everyone.  Fixed in harness/lock.sh.
+# Nothing below is evidence.  The P1 ratio-mean of -3.77% reported from rf7 is
+# RETRACTED.  Re-run is harness/idle60.sh, whose arms are a superset of rf7's.
+# ============================================================================
+# [r.p1.50.r1]
+P1  [r.p1.50.r1]    60s  obj=682856      Z1=20.0     Z2=6372   Z3=884.0     feas=y   ran 33s  py3.12
+# [r.p1.05.r1]
+P1  [r.p1.05.r1]    60s  obj=661980      Z1=36.0     Z2=7256   Z3=667.0     feas=y   ran 58s  py3.12
+# [r.p1.50.r2]
+P1  [r.p1.50.r2]    60s  obj=628615      Z1=25.0     Z2=2380   Z3=758.0     feas=y   ran 36s  py3.12
+# [r.p1.05.r2]
+P1  [r.p1.05.r2]    60s  obj=665365      Z1=16.0     Z2=6831   Z3=897.0     feas=y   ran 57s  py3.12
+# [r.p1.50.r3]
+P1  [r.p1.50.r3]    60s  obj=708131      Z1=32.0     Z2=7529   Z3=787.0     feas=y   ran 33s  py3.12
+# [r.p1.05.r3]
+P1  [r.p1.05.r3]    60s  obj=665556      Z1=15.0     Z2=6717   Z3=909.0     feas=y   ran 58s  py3.12
+# [r.p1.50.r4]
+P1  [r.p1.50.r4]    60s  obj=701789      Z1=29.0     Z2=4682   Z3=824.0     feas=y   ran 35s  py3.12
+# [r.p1.05.r4]
+P1  [r.p1.05.r4]    60s  obj=665556      Z1=15.0     Z2=6717   Z3=909.0     feas=y   ran 59s  py3.12
+# [r.p1.50.r5]
+P1  [r.p1.50.r5]    60s  obj=708131      Z1=32.0     Z2=7529   Z3=787.0     feas=y   ran 34s  py3.12
+# [r.p1.05.r5]
+P1  [r.p1.05.r5]    60s  obj=689733      Z1=33.0     Z2=3574   Z3=765.0     feas=y   ran 58s  py3.12
+# [r.p1.50.r6]
+P1  [r.p1.50.r6]    60s  obj=651676      Z1=19.0     Z2=6801   Z3=841.0     feas=y   ran 35s  py3.12
+# [r.p1.05.r6]
+P1  [r.p1.05.r6]    60s  obj=575796      Z1=18.0     Z2=7130   Z3=724.0     feas=y   ran 58s  py3.12
+# [r.p3.50.r1]
+P3  [r.p3.50.r1]    60s  obj=5018446     Z1=167.0    Z2=7399   Z3=8274.0    feas=y   ran 48s  py3.12
+# [r.p3.05.r1]
+P3  [r.p3.05.r1]    60s  obj=4724467     Z1=101.0    Z2=7259   Z3=8137.0    feas=y   ran 60s  py3.12
+# [r.p16.50.r1]
+P16 [r.p16.50.r1]    60s  obj=3391521     Z1=172.0    Z2=2165   Z3=4367.0    feas=y   ran 55s  py3.12
+# [r.p16.05.r1]
+P16 [r.p16.05.r1]    60s  obj=4074109     Z1=212.0    Z2=1921   Z3=4967.0    feas=y   ran 60s  py3.12
+# [r.p2.50.r1]
+P2  [r.p2.50.r1]    60s  obj=7248605822  Z1=543654.0 Z2=16760  Z3=0.0       feas=y   ran 59s  py3.12
+# [r.p2.05.r1]
+P2  [r.p2.05.r1]    60s  obj=7248605822  Z1=543654.0 Z2=16760  Z3=0.0       feas=y   ran 59s  py3.12
+# [r.p13.50.r1]
+P13 [r.p13.50.r1]    60s  obj=4027473504  Z1=604088.0 Z2=18808  Z3=0.0       feas=y   ran 60s  py3.12
+# [r.p13.05.r1]
+P13 [r.p13.05.r1]    60s  obj=4027473504  Z1=604088.0 Z2=18808  Z3=0.0       feas=y   ran 60s  py3.12
+# [r.p3.50.r2]
+P3  [r.p3.50.r2]    60s  obj=4746896     Z1=133.0    Z2=6115   Z3=7994.0    feas=y   ran 53s  py3.12
+# [r.p3.05.r2]
+P3  [r.p3.05.r2]    60s  obj=4747327     Z1=83.0     Z2=6151   Z3=8307.0    feas=y   ran 60s  py3.12
+# [r.p16.50.r2]
+P16 [r.p16.50.r2]    60s  obj=3857784     Z1=205.0    Z2=1173   Z3=4484.0    feas=y   ran 49s  py3.12
+# [r.p16.05.r2]

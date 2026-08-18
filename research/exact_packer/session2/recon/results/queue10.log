@@ -1,0 +1,16 @@
+
+[STOPPED -- the question is now asked better elsewhere]
+
+queue10 asked which operator earns P3 across the roster the pipeline shipped with: beam,
+beam+grow, beam+bay, all.  That was the right question when the roster was all there was.
+
+It is not any more.  brk moves P3 by 17.75% paired, three reps against three, with disjoint
+bands -- more than the entire shipped roster's spread.  So "which of the old operators earns
+the budget" has become a question about the losers, while queue15 asks the version that decides
+anything: does the ALLOCATOR give brk what it can use, or is it living on the 15% exploration
+draw?  Those imply opposite work -- starved means the budget is the lever and tuning the
+operator is pointless; saturated means the reverse -- and queue15 measures exactly that with
+beam+brk against the full roster.
+
+Stopped so queue14 (push under 80,000) and queue15 reach the lock sooner.  Nothing is lost that
+queue15 does not cover.

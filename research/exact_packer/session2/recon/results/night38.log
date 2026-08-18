@@ -1,0 +1,26 @@
+engine pinned to the control build  06:37:42
+=== rep1 P4 myalgorithm (480s)  06:37:42
+P4  myalgorithm    480s  obj=3273791     Z1=201.0    Z2=1244   Z3=3901.0    ran 385s
+=== rep1 P4 myalg_base (480s)  06:44:17
+P4  myalg_base     480s  obj=1780253     Z1=88.0     Z2=2707   Z3=3920.0    ran 453s
+=== rep1 P4 myalg_orig (480s)  06:51:51
+P4  myalg_orig     480s  obj=2641820     Z1=156.0    Z2=1496   Z3=3676.0    ran 453s
+=== rep1 P5 myalgorithm (600s)  06:59:24
+P5  myalgorithm    600s  obj=8972672     Z1=636.0    Z2=1670   Z3=3618.0    ran 600s
+=== rep1 P5 myalg_base (600s)  07:09:25
+P5  myalg_base     600s  obj=9044458     Z1=639.0    Z2=2487   Z3=3814.0    ran 599s
+=== rep1 P5 myalg_orig (600s)  07:19:25
+P5  myalg_orig     600s  obj=9299083     Z1=667.0    Z2=1186   Z3=2990.0    ran 581s
+=== rep2 P4 myalgorithm (480s)  07:29:07
+P4  myalgorithm    480s  obj=3273791     Z1=201.0    Z2=1244   Z3=3901.0    ran 385s
+=== rep2 P4 myalg_base (480s)  07:35:33
+P4  myalg_base     480s  obj=1780253     Z1=88.0     Z2=2707   Z3=3920.0    ran 453s
+=== rep2 P4 myalg_orig (480s)  07:43:07
+P4  myalg_orig     480s  obj=2641820     Z1=156.0    Z2=1496   Z3=3676.0    ran 453s
+=== rep2 P5 myalgorithm (600s)  07:50:40
+P5  myalgorithm    600s  obj=8972672     Z1=636.0    Z2=1670   Z3=3618.0    ran 600s
+=== rep2 P5 myalg_base (600s)  08:00:42
+P5  myalg_base     600s  obj=9044458     Z1=639.0    Z2=2487   Z3=3814.0    ran 599s
+=== rep2 P5 myalg_orig (600s)  08:10:42
+P5  myalg_orig     600s  obj=9299083     Z1=667.0    Z2=1186   Z3=2990.0    ran 581s
+done  08:20:24

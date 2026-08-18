@@ -1,0 +1,1 @@
+harness/newaxis.sh: line 32: 24037 Killed                  env $4 OGC_WSTAT=1 timeout 300 /usr/bin/python3.12 harness/run1.py myalgorithm $3 60 "[$tag]" --data data/stage2 >> $L 2>&1

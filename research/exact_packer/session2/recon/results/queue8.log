@@ -1,0 +1,23 @@
+fastobj arms verified: fo (conw default) / foc0 (conw 0) / c0ctl (control, no patch)
+=== q8_fo_r1.log  (fastobj base r1)  03:39:31
+P3  fastobj base r1   240s  obj=101935      Z1=0.0      Z2=2537   Z3=595.0     feas=y   ran 239s
+=== q8_fo_r2.log  (fastobj base r2)  03:43:31
+P3  fastobj base r2   240s  obj=100935      Z1=0.0      Z2=2307   Z3=596.0     feas=y   ran 240s
+=== q8_fo_r3.log  (fastobj base r3)  03:47:32
+P3  fastobj base r3   240s  obj=106700      Z1=0.0      Z2=2680   Z3=622.0     feas=y   ran 239s
+=== q8_foc0_r1.log  (fastobj conw0 r1)  03:51:31
+P3  fastobj conw0 r1   240s  obj=113200      Z1=0.0      Z2=3830   Z3=627.0     feas=y   ran 239s
+=== q8_c0ctl_r1.log  (control conw0 r1)  03:55:31
+P3  control conw0 r1   240s  obj=114855      Z1=0.0      Z2=3471   Z3=650.0     feas=y   ran 239s
+=== q8_foc0_r2.log  (fastobj conw0 r2)  03:59:31
+P3  fastobj conw0 r2   240s  obj=98465       Z1=0.0      Z2=2653   Z3=568.0     feas=y   ran 239s
+=== q8_c0ctl_r2.log  (control conw0 r2)  04:03:31
+
+[STOPPED -- FASTOBJ measured, and it does nothing]
+
+    FASTOBJ  101,935 / 100,935 / 106,700   mean 103,190  width 5,765
+    control   96,990 / 106,700 / 106,700   mean 103,463  width 9,710
+
+273 points between the means, 0.26%.  _total costs 173ms against 0.13ms for the same number by
+arithmetic, so screening it looked like free throughput -- it is simply not a large part of what
+governs this instance.  The remaining conw0 pairs are not worth the lock while queue20 waits.

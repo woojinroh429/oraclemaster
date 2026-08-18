@@ -1,0 +1,37 @@
+arm and tier table verified
+=== STAGE 1  predictor gate 00:59:21
+=== on_pred_p4_r1.log (pred P4 r1) 00:59:21
+arm and tier table verified
+=== STAGE 1  predictor gate 02:24:08
+=== on_pred_p4_r1.log (pred P4 r1) 02:24:08
+P4  pred P4 r1     480s  obj=1781181     Z1=88.0     Z2=2561   Z3=3933.0    feas=y   ran 455s
+=== on_pred_p3_r1.log (pred P3 r1) 02:31:44
+P3  pred P3 r1     240s  obj=87990       Z1=0.0      Z2=3468   Z3=471.0     feas=y   ran 239s
+=== STAGE 2  (3,40,6) 02:35:43
+=== on_s3e6_r1.log (s3 n40 e6) 02:35:43
+P3  s3 n40 e6      240s  obj=84485       Z1=0.0      Z2=3397   Z3=450.0     feas=y   ran 289s
+=== on_s3e6_r2.log (s3 n40 e6 r2) 02:40:33
+P3  s3 n40 e6 r2   240s  obj=84485       Z1=0.0      Z2=3397   Z3=450.0     feas=y   ran 282s
+=== STAGE 3  P3 reps 02:45:16
+=== on_pred_p3_r2.log (pred P3 r2) 02:45:16
+P3  pred P3 r2     240s  obj=87990       Z1=0.0      Z2=3468   Z3=471.0     feas=y   ran 239s
+=== on_pred_p3_r3.log (pred P3 r3) 02:49:15
+P3  pred P3 r3     240s  obj=84990       Z1=0.0      Z2=3048   Z3=465.0     feas=y   ran 239s
+=== on_pred_p3_r4.log (pred P3 r4) 02:53:15
+P3  pred P3 r4     240s  obj=87990       Z1=0.0      Z2=3468   Z3=471.0     feas=y   ran 239s
+=== STAGE 4  six-problem sweep 02:57:14
+=== on_sweep_p1.log (sweep P1) 02:57:14
+P1  sweep P1        60s  obj=11280       Z1=0.0      Z2=33     Z3=73.0      feas=y   ran 45s
+=== on_sweep_p2.log (sweep P2) 02:58:00
+P2  sweep P2       120s  obj=31368       Z1=0.0      Z2=3342   Z3=90.0      feas=y   ran 119s
+=== on_sweep_p5.log (sweep P5) 02:59:59
+P5  sweep P5       600s  obj=9044458     Z1=639.0    Z2=2487   Z3=3814.0    feas=y   ran 599s
+=== on_sweep_p6.log (sweep P6) 03:09:59
+arm and tier table verified
+=== STAGE 1  predictor gate 04:53:59
+=== STAGE 2  (3,40,6) 04:53:59
+=== STAGE 3  P3 reps 04:53:59
+=== STAGE 4  six-problem sweep 04:53:59
+=== on_sweep_p6.log (sweep P6) 04:53:59
+P6  sweep P6       900s  obj=30471333    Z1=4453.0   Z2=1429   Z3=5145.0    feas=y   ran 886s
+=== overnight done 05:08:46

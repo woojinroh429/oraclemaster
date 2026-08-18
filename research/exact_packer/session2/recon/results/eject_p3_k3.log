@@ -1,0 +1,7 @@
+P3 myalg_base seed obj=102615 Z1=0.0 Z2=2943 Z3=586.0
+   21 blocks out of their preferred bay, 586 of Z3 conceded
+   sweep done at 37s: 0 accepted of 4,483 attempts, 6,386 scans
+      outsider never seated in its bay even with the victims gone : 3,808
+      seated, but a victim had nowhere to go                      : 89
+      landed (whole chain re-seated, delta was computed)          : 586
+      landed deltas: best +1585  median +20660  worst +41830  (negative = improvement)

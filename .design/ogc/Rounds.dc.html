@@ -1,0 +1,125 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+  <style>
+    body { margin: 0; }
+    a { color: #3a6089; }
+    a:hover { color: #2a4664; }
+  </style>
+</helmet>
+
+<div style="width: 1280px; height: 720px; background: #fbfaf7; color: #17191d; font-family: 'IBM Plex Sans KR', 'Malgun Gothic', sans-serif; display: flex; flex-direction: column; padding: 62px 96px 46px; box-sizing: border-box;">
+
+  <div style="display: flex; flex-direction: column; gap: 16px;">
+    <h2 style="margin: 0; font-size: 40px; font-weight: 600; letter-spacing: -0.015em;">두 라운드는 같은 모양이 아니다</h2>
+    <div style="height: 1px; background: #17191d;"></div>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 30px; margin-top: 38px; flex-grow: 1;">
+
+    <p style="margin: 0; font-size: 20px; line-height: 1.5; color: #3f434a;">목적함수에서 지각 <span style="font-family: 'IBM Plex Mono', monospace;">Z₁</span>이 차지하는 비중 — 인스턴스 40개씩, 균일한 60초 예산</p>
+
+    <div style="display: flex; flex-direction: column; gap: 26px;">
+
+      <div style="display: flex; align-items: center; gap: 32px;">
+        <div style="width: 158px; display: flex; flex-direction: column; gap: 3px;">
+          <div style="font-size: 20px; font-weight: 600; color: #3a6089;">예선 학습셋</div>
+          <div style="font-size: 15px; color: #6b6f76;">이봉분포</div>
+        </div>
+        <svg width="880" height="86" viewBox="0 0 880 86" style="flex-shrink: 0;">
+          <line x1="14" y1="43" x2="866" y2="43" stroke="#dddcd6" stroke-width="1"></line>
+          <g fill="#3a6089">
+            <circle cx="16" cy="43" r="6"></circle><circle cx="16" cy="29" r="6"></circle><circle cx="16" cy="57" r="6"></circle>
+            <circle cx="16" cy="15" r="6"></circle><circle cx="16" cy="71" r="6"></circle>
+            <circle cx="30" cy="36" r="6"></circle><circle cx="30" cy="50" r="6"></circle><circle cx="30" cy="22" r="6"></circle>
+            <circle cx="30" cy="64" r="6"></circle><circle cx="30" cy="8" r="6"></circle>
+            <circle cx="44" cy="43" r="6"></circle><circle cx="44" cy="29" r="6"></circle><circle cx="44" cy="57" r="6"></circle>
+            <circle cx="44" cy="15" r="6"></circle><circle cx="44" cy="71" r="6"></circle>
+            <circle cx="58" cy="36" r="6"></circle><circle cx="58" cy="50" r="6"></circle><circle cx="58" cy="22" r="6"></circle>
+            <circle cx="58" cy="64" r="6"></circle><circle cx="72" cy="43" r="6"></circle><circle cx="72" cy="29" r="6"></circle>
+          </g>
+          <rect x="92" y="6" width="118" height="74" fill="none" stroke="#a6552f" stroke-width="1.4" stroke-dasharray="5 4"></rect>
+          <g fill="#8fa9c0">
+            <circle cx="238" cy="43" r="6"></circle><circle cx="286" cy="36" r="6"></circle><circle cx="330" cy="43" r="6"></circle>
+            <circle cx="378" cy="50" r="6"></circle><circle cx="424" cy="43" r="6"></circle><circle cx="470" cy="36" r="6"></circle>
+            <circle cx="512" cy="43" r="6"></circle><circle cx="560" cy="50" r="6"></circle><circle cx="606" cy="43" r="6"></circle>
+            <circle cx="650" cy="36" r="6"></circle><circle cx="694" cy="43" r="6"></circle><circle cx="736" cy="50" r="6"></circle>
+            <circle cx="778" cy="43" r="6"></circle><circle cx="812" cy="36" r="6"></circle><circle cx="842" cy="43" r="6"></circle>
+            <circle cx="862" cy="50" r="6"></circle><circle cx="256" cy="57" r="6"></circle><circle cx="592" cy="29" r="6"></circle>
+            <circle cx="716" cy="29" r="6"></circle>
+          </g>
+        </svg>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 32px;">
+        <div style="width: 158px; display: flex; flex-direction: column; gap: 3px;">
+          <div style="font-size: 20px; font-weight: 600; color: #a6552f;">본선 학습셋</div>
+          <div style="font-size: 15px; color: #6b6f76;">연속 분포</div>
+        </div>
+        <svg width="880" height="60" viewBox="0 0 880 60" style="flex-shrink: 0;">
+          <line x1="14" y1="30" x2="866" y2="30" stroke="#dddcd6" stroke-width="1"></line>
+          <g fill="#a6552f">
+            <circle cx="26" cy="30" r="6"></circle><circle cx="47" cy="18" r="6"></circle><circle cx="68" cy="30" r="6"></circle>
+            <circle cx="89" cy="42" r="6"></circle><circle cx="110" cy="30" r="6"></circle><circle cx="131" cy="18" r="6"></circle>
+            <circle cx="152" cy="30" r="6"></circle><circle cx="173" cy="42" r="6"></circle><circle cx="194" cy="30" r="6"></circle>
+            <circle cx="215" cy="18" r="6"></circle><circle cx="236" cy="30" r="6"></circle><circle cx="257" cy="42" r="6"></circle>
+            <circle cx="278" cy="30" r="6"></circle><circle cx="299" cy="18" r="6"></circle><circle cx="320" cy="30" r="6"></circle>
+            <circle cx="341" cy="42" r="6"></circle><circle cx="362" cy="30" r="6"></circle><circle cx="383" cy="18" r="6"></circle>
+            <circle cx="404" cy="30" r="6"></circle><circle cx="425" cy="42" r="6"></circle><circle cx="446" cy="30" r="6"></circle>
+            <circle cx="467" cy="18" r="6"></circle><circle cx="488" cy="30" r="6"></circle><circle cx="509" cy="42" r="6"></circle>
+            <circle cx="530" cy="30" r="6"></circle><circle cx="551" cy="18" r="6"></circle><circle cx="572" cy="30" r="6"></circle>
+            <circle cx="593" cy="42" r="6"></circle><circle cx="614" cy="30" r="6"></circle><circle cx="635" cy="18" r="6"></circle>
+            <circle cx="656" cy="30" r="6"></circle><circle cx="677" cy="42" r="6"></circle><circle cx="698" cy="30" r="6"></circle>
+            <circle cx="719" cy="18" r="6"></circle><circle cx="740" cy="30" r="6"></circle><circle cx="761" cy="42" r="6"></circle>
+            <circle cx="782" cy="30" r="6"></circle><circle cx="810" cy="18" r="6"></circle><circle cx="838" cy="30" r="6"></circle>
+            <circle cx="862" cy="42" r="6"></circle>
+          </g>
+        </svg>
+      </div>
+
+      <div style="display: flex; gap: 32px; padding-left: 190px;">
+        <div style="font-family: 'IBM Plex Mono', monospace; font-size: 14px; color: #9a9ea4;">0%</div>
+        <div style="flex-grow: 1;"></div>
+        <div style="font-family: 'IBM Plex Mono', monospace; font-size: 14px; color: #9a9ea4;">100%</div>
+      </div>
+
+    </div>
+
+    <div style="display: flex; gap: 56px; margin-top: 4px;">
+      <div style="display: flex; align-items: baseline; gap: 12px;">
+        <span style="font-family: 'IBM Plex Mono', monospace; font-size: 38px; font-weight: 600; color: #3a6089;">21 / 40</span>
+        <span style="font-size: 17px; color: #3f434a;">이 정확히 0 — 빈 구간이 있다</span>
+      </div>
+      <div style="display: flex; align-items: baseline; gap: 12px;">
+        <span style="font-family: 'IBM Plex Mono', monospace; font-size: 38px; font-weight: 600; color: #a6552f;">0 / 40</span>
+        <span style="font-size: 17px; color: #3f434a;">전부 지각한다 — 15%p보다 큰 구멍이 없다</span>
+      </div>
+    </div>
+
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 14px;">
+    <div style="height: 1px; background: #dddcd6;"></div>
+    <p style="margin: 0; font-size: 21px; line-height: 1.5; color: #17191d;">첫 번째는 두 계층이 나뉘지만 <strong style="font-weight: 600;">경계가 관측되지 않고</strong>, 두 번째는 <strong style="font-weight: 600;">나눌 계층 자체가 없다.</strong> 그래서 인스턴스를 분류하는 스케줄러가 아니라, 어느 연산자가 값을 내고 있는지 <strong style="font-weight: 600; color: #a6552f;">측정하는</strong> 스케줄러를 만들었다.</p>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px;">
+      <span style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: #9a9ea4;">보고서 1.1</span>
+      <span style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: #9a9ea4;">2 / 11 · 1:00</span>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":1280,"height":720}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

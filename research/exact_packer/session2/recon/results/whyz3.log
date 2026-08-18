@@ -1,0 +1,6 @@
+P3 myalg_base  obj=96990  Z1=0.0 Z2=3108 Z3=543.0
+   24 of 200 blocks are not in their preferred bay, costing 543 of Z3
+   now        0 blocks (0 of Z3)  preferred bay was free at the time actually used -- nothing physical stopped it
+   free       0 blocks (0 of Z3)  fits at some entry time that costs no tardiness
+   blocked   24 blocks              preferred bay never available in the tardiness-free window
+   -> 0 of 543 conceded Z3 is recoverable without touching Z1, worth 0 of objective

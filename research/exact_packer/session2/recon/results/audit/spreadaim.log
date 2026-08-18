@@ -1,0 +1,56 @@
+# [r1.base.16]
+WSTAT round=0 n=4 4458874 3656247 4356665 3982108  spread=21.95%
+P16 [r1.base.16]   240s  obj=3612529     Z1=182.0    Z2=2141   Z3=4718.0    feas=y   ran 239s  py3.12
+# [r1.spread.16]
+WSTAT round=0 n=4 4582415 3139512 4006269 3732775  spread=45.96%
+P16 [r1.spread.16]   240s  obj=3112290     Z1=149.0    Z2=2141   Z3=4477.0    feas=y   ran 239s  py3.12
+# [r1.base.1]
+WSTAT round=0 n=4 612635 752151 501758 755924  spread=50.66%
+P1  [r1.base.1]    240s  obj=501758      Z1=17.0     Z2=7073   Z3=612.0     feas=y   ran 200s  py3.12
+# [r1.spread.1]
+WSTAT round=0 n=4 612635 609812 686702 757056  spread=24.15%
+P1  [r1.spread.1]   240s  obj=609812      Z1=20.0     Z2=5424   Z3=767.0     feas=y   ran 201s  py3.12
+# [r1.base.20]
+WSTAT round=0 n=4 10992174 9961920 11352873 9034631  spread=25.66%
+P20 [r1.base.20]   240s  obj=9034631     Z1=1157.0   Z2=1839   Z3=8708.0    feas=y   ran 239s  py3.12
+# [r1.spread.20]
+WSTAT round=0 n=4 10603731 11245765 10930145 10020409  spread=12.23%
+P20 [r1.spread.20]   240s  obj=10020409    Z1=1289.0   Z2=3112   Z3=9345.0    feas=y   ran 240s  py3.12
+# [r1.base.4]
+WSTAT round=0 n=4 2763198 2949564 2615319 2959043  spread=13.14%
+P4  [r1.base.4]    240s  obj=2615319     Z1=364.0    Z2=1236   Z3=2619.0    feas=y   ran 224s  py3.12
+# [r1.spread.4]
+WSTAT round=0 n=4 2905111 2763318 2895142 2936227  spread=6.26%
+P4  [r1.spread.4]   240s  obj=2763318     Z1=370.0    Z2=3704   Z3=2836.0    feas=y   ran 239s  py3.12
+# [r1.base.6]
+WSTAT round=0 n=4 5218417 5508037 5315482 5475572  spread=5.55%
+P6  [r1.base.6]    240s  obj=5218417     Z1=334.0    Z2=3148   Z3=5635.0    feas=y   ran 239s  py3.12
+# [r1.spread.6]
+WSTAT round=0 n=4 5237234 5356868 5595549 5818609  spread=11.10%
+P6  [r1.spread.6]   240s  obj=5237234     Z1=334.0    Z2=3347   Z3=5769.0    feas=y   ran 239s  py3.12
+REPDONE 1
+# [r2.base.16]
+WSTAT round=0 n=4 4345449 3642409 4140193 3953459  spread=19.30%
+P16 [r2.base.16]   240s  obj=3616510     Z1=182.0    Z2=1968   Z3=4736.0    feas=y   ran 239s  py3.12
+# [r2.spread.16]
+WSTAT round=0 n=4 4498971 3410727 4274228 3930175  spread=31.91%
+P16 [r2.spread.16]   240s  obj=3386396     Z1=167.0    Z2=1345   Z3=4623.0    feas=y   ran 239s  py3.12
+# [r2.base.1]
+WSTAT round=0 n=4 612635 752151 501758 759092  spread=51.29%
+P1  [r2.base.1]    240s  obj=501758      Z1=17.0     Z2=7073   Z3=612.0     feas=y   ran 200s  py3.12
+# [r2.spread.1]
+WSTAT round=0 n=4 516577 516577 686702 759092  spread=46.95%
+P1  [r2.spread.1]   240s  obj=516577      Z1=13.0     Z2=4102   Z3=696.0     feas=y   ran 200s  py3.12
+# [r2.base.20]
+WSTAT round=0 n=4 10952429 9159932 11178579 9573269  spread=22.04%
+P20 [r2.base.20]   240s  obj=9144888     Z1=1166.0   Z2=1052   Z3=9085.0    feas=y   ran 239s  py3.12
+# [r2.spread.20]
+WSTAT round=0 n=4 11059941 11043422 9646579 9086103  spread=21.72%
+P20 [r2.spread.20]   240s  obj=9086103     Z1=1157.0   Z2=1898   Z3=9048.0    feas=y   ran 232s  py3.12
+# [r2.base.4]
+WSTAT round=0 n=4 2789140 2931451 2615319 3118294  spread=19.23%
+P4  [r2.base.4]    240s  obj=2615319     Z1=364.0    Z2=1236   Z3=2619.0    feas=y   ran 228s  py3.12
+# [r2.spread.4]
+WSTAT round=0 n=4 2800387 2763318 3122929 3107149  spread=13.01%
+P4  [r2.spread.4]   240s  obj=2763318     Z1=370.0    Z2=3704   Z3=2836.0    feas=y   ran 239s  py3.12
+# [r2.base.6]

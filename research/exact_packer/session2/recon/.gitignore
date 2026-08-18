@@ -1,0 +1,74 @@
+engt/
+v71ship/
+*.log
+_*.py
+submit_build/
+data
+.artifacts/
+friend_ref/_*
+_n/
+myalg_base.py
+myalg_prev.py
+!results/
+!results/*.log
+# ...and the audit logs one level down.  `!results/*.log` does not reach results/audit/, which is
+# where every measurement queue actually writes, so those logs were untracked all day and four
+# container rewinds took them: mix40.log at 74 of 80 runs, rep722.log after all twelve had
+# finished, and twice before that.  The numbers survived only because they had been copied by
+# hand into the .md files beside them.  A measurement that is not committed did not happen.
+!results/audit/
+!results/audit/*.log
+# THE SAME BUG, THE SAME DAY, ONE DIRECTORY OVER.  The note above is about results/audit/; the
+# measurement sweeps for the report write to results/stage2/ and results/train2/, and `!results/*.log`
+# does not reach them either.  Forty final-round runs sat untracked through a container restart.
+# Every directory a sweep writes to has to be named here, not just the first one that bit us.
+!results/stage2/
+!results/stage2/*.log
+!results/train2/
+!results/train2/*.log
+myalg_c*.py
+myalg_sh*.py
+myalg_sw*.py
+myalg_n*.py
+myalg_p3w*.py
+myalg_dk*.py
+myalg_co.py
+myalg_sp*.py
+myalg_pl*.py
+myalg_lex.py
+myalg_sac3.py
+myalg_rank.py
+myalg_dk*.py
+myalg_pw.py
+
+# Every arm mkbase.py generates.  They are outputs, not sources: the builder is versioned and
+# each queue rebuilds its own arms before running them, so a committed copy is a stale duplicate
+# that can silently disagree with the builder it came from.  myalg_orig.py is the exception --
+# it is the pinned input -- and it is matched by none of these.
+myalg_div*.py
+myalg_wd*.py
+myalg_hm*.py
+myalg_fo*.py
+myalg_brk*.py
+myalg_ops.py
+myalg_q*.py
+myalg_s*.py
+
+# Stray queue marker.  chain.sh runs its stages from harness/, so a stage's own
+# `echo <name> > "$(dirname "$0")/CURRENT"` -- correct when it is launched as
+# harness/x.sh from recon/ -- resolves to ./CURRENT here instead.  harness/CURRENT keeps
+# saying `chain`, which is what a restart should resume, so the effect is right and the
+# file is litter.  chain.sh invokes by full path once it is not mid-run.
+/CURRENT
+
+# Staging tree for harness/rebuild.sh: freshly built .so plus symlinks back to this
+# directory, so the new build can be run against the old one before anything is
+# installed.  Regenerable from ogc_fast.cpp, which is tracked; the validated binaries
+# are committed in place, not from here.
+/build_new/
+
+# Sibling trees for harness/samebuild.sh: pre-patch and post-patch ogc_fast built
+# from identical command lines, so the only difference between them is the one hunk.
+# Regenerable from git; the validated binaries are committed in place, not from here.
+/build_pre/
+/build_post/

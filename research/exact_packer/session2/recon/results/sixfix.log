@@ -1,0 +1,17 @@
+== rebuild cranepack (total_s + self-timing build) 06:37:53
+ask = cap, no double charge, no knob, abort handled, build self-timing
+=== sf_p3.log (sixfix P3) 06:38:04
+P3  sixfix P3      240s  obj=84990       Z1=0.0      Z2=3048   Z3=465.0     feas=y   ran 239s
+=== sf_p6.log (sixfix P6) 06:42:04
+P6  sixfix P6      900s  obj=30016368    Z1=4376.0   Z2=2222   Z3=5492.0    feas=y   ran 900s
+=== sf_p4.log (sixfix P4) 06:57:04
+P4  sixfix P4      480s  obj=1781181     Z1=88.0     Z2=2561   Z3=3933.0    feas=y   ran 456s
+=== sf_p5.log (sixfix P5) 07:04:40
+P5  sixfix P5      600s  obj=9044458     Z1=639.0    Z2=2487   Z3=3814.0    feas=y   ran 599s
+=== sf_p1.log (sixfix P1) 07:14:40
+P1  sixfix P1       60s  obj=11280       Z1=0.0      Z2=33     Z3=73.0      feas=y   ran 45s
+=== sf_p2.log (sixfix P2) 07:15:25
+P2  sixfix P2      120s  obj=31368       Z1=0.0      Z2=3342   Z3=90.0      feas=y   ran 119s
+=== sf_p3_r2.log (sixfix P3 r2) 07:17:25
+P3  sixfix P3 r2   240s  obj=88725       Z1=0.0      Z2=3315   Z3=481.0     feas=y   ran 239s
+sixfix done 07:21:24

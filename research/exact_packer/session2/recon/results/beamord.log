@@ -1,0 +1,5 @@
+beam defer_big  obj=32059750    Z1=4678.0  Z2=1053  Z3=5754.0  feasible=True (65s)
+beam rank       obj=48160060    Z1=7056.0  Z2=401   Z3=7430.0  feasible=True (66s)
+beam sac3       obj=45031508    Z1=6586.0  Z2=2912  Z3=7329.0  feasible=True (66s)
+beam sac8       obj=43199589    Z1=6331.0  Z2=3514  Z3=6418.0  feasible=True (66s)
+beam sac20      obj=36582762    Z1=5324.0  Z2=3713  Z3=7053.0  feasible=True (65s)

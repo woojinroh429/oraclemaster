@@ -1,0 +1,3 @@
+# The seeded canvas is ~2 MB of editor payload and is regenerated from the
+# .dc.html artboards plus canvas.json on every change. Only the sources belong here.
+*-slides.html
